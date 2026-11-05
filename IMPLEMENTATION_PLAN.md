@@ -179,7 +179,7 @@ static func turn_for(turn_number: int, h: int) -> int: return left(h) if turn_nu
 | `area_id` | `StringName` | Area that owns the tile |
 | `turn_number` | `int` | Junctions only; 0-based (`turn_number` 0 expects **L**) |
 | `expected_exit` | `int` | Junctions only |
-| `junction` | `RoadTile` (weak ref) | For dead-end and first-exit tiles: the junction they belong to |
+| `junction` | `RoadTile` (weak ref) | For dead-end tiles: their junction; for correct-path tiles, use path indices to identify their junction's reachable correct exit |
 | `branch_exit` | `int` | For branch tiles: the heading of the junction exit they continue |
 | `branches` | `Array[RoadTile]` | Junctions only: owned dead-end tiles (freed with the junction) |
 | `set_piece` | `StringName` | `&"tunnel"`, `&"bridge"` or `&""` |
@@ -214,12 +214,21 @@ static func turn_for(turn_number: int, h: int) -> int: return left(h) if turn_nu
         assert(J.branches.size() > 0)
         J.type = CROSS if both wrong exits are present else T
         heading = exp; turn_count += 1
-        if schedule hits turn_count: pending_set_piece = entry.set_piece_length (0 if none); queue area switch
-        straight_left = pending_set_piece > 0 ? 0 : rng_road.randi_range(area.min_straight, area.max_straight)
+        if schedule hits turn_count:
+            pending_area = entry.area
+            if entry.set_piece_length > 0:
+                pending_set_piece = entry.set_piece_length
+                straight_left = 0
+            else:
+                current_area = pending_area; pending_area = null
+                straight_left = rng_road.randi_range(current_area.min_straight, current_area.max_straight)
+        else:
+            straight_left = rng_road.randi_range(current_area.min_straight, current_area.max_straight)
         claim, advance cursor, return J
     elif pending_set_piece > 0:
-        emit SET_PIECE straight tile (area = new area); pending_set_piece -= 1
-        when it reaches 0: current_area = new area; straight_left = randi_range(min,max)
+        emit SET_PIECE straight tile (area = current_area); pending_set_piece -= 1
+        when it reaches 0: current_area = pending_area; pending_area = null
+                          straight_left = randi_range(current_area.min_straight, current_area.max_straight)
     else:
         emit STRAIGHT tile; straight_left -= 1
   try_place_dead_end(J, dir, len):
@@ -229,7 +238,7 @@ static func turn_for(turn_number: int, h: int) -> int: return left(h) if turn_nu
              (last tile has a cap = exits only toward J); return 1
     return 0
   ```
-- **Area switches:** an area switch takes effect on the tile after the set piece, or on the first tile after the scheduled junction if there is no set piece. Every tile carries `area_id`. At runtime `area_changed` is emitted when the car enters the first tile of a new area (M4.3).
+- **Area switches:** scheduled junction and set-piece tiles retain the current area's `area_id`. If there is a set piece, switch `current_area` only after emitting its final tile; otherwise switch immediately after the scheduled junction and before sampling the following straight's length. The first subsequent tile carries the new area's `area_id`. At runtime `area_changed` is emitted when the car enters the first tile of a new area (M4.3).
 - **Proof sketch, checked by property tests:** the correct path is monotonic in −x and −y. Wrong exits always point "outward" (E/S, or straight on N/W while the path turns), so dead ends can only collide with **other dead ends**, never with the future correct path. With `min_straight >= 2` the 1-tile opposite stub cell is always free.
 - **Props:** `rng_props` places ground variants and props per tile into `tile.decor: Array[Dictionary]` (`{cell32: Vector2i, prop_id, variant}`), keeping `PropDef.min_distance_from_road`. The road stream is **never** used for props (`plan.md` §3.5).
 
@@ -253,7 +262,7 @@ static func turn_for(turn_number: int, h: int) -> int: return left(h) if turn_nu
 | `test_road_generator_pattern.gd` | Junction `expected_exit` follows L, R, L, R… starting with L; headings only N/W after turn 0 |
 | `test_road_generator_occupancy.gd` | Over 200 seeds × 500 turns: no shared cells; each junction has ≥ 1 branch; branch length 1..3 |
 | `test_road_buffer.gd` | Lookahead stays in 25..50 after random car advances (fuzzed); tiles behind −5 are freed along with their branches |
-| `test_area_schedule.gd` | Area switches and set pieces happen at turns 34 (tunnel → rural), 100 (bridge → meadows), 200 (village) and 220 (desert); desert still active at turn 1,000 |
+| `test_area_schedule.gd` | Area switches and set pieces happen at turns 34 (tunnel → rural), 100 (bridge → meadows), 200 (village) and 220 (desert); set-piece tiles keep the old area, the first following tile gets the new area, and no-set-piece switches occur before sampling the following straight; desert still active at turn 1,000 |
 | `test_road_geometry.gd` | `is_on_road` capsule cases |
 
 ---
@@ -292,14 +301,14 @@ static func turn_for(turn_number: int, h: int) -> int: return left(h) if turn_nu
 #### M2.3 `JunctionTrigger` (M) — `road/junction_trigger.gd`
 - Tracks `next_junction` (the first unresolved junction ahead on the path).
 - `on_cell_crossed(from_cell, to_cell, on_road)`: if `from_cell == next_junction.cell` and the car was on road, `choice = heading(to_cell - from_cell)`. Ignore the entry edge (`opposite(J.heading)`); re-entering the approach means no decision yet.
-- `on_rejoin(tile)`: if `tile.junction == next_junction` → `choice = tile.branch_exit`; if `tile` is the approach tile → no decision.
+- `on_rejoin(tile)`: if `tile.junction == next_junction` → `choice = tile.branch_exit`; otherwise, if `tile.path_index` is after `next_junction.path_index` and no later than the following junction's path index, the rejoin is on the correct exit → `choice = next_junction.expected_exit`. If `tile` is the approach tile, make no decision.
 - `resolve(choice)`: if equal to `expected_exit` → `GameState.turn_index += 1`, emit `turn_completed`, and set `next_junction` to the next one; otherwise emit `disaster_triggered(area, junction)`.
 - `on_offroad_limit()` with a pending junction → `disaster_triggered` (missed turn).
 - Straight on at a T-junction with no straight exit leaves the road at the far edge, which then hits the off-road limit and becomes a disaster. No special case is needed.
 
 #### M2.4 `CarController` and car scene (M) — `car/car.tscn`, `car/car_controller.gd`
 - `Node2D` with `Sprite2D` (16-direction sheet; grey box = 16 coloured arrows), `GPUParticles2D` dust, and `AudioStreamPlayer2D` engine.
-- `_physics_process(delta)`: `sim.step(delta, input.steer)`, then `position = Iso.tile_to_world(sim.pos)`. Frame = `round(screen_angle / (TAU/16)) % 16`, where `screen_angle` is the angle of the isometric-projected velocity.
+- `_physics_process(delta)`: `sim.step(delta, input.steer)`, then `position = Iso.tile_to_world(sim.pos)`. Frame = `posmod(roundi(screen_angle / (TAU / 16.0)), 16)`, where `screen_angle` is the angle of the isometric-projected velocity.
 - Y-sorting: the car lives under `World/Props` (`y_sort_enabled`), with the sprite offset so the pivot is at the base.
 
 #### M2.5 `CameraRig` (S) — `world/camera_rig.gd`
@@ -320,7 +329,7 @@ static func turn_for(turn_number: int, h: int) -> int: return left(h) if turn_nu
 |---|---|
 | `tests/unit/test_car_sim_speed.gd` | Speed rises along a straight; the top speed grows with `dist_total` and is capped; braking to `junction_speed` starts at `brake_distance` for **both** correct and wrong approaches; it accelerates again afterwards |
 | `tests/unit/test_car_sim_offroad.gd` | Damage per second; limit on a straight → crash; limit near a junction → missed-turn disaster; health 0 → crash |
-| `tests/unit/test_junction_trigger.gd` | Correct exit → `turn_completed`; wrong exit, or straight at a crossroads → disaster; rejoin on the correct exit → success with damage; rejoin on a dead end → disaster |
+| `tests/unit/test_junction_trigger.gd` | Correct exit → `turn_completed`; wrong exit, or straight at a crossroads → disaster; rejoin on the first or second reachable correct-path tile → success with damage; rejoin on a dead end → disaster |
 | `tests/sim/test_autopilot_300_turns.gd` | `Autopilot` (pure pursuit on the correct-path centreline) completes 300+ turns for 20 seeds with no disaster, at fixed `delta = 1/60` |
 | `tests/sim/test_corner_cut.gd` | A scripted path that cuts the inside corner and rejoins within 2 tiles → correct turn, health < 100 |
 | `tests/integration/test_main_scene_boot.gd` | `main.tscn` instantiates, starts a run with seed 1, runs 600 frames, and logs no errors |
@@ -421,7 +430,7 @@ Schedule: `0 → city`, `34 → rural (tunnel, 6 tiles)`, `100 → meadows (brid
 ### M6 — Ship
 
 #### M6.1 Orientation and foldables (M)
-- Settings orientation → `DisplayServer.screen_set_orientation(SCREEN_SENSOR | SCREEN_PORTRAIT | SCREEN_LANDSCAPE)`.
+- Map the saved orientation setting to exactly one value (`sensor` → `DisplayServer.SCREEN_SENSOR`, `portrait` → `DisplayServer.SCREEN_PORTRAIT`, `landscape` → `DisplayServer.SCREEN_LANDSCAPE`) and pass only that value to `DisplayServer.screen_set_orientation()`.
 - Every layout-dependent node (`CameraRig`, HUD, `TouchZones`) listens to `get_viewport().size_changed`; the run state is never touched by this path.
 - Android: `display/window/size/resizable=true` → `resizeableActivity=true` (checked in the Godot 4.7.2 export plugin). Godot's activity already declares `configChanges` for screen size and orientation, so fold/unfold does **not** recreate the activity. Verify on the device (M6.5).
 
@@ -545,7 +554,7 @@ runs:
         sdk="${ANDROID_HOME:-/usr/lib/android-sdk}"
         sdkm="$sdk/cmdline-tools/latest/bin/sdkmanager"
         [ -x "$sdkm" ] || sdkm="$(command -v sdkmanager)"
-        yes | "$sdkm" --licenses > /dev/null
+        "$sdkm" --licenses > /dev/null < <(yes)
         "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0"
 
     - name: Restore Godot import cache
@@ -860,7 +869,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           draft=""; [ "${{ github.event_name }}" = "workflow_dispatch" ] && draft="--draft"
-          gh release create "$VERSION" dist/* --repo "${{ github.repository }}" \
+          gh release create "$VERSION" dist/* --repo "${{ github.repository }}" --target "$GITHUB_SHA" \
             --title "Road Roguelike $VERSION" --generate-notes $draft
 ```
 
