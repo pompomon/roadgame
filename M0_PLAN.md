@@ -190,7 +190,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 3. Push and check:
    - All three export checks are green.
    - The `web`, `android-Android APK` and `android-Android AAB` artifacts exist.
-   - Note the durations of the NDK install and the Gradle build.
+   - Note the durations of the NDK install and the Gradle build, and the free disk space that the "Disk usage" step prints (§8).
    - The AAB job's "Post Cache Gradle" step saves `gradle-godot-<version>`, and a re-run restores it (F31).
 4. Manual checks (E6):
    - **Android:** run `adb install -r roadgame-debug.apk`. The app opens, shows "Road Roguelike 0.0.0" and follows the sensor orientation.
@@ -341,6 +341,7 @@ Changes from IP §7.4:
   - **F22:** runs actionlint 1.7.12.
 - `test`: **F2:** a new "Load every script" step runs before GUT.
 - Export jobs: **F12:** on failure, `build/reports` is uploaded as `export-log-web` or `export-log-<apk|aab>`; the matrix gains a `slug`.
+- `export-android` runs a "Disk usage" step right after the export, even when the export fails: `df -h`, plus the sizes of the Android SDK and the Gradle home (§8).
 
 Job and check names are unchanged.
 
@@ -440,7 +441,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 |---|---|
 | The agent setup on a GitHub runner | 1 |
 | Image pull time; `godot-env` moving templates and settings; the import cache | 2 |
-| Web, APK and AAB exports with templates; SDK and NDK install; the Gradle cache; artifact contents | 3 |
+| Web, APK and AAB exports with templates; SDK and NDK install; the Gradle cache; artifact contents; free disk space | 3 |
 | Pages deploy; the release dry run | 4 |
 
 ---
@@ -466,7 +467,7 @@ Agents can't change repository settings. The current state was read with `gh api
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Image pulls: about 2.6 GB × 4 per run, plus Docker Hub's anonymous pull limits | Slow or red CI | Measure in PRs 2 and 3. If a pull takes more than 2 min, run `test` on the plain runner with the direct Godot download (it needs no templates). Otherwise use `container.credentials`, or mirror the image to GHCR |
-| Runner disk: the image, NDK 29 and Gradle | The AAB job fails with "No space left on device" | Print `df -h` in PR 3. Remove unused SDK packages or preinstalled runner tools if needed |
+| Runner disk: the image, NDK 29 and Gradle | The AAB job fails with "No space left on device" | `export-android` prints `df -h` and the SDK and Gradle sizes after every export, even a failed one (PR 3). If space runs low, remove unused SDK packages or preinstalled runner tools |
 | NDK 29 is downloaded on every AAB run | Each AAB job takes 1–3 min longer | If it takes more than 2 min, cache `$ANDROID_HOME/ndk/29.0.14206865` with `actions/cache`, keyed on the NDK version |
 | Gradle's first-run downloads; flaky network | A red AAB check | The Gradle cache, `fail-fast: false` and re-runs. If it keeps happening, take the Q1 alternative |
 | gdformat can produce indentation that Godot rejects after multi-line lambda bodies (Scony/godot-gdscript-toolkit#424, open) | `lint` and Godot disagree | Prefer named functions to multi-line lambdas inside call arguments; `check_scripts.sh` catches the result. `@abstract` works with gdtoolkit 4.5.0 (verified) |
@@ -1373,6 +1374,12 @@ jobs:
           key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
       - name: Export (debug keystore from the CI image)
         run: tools/ci/export.sh "${{ matrix.preset }}" "build/android/${{ matrix.file }}" debug
+      - name: Disk usage
+        if: always()
+        run: |
+          # The image, the SDK and NDK, and Gradle share the runner's disk (M0_PLAN.md §8).
+          df -h / "$GITHUB_WORKSPACE"
+          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" "$HOME/.gradle" 2>/dev/null || true
       - uses: actions/upload-artifact@v7
         with:
           name: android-${{ matrix.preset }}
