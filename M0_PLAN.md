@@ -99,7 +99,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F23 | The import cache key uses `runner.os`, which is always Linux. After a Godot bump, `restore-keys` can restore the old version's cache. | Key on `GODOT_TEMPLATE_VERSION` |
 | F24 | IP `check_versions.sh` exits silently when no tag is found (`set -e` with `pipefail` inside `$(…)`). It scans only `.github/workflows/`, accepts tags such as `4.7` or `4.7.2.1`, truncates `4.7.2-rc1` or `4.7.2${{ matrix.suffix }}` to `4.7.2`, skips `latest`, and ignores the agent setup. | Rewritten (spike N8, N8b). It compares complete tags, including any `$` or `{}` part (PR 2 reviews, N8c) |
 | F25 | `build/` is not `.gdignore`d, so the editor imports exported files such as `build/web/index.png`, and a later export packs them. | Commit `build/.gdignore` (`.gitignore`: `/build/*` plus `!/build/.gdignore`); `_common.sh` recreates it |
-| F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`. That check uses `case` on the `unzip -l` text, because `unzip \| grep -q` can fail with SIGPIPE under `pipefail` |
+| F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`: `grep -qE '(^\|/)lib/arm64-v8a/[^/]+\.so$'` over the `unzip -Z1` names (one per line), read from a here-string because `unzip \| grep -q` can fail with SIGPIPE under `pipefail`. The first version ran a `case` glob over the whole `unzip -l` text, where `*` also matches newlines (PR 3 review, N17) |
 | F27 | `release.yml` has no `defaults.run.shell: bash`, so inline steps run without `pipefail`. Its `test` job skips the script-loading check, three jobs have no `timeout-minutes`, and scripts use `${{ … }}` where env vars exist. It is otherwise actionlint-clean. | Fixed in Appendix B |
 | F28 | The scripts assume GNU tools (`sed -i -E`), bash 4, and `godot` on `PATH`. | Bash 3.2 and BSD tools (macOS), no `sed -i`, `timeout` or `gtimeout`, and a `GODOT=/path/to/godot` override. Not run on macOS |
 
@@ -395,7 +395,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15 and N16 while implementing PR 3.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15–N17 while implementing PR 3.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -425,6 +425,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N14c | `tests/gut_post_run.gd` is deleted | `run_tests.sh` fails, but only at the 900 s limit: GUT logs `[GUT ERROR]` and aborts the run without quitting | — |
 | N15 | `import_etc2_astc=true` removed from `project.godot`; export in the CI image | `export.sh "Android APK" …` fails: "ETC2/ASTC texture compression is required for Android export". With the line, the APK exports | — (F30) |
 | N16 | After `import.sh`, add a corrupt `bad.png`; then `export.sh "Web" build/web/index.html release` | Fails on `ERROR: Error importing 'res://bad.png'` | Passes: Godot exits 0 and writes every file (F10; PR 3 review) |
+| N17 | Run `export.sh "Android APK" build/android/t.apk debug` with a fake `GODOT` that copies in an APK holding only `lib/arm64-v8a/readme.txt` and `lib/armeabi-v7a/libgodot_android.so` | Fails: "contains no arm64-v8a native library" | Passes: only the file size is checked. The first PR 3 check passed it too, because its `case` glob matched across lines (F26; PR 3 review) |
 
 ### 6.3 Verified only in CI
 
@@ -1083,11 +1084,11 @@ case "$out" in
     done
     ;;
   *.apk | *.aab)
-    listing=$(unzip -l "$out")
-    case "$listing" in
-      *lib/arm64-v8a/*.so*) ;;
-      *) echo "::error::$out contains no arm64-v8a native library"; exit 1 ;;
-    esac
+    # One entry per line, matched line by line. A here-string, because unzip | grep -q can
+    # fail with SIGPIPE under pipefail.
+    names=$(unzip -Z1 "$out")
+    grep -qE '(^|/)lib/arm64-v8a/[^/]+\.so$' <<< "$names" \
+      || { echo "::error::$out contains no arm64-v8a native library"; exit 1; }
     ;;
 esac
 echo "Exported '$preset' to $out"
