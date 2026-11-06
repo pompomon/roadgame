@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run every GUT test and write build/reports/gut-junit.xml. GUT exits 0 when a test script does
 # not parse or the project was never imported, so the log and the JUnit total are checked too.
+# The post-run hook tests/gut_post_run.gd makes GUT exit 1 on errors in setup/teardown hooks.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 

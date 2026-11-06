@@ -68,6 +68,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F5 | No time limits. A `-s` script (GUT, check_scripts) that hits a runtime error before `quit()` never exits, so the job runs until the 6 h default timeout. | Spike N12: `SCRIPT ERROR`, then a hang | `run_godot` (`_common.sh`) wraps every Godot run in `timeout -k 10 <s>`; every job sets `timeout-minutes` |
 | F6 | M0.1 gives `project.godot` no `config/version`. `stamp_version.sh` uses `sed`, which silently changes nothing when the key is missing, so releases keep the default version. Also:<br>- `08` is invalid octal in `$((…))`<br>- no input validation (`1.2`, `1.2.3-rc1`)<br>- parts ≥ 1000 break the D9 ordering | Spike N9–N9f | Add `config/version="0.0.0"`. The new `stamp_version.sh` validates `[v]X.Y.Z` (each part 0–999), uses `10#`, fails on a missing key and keeps the file mode |
 | F7 | In a container job, `${{ runner.temp }}` expands to the host path, not the container path. `release.yml` decodes the keystore to `$RUNNER_TEMP` but passes Godot `${{ runner.temp }}/release.keystore`, so signed exports fail at M6.4. | actions/runner#2498 | One step sets `GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/release.keystore"`, decodes the keystore, exports and removes it with `trap` |
+| F29 | GUT fails a test only for errors raised in its body. A `push_error()` or engine error in `before_all`, `before_each`, `after_each` or `after_all` is tracked under `GutUtils.NO_TEST` and never checked, so GUT exits 0 and the JUnit file shows no failure. | PR 2 review; N14 | Post-run hook `tests/gut_post_run.gd` (`post_run_script` in `.gutconfig.json`) sets exit code 1 on unhandled errors outside test bodies. Errors that a hook asserts (`assert_push_error()` and the like) are marked handled and still pass (N14b) |
 
 ### Medium
 
@@ -145,7 +146,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 |---|---|
 | Project | `project.godot` (§5.1), `icon.svg` (Godot's default) plus `icon.svg.import`, `ui/main.tscn`, `ui/main.gd` and `.uid` |
 | Repo hygiene | `.gitignore`, `.gitattributes`, `build/.gdignore` (§5.2) |
-| Tests | `addons/gut/` (GUT 9.7.1), `.gutconfig.json`, `tests/unit/test_smoke.gd` and `.uid` |
+| Tests | `addons/gut/` (GUT 9.7.1), `.gutconfig.json`, `tests/unit/test_smoke.gd` and `tests/gut_post_run.gd` (F29), each with its `.uid` |
 | Lint | `.gdlintrc` |
 | CI scripts | `tools/ci/_common.sh`, `import.sh`, `check_scripts.sh`, `check_scripts.gd` and `.uid`, `run_tests.sh`, `smoke.sh`, `lint.sh`, `check_versions.sh` |
 | CI | `.github/actions/godot-env/action.yml` without the `android` input and step; `.github/workflows/ci.yml` with only the `lint` and `test` jobs |
@@ -155,7 +156,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 2. Vendor GUT: from the release at https://github.com/bitwes/Gut/releases/tag/v9.7.1, copy only `addons/gut/` (keep its `.uid` files).
 3. Add these files:
    - `ui/main.*`
-   - `tests/unit/test_smoke.gd`
+   - `tests/unit/test_smoke.gd` and `tests/gut_post_run.gd`
    - `.gutconfig.json`
    - `.gdlintrc`
    - `.gitignore`, `.gitattributes`, `build/.gdignore`
@@ -272,7 +273,7 @@ Commit `*.uid`, `*.import` and `addons/gut/**`. Never commit `.godot/`, `android
 - `max-returns: 6`
 - `class-definitions-order`: tool, class_name, extends, docstring, signals, enums, consts, static vars, exports, public vars, private vars, onready public vars, onready private vars, others
 
-**`.gutconfig.json` Δ F9:** `"dirs": ["res://tests/"]`. All other options are as in IP.
+**`.gutconfig.json` Δ F9, F29:** `"dirs": ["res://tests/"]` and `"post_run_script": "res://tests/gut_post_run.gd"`. All other options are as in IP.
 
 ### 5.4 `export_presets.cfg`
 
@@ -298,7 +299,7 @@ Every script sources `_common.sh`, which does the following:
 |---|---|---|---|
 | `import.sh` | 900 s | Godot exits non-zero, or the log has any error line | F10 |
 | `check_scripts.sh` + `check_scripts.gd` | 300 s | Any error line, or the "loaded N scripts" line is missing | new, F2 |
-| `run_tests.sh` | 900 s | A parse or load error, "have not been imported" or `[GUT ERROR]` appears; GUT exits non-zero; the JUnit file is missing; 0 tests ran | F1, F3, F9 |
+| `run_tests.sh` | 900 s | A parse or load error, "have not been imported" or `[GUT ERROR]` appears; GUT exits non-zero, which includes an unhandled error in a setup or teardown hook; the JUnit file is missing; 0 tests ran | F1, F3, F9, F29 |
 | `smoke.sh` | 300 s | Godot exits non-zero, or the log has any error line | F10 |
 | `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck or `check_versions.sh` fails | F4, F8, F22 |
 | `check_versions.sh` | — | The godot-ci tags differ or aren't `x.y.z`; the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
@@ -378,7 +379,7 @@ pip install -r tools/ci/requirements.txt    # gdtoolkit 4.5.0, Python 3.12
 export GODOT=/path/to/godot-4.7.2           # optional; the default is godot on PATH
 tools/ci/lint.sh             # → Godot 4.7.2 is pinned consistently
 tools/ci/import.sh
-tools/ci/check_scripts.sh    # → check_scripts: loaded 3 scripts
+tools/ci/check_scripts.sh    # → check_scripts: loaded 4 scripts
 tools/ci/run_tests.sh        # → GUT: 2 tests passed
 tools/ci/smoke.sh
 ```
@@ -388,7 +389,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike, N13 while implementing PR 2.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N13 and N14 while implementing PR 2.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -411,6 +412,9 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N11 | `godot --headless --path . --export-pack "Web" build/t.pck` | With `exclude_filter`: 0 `tests/`/`tools/` paths. Without: 510 GUT and 8 test/tool paths | — (F13) |
 | N12 | A `-s` script with a runtime error before `quit()` | `run_godot` stops it: exit 124, "did not finish within" | Hangs until the job timeout (F5) |
 | N13 | A corrupt `bad.png` in the project (run without fontconfig, like the CI image) | `import.sh` fails on `ERROR: Error importing 'res://bad.png'`; the fontconfig lines are ignored | Passes: Godot exits 0 and only script errors are scanned (F10) |
+| N14 | `push_error("x")` in a test's `before_each()`; likewise `before_all`, `after_each`, `after_all` or an engine error there | `run_tests.sh` fails: "Unexpected errors outside test bodies", GUT exit 1 | Passes: GUT exits 0 (F29) |
+| N14b | `before_all()` calls `push_error("x")`, then `assert_push_error("x")` | `run_tests.sh` passes | Passes ✓ |
+| N14c | `tests/gut_post_run.gd` is deleted | `run_tests.sh` fails, but only at the 900 s limit: GUT logs `[GUT ERROR]` and aborts the run without quitting | — |
 
 ### 6.3 Verified only in CI
 
@@ -548,7 +552,8 @@ _Added in PR 2._
   "suffix": ".gd",
   "log_level": 1,
   "should_exit": true,
-  "should_exit_on_success": true
+  "should_exit_on_success": true,
+  "post_run_script": "res://tests/gut_post_run.gd"
 }
 ```
 
@@ -618,6 +623,31 @@ func test_main_scene_shows_version() -> void:
 	add_child_autofree(main)
 	var label: Label = main.get_node("%Label")
 	assert_string_contains(label.text, "Road Roguelike")
+```
+
+### `tests/gut_post_run.gd`
+
+_Added in PR 2 (F29)._
+
+```gdscript
+extends GutHookScript
+## GUT post-run hook (post_run_script in .gutconfig.json). GUT fails a test only for errors raised
+## in its body. Errors from before_all, before_each, after_each and after_all are tracked under
+## GutUtils.NO_TEST and would leave the run green, so this hook fails the run on them. Errors that
+## a hook asserts (assert_push_error() and the like) are marked handled and do not count.
+
+
+func run() -> void:
+	var tracker: GutErrorTracker = gut.error_tracker
+	if tracker.should_test_fail_from_errors(GutUtils.NO_TEST):
+		gut.logger.failed(
+			str(
+				"Unexpected errors outside test bodies (before_all, before_each, after_each",
+				" or after_all):\n",
+				tracker.get_fail_text_for_errors(GutUtils.NO_TEST)
+			)
+		)
+		set_exit_code(1)
 ```
 
 ### `tools/ci/requirements.txt`
@@ -766,6 +796,7 @@ _Added in PR 2._
 #!/usr/bin/env bash
 # Run every GUT test and write build/reports/gut-junit.xml. GUT exits 0 when a test script does
 # not parse or the project was never imported, so the log and the JUnit total are checked too.
+# The post-run hook tests/gut_post_run.gd makes GUT exit 1 on errors in setup/teardown hooks.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
