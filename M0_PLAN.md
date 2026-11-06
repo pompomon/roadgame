@@ -88,6 +88,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F18 | Godot 4.4+ generates files that must be committed: `*.uid` (script UIDs) and `*.import` (import settings, which are also part of the import cache key). Scripts committed without the executable bit fail in CI with "Permission denied". | Spike: `--import` created `*.gd.uid` and `icon.svg.import` | Commit them; `git add --chmod=+x tools/ci/*.sh`; `.gitattributes` with `* text=auto eol=lf` |
 | F19 | Release versions are inconsistent. Tag pushes give `v1.2.3`, but the manual input suggests `0.1.0`, which creates a tag without the `v` that doesn't match `v*.*.*`. Nothing checks the version before the 40-minute Android build starts. | IP §7.5 | The manual input is the tag itself (`v0.1.0`). The first step of `test` validates it |
 | F20 | Every Godot job pulls `barichello/godot-ci:4.7.2`, about 2.6 GB compressed. That is 4 pulls per CI run and 3 per release, which costs time and disk and runs into Docker Hub's anonymous pull limits. | Docker Hub tag size | Measure in PR 2 and PR 3; mitigations in §8 (Q6) |
+| F31 | The Gradle cache is never saved. In container jobs `$HOME` is `/github/home`, but Java takes `user.home` from `/etc/passwd` (`/root`). Gradle therefore uses `/root/.gradle`, the cache step finds no `~/.gradle`, and `actions/cache` only warns: "Path(s) specified in the action for caching do(es) not exist". | PR 3 CI (AAB job of #8). In the image with `HOME=/github/home`, `java -XshowSettings:properties` prints `user.home = /root` | `godot-env`'s Android step sets `GRADLE_USER_HOME=$HOME/.gradle`, so Gradle and the cache step in `ci.yml` and `release.yml` use the same folder |
 
 ### Low
 
@@ -179,7 +180,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 - `export_presets.cfg`
 - `tools/ci/export.sh`
 - `project.godot`: add `import_etc2_astc=true` (F30)
-- `godot-env`: add the `android` input and the SDK/NDK step
+- `godot-env`: add the `android` input and the SDK/NDK step, which also sets `GRADLE_USER_HOME` (F31)
 - `ci.yml`: add `export-web` and `export-android` (without the Pages steps)
 
 1. Add `export_presets.cfg`. The Appendix A version contains only the key options, and Godot uses defaults for the rest; this was verified with `--export-pack`. Optionally, open Project → Export once in the 4.7.2 editor and save, which writes every default explicitly; keep the §5.4 options, including `exclude_filter`.
@@ -188,6 +189,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
    - All three export checks are green.
    - The `web`, `android-Android APK` and `android-Android AAB` artifacts exist.
    - Note the durations of the NDK install and the Gradle build.
+   - The AAB job's "Post Cache Gradle" step saves `gradle-godot-<version>`, and a re-run restores it (F31).
 4. Manual checks (E6):
    - **Android:** run `adb install -r roadgame-debug.apk`. The app opens, shows "Road Roguelike 0.0.0" and follows the sensor orientation.
    - **Web:** unzip `web`, serve it with `python3 -m http.server -d <dir> 8000`, and open it in Chrome and Firefox.
@@ -324,6 +326,7 @@ Every script sources `_common.sh`, which does the following:
 - **Δ F11:** adds `"ndk;29.0.14206865"` to the SDK install.
 - **Δ F23:** the cache key is `godot-import-<GODOT_TEMPLATE_VERSION>-<hash>`.
 - The `android` input and the Android step arrive in PR 3.
+- **Δ F31 (PR 3):** the Android step sets `GRADLE_USER_HOME=$HOME/.gradle`, the folder the Gradle cache saves.
 
 ### 5.7 `.github/workflows/ci.yml`
 
@@ -1192,7 +1195,7 @@ description: >
   restore the import cache and import the project.
 inputs:
   android:
-    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds
+    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds and set GRADLE_USER_HOME
     default: "false"
 runs:
   using: composite
@@ -1222,6 +1225,9 @@ runs:
         # Versions from Godot 4.7.2 platform/android/java/app/config.gradle. Without the NDK,
         # Gradle downloads it during the build or skips stripping the native libraries.
         "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
+        # Java takes user.home from /etc/passwd (/root), not $HOME (/github/home in container jobs),
+        # so without this Gradle uses /root/.gradle and the workflows' ~/.gradle cache stays empty.
+        echo "GRADLE_USER_HOME=$HOME/.gradle" >> "$GITHUB_ENV"
 
     - name: Restore Godot import cache
       uses: actions/cache@v6

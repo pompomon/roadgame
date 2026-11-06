@@ -5,7 +5,7 @@ description: >
   restore the import cache and import the project.
 inputs:
   android:
-    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds
+    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds and set GRADLE_USER_HOME
     default: "false"
 runs:
   using: composite
@@ -35,6 +35,9 @@ runs:
         # Versions from Godot 4.7.2 platform/android/java/app/config.gradle. Without the NDK,
         # Gradle downloads it during the build or skips stripping the native libraries.
         "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
+        # Java takes user.home from /etc/passwd (/root), not $HOME (/github/home in container jobs),
+        # so without this Gradle uses /root/.gradle and the workflows' ~/.gradle cache stays empty.
+        echo "GRADLE_USER_HOME=$HOME/.gradle" >> "$GITHUB_ENV"
 
     - name: Restore Godot import cache
       uses: actions/cache@v6
