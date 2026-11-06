@@ -25,18 +25,47 @@ if [ "${#gameplay_dirs[@]}" -gt 0 ]; then
   candidates="$REPORTS/rng_candidates.txt"
   hits="$REPORTS/rng_hits.txt"
   rc=0
-  grep -rnE --include='*.gd' "$rng_re" "${gameplay_dirs[@]}" > "$candidates" || rc=$?
+  grep -rlE --include='*.gd' "$rng_re" "${gameplay_dirs[@]}" > "$candidates" || rc=$?
   [ "$rc" -le 1 ] || { echo "::error::Determinism check could not scan gameplay code"; exit 1; }
-  # Re-check each candidate line after blanking its string literals (left to right; \047 is a
-  # single quote) and removing its comment and any declared func name.
-  RNG_RE="$rng_re" awk '{
-    code = $0
-    sub(/^[^:]*:[0-9]+:/, "", code)
-    gsub(/"([^"\\]|\\.)*"|\047([^\047\\]|\\.)*\047/, "\"\"", code)
-    sub(/#.*/, "", code)
-    sub(/^[[:space:]]*(static[[:space:]]+)?func[[:space:]]+[[:alnum:]_]+/, "func", code)
-    if (code ~ ENVIRON["RNG_RE"]) print
-  }' "$candidates" > "$hits"
+  files=()
+  while IFS= read -r f; do files+=("$f"); done < "$candidates"
+  : > "$hits"
+  if [ "${#files[@]}" -gt 0 ]; then
+    # Lex each candidate file as GDScript does: a backslash escapes the next character in every
+    # string kind, and triple-quoted or backslash-continued strings span lines. String literals
+    # become "", comments and declared func names are dropped, and the rest of each line is
+    # matched again. \047 is a single quote.
+    RNG_RE="$rng_re" awk '
+      function str_end(s, d,    i) {
+        for (i = 1; i <= length(s); i++) {
+          if (substr(s, i, 1) == "\\") i++
+          else if (substr(s, i, length(d)) == d) return i + length(d)
+        }
+        return 0
+      }
+      FNR == 1 { open = "" }
+      {
+        rest = $0; code = ""
+        while (rest != "") {
+          if (open != "") {
+            i = str_end(rest, open)
+            if (i == 0) break
+            code = code "\"\""; rest = substr(rest, i); open = ""
+          } else if (match(rest, /[#"\047]/)) {
+            code = code substr(rest, 1, RSTART - 1)
+            c = substr(rest, RSTART, 1)
+            if (c == "#") break
+            open = c
+            if (substr(rest, RSTART, 3) == c c c) open = c c c
+            rest = substr(rest, RSTART + length(open))
+          } else {
+            code = code rest; rest = ""
+          }
+        }
+        sub(/^[[:space:]]*(static[[:space:]]+)?func[[:space:]]+[[:alnum:]_]+/, "func", code)
+        if (code ~ ENVIRON["RNG_RE"]) print FILENAME ":" FNR ":" $0
+      }' "${files[@]}" > "$hits"
+  fi
   if [ -s "$hits" ]; then
     cat "$hits"
     echo "::error::Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)"
