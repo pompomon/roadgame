@@ -1,0 +1,30 @@
+name: Godot environment
+description: >
+  Prepare the barichello/godot-ci container: move export templates and editor settings into
+  $HOME, restore the import cache and import the project.
+runs:
+  using: composite
+  steps:
+    - name: Relocate templates and editor settings
+      shell: bash
+      run: |
+        set -euo pipefail
+        ver="$(godot --version | cut -d. -f1-4)"        # e.g. 4.7.2.stable
+        mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
+        if [ "$HOME" != "/root" ]; then
+          mv "/root/.local/share/godot/export_templates/$ver" "$HOME/.local/share/godot/export_templates/$ver"
+          mv /root/.config/godot "$HOME/.config/godot"
+        fi
+        echo "GODOT_TEMPLATE_VERSION=$ver" >> "$GITHUB_ENV"
+        godot --version
+
+    - name: Restore Godot import cache
+      uses: actions/cache@v6
+      with:
+        path: .godot
+        key: godot-import-${{ env.GODOT_TEMPLATE_VERSION }}-${{ hashFiles('project.godot', '**/*.import') }}
+        restore-keys: godot-import-${{ env.GODOT_TEMPLATE_VERSION }}-
+
+    - name: Import project
+      shell: bash
+      run: tools/ci/import.sh
