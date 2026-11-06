@@ -16,6 +16,9 @@ SCRIPT_ERROR_RE='Parse Error|Failed to load script'
 # Any engine or script error. Godot exits 0 after most runtime errors, so logs must be scanned.
 # shellcheck disable=SC2034 # used by the scripts that source this file
 ANY_ERROR_RE="^(SCRIPT |USER )?ERROR:|$SCRIPT_ERROR_RE"
+# Known harmless error lines, never counted by fail_on (whole-line match). The godot-ci image has
+# no fontconfig, so editor runs (--import) cannot look up system fonts; the project uses none.
+IGNORE_RE='ERROR: Unable to load fontconfig, system font support is disabled\.'
 
 TIMEOUT_BIN=""
 if command -v timeout > /dev/null 2>&1; then
@@ -42,12 +45,14 @@ run_godot() {
 }
 
 # fail_on <regex> <log> <message>: print the matching lines and fail if <log> matches <regex>.
+# Lines that match IGNORE_RE are skipped.
 fail_on() {
-  local rc=0
-  grep -nE "$1" "$2" || rc=$?
-  case "$rc" in
-    0) echo "::error::$3 (see $2)"; return 1 ;;
-    1) return 0 ;;
-    *) echo "::error::Could not read $2"; return 1 ;;
-  esac
+  local hits rc=0
+  hits=$(grep -nE "$1" "$2") || rc=$?
+  [ "$rc" -le 1 ] || { echo "::error::Could not read $2"; return 1; }
+  hits=$(printf '%s\n' "$hits" | grep -vE "^[0-9]+:($IGNORE_RE)\$") || true
+  [ -n "$hits" ] || return 0
+  printf '%s\n' "$hits"
+  echo "::error::$3 (see $2)"
+  return 1
 }
