@@ -64,7 +64,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F1 | GUT exits 0 when a test script fails to parse. This includes untyped declarations under D12. The tests in that file silently do not run. | Spike N1, N2 | `run_tests.sh` fails on `Parse Error` / `Failed to load script` in the GUT log; also `check_scripts.sh` (F2) |
 | F2 | `godot --import` does not compile scripts, so the error grep in IP `import.sh` can never match. Scripts that the main scene never loads are not compiled anywhere in CI. | Spike: a parse error passes import; N5 passes smoke | New `check_scripts.sh` + `check_scripts.gd`: load every project script. Skips `addons/`, `android/`, `build/` and folders with a `.gdignore` |
 | F3 | Without an import cache (`.godot/`), GUT prints "…have not been imported…", runs 0 tests and exits 0. | Spike N7 | `run_tests.sh` fails on that message and requires a non-empty JUnit file with `tests` > 0 |
-| F4 | The determinism grep (IP §5.3, §7.3) both misses real violations and flags valid code:<br>(a) Under `pipefail`, a missing folder makes `grep … \| grep -v …` exit non-zero even when it prints violations, so the `if` never fires.<br>(b) It misses `randfn`, `seed`, `rand_from_seed`, `shuffle` and `pick_random`.<br>(c) `\b` also matches after a `.`, so a seeded `_rng.randf()` is flagged.<br>(d) The exclusion is applied to the whole `path:line:text`, so a file named `rng_*.gd` is exempt entirely. Comments are flagged. | Spike N6, N6b, N6c; N6d. A fixture `road/rng_ok.gd` was exempted completely | New regex flags only global calls plus `.shuffle(` and `.pick_random(`. It ignores text in string literals and comments and the name in a `func` declaration (PR 2 review: the first version skipped only full-line comments and whole `func` lines), checks grep's exit code and scans only folders that exist (§5.5) |
+| F4 | The determinism grep (IP §5.3, §7.3) both misses real violations and flags valid code:<br>(a) Under `pipefail`, a missing folder makes `grep … \| grep -v …` exit non-zero even when it prints violations, so the `if` never fires.<br>(b) It misses `randfn`, `seed`, `rand_from_seed`, `shuffle` and `pick_random`.<br>(c) `\b` also matches after a `.`, so a seeded `_rng.randf()` is flagged.<br>(d) The exclusion is applied to the whole `path:line:text`, so a file named `rng_*.gd` is exempt entirely. Comments are flagged. | Spike N6, N6b, N6c; N6d. A fixture `road/rng_ok.gd` was exempted completely | New regex flags only global calls plus `.shuffle(` and `.pick_random(`. It lexes each candidate file as GDScript does, so text in string literals (triple-quoted and backslash-continued ones too) and comments never counts, nor does the name in a `func` declaration (PR 2 reviews: the first versions skipped only full-line comments and whole `func` lines, then missed a call after a triple-quoted string). It checks grep's exit code and scans only folders that exist (§5.5) |
 | F5 | No time limits. A `-s` script (GUT, check_scripts) that hits a runtime error before `quit()` never exits, so the job runs until the 6 h default timeout. | Spike N12: `SCRIPT ERROR`, then a hang | `run_godot` (`_common.sh`) wraps every Godot run in `timeout -k 10 <s>`; every job sets `timeout-minutes` |
 | F6 | M0.1 gives `project.godot` no `config/version`. `stamp_version.sh` uses `sed`, which silently changes nothing when the key is missing, so releases keep the default version. Also:<br>- `08` is invalid octal in `$((…))`<br>- no input validation (`1.2`, `1.2.3-rc1`)<br>- parts ≥ 1000 break the D9 ordering | Spike N9–N9f | Add `config/version="0.0.0"`. The new `stamp_version.sh` validates `[v]X.Y.Z` (each part 0–999), uses `10#`, fails on a missing key and keeps the file mode |
 | F7 | In a container job, `${{ runner.temp }}` expands to the host path, not the container path. `release.yml` decodes the keystore to `$RUNNER_TEMP` but passes Godot `${{ runner.temp }}/release.keystore`, so signed exports fail at M6.4. | actions/runner#2498 | One step sets `GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/release.keystore"`, decodes the keystore, exports and removes it with `trap` |
@@ -95,7 +95,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F21 | Python 3.13: gdtoolkit 4.5.0 declares support only up to 3.10. 3.12 is verified. The gdtoolkit version pin appears in several places. | Use Python 3.12. Pin gdtoolkit in `tools/ci/requirements.txt`, shared by CI, the agent and developers (it is also the pip cache key) |
 | F22 | Workflows and shell scripts are not linted. | `lint` runs actionlint 1.7.12, which also shellchecks `run:` blocks. `lint.sh` runs `shellcheck -x tools/ci/*.sh`, which needs `# shellcheck source=` directives (present) |
 | F23 | The import cache key uses `runner.os`, which is always Linux. After a Godot bump, `restore-keys` can restore the old version's cache. | Key on `GODOT_TEMPLATE_VERSION` |
-| F24 | IP `check_versions.sh` exits silently when no tag is found (`set -e` with `pipefail` inside `$(…)`). It scans only `.github/workflows/`, accepts tags such as `4.7` or `4.7.2.1`, truncates `4.7.2-rc1` to `4.7.2`, skips `latest`, and ignores the agent setup. | Rewritten (spike N8, N8b). It compares complete tags (PR 2 review, N8c) |
+| F24 | IP `check_versions.sh` exits silently when no tag is found (`set -e` with `pipefail` inside `$(…)`). It scans only `.github/workflows/`, accepts tags such as `4.7` or `4.7.2.1`, truncates `4.7.2-rc1` or `4.7.2${{ matrix.suffix }}` to `4.7.2`, skips `latest`, and ignores the agent setup. | Rewritten (spike N8, N8b). It compares complete tags, including any `$` or `{}` part (PR 2 reviews, N8c) |
 | F25 | `build/` is not `.gdignore`d, so the editor imports exported files such as `build/web/index.png`, and a later export packs them. | Commit `build/.gdignore` (`.gitignore`: `/build/*` plus `!/build/.gdignore`); `_common.sh` recreates it |
 | F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`. That check uses `case` on the `unzip -l` text, because `unzip \| grep -q` can fail with SIGPIPE under `pipefail` |
 | F27 | `release.yml` has no `defaults.run.shell: bash`, so inline steps run without `pipefail`. Its `test` job skips the script-loading check, three jobs have no `timeout-minutes`, and scripts use `${{ … }}` where env vars exist. It is otherwise actionlint-clean. | Fixed in Appendix B |
@@ -302,7 +302,7 @@ Every script sources `_common.sh`, which does the following:
 | `run_tests.sh` | 900 s | A parse or load error, "have not been imported" or `[GUT ERROR]` appears; GUT exits non-zero, which includes an unhandled error in a setup or teardown hook; the JUnit file is missing; 0 tests ran | F1, F3, F9, F29 |
 | `smoke.sh` | 300 s | Godot exits non-zero, or the log has any error line | F10 |
 | `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck or `check_versions.sh` fails | F4, F8, F22 |
-| `check_versions.sh` | — | The complete godot-ci tags differ or aren't `x.y.z` (`4.7.2-rc1` and `latest` fail); the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
+| `check_versions.sh` | — | The complete godot-ci tags differ or aren't `x.y.z` (`4.7.2-rc1`, `latest` and `4.7.2${{ matrix.suffix }}` fail); the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
 | `export.sh` | 900 s; 1800 s for AAB | No output file; a Web export missing `.js`, `.wasm` or `.pck`; an APK or AAB with no `arm64-v8a` `.so` | F12, F26 |
 | `stamp_version.sh` | — | The version is invalid, or a key is missing | F6 |
 
@@ -311,7 +311,7 @@ Every script sources `_common.sh`, which does the following:
 - **Flagged:**
   - the global functions `randf`, `randi`, `randfn`, `randf_range`, `randi_range`, `randomize`, `seed` and `rand_from_seed`, when they are not called on an object
   - any `.shuffle(` or `.pick_random(`, because they use the global RNG
-- **Allowed:** calls on a seeded `RandomNumberGenerator` such as `_rng.randf()` or `road_rng.randi_range(0, 3)`, any text in string literals and comments, and the name in a `func` declaration. A one-line `func` body is still checked. The scan is line-based, so a string that spans lines can cause a false positive.
+- **Allowed:** calls on a seeded `RandomNumberGenerator` such as `_rng.randf()` or `road_rng.randi_range(0, 3)`, any text in string literals and comments, and the name in a `func` declaration. A one-line `func` body is still checked. Strings are recognised the way GDScript lexes them, including triple-quoted strings and strings that continue on the next line.
 - **Conventions for M1+:**
   - Don't name your own methods `seed`, `randf` and so on: a bare call to them would be flagged.
   - Shuffle with a Fisher–Yates helper that takes the stream's `RandomNumberGenerator`.
@@ -401,12 +401,12 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N5 | A parse error in `road/broken.gd`, which no scene uses | `check_scripts.sh` fails (`smoke.sh` passes) | Passes (F2) |
 | N6 | A bare `randf()` in `road/x.gd` | `lint.sh` fails | Passes while any gameplay folder is missing (F4) |
 | N6b | `a.shuffle()` in `road/` | `lint.sh` fails | Passes (F4) |
-| N6c | `_rng.randf()`, `road_rng.randi_range(0, 3)`, `func seed(…)`, full-line and trailing comments (`_rng.randf()  # replaces randf()`) and strings (`"#ff0000"`, `"call randf()"`, `&"randf()"`) | `lint.sh` passes | Flags `_rng.randf()`, the comments and the strings (F4) |
-| N6d | Real calls next to a comment or string: `randi_range(0, 3)  # uses the global RNG`, `"#fff" + str(randi())` | `lint.sh` fails | Same as N6 |
+| N6c | `_rng.randf()`, `road_rng.randi_range(0, 3)`, `func seed(…)`, full-line and trailing comments (`_rng.randf()  # replaces randf()`) and strings (`"#ff0000"`, `"call randf()"`, `&"randf()"`, `"""randi() # x"""`, prose that mentions `randi()` inside a multi-line `"""…"""` string) | `lint.sh` passes | Flags `_rng.randf()`, the comments and the strings (F4) |
+| N6d | Real calls next to a comment or string: `randi_range(0, 3)  # uses the global RNG`, `"#fff" + str(randi())`, `"""note " # x""" + str(randi())`, a call after a multi-line string closes | `lint.sh` fails | Same as N6 |
 | N7 | `rm -rf .godot`, then `run_tests.sh` | Fails ("have not been imported") | Exits 0 after 0 tests (F3) |
 | N8 | One workflow uses `godot-ci:4.7.1` | `check_versions.sh` fails | Fails ✓ |
 | N8b | `GODOT_VERSION: "4.7.1"` in the agent setup | `check_versions.sh` fails | Not checked |
-| N8c | One workflow uses `godot-ci:4.7.2-rc1` or `godot-ci:latest` | `check_versions.sh` fails (mismatched tags, or not `x.y.z`) | Passes: `4.7.2-rc1` is truncated to `4.7.2` and `latest` is skipped (F24) |
+| N8c | One workflow uses `godot-ci:4.7.2-rc1`, `godot-ci:latest` or `godot-ci:4.7.2${{ matrix.suffix }}` | `check_versions.sh` fails (mismatched tags, or not `x.y.z`) | Passes: `4.7.2-rc1` and `4.7.2${{ … }}` are truncated to `4.7.2`, and `latest` is skipped (F24) |
 | N9 | `stamp_version.sh v1.2.3` | `config/version="1.2.3"`; presets get `1.2.3` and `1002003` | `config/version` is not written (F6) |
 | N9b | `stamp_version.sh 0.08.009` | `version/code=8009` | Arithmetic error (`08` is invalid octal) |
 | N9c–f | `1.2`, `1.2.3-rc1`, `1.1000.0`, a missing key | `stamp_version.sh` fails | Shell errors, or silently wrong (`1.1000.0` gets the same code as `2.0.0`; a missing key is ignored) |
@@ -865,18 +865,47 @@ if [ "${#gameplay_dirs[@]}" -gt 0 ]; then
   candidates="$REPORTS/rng_candidates.txt"
   hits="$REPORTS/rng_hits.txt"
   rc=0
-  grep -rnE --include='*.gd' "$rng_re" "${gameplay_dirs[@]}" > "$candidates" || rc=$?
+  grep -rlE --include='*.gd' "$rng_re" "${gameplay_dirs[@]}" > "$candidates" || rc=$?
   [ "$rc" -le 1 ] || { echo "::error::Determinism check could not scan gameplay code"; exit 1; }
-  # Re-check each candidate line after blanking its string literals (left to right; \047 is a
-  # single quote) and removing its comment and any declared func name.
-  RNG_RE="$rng_re" awk '{
-    code = $0
-    sub(/^[^:]*:[0-9]+:/, "", code)
-    gsub(/"([^"\\]|\\.)*"|\047([^\047\\]|\\.)*\047/, "\"\"", code)
-    sub(/#.*/, "", code)
-    sub(/^[[:space:]]*(static[[:space:]]+)?func[[:space:]]+[[:alnum:]_]+/, "func", code)
-    if (code ~ ENVIRON["RNG_RE"]) print
-  }' "$candidates" > "$hits"
+  files=()
+  while IFS= read -r f; do files+=("$f"); done < "$candidates"
+  : > "$hits"
+  if [ "${#files[@]}" -gt 0 ]; then
+    # Lex each candidate file as GDScript does: a backslash escapes the next character in every
+    # string kind, and triple-quoted or backslash-continued strings span lines. String literals
+    # become "", comments and declared func names are dropped, and the rest of each line is
+    # matched again. \047 is a single quote.
+    RNG_RE="$rng_re" awk '
+      function str_end(s, d,    i) {
+        for (i = 1; i <= length(s); i++) {
+          if (substr(s, i, 1) == "\\") i++
+          else if (substr(s, i, length(d)) == d) return i + length(d)
+        }
+        return 0
+      }
+      FNR == 1 { open = "" }
+      {
+        rest = $0; code = ""
+        while (rest != "") {
+          if (open != "") {
+            i = str_end(rest, open)
+            if (i == 0) break
+            code = code "\"\""; rest = substr(rest, i); open = ""
+          } else if (match(rest, /[#"\047]/)) {
+            code = code substr(rest, 1, RSTART - 1)
+            c = substr(rest, RSTART, 1)
+            if (c == "#") break
+            open = c
+            if (substr(rest, RSTART, 3) == c c c) open = c c c
+            rest = substr(rest, RSTART + length(open))
+          } else {
+            code = code rest; rest = ""
+          }
+        }
+        sub(/^[[:space:]]*(static[[:space:]]+)?func[[:space:]]+[[:alnum:]_]+/, "func", code)
+        if (code ~ ENVIRON["RNG_RE"]) print FILENAME ":" FNR ":" $0
+      }' "${files[@]}" > "$hits"
+  fi
   if [ -s "$hits" ]; then
     cat "$hits"
     echo "::error::Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)"
@@ -905,8 +934,9 @@ _Added in PR 2._
 source "$(dirname "$0")/_common.sh"
 
 rc=0
-# Capture the complete tag, so 4.7.2-rc1, latest or an expression never passes as 4.7.2.
-tags=$(grep -rhoE 'barichello/godot-ci:[[:alnum:]_.-]*' .github | sort -u) || rc=$?
+# Capture the complete tag, including any $ and braces, so 4.7.2-rc1, latest or an expression
+# such as 4.7.2${{ matrix.suffix }} never passes as 4.7.2.
+tags=$(grep -rhoE 'barichello/godot-ci:[-[:alnum:]_.{}$]*' .github | sort -u) || rc=$?
 [ "$rc" -le 1 ] || { echo "::error::Could not scan .github/"; exit 1; }
 [ -n "$tags" ] || { echo "::error::No barichello/godot-ci image tag under .github/"; exit 1; }
 if [ "$(printf '%s\n' "$tags" | wc -l | tr -d ' ')" -ne 1 ]; then

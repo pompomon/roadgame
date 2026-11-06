@@ -5,8 +5,9 @@
 source "$(dirname "$0")/_common.sh"
 
 rc=0
-# Capture the complete tag, so 4.7.2-rc1, latest or an expression never passes as 4.7.2.
-tags=$(grep -rhoE 'barichello/godot-ci:[[:alnum:]_.-]*' .github | sort -u) || rc=$?
+# Capture the complete tag, including any $ and braces, so 4.7.2-rc1, latest or an expression
+# such as 4.7.2${{ matrix.suffix }} never passes as 4.7.2.
+tags=$(grep -rhoE 'barichello/godot-ci:[-[:alnum:]_.{}$]*' .github | sort -u) || rc=$?
 [ "$rc" -le 1 ] || { echo "::error::Could not scan .github/"; exit 1; }
 [ -n "$tags" ] || { echo "::error::No barichello/godot-ci image tag under .github/"; exit 1; }
 if [ "$(printf '%s\n' "$tags" | wc -l | tr -d ' ')" -ne 1 ]; then
