@@ -31,9 +31,26 @@ jobs:
     steps:
       - name: Validate version
         run: |
-          printf '%s' "$VERSION" | grep -qE '^v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' \
+          # A whole-string match: grep matches line by line, so "v1.2.3" plus a newline would pass.
+          re='^v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+          [[ $VERSION =~ $re ]] \
             || { echo "::error::Version must look like v1.2.3 (got '$VERSION')"; exit 1; }
       - uses: actions/checkout@v7
+      - name: Check that the tag is new
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # A manual run builds the selected ref, but gh release create attaches the files to an
+          # existing tag as it is (--target only applies to new tags). Retry a failed tag release
+          # by re-running its own run.
+          # checkout trusts the workspace (safe.directory) only in a temporary config.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rc=0
+          git ls-remote --exit-code --tags origin "refs/tags/$VERSION" > /dev/null || rc=$?
+          case "$rc" in
+            2) ;;
+            0) echo "::error::Tag $VERSION already exists. Re-run its Release run, or use a new version"; exit 1 ;;
+            *) echo "::error::Could not list the remote tags (git exit code $rc)"; exit 1 ;;
+          esac
       - uses: ./.github/actions/godot-env
       - run: tools/ci/check_scripts.sh
       - run: tools/ci/run_tests.sh
