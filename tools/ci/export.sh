@@ -34,11 +34,11 @@ case "$out" in
     done
     ;;
   *.apk | *.aab)
-    listing=$(unzip -l "$out")
-    case "$listing" in
-      *lib/arm64-v8a/*.so*) ;;
-      *) echo "::error::$out contains no arm64-v8a native library"; exit 1 ;;
-    esac
+    # One entry per line, matched line by line. A here-string, because unzip | grep -q can
+    # fail with SIGPIPE under pipefail.
+    names=$(unzip -Z1 "$out")
+    grep -qE '(^|/)lib/arm64-v8a/[^/]+\.so$' <<< "$names" \
+      || { echo "::error::$out contains no arm64-v8a native library"; exit 1; }
     ;;
 esac
 echo "Exported '$preset' to $out"
