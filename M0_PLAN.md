@@ -75,7 +75,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 |---|---|---|---|
 | F8 | gdlint and gdformat fail on a path that doesn't exist. IP `lint.sh` passes 11 folders, most of which only appear in M1–M5, and git cannot commit the empty "folder skeleton" from M0.1. | Spike | `lint.sh` passes only folders that exist. **Δ M0.1:** no empty skeleton; each folder is created with its first file |
 | F9 | IP `.gutconfig.json` lists `res://tests/sim/` and `res://tests/integration/`, which only appear in M2 and M3. GUT logs `[GUT ERROR]` for each one and carries on. | Spike N10 | `"dirs": ["res://tests/"]` with `include_subdirs`, so new folders are picked up automatically |
-| F10 | Godot exits 0 after runtime errors: `push_error` prints `ERROR:` and a call on null prints `SCRIPT ERROR:`. IP `smoke.sh` scans for both, but IP `import.sh` does not scan for engine `ERROR:` lines such as broken resources. | Spike: both lines printed, exit 0 | One regex, `ANY_ERROR_RE` in `_common.sh`, used by import, check_scripts and smoke |
+| F10 | Godot exits 0 after runtime errors: `push_error` prints `ERROR:` and a call on null prints `SCRIPT ERROR:`. IP `smoke.sh` scans for both, but IP `import.sh` does not scan for engine `ERROR:` lines such as broken resources. | Spike: both lines printed, exit 0. PR 2 CI: a corrupt image also imports with exit 0 | One regex, `ANY_ERROR_RE` in `_common.sh`, used by import, check_scripts and smoke. `IGNORE_RE` skips one harmless line: the godot-ci image has no fontconfig, so editor runs (`--import`) print `ERROR: Unable to load fontconfig, system font support is disabled.` (found in PR 2 CI) |
 | F11 | `godot-env` doesn't install the NDK. The Godot 4.7.2 Gradle build sets `ndkVersion '29.0.14206865'` and strips native libraries with it. The image ships NDK 25.2.9519653, so Gradle either downloads the NDK mid-build or skips stripping. | Godot 4.7.2 source: `platform/android/java/app/config.gradle`, `app/build.gradle` | Add `"ndk;29.0.14206865"` to `sdkmanager --install` |
 | F12 | `export.sh` writes its log next to the output (`build/web/index.html.log`), and `ci.yml` publishes that folder to Pages. The release zip excludes `*.log`; the Pages upload doesn't. | IP §7.3, §7.4 | Logs go to `build/reports/export-<preset>.log` and are uploaded only on failure, as `export-log-*` |
 | F13 | Exports include GUT, the tests and the tools, because the presets use `export_filter="all_resources"` with no exclusions. | Spike N11: a Web pack without the filter has 510 `addons/gut/` paths and 8 `tests/`/`tools/` paths (1.46 MB). With the filter it has none (6.6 KB) | `exclude_filter="addons/gut/*, tests/*, tools/*"` in every preset |
@@ -291,8 +291,8 @@ Every script sources `_common.sh`, which does the following:
 - uses `$GODOT` if set (default `godot`)
 - writes logs to `build/reports/`
 - provides `run_godot <seconds> <log> <args…>`: a time limit, a log copy and Godot's exit code
-- provides `fail_on <regex> <log> <message>`
-- defines the error regexes: `SCRIPT_ERROR_RE` and `ANY_ERROR_RE` = `^(SCRIPT |USER )?ERROR:|Parse Error|Failed to load script`
+- provides `fail_on <regex> <log> <message>`, which skips lines that match `IGNORE_RE`
+- defines the error regexes: `SCRIPT_ERROR_RE`, `ANY_ERROR_RE` = `^(SCRIPT |USER )?ERROR:|Parse Error|Failed to load script`, and `IGNORE_RE` for known-harmless lines (whole-line match; today only the missing-fontconfig message)
 
 | Script | Time limit | Fails when | Δ |
 |---|---|---|---|
@@ -388,7 +388,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced in the spike with Godot 4.7.2.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike, N13 while implementing PR 2.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -410,6 +410,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N10 | `.gutconfig.json` with the IP `dirs` | `run_tests.sh` fails (`[GUT ERROR]`) | Exits 0 (F9) |
 | N11 | `godot --headless --path . --export-pack "Web" build/t.pck` | With `exclude_filter`: 0 `tests/`/`tools/` paths. Without: 510 GUT and 8 test/tool paths | — (F13) |
 | N12 | A `-s` script with a runtime error before `quit()` | `run_godot` stops it: exit 124, "did not finish within" | Hangs until the job timeout (F5) |
+| N13 | A corrupt `bad.png` in the project (run without fontconfig, like the CI image) | `import.sh` fails on `ERROR: Error importing 'res://bad.png'`; the fontconfig lines are ignored | Passes: Godot exits 0 and only script errors are scanned (F10) |
 
 ### 6.3 Verified only in CI
 
@@ -650,6 +651,9 @@ SCRIPT_ERROR_RE='Parse Error|Failed to load script'
 # Any engine or script error. Godot exits 0 after most runtime errors, so logs must be scanned.
 # shellcheck disable=SC2034 # used by the scripts that source this file
 ANY_ERROR_RE="^(SCRIPT |USER )?ERROR:|$SCRIPT_ERROR_RE"
+# Known harmless error lines, never counted by fail_on (whole-line match). The godot-ci image has
+# no fontconfig, so editor runs (--import) cannot look up system fonts; the project uses none.
+IGNORE_RE='ERROR: Unable to load fontconfig, system font support is disabled\.'
 
 TIMEOUT_BIN=""
 if command -v timeout > /dev/null 2>&1; then
@@ -676,14 +680,16 @@ run_godot() {
 }
 
 # fail_on <regex> <log> <message>: print the matching lines and fail if <log> matches <regex>.
+# Lines that match IGNORE_RE are skipped.
 fail_on() {
-  local rc=0
-  grep -nE "$1" "$2" || rc=$?
-  case "$rc" in
-    0) echo "::error::$3 (see $2)"; return 1 ;;
-    1) return 0 ;;
-    *) echo "::error::Could not read $2"; return 1 ;;
-  esac
+  local hits rc=0
+  hits=$(grep -nE "$1" "$2") || rc=$?
+  [ "$rc" -le 1 ] || { echo "::error::Could not read $2"; return 1; }
+  hits=$(printf '%s\n' "$hits" | grep -vE "^[0-9]+:($IGNORE_RE)\$") || true
+  [ -n "$hits" ] || return 0
+  printf '%s\n' "$hits"
+  echo "::error::$3 (see $2)"
+  return 1
 }
 ```
 
