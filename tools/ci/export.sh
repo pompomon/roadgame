@@ -24,6 +24,7 @@ if [ "$preset" = "Android AAB" ]; then
 else
   run_godot 900 "$log" --headless --path . "--export-$mode" "$preset" "$out"
 fi
+fail_on "$ANY_ERROR_RE" "$log" "Errors during export of '$preset'"
 [ -s "$out" ] || { echo "::error::Export '$preset' produced no file at $out (see $log)"; exit 1; }
 
 case "$out" in
