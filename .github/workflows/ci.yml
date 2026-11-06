@@ -110,6 +110,12 @@ jobs:
           key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
       - name: Export (debug keystore from the CI image)
         run: tools/ci/export.sh "${{ matrix.preset }}" "build/android/${{ matrix.file }}" debug
+      - name: Disk usage
+        if: always()
+        run: |
+          # The image, the SDK and NDK, and Gradle share the runner's disk (M0_PLAN.md §8).
+          df -h / "$GITHUB_WORKSPACE"
+          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" "$HOME/.gradle" 2>/dev/null || true
       - uses: actions/upload-artifact@v7
         with:
           name: android-${{ matrix.preset }}
