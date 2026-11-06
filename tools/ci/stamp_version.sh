@@ -6,7 +6,9 @@ source "$(dirname "$0")/_common.sh"
 
 v="${1:?usage: stamp_version.sh <[v]MAJOR.MINOR.PATCH>}"
 v="${v#v}"
-printf '%s' "$v" | grep -qE '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' \
+# A whole-string match: grep matches line by line, so "1.2.3" plus a newline and more would pass.
+re='^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+[[ $v =~ $re ]] \
   || { echo "::error::Version '$v' must be MAJOR.MINOR.PATCH with each part 0-999 (D9)"; exit 1; }
 IFS=. read -r major minor patch <<< "$v"
 code=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
