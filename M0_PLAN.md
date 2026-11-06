@@ -69,6 +69,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F6 | M0.1 gives `project.godot` no `config/version`. `stamp_version.sh` uses `sed`, which silently changes nothing when the key is missing, so releases keep the default version. Also:<br>- `08` is invalid octal in `$((…))`<br>- no input validation (`1.2`, `1.2.3-rc1`)<br>- parts ≥ 1000 break the D9 ordering | Spike N9–N9f | Add `config/version="0.0.0"`. The new `stamp_version.sh` validates `[v]X.Y.Z` (each part 0–999), uses `10#`, fails on a missing key and keeps the file mode |
 | F7 | In a container job, `${{ runner.temp }}` expands to the host path, not the container path. `release.yml` decodes the keystore to `$RUNNER_TEMP` but passes Godot `${{ runner.temp }}/release.keystore`, so signed exports fail at M6.4. | actions/runner#2498 | One step sets `GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/release.keystore"`, decodes the keystore, exports and removes it with `trap` |
 | F29 | GUT fails a test only for errors raised in its body. A `push_error()` or engine error in `before_all`, `before_each`, `after_each` or `after_all` is tracked under `GutUtils.NO_TEST` and never checked, so GUT exits 0 and the JUnit file shows no failure. | PR 2 review; N14 | Post-run hook `tests/gut_post_run.gd` (`post_run_script` in `.gutconfig.json`) sets exit code 1 on unhandled errors outside test bodies. Errors that a hook asserts (`assert_push_error()` and the like) are marked handled and still pass (N14b) |
+| F30 | Headless Android exports fail with "ETC2/ASTC texture compression is required for Android export". `rendering/textures/vram_compression/import_etc2_astc` defaults to false, and Godot implies it only on hosts whose preferred texture format is ETC2/ASTC (ARM). The project manager doesn't set it, and the export dialog's fix button needs the GUI, so x86 CI fails before any Gradle step. | PR 3 CI; N15. Godot 4.7.2 source: `platform/android/export/export_plugin.cpp`, `editor/import/resource_importer_texture_settings.cpp` | PR 3 sets `import_etc2_astc=true` in `project.godot`. Every texture is imported Lossless today, so no `.import` file changes |
 
 ### Medium
 
@@ -177,6 +178,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 **Files:**
 - `export_presets.cfg`
 - `tools/ci/export.sh`
+- `project.godot`: add `import_etc2_astc=true` (F30)
 - `godot-env`: add the `android` input and the SDK/NDK step
 - `ci.yml`: add `export-web` and `export-android` (without the Pages steps)
 
@@ -238,6 +240,7 @@ All M0.1 settings are unchanged. Additions:
 - **Δ F6:** `application/config/version="0.0.0"`. The main scene label shows it, and `stamp_version.sh` overwrites it.
 - **Δ F14:** input actions bound by physical key, with deadzone 0.2. `ui_accept` stays at the built-in default.
 - `[editor_plugins] enabled=PackedStringArray("res://addons/gut/plugin.cfg")`.
+- **Δ F30 (PR 3):** `rendering/textures/vram_compression/import_etc2_astc=true`. Android export requires it.
 
 | Action | Physical keys | `physical_keycode` |
 |---|---|---|
@@ -389,7 +392,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15 while implementing PR 3.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -417,6 +420,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N14 | `push_error("x")` in a test's `before_each()`; likewise `before_all`, `after_each`, `after_all` or an engine error there | `run_tests.sh` fails: "Unexpected errors outside test bodies", GUT exit 1 | Passes: GUT exits 0 (F29) |
 | N14b | `before_all()` calls `push_error("x")`, then `assert_push_error("x")` | `run_tests.sh` passes | Passes ✓ |
 | N14c | `tests/gut_post_run.gd` is deleted | `run_tests.sh` fails, but only at the 900 s limit: GUT logs `[GUT ERROR]` and aborts the run without quitting | — |
+| N15 | `import_etc2_astc=true` removed from `project.godot`; export in the CI image | `export.sh "Android APK" …` fails: "ETC2/ASTC texture compression is required for Android export". With the line, the APK exports | — (F30) |
 
 ### 6.3 Verified only in CI
 
@@ -465,7 +469,7 @@ These are copied verbatim from the verified scratch project. Each file notes the
 
 ### `project.godot`
 
-_Added in PR 2._
+_Added in PR 2. PR 3 adds `import_etc2_astc` (F30)._
 
 ```ini
 ; Engine configuration file.
@@ -523,6 +527,7 @@ pause={
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/canvas_textures/default_texture_filter=0
+textures/vram_compression/import_etc2_astc=true
 2d/snap/snap_2d_transforms_to_pixel=true
 ```
 
