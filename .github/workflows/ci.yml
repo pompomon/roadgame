@@ -55,3 +55,70 @@ jobs:
           name: test-reports
           path: build/reports
           retention-days: 14
+
+  export-web:
+    needs: [lint, test]
+    runs-on: ubuntu-24.04
+    container: barichello/godot-ci:4.7.2
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/godot-env
+      - run: tools/ci/export.sh "Web" build/web/index.html release
+      - name: Upload Web build
+        uses: actions/upload-artifact@v7
+        with:
+          name: web
+          path: build/web
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload export log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: export-log-web
+          path: build/reports
+
+  export-android:
+    needs: [lint, test]
+    runs-on: ubuntu-24.04
+    container: barichello/godot-ci:4.7.2
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - preset: Android APK
+            file: roadgame-debug.apk
+            slug: apk
+          - preset: Android AAB
+            file: roadgame-debug.aab
+            slug: aab
+    name: export-android (${{ matrix.preset }})
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/godot-env
+        with:
+          android: ${{ matrix.preset == 'Android AAB' }}
+      - name: Cache Gradle
+        if: matrix.preset == 'Android AAB'
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
+      - name: Export (debug keystore from the CI image)
+        run: tools/ci/export.sh "${{ matrix.preset }}" "build/android/${{ matrix.file }}" debug
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-${{ matrix.preset }}
+          path: build/android/${{ matrix.file }}
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload export log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: export-log-${{ matrix.slug }}
+          path: build/reports
