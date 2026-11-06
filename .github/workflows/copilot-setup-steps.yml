@@ -1,0 +1,41 @@
+name: Copilot Setup Steps
+
+# Runs when this file changes so it is validated in PRs. The Copilot cloud agent only uses the
+# version on the default branch.
+on:
+  workflow_dispatch:
+  push:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+  pull_request:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+
+jobs:
+  # The job must be called copilot-setup-steps. Only steps, permissions, runs-on, services,
+  # snapshot and timeout-minutes (max 59) are honoured, so env is set per step.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install gdtoolkit
+        run: pip install -r tools/ci/requirements.txt
+      - name: Install Godot (SHA-512 verified)
+        env:
+          GODOT_VERSION: "4.7.2"   # keep in sync: tools/ci/check_versions.sh
+        run: |
+          set -euo pipefail
+          zip="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "$url/$zip"
+          curl -fsSL "$url/SHA512-SUMS.txt" | grep " $zip\$" | sha512sum -c -
+          unzip -q "$zip"
+          sudo install -m 0755 "${zip%.zip}" /usr/local/bin/godot
+          godot --headless --version
+      - name: Import project
+        run: if [ -f project.godot ]; then tools/ci/import.sh; fi
