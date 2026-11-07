@@ -14,8 +14,9 @@ while IFS= read -r f; do files+=("$f"); done \
 # under its with: mapping, so env: entries and run: text don't count. A comment starts at a #
 # after a blank, outside quoted text, as in YAML. Block scalars (run: | and the like) and text
 # that goes on over several lines, quoted or plain, are text, searched only for type=gha (in any
-# case, as buildx reads the key). Keys are compared in lowercase, since GitHub ignores the case
-# of input names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip). What the
+# case, as buildx reads the key, and without the quotes and backslashes the shell removes, so
+# type="gha" counts). Keys are compared in lowercase, since GitHub ignores the case of input
+# names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip). What the
 # check can't read fails: uses: in flow style ({...} or [...], also over several lines), a with:
 # that is not a block mapping (also on the lines below it), ? keys, escaped keys, an input set
 # twice, and a uses:, cache input or retention-days whose value is on or goes on to the lines
@@ -90,8 +91,10 @@ hits=$(awk '
     }
     return s
   }
-  function gha(s) {
-    if (tolower(s) ~ /type=gha/)
+  # The shell drops quotes and backslashes: type="gha", t\ype=gha and $"gha" reach buildx as gha.
+  function gha(s,    t) {
+    t = tolower(s); gsub(/[$]?["\047]|\\/, "", t)
+    if (t ~ /type=gha/)
       print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
   }
   # Flow style ({...} or [...], which may go on over the lines below): its keys are not read.
