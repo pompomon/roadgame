@@ -89,6 +89,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F19 | Release versions are inconsistent. Tag pushes give `v1.2.3`, but the manual input suggests `0.1.0`, which creates a tag without the `v` that doesn't match `v*.*.*`. Nothing checks the version before the 40-minute Android build starts. | IP §7.5 | The manual input is the tag itself (`v0.1.0`). The first step of `test` validates it |
 | F20 | Every Godot job pulls `barichello/godot-ci:4.7.2`, about 2.6 GB compressed. That is 4 pulls per CI run and 3 per release, which costs time and disk and runs into Docker Hub's anonymous pull limits. | Docker Hub tag size | Measure in PR 2 and PR 3; mitigations in §8 (Q6) |
 | F31 | The Gradle cache is never saved. In container jobs `$HOME` is `/github/home`, but Java takes `user.home` from `/etc/passwd` (`/root`). Gradle therefore uses `/root/.gradle`, the cache step finds no `~/.gradle`, and `actions/cache` only warns: "Path(s) specified in the action for caching do(es) not exist". | PR 3 CI (AAB job of #8). In the image with `HOME=/github/home`, `java -XshowSettings:properties` prints `user.home = /root` | `godot-env`'s Android step sets `GRADLE_USER_HOME=$HOME/.gradle`, so Gradle and the cache step in `ci.yml` and `release.yml` use the same folder |
+| F32 | A manual release with a tag that already exists publishes the wrong build. The run builds and tests the selected branch, but `gh release create` attaches the files to the existing tag; `--target` only applies when it creates the tag. Running `v0.1.0` again from a newer `main` would ship newer code as `v0.1.0`. | PR 4 review (#10); IP §7.5 has the same `publish` step | A manual run first looks the tag up with `git ls-remote --exit-code` and fails if it exists, before any build. A failed tag release is retried by re-running its own run. `actions/checkout` trusts the container's workspace only in a temporary config, so the step adds `safe.directory` itself (N19) |
 
 ### Low
 
@@ -102,6 +103,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`: `grep -qE '(^\|/)lib/arm64-v8a/[^/]+\.so$'` over the `unzip -Z1` names (one per line), read from a here-string because `unzip \| grep -q` can fail with SIGPIPE under `pipefail`. The first version ran a `case` glob over the whole `unzip -l` text, where `*` also matches newlines (PR 3 review, N17) |
 | F27 | `release.yml` has no `defaults.run.shell: bash`, so inline steps run without `pipefail`. Its `test` job skips the script-loading check, three jobs have no `timeout-minutes`, and scripts use `${{ … }}` where env vars exist. It is otherwise actionlint-clean. | Fixed in Appendix B |
 | F28 | The scripts assume GNU tools (`sed -i -E`), bash 4, and `godot` on `PATH`. | Bash 3.2 and BSD tools (macOS), no `sed -i`, `timeout` or `gtimeout`, and a `GODOT=/path/to/godot` override. Not run on macOS |
+| F33 | The first PR 4 version checks (`stamp_version.sh` and the release's "Validate version") used `grep -E '^…$'`, which matches line by line. A version followed by a newline (`$'v1.2.3\n'`, possible through the API) passed, and `stamp_version.sh` wrote two-line values. | Match the whole string with bash `[[ $v =~ $re ]]` (PR 4 review, N18) |
 
 ---
 
@@ -219,9 +221,10 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
    - Run `tools/ci/stamp_version.sh v1.2.3`, then `git diff`.
    - Expect `config/version="1.2.3"`, and in both Android presets `version/name="1.2.3"` and `version/code=1002003`.
    - Revert with `git checkout -- project.godot export_presets.cfg`.
+   - `tools/ci/stamp_version.sh $'v1.2.3\n'` must fail and change nothing (N18).
 3. Merge. The run on `main` deploys the site (E7).
 4. Do a release dry run (E9): Actions → Release → Run workflow with version `v0.0.1`. Expected:
-   - `test` passes.
+   - `test` passes, including "Check that the tag is new" (F32).
    - `web-release` passes and produces `roadgame-v0.0.1-web.zip`.
    - `android-release` fails at "Check signing secrets".
    - `publish` is skipped, and no tag or release is created.
@@ -309,7 +312,7 @@ Every script sources `_common.sh`, which does the following:
 | `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck or `check_versions.sh` fails | F4, F8, F22 |
 | `check_versions.sh` | — | The complete godot-ci tags differ or aren't `x.y.z` (`4.7.2-rc1`, `latest` and `4.7.2${{ matrix.suffix }}` fail); the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
 | `export.sh` | 900 s; 1800 s for AAB | Godot exits non-zero, or the log has any error line; no output file; a Web export missing `.js`, `.wasm` or `.pck`; an APK or AAB with no `arm64-v8a` `.so` | F10, F12, F26 |
-| `stamp_version.sh` | — | The version is invalid, or a key is missing | F6 |
+| `stamp_version.sh` | — | The version is invalid (the whole string is checked), or a key is missing | F6, F33 |
 
 **Determinism rule (IP §5.3, Δ F4).** It covers `autoload road world car disasters areas setpieces` (scope unchanged).
 
@@ -346,6 +349,8 @@ Job and check names are unchanged.
 
 Changes from IP §7.5:
 - **F19:** the manual input is the tag (for example `v0.1.0`) and is validated first.
+- **F33:** that check matches the whole string, so a version with a newline fails.
+- **F32:** a manual run fails in `test` if the tag already exists, because `gh release create` would attach the new build to it.
 - **F2:** `test` runs `check_scripts.sh`.
 - **F7:** the keystore path comes from `$RUNNER_TEMP`, and decode, export and `trap` cleanup happen in one step.
 - **F27:** `defaults.run.shell: bash`, timeouts on every job, env vars instead of `${{ … }}` in scripts, and the `gh` arguments built as an array.
@@ -396,7 +401,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15–N17 while implementing PR 3.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15–N17 while implementing PR 3; N18 and N19 while implementing PR 4.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -427,6 +432,8 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N15 | `import_etc2_astc=true` removed from `project.godot`; export in the CI image | `export.sh "Android APK" …` fails: "ETC2/ASTC texture compression is required for Android export". With the line, the APK exports | — (F30) |
 | N16 | After `import.sh`, add a corrupt `bad.png`; then `export.sh "Web" build/web/index.html release` | Fails on `ERROR: Error importing 'res://bad.png'` | Passes: Godot exits 0 and writes every file (F10; PR 3 review) |
 | N17 | Run `export.sh "Android APK" build/android/t.apk debug` with a fake `GODOT` that copies in an APK holding only `lib/arm64-v8a/readme.txt` and `lib/armeabi-v7a/libgodot_android.so` | Fails: "contains no arm64-v8a native library" | Passes: only the file size is checked. The first PR 3 check passed it too, because its `case` glob matched across lines (F26; PR 3 review) |
+| N18 | `stamp_version.sh $'v1.2.3\n'`, and `$'v1.2.3\nx'` | Fails: "must be MAJOR.MINOR.PATCH"; `project.godot` and `export_presets.cfg` are unchanged | Fails with the `sed` error ``unterminated `s' command``: there is no version check. The first PR 4 check passed both and wrote two-line values (F33; PR 4 review) |
+| N19 | Run "Check that the tag is new" in the CI image as Actions does (root, `HOME=/github/home`, `bash --noprofile --norc -eo pipefail`), in a workspace owned by another user whose `origin` is a local bare repo with tag `v0.0.1` | `v0.0.1` fails: "Tag v0.0.1 already exists"; `v0.0.2` passes; an unreachable `origin` fails (exit code 128). Without the `safe.directory` line, git ignores the workspace, cannot resolve `origin` and the step fails | The run builds the selected ref, and `publish` attaches it to the old tag (F32; PR 4 review) |
 
 ### 6.3 Verified only in CI
 
@@ -1108,7 +1115,9 @@ source "$(dirname "$0")/_common.sh"
 
 v="${1:?usage: stamp_version.sh <[v]MAJOR.MINOR.PATCH>}"
 v="${v#v}"
-printf '%s' "$v" | grep -qE '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' \
+# A whole-string match: grep matches line by line, so "1.2.3" plus a newline and more would pass.
+re='^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+[[ $v =~ $re ]] \
   || { echo "::error::Version '$v' must be MAJOR.MINOR.PATCH with each part 0-999 (D9)"; exit 1; }
 IFS=. read -r major minor patch <<< "$v"
 code=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
@@ -1438,9 +1447,26 @@ jobs:
     steps:
       - name: Validate version
         run: |
-          printf '%s' "$VERSION" | grep -qE '^v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' \
+          # A whole-string match: grep matches line by line, so "v1.2.3" plus a newline would pass.
+          re='^v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+          [[ $VERSION =~ $re ]] \
             || { echo "::error::Version must look like v1.2.3 (got '$VERSION')"; exit 1; }
       - uses: actions/checkout@v7
+      - name: Check that the tag is new
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # A manual run builds the selected ref, but gh release create attaches the files to an
+          # existing tag as it is (--target only applies to new tags). Retry a failed tag release
+          # by re-running its own run.
+          # checkout trusts the workspace (safe.directory) only in a temporary config.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rc=0
+          git ls-remote --exit-code --tags origin "refs/tags/$VERSION" > /dev/null || rc=$?
+          case "$rc" in
+            2) ;;
+            0) echo "::error::Tag $VERSION already exists. Re-run its Release run, or use a new version"; exit 1 ;;
+            *) echo "::error::Could not list the remote tags (git exit code $rc)"; exit 1 ;;
+          esac
       - uses: ./.github/actions/godot-env
       - run: tools/ci/check_scripts.sh
       - run: tools/ci/run_tests.sh
