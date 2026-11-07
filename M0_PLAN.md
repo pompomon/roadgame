@@ -1747,6 +1747,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: barichello/godot-ci:4.7.2
     timeout-minutes: 20
+    environment: release
     steps:
       - uses: actions/checkout@v7
       - run: tools/ci/stamp_version.sh "$VERSION"
@@ -1770,15 +1771,19 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          path: dist
-          merge-multiple: true
+          name: android-release
+          path: dist/android
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-release
+          path: dist/web
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           args=(--repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes)
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then args+=(--draft); fi
-          gh release create "$VERSION" dist/* --title "Road Roguelike $VERSION" "${args[@]}"
+          gh release create "$VERSION" dist/android/* dist/web/* --title "Road Roguelike $VERSION" "${args[@]}"
       - name: Delete the build artifacts
         continue-on-error: true
         env:
