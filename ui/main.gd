@@ -71,7 +71,9 @@ func _physics_process(_delta: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and GameState.state == GameState.State.RUNNING:
+	# The Web sends only the window one, when the canvas loses focus.
+	var focus_out := what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT]
+	if focus_out and GameState.state == GameState.State.RUNNING:
 		GameState.pause()
 
 

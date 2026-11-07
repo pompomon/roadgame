@@ -146,10 +146,13 @@ func test_a_key_released_while_paused_is_not_missed() -> void:
 
 func test_losing_focus_pauses_the_run_and_releases_the_keys() -> void:
 	var main := _main(["--seed=1"])
-	_push(main, [_key(KEY_LEFT, true)])
-	main.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
-	assert_eq(GameState.state, GameState.State.PAUSED)
-	assert_eq(_router(main).steer(), 0.0)
+	for what: int in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT]:
+		_push(main, [_key(KEY_LEFT, true)])
+		assert_eq(_router(main).steer(), -1.0, "before notification %d" % what)
+		main.propagate_notification(what)
+		assert_eq(GameState.state, GameState.State.PAUSED, "after notification %d" % what)
+		assert_eq(_router(main).steer(), 0.0, "after notification %d" % what)
+		GameState.resume()
 
 
 func test_a_tap_on_the_pause_button_pauses_without_steering() -> void:
