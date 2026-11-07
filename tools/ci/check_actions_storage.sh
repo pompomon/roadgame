@@ -19,9 +19,10 @@ while IFS= read -r f; do files+=("$f"); done \
 # shell removes, so type="gha" counts). Keys are compared in lowercase, since GitHub ignores the
 # case of input names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip).
 # What the check can't read fails: uses: in flow style ({...} or [...], also over several
-# lines), a with: that is not a block mapping (also on the lines below it), ? keys, escaped
-# keys, an input set twice, and a uses:, cache input or retention-days whose value is on or goes
-# on to the lines below, an alias or escaped. \047 is a single quote.
+# lines or after an anchor or tag), a with: that is not a block mapping (also on the lines below
+# it), ? keys, alias keys (*k : x), escaped keys, an input set twice, and a uses:, cache input or
+# retention-days whose value is on or goes on to the lines below, an alias or escaped. \047 is a
+# single quote.
 hits=$(awk '
   BEGIN {
     # Inputs that turn a cache on or off, and their off value.
@@ -99,10 +100,13 @@ hits=$(awk '
       print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
   }
   # Flow style ({...} or [...], which may go on over the lines below): its keys are not read.
+  # An anchor or tag may come before a key ({&a uses: x}).
   function flow(s) {
-    if (tolower(s) ~ /(^|[[{,])[ \t]*["\047]?uses["\047]?[ \t]*:/)
+    if (tolower(s) ~ /(^|[[{,])[ \t]*([&!][^ \t]*[ \t]+)*["\047]?uses["\047]?[ \t]*:/)
       print FILENAME ":" FNR ": uses: must be in a block mapping, one key per line"
     if (s ~ /[[{,][ \t]*[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
+    if (s ~ /(^|[[{,])[ \t]*[*][^ \t,{}]*[ \t]*:/)
+      print FILENAME ":" FNR ": write the key without aliases"
   }
   function end_step(    k, r) {
     if (s_line) {
@@ -161,6 +165,8 @@ hits=$(awk '
     f = (fl > 0) ? rest : ((val ~ /^[[{]/) ? val : "")
     if (f != "") flow(f)
     if (rest ~ /^[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
+    ak = (fl == 0 && rest ~ /^[*][^ \t]*[ \t]*:([ \t]|$)/)     # an alias key: *k : x
+    if (ak) print FILENAME ":" FNR ": write the key without aliases"
     esc = (line ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
     if (esc) print FILENAME ":" FNR ": write the key without escapes"
     # The value of the key on the line above (key:, then the value further indented).
@@ -196,7 +202,8 @@ hits=$(awk '
     } else if (w_ind >= 0 && ind > w_ind) {
       if (w_col < 0) w_col = ind
       if (ind == w_col && (col > ind || key == "")) {     # a list, flow, alias or scalar
-        if (!esc) print FILENAME ":" FNR ": with: must be a block mapping, one input per line"
+        if (!esc && !ak)
+          print FILENAME ":" FNR ": with: must be a block mapping, one input per line"
       } else if (ind == w_col) {                         # an input of the step
         if (key in inputs)
           print FILENAME ":" FNR ": " key ": set it only once (input names ignore case)"
