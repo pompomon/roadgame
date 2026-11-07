@@ -338,7 +338,7 @@ var shortened_count: int       # dead ends shortened to 1 tile
 var dropped_count: int         # wrong exits dropped; always 0 (§5.4)
 ```
 
-- `_init` reports a missing schedule, or each `schedule.validate()` problem, with `push_error("AreaSchedule: " + problem)`. It then generates from a one-area schedule instead: an `AreaDef` with id `fallback` and the default rules. A broken schedule is never read, so the buffer and the viewer need no null checks (§4.6).
+- `_init` reports a missing schedule, or each `schedule.validate()` problem, with `push_error("AreaSchedule: " + problem)`. It then generates from a one-area schedule instead: an `AreaDef` with id `fallback` and the default rules. The generator never reads a broken schedule, so the buffer needs no null checks (§4.6). The fallback covers generation only: `WorldRenderer.bind()` still needs a valid schedule (§5.7).
 - `_init` starts in `entries[0].area` and seeds the road stream with `hash("%d:road" % run_seed)` (D8; G7 reserves `":props"`).
 - `next_tile()` emits, in this order of priority:
   1. a set-piece tile while a set piece is pending; after the last one, the generator enters the pending area;
@@ -425,6 +425,7 @@ The five areas use IP M4.2's values:
 **`WorldRenderer`** (`Node2D`, PR 4). `world/world.tscn` holds it with `%GroundLayer`, `%RoadLayer` and a y-sorted `%Props`.
 - `@export var show_dead_ends := false` (Q10).
 - `bind(buffer, schedule)` builds both tilesets, offsets the layers (G2), connects the buffer's signals and draws `buffer.tiles()`.
+- `bind()` reads every entry's area to give each area a ground colour, so the schedule must be valid: a missing schedule, entry or area is a script error. The viewer passes the schedule it gave the generator, `schedule.tres`, which `test_the_game_schedule_is_valid` checks. Tiles of an area the schedule doesn't list, such as the generator's `fallback` (§5.3), get the first area's colour.
 - Each tile gets one road cell and 4×4 ground cells in its area's colour, and both are erased when the tile is freed. **Δ G7:** no props and no `PropPool`.
 
 ### 5.8 Road viewer (PR 4) **Δ G4**
