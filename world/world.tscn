@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://world/world_renderer.gd" id="1_renderer"]
+
+[node name="World" type="Node2D"]
+script = ExtResource("1_renderer")
+
+[node name="GroundLayer" type="TileMapLayer" parent="."]
+unique_name_in_owner = true
+
+[node name="RoadLayer" type="TileMapLayer" parent="."]
+unique_name_in_owner = true
+
+[node name="Props" type="Node2D" parent="."]
+unique_name_in_owner = true
+y_sort_enabled = true
