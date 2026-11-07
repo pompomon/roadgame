@@ -47,8 +47,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_pause()
 		get_viewport().set_input_as_handled()
 	elif GameState.state == GameState.State.GAME_OVER and _is_retry(event):
-		retry_requested.emit()
+		# Handled first: the retry reloads the scene, which takes the HUD out of the tree at once.
 		get_viewport().set_input_as_handled()
+		retry_requested.emit()
 
 
 ## Pauses a running game, or resumes a paused one. Does nothing in other states.

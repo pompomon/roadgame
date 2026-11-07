@@ -108,3 +108,14 @@ func test_a_tap_or_enter_retries_only_once_the_game_is_over() -> void:
 	for event: InputEvent in events:
 		hud._unhandled_input(event)
 	assert_signal_emit_count(hud, "retry_requested", 2)
+
+
+func test_a_retry_may_take_the_hud_out_of_the_tree() -> void:
+	# The main scene's retry reloads the scene, and Godot takes the old one out of the tree at once.
+	var hud := _hud()
+	hud.retry_requested.connect(func() -> void: hud.get_parent().remove_child(hud))
+	GameState.start_run(1)
+	GameState.end_run(CarSim.WRONG_TURN)
+	GameState.show_game_over()
+	hud._unhandled_input(_key(KEY_ENTER, true))
+	assert_false(hud.is_inside_tree(), "the retry went ahead")
