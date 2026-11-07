@@ -102,7 +102,7 @@ This plan applies the defaults below. Tell me if you want any of them changed.
 |---|---|---|---|
 | Q1 | Where does the road viewer live? | `ui/main.tscn`, until M2 replaces it with the game (G4) | IP's `tools/debug_road.tscn`, which runs only in the editor |
 | Q2 | Props in M1? | No: they need `PropDef` (M4.1) and `PropPool` (M5.2) (G7) | Placeholder props now |
-| Q3 | Grey-box art | Drawn at startup from `RoadGeometry` (G8). If a device takes more than 300 ms, bake it into a PNG at build time | IP's hand-drawn PNG |
+| Q3 | Grey-box art | Drawn at startup from `RoadGeometry` (G8). If a device takes more than 300 ms (E9), PR 4 switches to a baked PNG before it merges: a tools script writes it from `GreyboxAtlas`, and a test checks that they match | IP's hand-drawn PNG |
 | Q4 | How does the road start? | 4 straight tiles north, then the first junction (G11) | 2 tiles (the shortest straight), or a junction first as in IP |
 | Q5 | Bring the area subset into M1? | Yes: `AreaDef`, `AreaSchedule`, the five areas and `schedule.tres` (G5) | A test-only schedule built in code; the resources stay in M4 |
 | Q6 | Buffer signals | The buffer's own; M2.7's `EventBus` relays them (G6) | Add a minimal `EventBus` autoload now |
@@ -124,7 +124,7 @@ This ends the current convention, under which every change to such a file also u
 
 ## 4. Work breakdown
 
-There are four PRs, and each one leaves CI green. The total estimate is about 3–3.5 days, below IP's size "L" (4–6 days), because the code exists and is verified. Most of the remaining risk is in PR 4, because device performance can't be tested locally.
+There are four PRs, and each one leaves CI green. The total estimate is about 3–3.5 days, plus half a day if the atlas has to be baked (Q3). That is below IP's size "L" (4–6 days), because the code exists and is verified. Most of the remaining risk is in PR 4, because device performance can't be tested locally.
 
 ```
 PR 1 road types, areas, Iso ──▶ PR 2 generator ──▶ PR 3 buffer ──▶ PR 4 grey box + viewer
@@ -241,7 +241,7 @@ git checkout origin/m1/prototype -- 'world/greybox_atlas.gd*' 'world/world_rende
    ```
    - **Android:** `adb install -r "/tmp/roadgame-builds/android-Android APK/roadgame-debug.apk"`. The road scrolls up the screen, and touch and hold fast-forwards. `adb logcat -s godot` shows the `grey box:` line.
    - **Web:** run `python3 -m http.server -d /tmp/roadgame-builds/web 8000` and open http://localhost:8000 in Chrome and Firefox. The browser console shows the `grey box:` line.
-   - If a device takes more than 300 ms, open a follow-up issue to bake the atlas into a PNG (Q3).
+   - If a device takes more than 300 ms, don't merge PR 4 yet. Add the Q3 fallback to it (about half a day) and repeat these checks.
 4. After the merge, https://pompomon.github.io/roadgame/ shows the road viewer.
 
 **Acceptance:** E6–E9.
@@ -374,7 +374,7 @@ Measured over 200 seeds × 500 turns with the game schedule: 62 of 130,320 dead 
 
 ### 5.6 Areas and the schedule (PR 1; used from PR 2)
 
-**Δ G5:** this is only the subset that M1 uses. M4.1 adds the other `AreaDef` fields of `plan.md` §3.7 to the same classes.
+**Δ G5:** this is only the subset that M1 uses. M2.2 adds the driving fields that `CarSim` reads, and M4.1 the rest of `plan.md` §3.7, to the same classes (§9).
 
 | Class | Fields | `validate() -> PackedStringArray` reports |
 |---|---|---|
@@ -581,7 +581,7 @@ gh api repos/pompomon/roadgame/rulesets/26672445 \
 | Risk | Impact | Mitigation |
 |---|---|---|
 | The new tests add about 7 s to GUT | A slower `test` check | Measure in PR 2. Shrink the 200 × 500 test if the job regularly takes more than 100 s (Q9) |
-| Building the atlas is slow in browsers or on the phone | A late first frame | E9 measures it. Bake a PNG at build time if it takes more than 300 ms (Q3) |
+| Building the atlas is slow in browsers or on the phone | A late first frame | E9 measures it. Over 300 ms, PR 4 switches to a baked PNG before it merges (Q3) |
 | M2 replaces `ui/main.gd` | `smoke.sh` fails without the `autopilot:` line | M2 keeps the line, or changes `smoke.sh` in the same PR (G17, §9) |
 | float32 positions far from the origin | Jitter in long runs | None needed: at 200,000 px (about 6,000 path tiles), positions are precise to about 1/64 px |
 | `push_error` doesn't stop a release build | A broken invariant goes unnoticed | Every CI script fails on error lines (M0 F10), and a test covers each invariant (§6.2) |
@@ -595,6 +595,7 @@ gh api repos/pompomon/roadgame/rulesets/26672445 \
 ## 9. Notes for later milestones
 
 - **M2:**
+  - Add the driving fields of `plan.md` §3.7 to `AreaDef`, because `CarSim` reads them (M2.2): `straight_accel`, `junction_brake_distance`, `junction_speed`, `offroad_speed_mult`, `offroad_damage_per_sec` and `offroad_limit_tiles`. Set them in the five area `.tres` files to IP M4.2's values, and extend `validate()` (G5). `offroad_limit_tiles` is 2.0 in every area: IP M4.2 lists it with the global constants, but M2.2 and `plan.md` §3.7 read it from the area.
   - Keep the `autopilot:` line, or update `smoke.sh` in the same PR (G17).
   - Find a dead end's junction with `buffer.path_tile(tile.junction_index)` (G1).
   - Relay the buffer's signals through `EventBus` (M2.7, G6).
@@ -603,7 +604,7 @@ gh api repos/pompomon/roadgame/rulesets/26672445 \
   - Name seed parameters `run_seed`, including M2.7's `start_run(seed := -1)` (G13).
   - Turn the dead-end tint off in the game (Q10).
 - **M4:**
-  - Add the other `AreaDef` fields and `PropDef` (M4.1).
+  - Add the remaining `AreaDef` fields (`palette`, `road_tileset`, `ground_variants`, `props`, `disasters`, `ambient_loop`, `music` and `transition_tiles`) and `PropDef` (M4.1).
   - Seed the props stream with `hash("%d:props" % run_seed)`, and add the prop-density determinism test (G7).
   - Map `set_piece` ids to scenes (M4.4, G5).
   - `area_changed` (M4.3) fires on the first tile of a new area, as defined in §5.6.
