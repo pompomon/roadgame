@@ -1,10 +1,17 @@
 name: CI
 
+# Actions storage (M0_PLAN.md F34): no caches, and artifacts only where needed, kept 1 day.
+# To download the builds, run this workflow by hand with upload-builds.
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      upload-builds:
+        description: Upload the Web, APK and AAB builds as artifacts (kept 1 day)
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -26,8 +33,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: tools/ci/requirements.txt
       - run: pip install -r tools/ci/requirements.txt
       - run: tools/ci/lint.sh
       - name: actionlint
@@ -48,13 +53,6 @@ jobs:
         run: tools/ci/run_tests.sh
       - name: Smoke run (main scene, 60 s simulated)
         run: tools/ci/smoke.sh
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-reports
-          path: build/reports
-          retention-days: 14
 
   export-web:
     needs: [lint, test]
@@ -66,23 +64,20 @@ jobs:
       - uses: ./.github/actions/godot-env
       - run: tools/ci/export.sh "Web" build/web/index.html release
       - name: Upload Web build
+        if: inputs.upload-builds
         uses: actions/upload-artifact@v7
         with:
           name: web
           path: build/web
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
+          compression-level: 9
       - name: Upload Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
         with:
           path: build/web
-      - name: Upload export log
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: export-log-web
-          path: build/reports
+          retention-days: 1
 
   export-android:
     needs: [lint, test]
@@ -95,44 +90,31 @@ jobs:
         include:
           - preset: Android APK
             file: roadgame-debug.apk
-            slug: apk
           - preset: Android AAB
             file: roadgame-debug.aab
-            slug: aab
     name: export-android (${{ matrix.preset }})
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/godot-env
         with:
           android: ${{ matrix.preset == 'Android AAB' }}
-      - name: Cache Gradle
-        if: matrix.preset == 'Android AAB'
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
       - name: Export (debug keystore from the CI image)
         run: tools/ci/export.sh "${{ matrix.preset }}" "build/android/${{ matrix.file }}" debug
       - name: Disk usage
         if: always()
         run: |
           # The image, the SDK and NDK, and Gradle share the runner's disk (M0_PLAN.md §8).
+          # Gradle's home is /root/.gradle: Java takes user.home from /etc/passwd, not $HOME (F31).
           df -h / "$GITHUB_WORKSPACE"
-          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" "$HOME/.gradle" 2>/dev/null || true
-      - uses: actions/upload-artifact@v7
+          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" /root/.gradle 2>/dev/null || true
+      - if: inputs.upload-builds
+        uses: actions/upload-artifact@v7
         with:
           name: android-${{ matrix.preset }}
           path: build/android/${{ matrix.file }}
           if-no-files-found: error
-          retention-days: 14
-      - name: Upload export log
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: export-log-${{ matrix.slug }}
-          path: build/reports
+          retention-days: 1
+          compression-level: 9
 
   deploy-web:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -140,6 +122,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
+      actions: write   # delete the Pages artifact
       pages: write
       id-token: write
     environment:
@@ -148,3 +131,14 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v5
+      - name: Delete the Pages artifact
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The site is live. To deploy again, re-run all jobs (this job alone has no artifact).
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            --jq '.artifacts[] | select(.name == "github-pages") | .id' | while read -r id; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+            echo "Deleted artifact $id"
+          done

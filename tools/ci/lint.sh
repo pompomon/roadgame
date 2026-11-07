@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Style (gdlint, gdformat), the determinism rule (IMPLEMENTATION_PLAN.md §5.3), shell scripts
-# and version pins. Needs gdtoolkit (pip install -r tools/ci/requirements.txt), not Godot.
+# Style (gdlint, gdformat), the determinism rule (IMPLEMENTATION_PLAN.md §5.3), shell scripts,
+# version pins and the Actions storage policy (no caches, artifacts kept 1 day; M0_PLAN.md F34).
+# Needs gdtoolkit (pip install -r tools/ci/requirements.txt), not Godot.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
@@ -80,3 +81,4 @@ else
 fi
 
 tools/ci/check_versions.sh
+tools/ci/check_actions_storage.sh

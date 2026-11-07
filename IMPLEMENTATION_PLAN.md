@@ -455,7 +455,7 @@ Schedule: `0 → city`, `34 → rural (tunnel, 6 tiles)`, `100 → meadows (brid
 
 #### M6.6 Visual screenshots (S, non-blocking)
 - `tools/screenshots.gd`: boots `main.tscn` with `--seed`, `--autopilot` and `--fixed-fps 60`, fast-forwards to turns {0, 34, 100, 200, 220}, and saves PNGs for portrait (360×640) and landscape (640×360).
-- **Note:** `--headless` uses a dummy renderer and cannot take screenshots. The workflow runs under `xvfb-run` with `--rendering-driver opengl3` (Mesa llvmpipe). Images are uploaded as artifacts for human review; pixel diffing is post-MVP.
+- **Note:** `--headless` uses a dummy renderer and cannot take screenshots. The workflow runs under `xvfb-run` with `--rendering-driver opengl3` (Mesa llvmpipe). Images are uploaded as artifacts for human review, kept 1 day (§7.1); pixel diffing is post-MVP.
 
 ---
 
@@ -511,13 +511,15 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 
 | Workflow | Trigger | Jobs | Output |
 |---|---|---|---|
-| `ci.yml` | `pull_request`, `push` to `main`, manual | `lint` → `test` → `export-web`, `export-android` (APK, AAB) → `deploy-web` (main only) | JUnit report, `web`, debug APK and AAB artifacts, Pages deploy |
+| `ci.yml` | `pull_request`, `push` to `main`, manual | `lint` → `test` → `export-web`, `export-android` (APK, AAB) → `deploy-web` (main only) | Pages deploy; `web`, debug APK and AAB artifacts only from a manual run with `upload-builds` |
 | `release.yml` | Tag `v*.*.*`, manual | `test` → `android-release`, `web-release` → `publish` | Signed APK and AAB, Web zip on a GitHub Release |
-| `visual.yml` | Manual, nightly | `screenshots` | PNG artifacts (non-blocking) |
+| `visual.yml` | Manual, nightly | `screenshots` | PNG artifacts, kept 1 day (non-blocking) |
 
 Shared logic lives in `tools/ci/*.sh` (runnable locally with the same commands) and one composite action `.github/actions/godot-env`. All jobs that run Godot use the container `barichello/godot-ci:4.7.2`, which already includes JDK 17, Android SDK, a debug keystore (`/root/debug.keystore`) and export templates. Godot export plugins read these from `~/.config/godot/editor_settings-4.7.tres`.
 
 > **Version bump procedure:** change the image tag in all three workflows and `config/features` in `project.godot`, then re-vendor GUT if needed. `tools/ci/check_versions.sh` (run in `lint`) fails if the image tags differ from each other or from the `project.godot` minor version.
+
+> **Actions storage policy (`M0_PLAN.md` F34, §5.12):** no caches of any kind, artifacts only where something needs them, and `retention-days: 1` on every upload. CI gets slower in exchange. `tools/ci/check_actions_storage.sh` (run in `lint`) enforces it. The §7.2–§7.5 listings predate the policy; `M0_PLAN.md` Appendix B has the current files.
 
 ### 7.2 Composite action — `.github/actions/godot-env/action.yml`
 ```yaml
@@ -910,6 +912,7 @@ jobs:
         with:
           name: screenshots
           path: build/screenshots
+          retention-days: 1   # Actions storage policy (§7.1)
 ```
 
 ### 7.8 `.github/dependabot.yml`
@@ -942,8 +945,8 @@ Or all of them inside the CI image:
 | Free steering makes corner cuts ambiguous (which branch was rejoined) | Unfair deaths | Capsule geometry plus "first rejoined branch" rule (D4/D5); `test_corner_cut.gd`; debug overlay shows the pending choice |
 | Auto-braking reveals the junction too late or too early at high speed | Unplayable late game | `GLOBAL_SPEED_CAP`; braking distance is per area; tune with the autopilot speed log |
 | Fold/unfold restarts the Android activity | Lost run | `resizeable` setting plus Godot's `configChanges`; QA checklist; if it still fails, add an Android plugin manifest override (post-check) |
-| Gradle AAB build is slow or flaky in CI | Red PRs | Gradle cache; separate matrix entry (`fail-fast: false`); APK stays the quick signal |
-| CI image lags behind Godot patch releases | Blocked upgrade | Fallback: `chickensoft-games/setup-godot@v2` with `include-templates: true` plus `android-actions/setup-android@v4` and `actions/setup-java` (17); scripts in `tools/ci` stay the same |
+| Gradle AAB build is slow or flaky in CI | Red PRs | Separate matrix entry (`fail-fast: false`); APK stays the quick signal. No Gradle cache: CI keeps no caches (§7.1) |
+| CI image lags behind Godot patch releases | Blocked upgrade | Fallback: `chickensoft-games/setup-godot@v2` with `include-templates: true` and `cache: false` (§7.1) plus `android-actions/setup-android@v4` and `actions/setup-java` (17); scripts in `tools/ci` stay the same |
 | Headless rendering cannot take screenshots | No visual tests | `xvfb` with `opengl3` in a separate, non-blocking workflow |
 | GUT and Godot 4.7 stricter typing on doubles | Test false positives | GUT 9.7.1; prefer real `RefCounted` objects over doubles in tests |
 | Generator edge cases (collisions, area switch mid-set-piece) | Broken roads | Property tests over hundreds of seeds; `assert`s plus `push_error` in debug builds; smoke run in CI |
@@ -952,7 +955,7 @@ Or all of them inside the CI image:
 
 ## 9. MVP definition of done
 - [ ] All `plan.md` §11 automated tests exist and pass in CI (§6 matrix).
-- [ ] `ci.yml` is green on `main`; Pages serves the latest Web build; debug APK and AAB artifacts install and run.
+- [ ] `ci.yml` is green on `main`; Pages serves the latest Web build; debug APK and AAB artifacts (from a manual run with `upload-builds`) install and run.
 - [ ] `v0.1.0` tag produces a GitHub Release with a signed APK, AAB and Web zip.
 - [ ] All 5 areas, tunnel and bridge, and 4 disaster types appear in order during an autopilot run to turn 230.
 - [ ] Atlas, disaster collection and settings persist across restarts (`user://save.json` v1).
