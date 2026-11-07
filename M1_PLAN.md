@@ -44,7 +44,7 @@ Goal (IP §3): `RoadGenerator` meets every unit invariant in `plan.md` §11, and
 | E5 | Areas switch at turns 34 (tunnel, then rural), 100 (bridge, then meadows), 200 (village) and 220 (desert). Set-piece tiles keep the old area, and the straight after a switch comes from the new area. Desert is still active at turn 1,000. A broken schedule is reported | `test_area_schedule.gd` |
 | E6 | The `is_on_road` capsule cases hold for every tile type, and the grey-box atlas pixels follow the same geometry | `test_road_geometry.gd`, `test_greybox_atlas.gd` |
 | E7 | The renderer draws exactly the buffer's tiles, and its layers line up with tile space | `test_world_renderer.gd`, `test_iso.gd` |
-| E8 | The smoke run (seed 12345) prints `autopilot: tile 1440, turns 247, area desert` and no error lines | `smoke.sh`, `test_smoke.gd` |
+| E8 | The smoke run (seed 12345) drives the viewer along the road and prints no error lines. Locally it prints `autopilot: tile 1440, turns 247, area desert` | `smoke.sh`: an `autopilot: tile N` line with N ≥ 1, and no error lines. PR 4 compares the full line by hand (§4) |
 | E9 | Manual: the Web build in Chrome and Firefox and the debug APK on the Galaxy Z Fold4 show the road. Touch and hold fast-forwards. The tilesets build in under 300 ms | PR 4 (Q3) |
 | E10 | All five required checks are green. `lint` picks up the new folders without changes (M0 F8), and its determinism rule covers `road/`, `world/` and `areas/` | PR checks |
 
@@ -232,13 +232,15 @@ git checkout origin/m1/prototype -- 'world/greybox_atlas.gd*' 'world/world_rende
    git diff --stat origin/m1/prototype -- . ':!.github' ':!IMPLEMENTATION_PLAN.md' ':!M0_PLAN.md' \
      ':!M1_PLAN.md' ':!tools/ci/check_actions_storage.sh' ':!tools/ci/lint.sh'
    ```
-3. Manual checks (E9). Start a run that uploads the builds, and download them within a day (F34):
+3. Manual checks (E9). Start a run that uploads the builds, and download them within a day (F34). `gh run download` puts each artifact in a folder named after it: `web`, `android-Android APK` and `android-Android AAB`.
    ```bash
    gh workflow run ci.yml --ref m1/4-greybox -f upload-builds=true
-   gh run download <run id>
+   gh run list -w ci.yml -b m1/4-greybox -e workflow_dispatch -L 1    # the run id
+   gh run watch <run id> --exit-status
+   gh run download <run id> -D /tmp/roadgame-builds
    ```
-   - **Android:** `adb install -r roadgame-debug.apk`. The road scrolls up the screen, and touch and hold fast-forwards. `adb logcat -s godot` shows the `grey box:` line.
-   - **Web:** serve the `web` artifact with `python3 -m http.server -d <dir> 8000` and open it in Chrome and Firefox. The browser console shows the `grey box:` line.
+   - **Android:** `adb install -r "/tmp/roadgame-builds/android-Android APK/roadgame-debug.apk"`. The road scrolls up the screen, and touch and hold fast-forwards. `adb logcat -s godot` shows the `grey box:` line.
+   - **Web:** run `python3 -m http.server -d /tmp/roadgame-builds/web 8000` and open http://localhost:8000 in Chrome and Firefox. The browser console shows the `grey box:` line.
    - If a device takes more than 300 ms, open a follow-up issue to bake the atlas into a PNG (Q3).
 4. After the merge, https://pompomon.github.io/roadgame/ shows the road viewer.
 
@@ -366,7 +368,7 @@ Measured over 200 seeds × 500 turns with the game schedule: 62 of 130,320 dead 
   - `path_tile(i)`, null outside the buffer;
   - `tile_at(cell)`, through the occupancy grid, so it also finds dead ends;
   - `tiles()`, in `tiles_generated` order;
-  - `centreline_point(distance)`: a point on the path's centreline, in tile space, interpolated between tile centres. Outside the buffer it reports `push_error("RoadBuffer: no centreline at distance %.2f")`.
+  - `centreline_point(distance)`: a point on the path's centreline, in tile space, interpolated between tile centres. A distance outside the buffer is clamped to the first or last buffered tile centre, without an error. It reports `push_error("RoadBuffer: no centreline at distance %.2f")` only while the buffer holds fewer than two path tiles, that is, before `start()`.
 - **Δ G15:** lookahead = `last_index() − car_index()`. The buffer holds at most 56 path tiles: 50 ahead, the car's tile and 5 behind.
 - M2's car calls `on_car_path_index()` when it enters a path tile. The junction trigger finds a dead end's junction with `path_tile(tile.junction_index)` (G1).
 
@@ -429,6 +431,8 @@ The five areas use IP M4.2's values:
     "Objects leaked at exit: a cycle of RefCounted references, or a node that is never freed"
   ```
 - `smoke.sh` (PR 4, G17). The M0 run already passes `-- --autopilot --seed=12345`. It now also requires a line that matches `^autopilot: tile [1-9]`, and otherwise fails with `::error::The main scene reported no autopilot progress (see $log)`. Its header comment changes to match.
+  - The tile is the buffer's car index, so a viewer that stops driving the buffer reports `tile 0` and fails.
+  - The rest of the line isn't pinned. Any intended change to the generator, the area tuning (M4) or the driving (M2's car) changes the turns and area at the end of the run, and GUT checks the generator's rules over many seeds (E1–E5).
 - `tests/unit/test_smoke.gd` (PR 4): `var main: Node`; the root was a `Control`.
 
 ### 5.10 Tuning
@@ -595,6 +599,7 @@ gh api repos/pompomon/roadgame/rulesets/26672445 \
   - Find a dead end's junction with `buffer.path_tile(tile.junction_index)` (G1).
   - Relay the buffer's signals through `EventBus` (M2.7, G6).
   - `on_car_path_index()` ignores lower indices, so a car that rejoins behind is fine.
+  - `centreline_point()` clamps at the ends of the buffer without an error (§5.5), so call `on_car_path_index()` before reading it.
   - Name seed parameters `run_seed`, including M2.7's `start_run(seed := -1)` (G13).
   - Turn the dead-end tint off in the game (Q10).
 - **M4:**
