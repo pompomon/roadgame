@@ -67,6 +67,20 @@ func test_the_last_key_pressed_wins_until_it_is_released() -> void:
 	assert_eq(router.steer(), 0.0)
 
 
+func test_each_key_is_held_on_its_own() -> void:
+	var router := _router()
+	_send(router, [_key(KEY_LEFT, true), _key(KEY_A, true), _key(KEY_A, false)])
+	assert_eq(router.steer(), -1.0, "A released, the left arrow still held")
+	_send(router, [_key(KEY_D, true), _key(KEY_A, true)])
+	assert_eq(router.steer(), -1.0, "A pressed after D")
+	_send(router, [_key(KEY_A, false)])
+	assert_eq(router.steer(), 1.0, "D was pressed after the left arrow")
+	_send(router, [_key(KEY_D, false)])
+	assert_eq(router.steer(), -1.0, "the left arrow is still held")
+	_send(router, [_key(KEY_LEFT, false)])
+	assert_eq(router.steer(), 0.0)
+
+
 func test_a_touch_steers_by_the_half_where_it_started() -> void:
 	var router := _router()
 	var middle := _middle(router)

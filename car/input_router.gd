@@ -2,7 +2,8 @@ class_name InputRouter
 extends Node
 ## Steering intent from -1 (left) to 1 (right) (IMPLEMENTATION_PLAN.md M2.1), from the steer_left
 ## and steer_right actions, from touches, or from an Autopilot. Of the inputs held, the last one
-## pressed wins. A touch steers by the half of the screen where it started, until it lifts. Touches
+## pressed wins. Each key is held on its own, so releasing A while the left arrow is held still
+## steers left. A touch steers by the half of the screen where it started, until it lifts. Touches
 ## on the HUD's buttons never get here, because a Button consumes them. With no touchscreen, a left
 ## click is a touch too (project.godot turns on emulate_touch_from_mouse). It processes while the
 ## game is paused, so that a release during the pause is not missed.
@@ -18,7 +19,7 @@ var enabled := true:
 		enabled = value
 		_held.clear()
 
-## The held inputs, oldest first, and the steering of each.
+## The held inputs (keys, touches), oldest first, and the steering of each.
 var _held: Dictionary[String, float] = {}
 
 
@@ -47,15 +48,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	for action: String in ACTIONS:
 		if event.is_action_pressed(action):
-			_press(action, ACTIONS[action])
+			_press(_source(event, action), ACTIONS[action])
 		elif event.is_action_released(action):
-			_held.erase(action)
+			_held.erase(_source(event, action))
 
 
 func _notification(what: int) -> void:
 	# Releases that happen while the window is out of focus never arrive.
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		_held.clear()
+
+
+## The name of the held input that sends the event. A key's is its own, as two keys can steer to one
+## side. Anything else mapped to the action later, such as a gamepad, is held by the action's name.
+static func _source(event: InputEvent, action: String) -> String:
+	var key := event as InputEventKey
+	if key == null:
+		return action
+	var code := key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode
+	return "key %d" % code
 
 
 func _press(key: String, value: float) -> void:
