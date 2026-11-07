@@ -42,9 +42,8 @@ func validate() -> PackedStringArray:
 		problems.append("%s: cross_junction_chance is outside 0..1" % id)
 	if straight_accel < 0.0:
 		problems.append("%s: straight_accel is negative" % id)
-	# The car must have room to brake before it enters the junction tile, half a tile from its centre.
-	if junction_brake_distance <= 0.5:
-		problems.append("%s: junction_brake_distance must be more than 0.5" % id)
+	if junction_brake_distance < least_brake_distance():
+		problems.append("%s: junction_brake_distance is below %.3f" % [id, least_brake_distance()])
 	# Above the lowest top speed, the car would speed up for some junctions instead of braking.
 	if junction_speed <= 0.0 or junction_speed > Tuning.BASE_TOP_SPEED:
 		problems.append("%s: junction_speed is outside 0..BASE_TOP_SPEED" % id)
@@ -55,3 +54,11 @@ func validate() -> PackedStringArray:
 	if offroad_limit_tiles <= 0.0:
 		problems.append("%s: offroad_limit_tiles must be above 0" % id)
 	return problems
+
+
+## The least junction_brake_distance validate() allows. The car must start braking before it enters
+## the junction tile, half a tile from its centre, and one physics step at GLOBAL_SPEED_CAP moves it
+## up to GLOBAL_SPEED_CAP / physics_ticks_per_second tiles. With less, a step could carry it from
+## outside the brake distance into the junction tile without braking.
+static func least_brake_distance() -> float:
+	return 0.5 + Tuning.GLOBAL_SPEED_CAP / Engine.physics_ticks_per_second

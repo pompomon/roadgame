@@ -52,9 +52,11 @@ func test_validate_reports_broken_schedules() -> void:
 
 
 func test_validate_reports_driving_values_the_car_cannot_use() -> void:
+	var least_brake := AreaDef.least_brake_distance()
 	var cases := {
 		"straight_accel": [-0.1, "straight_accel is negative"],
-		"junction_brake_distance": [0.5, "junction_brake_distance must be more than 0.5"],
+		"junction_brake_distance":
+		[least_brake - 0.001, "junction_brake_distance is below %.3f" % least_brake],
 		"junction_speed": [0.0, "junction_speed is outside 0..BASE_TOP_SPEED"],
 		"offroad_speed_mult": [0.0, "offroad_speed_mult is outside 0..1"],
 		"offroad_damage_per_sec": [-1.0, "offroad_damage_per_sec is negative"],
@@ -73,7 +75,7 @@ func test_validate_reports_driving_values_the_car_cannot_use() -> void:
 	var edge := _area(&"edge")
 	edge.junction_speed = Tuning.BASE_TOP_SPEED
 	edge.offroad_speed_mult = 1.0
-	edge.junction_brake_distance = 0.51
+	edge.junction_brake_distance = least_brake
 	assert_eq(_problems([_entry(0, edge)]), "", "the limits themselves are allowed")
 
 

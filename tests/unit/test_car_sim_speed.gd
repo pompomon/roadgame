@@ -113,6 +113,23 @@ func test_enters_the_junction_at_junction_speed_from_the_speed_cap() -> void:
 		assert_eq(sim.trigger.turn_index, 1, "seed %d" % run_seed)
 
 
+func test_the_least_brake_distance_is_enough_from_the_speed_cap() -> void:
+	var phases := 24
+	for k: int in phases:
+		var sim := _sim(1)
+		sim.area = sim.area.duplicate()
+		sim.area.junction_brake_distance = AreaDef.least_brake_distance()
+		sim.dist_total = 1e6
+		sim.dist_on_straight = 1e6
+		sim.speed = Tuning.GLOBAL_SPEED_CAP
+		# Start up to one step further on, so that the steps fall at every distance from the junction.
+		sim.pos += sim.forward() * Tuning.GLOBAL_SPEED_CAP * DELTA * k / phases
+		var result := _approach(sim, Autopilot.new(sim))
+		var entry: float = result.entry_speed
+		assert_lte(entry, sim.area.junction_speed + 1e-6, "phase %d" % k)
+		assert_eq(sim.trigger.turn_index, 1, "phase %d" % k)
+
+
 func test_speeds_up_again_after_a_turn() -> void:
 	var sim := _sim(1)
 	var pilot := Autopilot.new(sim)
