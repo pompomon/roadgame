@@ -30,3 +30,11 @@ static func signature(tile: RoadTile) -> Array:
 	for branch: RoadTile in tile.branches:
 		sig.append_array([branch.cell, branch.type, branch.exits, branch.junction_index])
 	return sig
+
+
+## Path tiles from a fresh generator until it has emitted `turns` junctions.
+static func path_until_turn(gen: RoadGenerator, turns: int) -> Array[RoadTile]:
+	var path: Array[RoadTile] = []
+	while gen.turn_count < turns:
+		path.append(gen.next_tile())
+	return path
