@@ -389,13 +389,13 @@ The owner asked for the least Actions storage, even if CI gets slower (Q9). `too
 
 1. **No caches.** No `actions/cache` or other cache action, no cache inputs such as setup-python's `cache: pip`, and no Docker layers in the Actions cache (`type=gha`). Actions that cache by default must turn it off, for example `actions/setup-go` with `cache: false`, `actions/setup-node` with `package-manager-cache: false` or `gradle/actions/setup-gradle` with `cache-disabled: true`; the script lists the ones it knows. For setup-python, leave `cache` out: `cache: false` is an error there.
 2. **Artifacts only where something needs them.**
-   - PR and `main` runs of `ci.yml` upload no builds. A manual run (Actions → CI → Run workflow) with `upload-builds` checked uploads `web`, `android-Android APK` and `android-Android AAB`.
+   - PR and `main` runs of `ci.yml` upload no builds. A manual run (Actions → CI → Run workflow) with `upload-builds` checked uploads `web`, `android-Android APK` and `android-Android AAB`. GitHub runs a workflow by hand only if it is on the default branch, so this needs `ci.yml` on `main`; then any branch can be picked.
    - `deploy-web` deletes the Pages artifact once the site is live. To deploy the same commit again, re-run all jobs.
    - `release.yml` passes its builds to `publish`, which deletes them after creating the release.
    - Test reports and export logs are not uploaded: the job log has the same lines.
 3. **Every upload sets `retention-days: 1`,** the minimum. Builds also use `compression-level: 9`.
 
-The cost: every job imports the project from scratch (seconds today), and every AAB export downloads Gradle's dependencies. On PR runs, the AAB export took 34–37 s with a warm Gradle cache and 90 s without one, and a run without one then spent 48 s saving the 723 MB cache. PRs never shared that cache (F34), so most runs paid both; now they pay only the download, and re-runs, which used to find the cache, take about a minute longer.
+The cost: every job imports the project from scratch (seconds today), and every AAB export downloads Gradle's dependencies. On PR runs, the AAB export took 34–37 s with a warm Gradle cache and 90 s without one, and a run without one then spent 48 s saving the 723 MB cache. PRs never shared that cache (F34), so most runs paid both; now they pay only the download. In the F34 PR's own run, the export took 75 s and the AAB job 3.1 min, against 4.3 min for a cold run that saved the cache and 2.2–2.5 min for a warm one. The `godot-env` step of `test` and `export-web` took 6 s, as it did with the import cache.
 
 ---
 
@@ -461,7 +461,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | Image pull time; `godot-env` moving templates and settings | 2 |
 | Web, APK and AAB exports with templates; SDK and NDK install; artifact contents; free disk space | 3 |
 | Pages deploy; the release dry run | 4 |
-| A PR run creates no caches or artifacts; a manual run with `upload-builds` uploads the builds; after the merge, `deploy-web` deletes the Pages artifact (the first real release, M6.4, checks the clean-up in `publish`) | F34 |
+| A PR run creates no caches or artifacts (seen in the F34 PR's run). Once `ci.yml` is on `main`: a manual run with `upload-builds` uploads the builds, and `deploy-web` deletes the Pages artifact (the first real release, M6.4, checks the clean-up in `publish`) | F34 |
 
 ---
 
@@ -490,7 +490,7 @@ Agents can't change repository settings. The current state was read with `gh api
 | Runner disk: the image, NDK 29 and Gradle | The AAB job fails with "No space left on device" | `export-android` prints `df -h` and the SDK and Gradle sizes after every export, even a failed one (PR 3). If space runs low, remove unused SDK packages or preinstalled runner tools |
 | NDK 29 is downloaded on every AAB run | Each AAB job takes 1–3 min longer | Accepted: CI keeps no caches (F34). In PR 3 CI the whole `godot-env` step of the AAB job, NDK included, took 30–45 s |
 | Gradle downloads its dependencies on every run (no cache, F34); flaky network | A slower or red AAB check | `fail-fast: false` and re-runs. If it keeps happening, take the Q1 alternative |
-| PR and `main` runs upload no builds (F34) | Trying a PR's APK or Web build takes an extra run | Actions → CI → Run workflow on the PR branch with `upload-builds`; download the artifacts within a day |
+| PR and `main` runs upload no builds (F34) | Trying a PR's APK or Web build takes an extra run | Actions → CI → Run workflow on the PR branch with `upload-builds` (needs `ci.yml` on `main`, §5.12); download the artifacts within a day |
 | gdformat can produce indentation that Godot rejects after multi-line lambda bodies (Scony/godot-gdscript-toolkit#424, open) | `lint` and Godot disagree | Prefer named functions to multi-line lambdas inside call arguments; `check_scripts.sh` catches the result. `@abstract` works with gdtoolkit 4.5.0 (verified) |
 | Godot prints errors but exits 0 | CI is green while broken | Every script scans its log (§5.5). Re-run §6.2 whenever `tools/ci/` changes |
 | The agent firewall blocks downloads during sessions | The agent can't fetch templates or images | The setup steps install everything needed for lint, import, tests and smoke; exports are left to CI |
