@@ -87,6 +87,30 @@ func test_path_tile_and_centreline() -> void:
 	assert_almost_eq(buffer.centreline_point(6.25), a.lerp(b, 0.25), Vector2(1e-5, 1e-5))
 
 
+## GUT fails a test on any push_error, so these clamped points also report none.
+func test_centreline_clamps_to_the_buffer_ends() -> void:
+	var buffer := _buffer(5)
+	buffer.start()
+	assert_eq(buffer.centreline_point(-3.0), Iso.cell_centre(buffer.path_tile(0).cell))
+	for i: int in range(1, 40):
+		buffer.on_car_path_index(i)
+	var first := buffer.first_index()
+	var last := buffer.last_index()
+	assert_gt(first, 0, "the buffer has freed tiles behind the car")
+	var first_centre := Iso.cell_centre(buffer.path_tile(first).cell)
+	var last_centre := Iso.cell_centre(buffer.path_tile(last).cell)
+	assert_eq(buffer.centreline_point(0.0), first_centre)
+	assert_eq(buffer.centreline_point(first - 0.5), first_centre)
+	assert_eq(buffer.centreline_point(last), last_centre)
+	assert_eq(buffer.centreline_point(last + 2.5), last_centre)
+
+
+func test_centreline_before_start_is_an_error() -> void:
+	var buffer := _buffer(5)
+	assert_eq(buffer.centreline_point(0.0), Vector2.ZERO)
+	assert_push_error("no centreline at distance 0.00")
+
+
 func test_dropping_the_buffer_frees_every_tile() -> void:
 	var buffer := RoadBuffer.new(RoadGenerator.new(9, Fixtures.schedule()))
 	buffer.start()
