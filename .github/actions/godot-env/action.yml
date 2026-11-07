@@ -1,7 +1,12 @@
 name: Godot environment
 description: >
   Prepare the barichello/godot-ci container: move export templates and editor settings into
-  $HOME, restore the import cache and import the project.
+  $HOME, optionally install the Android SDK packages that Godot 4.7's Gradle build needs,
+  restore the import cache and import the project.
+inputs:
+  android:
+    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds and set GRADLE_USER_HOME
+    default: "false"
 runs:
   using: composite
   steps:
@@ -17,6 +22,22 @@ runs:
         fi
         echo "GODOT_TEMPLATE_VERSION=$ver" >> "$GITHUB_ENV"
         godot --version
+
+    - name: Install Android SDK packages
+      if: inputs.android == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        sdk="${ANDROID_HOME:-/usr/lib/android-sdk}"
+        sdkm="$sdk/cmdline-tools/latest/bin/sdkmanager"
+        [ -x "$sdkm" ] || sdkm="$(command -v sdkmanager)"
+        "$sdkm" --licenses > /dev/null < <(yes)
+        # Versions from Godot 4.7.2 platform/android/java/app/config.gradle. Without the NDK,
+        # Gradle downloads it during the build or skips stripping the native libraries.
+        "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
+        # Java takes user.home from /etc/passwd (/root), not $HOME (/github/home in container jobs),
+        # so without this Gradle uses /root/.gradle and the workflows' ~/.gradle cache stays empty.
+        echo "GRADLE_USER_HOME=$HOME/.gradle" >> "$GITHUB_ENV"
 
     - name: Restore Godot import cache
       uses: actions/cache@v6

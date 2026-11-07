@@ -69,6 +69,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F6 | M0.1 gives `project.godot` no `config/version`. `stamp_version.sh` uses `sed`, which silently changes nothing when the key is missing, so releases keep the default version. Also:<br>- `08` is invalid octal in `$((…))`<br>- no input validation (`1.2`, `1.2.3-rc1`)<br>- parts ≥ 1000 break the D9 ordering | Spike N9–N9f | Add `config/version="0.0.0"`. The new `stamp_version.sh` validates `[v]X.Y.Z` (each part 0–999), uses `10#`, fails on a missing key and keeps the file mode |
 | F7 | In a container job, `${{ runner.temp }}` expands to the host path, not the container path. `release.yml` decodes the keystore to `$RUNNER_TEMP` but passes Godot `${{ runner.temp }}/release.keystore`, so signed exports fail at M6.4. | actions/runner#2498 | One step sets `GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/release.keystore"`, decodes the keystore, exports and removes it with `trap` |
 | F29 | GUT fails a test only for errors raised in its body. A `push_error()` or engine error in `before_all`, `before_each`, `after_each` or `after_all` is tracked under `GutUtils.NO_TEST` and never checked, so GUT exits 0 and the JUnit file shows no failure. | PR 2 review; N14 | Post-run hook `tests/gut_post_run.gd` (`post_run_script` in `.gutconfig.json`) sets exit code 1 on unhandled errors outside test bodies. Errors that a hook asserts (`assert_push_error()` and the like) are marked handled and still pass (N14b) |
+| F30 | Headless Android exports fail with "ETC2/ASTC texture compression is required for Android export". `rendering/textures/vram_compression/import_etc2_astc` defaults to false, and Godot implies it only on hosts whose preferred texture format is ETC2/ASTC (ARM). The project manager doesn't set it, and the export dialog's fix button needs the GUI, so x86 CI fails before any Gradle step. | PR 3 CI; N15. Godot 4.7.2 source: `platform/android/export/export_plugin.cpp`, `editor/import/resource_importer_texture_settings.cpp` | PR 3 sets `import_etc2_astc=true` in `project.godot`. Every texture is imported Lossless today, so no `.import` file changes |
 
 ### Medium
 
@@ -76,7 +77,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 |---|---|---|---|
 | F8 | gdlint and gdformat fail on a path that doesn't exist. IP `lint.sh` passes 11 folders, most of which only appear in M1–M5, and git cannot commit the empty "folder skeleton" from M0.1. | Spike | `lint.sh` passes only folders that exist. **Δ M0.1:** no empty skeleton; each folder is created with its first file |
 | F9 | IP `.gutconfig.json` lists `res://tests/sim/` and `res://tests/integration/`, which only appear in M2 and M3. GUT logs `[GUT ERROR]` for each one and carries on. | Spike N10 | `"dirs": ["res://tests/"]` with `include_subdirs`, so new folders are picked up automatically |
-| F10 | Godot exits 0 after runtime errors: `push_error` prints `ERROR:` and a call on null prints `SCRIPT ERROR:`. IP `smoke.sh` scans for both, but IP `import.sh` does not scan for engine `ERROR:` lines such as broken resources. | Spike: both lines printed, exit 0. PR 2 CI: a corrupt image also imports with exit 0 | One regex, `ANY_ERROR_RE` in `_common.sh`, used by import, check_scripts and smoke. `IGNORE_RE` skips one harmless line: the godot-ci image has no fontconfig, so editor runs (`--import`) print `ERROR: Unable to load fontconfig, system font support is disabled.` (found in PR 2 CI) |
+| F10 | Godot exits 0 after runtime errors: `push_error` prints `ERROR:` and a call on null prints `SCRIPT ERROR:`. IP `smoke.sh` scans for both, but IP `import.sh` does not scan for engine `ERROR:` lines such as broken resources. | Spike: both lines printed, exit 0. PR 2 CI: a corrupt image also imports with exit 0 | One regex, `ANY_ERROR_RE` in `_common.sh`, used by import, check_scripts, smoke and export (export since the PR 3 review, N16). `IGNORE_RE` skips one harmless line: the godot-ci image has no fontconfig, so editor runs (`--import`) print `ERROR: Unable to load fontconfig, system font support is disabled.` (found in PR 2 CI) |
 | F11 | `godot-env` doesn't install the NDK. The Godot 4.7.2 Gradle build sets `ndkVersion '29.0.14206865'` and strips native libraries with it. The image ships NDK 25.2.9519653, so Gradle either downloads the NDK mid-build or skips stripping. | Godot 4.7.2 source: `platform/android/java/app/config.gradle`, `app/build.gradle` | Add `"ndk;29.0.14206865"` to `sdkmanager --install` |
 | F12 | `export.sh` writes its log next to the output (`build/web/index.html.log`), and `ci.yml` publishes that folder to Pages. The release zip excludes `*.log`; the Pages upload doesn't. | IP §7.3, §7.4 | Logs go to `build/reports/export-<preset>.log` and are uploaded only on failure, as `export-log-*` |
 | F13 | Exports include GUT, the tests and the tools, because the presets use `export_filter="all_resources"` with no exclusions. | Spike N11: a Web pack without the filter has 510 `addons/gut/` paths and 8 `tests/`/`tools/` paths (1.46 MB). With the filter it has none (6.6 KB) | `exclude_filter="addons/gut/*, tests/*, tools/*"` in every preset |
@@ -87,6 +88,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F18 | Godot 4.4+ generates files that must be committed: `*.uid` (script UIDs) and `*.import` (import settings, which are also part of the import cache key). Scripts committed without the executable bit fail in CI with "Permission denied". | Spike: `--import` created `*.gd.uid` and `icon.svg.import` | Commit them; `git add --chmod=+x tools/ci/*.sh`; `.gitattributes` with `* text=auto eol=lf` |
 | F19 | Release versions are inconsistent. Tag pushes give `v1.2.3`, but the manual input suggests `0.1.0`, which creates a tag without the `v` that doesn't match `v*.*.*`. Nothing checks the version before the 40-minute Android build starts. | IP §7.5 | The manual input is the tag itself (`v0.1.0`). The first step of `test` validates it |
 | F20 | Every Godot job pulls `barichello/godot-ci:4.7.2`, about 2.6 GB compressed. That is 4 pulls per CI run and 3 per release, which costs time and disk and runs into Docker Hub's anonymous pull limits. | Docker Hub tag size | Measure in PR 2 and PR 3; mitigations in §8 (Q6) |
+| F31 | The Gradle cache is never saved. In container jobs `$HOME` is `/github/home`, but Java takes `user.home` from `/etc/passwd` (`/root`). Gradle therefore uses `/root/.gradle`, the cache step finds no `~/.gradle`, and `actions/cache` only warns: "Path(s) specified in the action for caching do(es) not exist". | PR 3 CI (AAB job of #8). In the image with `HOME=/github/home`, `java -XshowSettings:properties` prints `user.home = /root` | `godot-env`'s Android step sets `GRADLE_USER_HOME=$HOME/.gradle`, so Gradle and the cache step in `ci.yml` and `release.yml` use the same folder |
 
 ### Low
 
@@ -97,7 +99,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F23 | The import cache key uses `runner.os`, which is always Linux. After a Godot bump, `restore-keys` can restore the old version's cache. | Key on `GODOT_TEMPLATE_VERSION` |
 | F24 | IP `check_versions.sh` exits silently when no tag is found (`set -e` with `pipefail` inside `$(…)`). It scans only `.github/workflows/`, accepts tags such as `4.7` or `4.7.2.1`, truncates `4.7.2-rc1` or `4.7.2${{ matrix.suffix }}` to `4.7.2`, skips `latest`, and ignores the agent setup. | Rewritten (spike N8, N8b). It compares complete tags, including any `$` or `{}` part (PR 2 reviews, N8c) |
 | F25 | `build/` is not `.gdignore`d, so the editor imports exported files such as `build/web/index.png`, and a later export packs them. | Commit `build/.gdignore` (`.gitignore`: `/build/*` plus `!/build/.gdignore`); `_common.sh` recreates it |
-| F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`. That check uses `case` on the `unzip -l` text, because `unzip \| grep -q` can fail with SIGPIPE under `pipefail` |
+| F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`: `grep -qE '(^\|/)lib/arm64-v8a/[^/]+\.so$'` over the `unzip -Z1` names (one per line), read from a here-string because `unzip \| grep -q` can fail with SIGPIPE under `pipefail`. The first version ran a `case` glob over the whole `unzip -l` text, where `*` also matches newlines (PR 3 review, N17) |
 | F27 | `release.yml` has no `defaults.run.shell: bash`, so inline steps run without `pipefail`. Its `test` job skips the script-loading check, three jobs have no `timeout-minutes`, and scripts use `${{ … }}` where env vars exist. It is otherwise actionlint-clean. | Fixed in Appendix B |
 | F28 | The scripts assume GNU tools (`sed -i -E`), bash 4, and `godot` on `PATH`. | Bash 3.2 and BSD tools (macOS), no `sed -i`, `timeout` or `gtimeout`, and a `GODOT=/path/to/godot` override. Not run on macOS |
 
@@ -177,7 +179,8 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 **Files:**
 - `export_presets.cfg`
 - `tools/ci/export.sh`
-- `godot-env`: add the `android` input and the SDK/NDK step
+- `project.godot`: add `import_etc2_astc=true` (F30)
+- `godot-env`: add the `android` input and the SDK/NDK step, which also sets `GRADLE_USER_HOME` (F31)
 - `ci.yml`: add `export-web` and `export-android` (without the Pages steps)
 
 1. Add `export_presets.cfg`. The Appendix A version contains only the key options, and Godot uses defaults for the rest; this was verified with `--export-pack`. Optionally, open Project → Export once in the 4.7.2 editor and save, which writes every default explicitly; keep the §5.4 options, including `exclude_filter`.
@@ -185,7 +188,8 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 3. Push and check:
    - All three export checks are green.
    - The `web`, `android-Android APK` and `android-Android AAB` artifacts exist.
-   - Note the durations of the NDK install and the Gradle build.
+   - Note the durations of the NDK install and the Gradle build, and the free disk space that the "Disk usage" step prints (§8).
+   - The AAB job's "Post Cache Gradle" step saves `gradle-godot-<version>`, and a re-run restores it (F31).
 4. Manual checks (E6):
    - **Android:** run `adb install -r roadgame-debug.apk`. The app opens, shows "Road Roguelike 0.0.0" and follows the sensor orientation.
    - **Web:** unzip `web`, serve it with `python3 -m http.server -d <dir> 8000`, and open it in Chrome and Firefox.
@@ -238,6 +242,7 @@ All M0.1 settings are unchanged. Additions:
 - **Δ F6:** `application/config/version="0.0.0"`. The main scene label shows it, and `stamp_version.sh` overwrites it.
 - **Δ F14:** input actions bound by physical key, with deadzone 0.2. `ui_accept` stays at the built-in default.
 - `[editor_plugins] enabled=PackedStringArray("res://addons/gut/plugin.cfg")`.
+- **Δ F30 (PR 3):** `rendering/textures/vram_compression/import_etc2_astc=true`. Android export requires it.
 
 | Action | Physical keys | `physical_keycode` |
 |---|---|---|
@@ -303,7 +308,7 @@ Every script sources `_common.sh`, which does the following:
 | `smoke.sh` | 300 s | Godot exits non-zero, or the log has any error line | F10 |
 | `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck or `check_versions.sh` fails | F4, F8, F22 |
 | `check_versions.sh` | — | The complete godot-ci tags differ or aren't `x.y.z` (`4.7.2-rc1`, `latest` and `4.7.2${{ matrix.suffix }}` fail); the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
-| `export.sh` | 900 s; 1800 s for AAB | No output file; a Web export missing `.js`, `.wasm` or `.pck`; an APK or AAB with no `arm64-v8a` `.so` | F12, F26 |
+| `export.sh` | 900 s; 1800 s for AAB | Godot exits non-zero, or the log has any error line; no output file; a Web export missing `.js`, `.wasm` or `.pck`; an APK or AAB with no `arm64-v8a` `.so` | F10, F12, F26 |
 | `stamp_version.sh` | — | The version is invalid, or a key is missing | F6 |
 
 **Determinism rule (IP §5.3, Δ F4).** It covers `autoload road world car disasters areas setpieces` (scope unchanged).
@@ -321,6 +326,7 @@ Every script sources `_common.sh`, which does the following:
 - **Δ F11:** adds `"ndk;29.0.14206865"` to the SDK install.
 - **Δ F23:** the cache key is `godot-import-<GODOT_TEMPLATE_VERSION>-<hash>`.
 - The `android` input and the Android step arrive in PR 3.
+- **Δ F31 (PR 3):** the Android step sets `GRADLE_USER_HOME=$HOME/.gradle`, the folder the Gradle cache saves.
 
 ### 5.7 `.github/workflows/ci.yml`
 
@@ -332,6 +338,7 @@ Changes from IP §7.4:
   - **F22:** runs actionlint 1.7.12.
 - `test`: **F2:** a new "Load every script" step runs before GUT.
 - Export jobs: **F12:** on failure, `build/reports` is uploaded as `export-log-web` or `export-log-<apk|aab>`; the matrix gains a `slug`.
+- `export-android` runs a "Disk usage" step right after the export, even when the export fails: `df -h`, plus the sizes of the Android SDK and the Gradle home (§8).
 
 Job and check names are unchanged.
 
@@ -389,7 +396,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15–N17 while implementing PR 3.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -417,6 +424,9 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N14 | `push_error("x")` in a test's `before_each()`; likewise `before_all`, `after_each`, `after_all` or an engine error there | `run_tests.sh` fails: "Unexpected errors outside test bodies", GUT exit 1 | Passes: GUT exits 0 (F29) |
 | N14b | `before_all()` calls `push_error("x")`, then `assert_push_error("x")` | `run_tests.sh` passes | Passes ✓ |
 | N14c | `tests/gut_post_run.gd` is deleted | `run_tests.sh` fails, but only at the 900 s limit: GUT logs `[GUT ERROR]` and aborts the run without quitting | — |
+| N15 | `import_etc2_astc=true` removed from `project.godot`; export in the CI image | `export.sh "Android APK" …` fails: "ETC2/ASTC texture compression is required for Android export". With the line, the APK exports | — (F30) |
+| N16 | After `import.sh`, add a corrupt `bad.png`; then `export.sh "Web" build/web/index.html release` | Fails on `ERROR: Error importing 'res://bad.png'` | Passes: Godot exits 0 and writes every file (F10; PR 3 review) |
+| N17 | Run `export.sh "Android APK" build/android/t.apk debug` with a fake `GODOT` that copies in an APK holding only `lib/arm64-v8a/readme.txt` and `lib/armeabi-v7a/libgodot_android.so` | Fails: "contains no arm64-v8a native library" | Passes: only the file size is checked. The first PR 3 check passed it too, because its `case` glob matched across lines (F26; PR 3 review) |
 
 ### 6.3 Verified only in CI
 
@@ -424,7 +434,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 |---|---|
 | The agent setup on a GitHub runner | 1 |
 | Image pull time; `godot-env` moving templates and settings; the import cache | 2 |
-| Web, APK and AAB exports with templates; SDK and NDK install; the Gradle cache; artifact contents | 3 |
+| Web, APK and AAB exports with templates; SDK and NDK install; the Gradle cache; artifact contents; free disk space | 3 |
 | Pages deploy; the release dry run | 4 |
 
 ---
@@ -450,7 +460,7 @@ Agents can't change repository settings. The current state was read with `gh api
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Image pulls: about 2.6 GB × 4 per run, plus Docker Hub's anonymous pull limits | Slow or red CI | Measure in PRs 2 and 3. If a pull takes more than 2 min, run `test` on the plain runner with the direct Godot download (it needs no templates). Otherwise use `container.credentials`, or mirror the image to GHCR |
-| Runner disk: the image, NDK 29 and Gradle | The AAB job fails with "No space left on device" | Print `df -h` in PR 3. Remove unused SDK packages or preinstalled runner tools if needed |
+| Runner disk: the image, NDK 29 and Gradle | The AAB job fails with "No space left on device" | `export-android` prints `df -h` and the SDK and Gradle sizes after every export, even a failed one (PR 3). If space runs low, remove unused SDK packages or preinstalled runner tools |
 | NDK 29 is downloaded on every AAB run | Each AAB job takes 1–3 min longer | If it takes more than 2 min, cache `$ANDROID_HOME/ndk/29.0.14206865` with `actions/cache`, keyed on the NDK version |
 | Gradle's first-run downloads; flaky network | A red AAB check | The Gradle cache, `fail-fast: false` and re-runs. If it keeps happening, take the Q1 alternative |
 | gdformat can produce indentation that Godot rejects after multi-line lambda bodies (Scony/godot-gdscript-toolkit#424, open) | `lint` and Godot disagree | Prefer named functions to multi-line lambdas inside call arguments; `check_scripts.sh` catches the result. `@abstract` works with gdtoolkit 4.5.0 (verified) |
@@ -465,7 +475,7 @@ These are copied verbatim from the verified scratch project. Each file notes the
 
 ### `project.godot`
 
-_Added in PR 2._
+_Added in PR 2. PR 3 adds `import_etc2_astc` (F30)._
 
 ```ini
 ; Engine configuration file.
@@ -523,6 +533,7 @@ pause={
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/canvas_textures/default_texture_filter=0
+textures/vram_compression/import_etc2_astc=true
 2d/snap/snap_2d_transforms_to_pixel=true
 ```
 
@@ -1064,6 +1075,7 @@ if [ "$preset" = "Android AAB" ]; then
 else
   run_godot 900 "$log" --headless --path . "--export-$mode" "$preset" "$out"
 fi
+fail_on "$ANY_ERROR_RE" "$log" "Errors during export of '$preset'"
 [ -s "$out" ] || { echo "::error::Export '$preset' produced no file at $out (see $log)"; exit 1; }
 
 case "$out" in
@@ -1073,11 +1085,11 @@ case "$out" in
     done
     ;;
   *.apk | *.aab)
-    listing=$(unzip -l "$out")
-    case "$listing" in
-      *lib/arm64-v8a/*.so*) ;;
-      *) echo "::error::$out contains no arm64-v8a native library"; exit 1 ;;
-    esac
+    # One entry per line, matched line by line. A here-string, because unzip | grep -q can
+    # fail with SIGPIPE under pipefail.
+    names=$(unzip -Z1 "$out")
+    grep -qE '(^|/)lib/arm64-v8a/[^/]+\.so$' <<< "$names" \
+      || { echo "::error::$out contains no arm64-v8a native library"; exit 1; }
     ;;
 esac
 echo "Exported '$preset' to $out"
@@ -1185,7 +1197,7 @@ description: >
   restore the import cache and import the project.
 inputs:
   android:
-    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds
+    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds and set GRADLE_USER_HOME
     default: "false"
 runs:
   using: composite
@@ -1215,6 +1227,9 @@ runs:
         # Versions from Godot 4.7.2 platform/android/java/app/config.gradle. Without the NDK,
         # Gradle downloads it during the build or skips stripping the native libraries.
         "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
+        # Java takes user.home from /etc/passwd (/root), not $HOME (/github/home in container jobs),
+        # so without this Gradle uses /root/.gradle and the workflows' ~/.gradle cache stays empty.
+        echo "GRADLE_USER_HOME=$HOME/.gradle" >> "$GITHUB_ENV"
 
     - name: Restore Godot import cache
       uses: actions/cache@v6
@@ -1350,6 +1365,12 @@ jobs:
           key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
       - name: Export (debug keystore from the CI image)
         run: tools/ci/export.sh "${{ matrix.preset }}" "build/android/${{ matrix.file }}" debug
+      - name: Disk usage
+        if: always()
+        run: |
+          # The image, the SDK and NDK, and Gradle share the runner's disk (M0_PLAN.md §8).
+          df -h / "$GITHUB_WORKSPACE"
+          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" "$HOME/.gradle" 2>/dev/null || true
       - uses: actions/upload-artifact@v7
         with:
           name: android-${{ matrix.preset }}
