@@ -13,7 +13,9 @@ var _distance := 0.0
 var _seed := 0
 var _turns := 0
 var _always_fast := false
-var _touching := false
+var _mouse_held := false
+## Indices of the touches that are down.
+var _touches: Dictionary[int, bool] = {}
 
 @onready var _world: WorldRenderer = %World
 @onready var _camera: Camera2D = %Camera
@@ -46,17 +48,26 @@ func _exit_tree() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	var touch := event as InputEventScreenTouch
 	if touch != null:
-		_touching = touch.pressed
+		if touch.pressed:
+			_touches[touch.index] = true
+		else:
+			_touches.erase(touch.index)
 	var click := event as InputEventMouseButton
 	if click != null and click.button_index == MOUSE_BUTTON_LEFT:
-		_touching = click.pressed
+		_mouse_held = click.pressed
 
 
 func _physics_process(delta: float) -> void:
-	var fast := _always_fast or _touching or Input.is_action_pressed("ui_up")
-	_distance += (FAST_SPEED if fast else SPEED) * delta
+	_distance += (FAST_SPEED if is_fast_forwarding() else SPEED) * delta
 	_buffer.on_car_path_index(roundi(_distance))
 	_update_view()
+
+
+## True with --autopilot, or while the up arrow, the left mouse button or any touch is held.
+func is_fast_forwarding() -> bool:
+	return (
+		_always_fast or _mouse_held or not _touches.is_empty() or Input.is_action_pressed("ui_up")
+	)
 
 
 func _update_view() -> void:
