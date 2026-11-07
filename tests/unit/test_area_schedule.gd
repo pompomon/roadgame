@@ -42,6 +42,9 @@ func test_validate_reports_broken_schedules() -> void:
 	assert_string_contains(_problems([_entry(0, city, &"tunnel", 4)]), "has a set piece")
 	assert_string_contains(_problems([_entry(0, city), _entry(0, city)]), "does not come after")
 	assert_string_contains(_problems([_entry(0, null)]), "no area")
+	assert_eq(_problems([null]), "entry 0 is missing")
+	assert_eq(_problems([_entry(0, city), null, _entry(9, city)]), "entry 1 is missing")
+	assert_string_contains(_problems([_entry(0, city), _entry(5, city, &"bridge", -1)]), "negative")
 	assert_string_contains(_problems([_entry(0, city), _entry(5, city, &"bridge")]), "disagree")
 	assert_string_contains(_problems([_entry(0, _area(&"short", 1, 5))]), "below 2")
 	assert_string_contains(_problems([_entry(0, _area(&"flipped", 6, 5))]), "below min_straight")
@@ -53,6 +56,22 @@ func test_a_broken_schedule_is_reported_by_the_generator() -> void:
 	schedule.entries = [_entry(0, _area(&"short", 1, 5))]
 	RoadGenerator.new(1, schedule)
 	assert_push_error("below 2")
+
+
+func test_the_generator_replaces_a_broken_schedule_with_one_default_area() -> void:
+	var empty := AreaSchedule.new()
+	var no_area := AreaSchedule.new()
+	no_area.entries = [_entry(0, null)]
+	for schedule: AreaSchedule in [null, empty, no_area]:
+		var generator := RoadGenerator.new(1, schedule)
+		var elsewhere := 0
+		for i: int in 200:
+			if generator.next_tile().area_id != &"fallback":
+				elsewhere += 1
+		assert_eq(elsewhere, 0, "tiles outside the fallback area")
+	assert_push_error("there is no schedule")
+	assert_push_error("no entries")
+	assert_push_error("no area")
 
 
 ## Junction `turn - 1` and the set-piece tiles after it keep `old`; the next tile starts `new`.

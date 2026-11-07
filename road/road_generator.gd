@@ -29,10 +29,14 @@ var _rng_road := RandomNumberGenerator.new()
 
 
 func _init(run_seed: int, schedule: AreaSchedule) -> void:
-	for problem: String in schedule.validate():
+	var problems := PackedStringArray(["there is no schedule"])
+	if schedule != null:
+		problems = schedule.validate()
+	for problem: String in problems:
 		push_error("AreaSchedule: " + problem)
-	_schedule = schedule
-	current_area = schedule.entries[0].area
+	# A broken schedule is never read: the road goes on in one area with the default rules.
+	_schedule = schedule if problems.is_empty() else _fallback_schedule()
+	current_area = _schedule.entries[0].area
 	_rng_road.seed = hash("%d:road" % run_seed)
 
 
@@ -141,3 +145,13 @@ func _enter_area(area: AreaDef) -> void:
 
 func _sample_straight() -> int:
 	return _rng_road.randi_range(current_area.min_straight, current_area.max_straight)
+
+
+static func _fallback_schedule() -> AreaSchedule:
+	var area := AreaDef.new()
+	area.id = &"fallback"
+	var entry := AreaScheduleEntry.new()
+	entry.area = area
+	var schedule := AreaSchedule.new()
+	schedule.entries = [entry]
+	return schedule
