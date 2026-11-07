@@ -1,6 +1,6 @@
 # M0 Bootstrap & CI — Detailed Plan
 
-Status: in implementation (four stacked PRs, §4); Q1–Q8 defaults applied · 2026-11-06 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M0 row, §4 M0.1–M0.4, §7
+Status: in implementation (four stacked PRs, §4); Q1–Q9 defaults applied · 2026-11-06 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M0 row, §4 M0.1–M0.4, §7
 
 **Verified, not just reviewed.** Every file in Appendices A and B was run in a scratch copy of the project using the tools below; the run included the negative cases in §6.2.
 
@@ -39,7 +39,7 @@ Goal (unchanged from IP §3): the empty project boots, all CI jobs are green, th
 | E3 | GUT runs at least 2 tests and writes `build/reports/gut-junit.xml`. It fails if a test fails, a test script does not parse, or the project was never imported | `tools/ci/run_tests.sh`; §6.2 N1–N3, N7, N10 |
 | E4 | gdlint, gdformat, the determinism rule, shellcheck, actionlint and the version pins all pass | `lint` job |
 | E5 | On a PR, all five required checks are green: `lint`, `test`, `export-web`, `export-android (Android APK)`, `export-android (Android AAB)` | PR checks |
-| E6 | The artifacts `web`, `android-Android APK` and `android-Android AAB` download. The APK installs on the Galaxy Z Fold4 and shows "Road Roguelike 0.0.0". The Web build runs in desktop Chrome and Firefox | Manual, PR 3 |
+| E6 | The artifacts `web`, `android-Android APK` and `android-Android AAB` download from a manual CI run with `upload-builds` (F34). The APK installs on the Galaxy Z Fold4 and shows "Road Roguelike 0.0.0". The Web build runs in desktop Chrome and Firefox | Manual, PR 3 |
 | E7 | After a merge to `main`, https://pompomon.github.io/roadgame/ serves the build | Manual, PR 4 |
 | E8 | No export contains `addons/gut/`, `tests/` or `tools/` | §6.2 N11, PR 3 step 5 **Δ F13** |
 | E9 | `release.yml` passes actionlint. A manual dry run passes `test` and `web-release`, then stops at the missing-secret check | Manual, PR 4 |
@@ -79,31 +79,32 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F9 | IP `.gutconfig.json` lists `res://tests/sim/` and `res://tests/integration/`, which only appear in M2 and M3. GUT logs `[GUT ERROR]` for each one and carries on. | Spike N10 | `"dirs": ["res://tests/"]` with `include_subdirs`, so new folders are picked up automatically |
 | F10 | Godot exits 0 after runtime errors: `push_error` prints `ERROR:` and a call on null prints `SCRIPT ERROR:`. IP `smoke.sh` scans for both, but IP `import.sh` does not scan for engine `ERROR:` lines such as broken resources. | Spike: both lines printed, exit 0. PR 2 CI: a corrupt image also imports with exit 0 | One regex, `ANY_ERROR_RE` in `_common.sh`, used by import, check_scripts, smoke and export (export since the PR 3 review, N16). `IGNORE_RE` skips one harmless line: the godot-ci image has no fontconfig, so editor runs (`--import`) print `ERROR: Unable to load fontconfig, system font support is disabled.` (found in PR 2 CI) |
 | F11 | `godot-env` doesn't install the NDK. The Godot 4.7.2 Gradle build sets `ndkVersion '29.0.14206865'` and strips native libraries with it. The image ships NDK 25.2.9519653, so Gradle either downloads the NDK mid-build or skips stripping. | Godot 4.7.2 source: `platform/android/java/app/config.gradle`, `app/build.gradle` | Add `"ndk;29.0.14206865"` to `sdkmanager --install` |
-| F12 | `export.sh` writes its log next to the output (`build/web/index.html.log`), and `ci.yml` publishes that folder to Pages. The release zip excludes `*.log`; the Pages upload doesn't. | IP §7.3, §7.4 | Logs go to `build/reports/export-<preset>.log` and are uploaded only on failure, as `export-log-*` |
+| F12 | `export.sh` writes its log next to the output (`build/web/index.html.log`), and `ci.yml` publishes that folder to Pages. The release zip excludes `*.log`; the Pages upload doesn't. | IP §7.3, §7.4 | Logs go to `build/reports/export-<preset>.log`. Until F34 they were uploaded on failure as `export-log-*`; the job log has the same lines, because `run_godot` copies Godot's output there |
 | F13 | Exports include GUT, the tests and the tools, because the presets use `export_filter="all_resources"` with no exclusions. | Spike N11: a Web pack without the filter has 510 `addons/gut/` paths and 8 `tests/`/`tools/` paths (1.46 MB). With the filter it has none (6.6 KB) | `exclude_filter="addons/gut/*, tests/*, tools/*"` in every preset |
 | F14 | Redefining `ui_accept` in `project.godot` replaces the built-in action and its default events (Enter, Keypad Enter, Space, joypad). Binding A/D by `keycode` puts them on different rows on AZERTY keyboards. | Godot InputMap defaults | Don't override `ui_accept`. Bind `steer_*` and `pause` by `physical_keycode` (§5.1) |
 | F15 | gdlint's default `max-public-methods: 20` fails every GUT file with more than 20 tests, because each `test_*` method is public. gdtoolkit 4.5.0 has no inline disable comments. | Spike: a file with 21 tests fails | `.gdlintrc` sets `max-public-methods: 40` |
 | F16 | There is no `copilot-setup-steps.yml`. Copilot cloud agent sessions start without Godot or gdtoolkit, so the agent can't run the checks it has to keep green. | — | PR 1 adds it: Godot 4.7.2 from `godotengine/godot-builds` (SHA-512 checked), gdtoolkit, and a project import |
 | F17 | Repository settings don't match the plan:<br>- Pages is not enabled, so the first `deploy-web` will fail.<br>- Ruleset "Test" targets `~ALL` with deletion, non-fast-forward, PR and Copilot-review rules. PR branches can't be deleted or force-pushed, and any required checks added there would apply to every branch. | `gh api`: Pages returns 404; ruleset 26672445 | §7 |
-| F18 | Godot 4.4+ generates files that must be committed: `*.uid` (script UIDs) and `*.import` (import settings, which are also part of the import cache key). Scripts committed without the executable bit fail in CI with "Permission denied". | Spike: `--import` created `*.gd.uid` and `icon.svg.import` | Commit them; `git add --chmod=+x tools/ci/*.sh`; `.gitattributes` with `* text=auto eol=lf` |
+| F18 | Godot 4.4+ generates files that must be committed: `*.uid` (script UIDs) and `*.import` (import settings). Scripts committed without the executable bit fail in CI with "Permission denied". | Spike: `--import` created `*.gd.uid` and `icon.svg.import` | Commit them; `git add --chmod=+x tools/ci/*.sh`; `.gitattributes` with `* text=auto eol=lf` |
 | F19 | Release versions are inconsistent. Tag pushes give `v1.2.3`, but the manual input suggests `0.1.0`, which creates a tag without the `v` that doesn't match `v*.*.*`. Nothing checks the version before the 40-minute Android build starts. | IP §7.5 | The manual input is the tag itself (`v0.1.0`). The first step of `test` validates it |
 | F20 | Every Godot job pulls `barichello/godot-ci:4.7.2`, about 2.6 GB compressed. That is 4 pulls per CI run and 3 per release, which costs time and disk and runs into Docker Hub's anonymous pull limits. | Docker Hub tag size | Measure in PR 2 and PR 3; mitigations in §8 (Q6) |
-| F31 | The Gradle cache is never saved. In container jobs `$HOME` is `/github/home`, but Java takes `user.home` from `/etc/passwd` (`/root`). Gradle therefore uses `/root/.gradle`, the cache step finds no `~/.gradle`, and `actions/cache` only warns: "Path(s) specified in the action for caching do(es) not exist". | PR 3 CI (AAB job of #8). In the image with `HOME=/github/home`, `java -XshowSettings:properties` prints `user.home = /root` | `godot-env`'s Android step sets `GRADLE_USER_HOME=$HOME/.gradle`, so Gradle and the cache step in `ci.yml` and `release.yml` use the same folder |
+| F31 | The Gradle cache is never saved. In container jobs `$HOME` is `/github/home`, but Java takes `user.home` from `/etc/passwd` (`/root`). Gradle therefore uses `/root/.gradle`, the cache step finds no `~/.gradle`, and `actions/cache` only warns: "Path(s) specified in the action for caching do(es) not exist". | PR 3 CI (AAB job of #8). In the image with `HOME=/github/home`, `java -XshowSettings:properties` prints `user.home = /root` | `godot-env`'s Android step set `GRADLE_USER_HOME=$HOME/.gradle`, so Gradle and the cache step used the same folder. Superseded by F34: without a Gradle cache the line is gone, Gradle uses `/root/.gradle` again, and "Disk usage" measures that folder |
 | F32 | A manual release with a tag that already exists publishes the wrong build. The run builds and tests the selected branch, but `gh release create` attaches the files to the existing tag; `--target` only applies when it creates the tag. Running `v0.1.0` again from a newer `main` would ship newer code as `v0.1.0`. | PR 4 review (#10); IP §7.5 has the same `publish` step | A manual run first looks the tag up with `git ls-remote --exit-code` and fails if it exists, before any build. A failed tag release is retried by re-running its own run. `actions/checkout` trusts the container's workspace only in a temporary config, so the step adds `safe.directory` itself (N19) |
 
 ### Low
 
 | # | Finding | Fix |
 |---|---|---|
-| F21 | Python 3.13: gdtoolkit 4.5.0 declares support only up to 3.10. 3.12 is verified. The gdtoolkit version pin appears in several places. | Use Python 3.12. Pin gdtoolkit in `tools/ci/requirements.txt`, shared by CI, the agent and developers (it is also the pip cache key) |
+| F21 | Python 3.13: gdtoolkit 4.5.0 declares support only up to 3.10. 3.12 is verified. The gdtoolkit version pin appears in several places. | Use Python 3.12. Pin gdtoolkit in `tools/ci/requirements.txt`, shared by CI, the agent and developers |
 | F22 | Workflows and shell scripts are not linted. | `lint` runs actionlint 1.7.12, which also shellchecks `run:` blocks. `lint.sh` runs `shellcheck -x tools/ci/*.sh`, which needs `# shellcheck source=` directives (present) |
-| F23 | The import cache key uses `runner.os`, which is always Linux. After a Godot bump, `restore-keys` can restore the old version's cache. | Key on `GODOT_TEMPLATE_VERSION` |
+| F23 | The import cache key uses `runner.os`, which is always Linux. After a Godot bump, `restore-keys` can restore the old version's cache. | Key on `GODOT_TEMPLATE_VERSION`. Moot since F34: there is no import cache |
 | F24 | IP `check_versions.sh` exits silently when no tag is found (`set -e` with `pipefail` inside `$(…)`). It scans only `.github/workflows/`, accepts tags such as `4.7` or `4.7.2.1`, truncates `4.7.2-rc1` or `4.7.2${{ matrix.suffix }}` to `4.7.2`, skips `latest`, and ignores the agent setup. | Rewritten (spike N8, N8b). It compares complete tags, including any `$` or `{}` part (PR 2 reviews, N8c) |
 | F25 | `build/` is not `.gdignore`d, so the editor imports exported files such as `build/web/index.png`, and a later export packs them. | Commit `build/.gdignore` (`.gitignore`: `/build/*` plus `!/build/.gdignore`); `_common.sh` recreates it |
 | F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`: `grep -qE '(^\|/)lib/arm64-v8a/[^/]+\.so$'` over the `unzip -Z1` names (one per line), read from a here-string because `unzip \| grep -q` can fail with SIGPIPE under `pipefail`. The first version ran a `case` glob over the whole `unzip -l` text, where `*` also matches newlines (PR 3 review, N17) |
 | F27 | `release.yml` has no `defaults.run.shell: bash`, so inline steps run without `pipefail`. Its `test` job skips the script-loading check, three jobs have no `timeout-minutes`, and scripts use `${{ … }}` where env vars exist. It is otherwise actionlint-clean. | Fixed in Appendix B |
 | F28 | The scripts assume GNU tools (`sed -i -E`), bash 4, and `godot` on `PATH`. | Bash 3.2 and BSD tools (macOS), no `sed -i`, `timeout` or `gtimeout`, and a `GODOT=/path/to/godot` override. Not run on macOS |
 | F33 | The first PR 4 version checks (`stamp_version.sh` and the release's "Validate version") used `grep -E '^…$'`, which matches line by line. A version followed by a newline (`$'v1.2.3\n'`, possible through the API) passed, and `stamp_version.sh` wrote two-line values. | Match the whole string with bash `[[ $v =~ $re ]]` (PR 4 review, N18) |
+| F34 | CI used far more Actions storage than it needs. On 2026-11-07 the repository held 38 caches, about 6.6 GB: nine 723 MB Gradle caches (one per PR) plus pip and import caches. It also held 82 artifacts, about 2.3 GB: every run uploaded about 120 MB of Web, APK and AAB builds, plus test reports. A cache belongs to the ref that saved it, and a PR can only restore its own, its base branch's or `main`'s, so each stacked PR's first run missed and saved a new copy; only re-runs hit. GitHub's cache settings can raise the 10 GB limit and the 7-day retention, not lower them. | Owner request (Q9): the least storage, even if CI gets slower (§5.12). No caches; builds are uploaded only by a manual run with `upload-builds`; every upload sets `retention-days: 1`; the Pages and release artifacts are deleted once used. `check_actions_storage.sh`, run by `lint.sh`, enforces the rules (N20) |
 
 ---
 
@@ -121,6 +122,7 @@ This plan applies the defaults below. Tell me if you want any of them changed.
 | Q6 | Run the `test` job in the container image? | Yes, for parity with the exports. If the pull takes more than 2 min, switch to a direct Godot download as in `copilot-setup-steps.yml` | — |
 | Q7 | Should `deploy-web` wait for the Android exports? | Yes: Pages only shows builds where every export passed | `needs: export-web` only, for faster Pages updates |
 | Q8 | Fold these changes into IP? | After review. Until then, this document wins for M0 | — |
+| Q9 | Keep Actions caches and multi-day artifacts (F34)? | No, at the owner's request: no caches, builds only from a manual run, every artifact kept 1 day | Cache Gradle on `main` only (PRs can restore it): warm AAB exports take about 35 s instead of 90 s, for about 0.7 GB of cache |
 
 ---
 
@@ -170,7 +172,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 7. Add `godot-env` and `ci.yml` (scope as in the table above).
 8. Push and check:
    - `lint` and `test` are green.
-   - The `test-reports` artifact contains `gut-junit.xml` with `tests="2"`.
+   - The `test` log shows `GUT: 2 tests passed` (since F34 there is no `test-reports` artifact).
    - Note how long "Initialize containers" took in the PR description (Q6, F20).
 9. After the merge, the owner adds the `lint` and `test` required checks (§7).
 
@@ -182,17 +184,16 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 - `export_presets.cfg`
 - `tools/ci/export.sh`
 - `project.godot`: add `import_etc2_astc=true` (F30)
-- `godot-env`: add the `android` input and the SDK/NDK step, which also sets `GRADLE_USER_HOME` (F31)
+- `godot-env`: add the `android` input and the SDK/NDK step
 - `ci.yml`: add `export-web` and `export-android` (without the Pages steps)
 
 1. Add `export_presets.cfg`. The Appendix A version contains only the key options, and Godot uses defaults for the rest; this was verified with `--export-pack`. Optionally, open Project → Export once in the 4.7.2 editor and save, which writes every default explicitly; keep the §5.4 options, including `exclude_filter`.
 2. Add `export.sh` (executable), the Android step in `godot-env`, and the export jobs.
 3. Push and check:
    - All three export checks are green.
-   - The `web`, `android-Android APK` and `android-Android AAB` artifacts exist.
+   - A manual run with `upload-builds` (Actions → CI → Run workflow) produces the `web`, `android-Android APK` and `android-Android AAB` artifacts (F34).
    - Note the durations of the NDK install and the Gradle build, and the free disk space that the "Disk usage" step prints (§8).
-   - The AAB job's "Post Cache Gradle" step saves `gradle-godot-<version>`, and a re-run restores it (F31).
-4. Manual checks (E6):
+4. Manual checks (E6), with the artifacts from that run:
    - **Android:** run `adb install -r roadgame-debug.apk`. The app opens, shows "Road Roguelike 0.0.0" and follows the sensor orientation.
    - **Web:** unzip `web`, serve it with `python3 -m http.server -d <dir> 8000`, and open it in Chrome and Firefox.
 5. Check the export contents (E8):
@@ -222,7 +223,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
    - Expect `config/version="1.2.3"`, and in both Android presets `version/name="1.2.3"` and `version/code=1002003`.
    - Revert with `git checkout -- project.godot export_presets.cfg`.
    - `tools/ci/stamp_version.sh $'v1.2.3\n'` must fail and change nothing (N18).
-3. Merge. The run on `main` deploys the site (E7).
+3. Merge. The run on `main` deploys the site (E7), then deletes its `github-pages` artifact (F34).
 4. Do a release dry run (E9): Actions → Release → Run workflow with version `v0.0.1`. Expected:
    - `test` passes, including "Check that the tag is new" (F32).
    - `web-release` passes and produces `roadgame-v0.0.1-web.zip`.
@@ -309,8 +310,9 @@ Every script sources `_common.sh`, which does the following:
 | `check_scripts.sh` + `check_scripts.gd` | 300 s | Any error line, or the "loaded N scripts" line is missing | new, F2 |
 | `run_tests.sh` | 900 s | A parse or load error, "have not been imported" or `[GUT ERROR]` appears; GUT exits non-zero, which includes an unhandled error in a setup or teardown hook; the JUnit file is missing; 0 tests ran | F1, F3, F9, F29 |
 | `smoke.sh` | 300 s | Godot exits non-zero, or the log has any error line | F10 |
-| `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck or `check_versions.sh` fails | F4, F8, F22 |
+| `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck, `check_versions.sh` or `check_actions_storage.sh` fails | F4, F8, F22, F34 |
 | `check_versions.sh` | — | The complete godot-ci tags differ or aren't `x.y.z` (`4.7.2-rc1`, `latest` and `4.7.2${{ matrix.suffix }}` fail); the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
+| `check_actions_storage.sh` | — | A YAML file under `.github/` uses a cache action (any `uses:` with "cache" in its name, such as `actions/cache`), sets a cache input such as `cache: pip`, uses an action that caches by default without setting the input that turns that off, uses Docker `type=gha`, uploads an artifact without `retention-days: 1`, or is written in a way the script can't read (§5.12). Only the keys right under `with:` are inputs, in any case: `env:` entries and `run:` scripts neither break the rules nor satisfy them, and a `uses:` key under an `env:` or `with:` block mapping is a variable or input, not an action | new, F34 |
 | `export.sh` | 900 s; 1800 s for AAB | Godot exits non-zero, or the log has any error line; no output file; a Web export missing `.js`, `.wasm` or `.pck`; an APK or AAB with no `arm64-v8a` `.so` | F10, F12, F26 |
 | `stamp_version.sh` | — | The version is invalid (the whole string is checked), or a key is missing | F6, F33 |
 
@@ -327,9 +329,8 @@ Every script sources `_common.sh`, which does the following:
 ### 5.6 `.github/actions/godot-env/action.yml`
 
 - **Δ F11:** adds `"ndk;29.0.14206865"` to the SDK install.
-- **Δ F23:** the cache key is `godot-import-<GODOT_TEMPLATE_VERSION>-<hash>`.
+- **Δ F34:** no import cache, so F23 is moot and every job imports the project from scratch. No `GRADLE_USER_HOME` either (F31): Gradle uses `/root/.gradle`.
 - The `android` input and the Android step arrive in PR 3.
-- **Δ F31 (PR 3):** the Android step sets `GRADLE_USER_HOME=$HOME/.gradle`, the folder the Gradle cache saves.
 
 ### 5.7 `.github/workflows/ci.yml`
 
@@ -337,11 +338,12 @@ Changes from IP §7.4:
 - `defaults.run.shell: bash` adds `pipefail` to inline steps.
 - **F5:** every job has `timeout-minutes`.
 - `lint`:
-  - **F21:** Python 3.12, with the pip cache keyed on `tools/ci/requirements.txt`.
+  - **F21:** Python 3.12, without a pip cache (F34).
   - **F22:** runs actionlint 1.7.12.
 - `test`: **F2:** a new "Load every script" step runs before GUT.
-- Export jobs: **F12:** on failure, `build/reports` is uploaded as `export-log-web` or `export-log-<apk|aab>`; the matrix gains a `slug`.
+- Export jobs: **F12:** export logs stay in `build/reports`, and the job log has the same lines.
 - `export-android` runs a "Disk usage" step right after the export, even when the export fails: `df -h`, plus the sizes of the Android SDK and the Gradle home (§8).
+- **F34:** no caches, and no `test-reports` or `export-log-*` uploads. Only a manual run with `upload-builds` checked uploads the `web` and Android builds, kept 1 day at `compression-level: 9`. On `main`, `deploy-web` (`actions: write`) deletes the Pages artifact once the site is live.
 
 Job and check names are unchanged.
 
@@ -355,6 +357,7 @@ Changes from IP §7.5:
 - **F7:** the keystore path comes from `$RUNNER_TEMP`, and decode, export and `trap` cleanup happen in one step.
 - **F27:** `defaults.run.shell: bash`, timeouts on every job, env vars instead of `${{ … }}` in scripts, and the `gh` arguments built as an array.
 - **F12:** the zip no longer needs `-x '*.log'`.
+- **F34:** no Gradle cache. The build artifacts are kept 1 day, and `publish` (`actions: write`) deletes them once they are on the release.
 
 ### 5.9 `.github/workflows/copilot-setup-steps.yml` (new, F16)
 
@@ -380,6 +383,20 @@ Make all of these changes in one PR:
 
 Unchanged: GitHub Actions, weekly.
 
+### 5.12 Actions storage (new, F34)
+
+The owner asked for the least Actions storage, even if CI gets slower (Q9). `tools/ci/check_actions_storage.sh` (§5.5) enforces rules 1 and 3 in every YAML file under `.github/`. It reads a step's inputs only from the keys right under its `with:`, one per line, and ignores the case of their names, as GitHub does. Keys under an `env:` or `with:` block mapping are names, so a variable or input called `uses` is not read as an action. It reads comments as YAML does: a `#` starts one only after a blank and outside quoted text. Quoted text is a value, never a key, unless a `:` follows it, so JSON in a quoted value (`env: {J: '{"uses": 1}'}`) is not read as keys. It searches all other text for `type=gha`, in any case, as buildx reads it, and after dropping the quotes and backslashes the shell removes (`type="gha"`, `t\ype=gha`): block scalars such as `run: |` scripts (their shell comments too) and quoted or plain text that goes on over several lines. It fails on what it can't read: `uses:` in flow style (`- {uses: …}` or `[uses: …]`, also over several lines or after an anchor or tag, as in `{&a uses: …}`), a `with:` that is not a block mapping (`with: {…}`, also with the `{…}` on the next line), `?` keys, alias keys (`*k : …`), keys with escapes (`"u\x73es"`), an input set twice, and a `uses:`, cache input or `retention-days` whose value is not written plainly on its key's line (a block scalar such as `>-`, a value on the next line or one that goes on to it, an alias or escapes).
+
+1. **No caches.** No `actions/cache` or other cache action, no cache inputs such as setup-python's `cache: pip`, and no Docker layers in the Actions cache (`type=gha`). Actions that cache by default must turn it off, for example `actions/setup-go` with `cache: false`, `actions/setup-node` with `package-manager-cache: false` or `gradle/actions/setup-gradle` with `cache-disabled: true`; the script lists the ones it knows. Write the off value out: an empty one, such as `cache-disabled: ""`, means the default, which caches. For setup-python, leave `cache` out: `cache: false` is an error there.
+2. **Artifacts only where something needs them.**
+   - PR and `main` runs of `ci.yml` upload no builds. A manual run (Actions → CI → Run workflow) with `upload-builds` checked uploads `web`, `android-Android APK` and `android-Android AAB`. GitHub runs a workflow by hand only if it is on the default branch, so this needs `ci.yml` on `main`; then any branch can be picked.
+   - `deploy-web` deletes the Pages artifact once the site is live. To deploy the same commit again, re-run all jobs.
+   - `release.yml` passes its builds to `publish`, which deletes them after creating the release.
+   - Test reports and export logs are not uploaded: the job log has the same lines.
+3. **Every upload sets `retention-days: 1`,** the minimum. Builds also use `compression-level: 9`.
+
+The cost: every job imports the project from scratch (seconds today), and every AAB export downloads Gradle's dependencies. On PR runs, the AAB export took 34–37 s with a warm Gradle cache and 90 s without one, and a run without one then spent 48 s saving the 723 MB cache. PRs never shared that cache (F34), so most runs paid both; now they pay only the download. In the F34 PR's own run, the export took 75 s and the AAB job 3.1 min, against 4.3 min for a cold run that saved the cache and 2.2–2.5 min for a warm one. The `godot-env` step of `test` and `export-web` took 6 s, as it did with the import cache.
+
 ---
 
 ## 6. Verification
@@ -389,7 +406,7 @@ Unchanged: GitHub Actions, weekly.
 ```bash
 pip install -r tools/ci/requirements.txt    # gdtoolkit 4.5.0, Python 3.12
 export GODOT=/path/to/godot-4.7.2           # optional; the default is godot on PATH
-tools/ci/lint.sh             # → Godot 4.7.2 is pinned consistently
+tools/ci/lint.sh             # → Actions storage: no caches, artifacts kept 1 day (5 files checked)
 tools/ci/import.sh
 tools/ci/check_scripts.sh    # → check_scripts: loaded 4 scripts
 tools/ci/run_tests.sh        # → GUT: 2 tests passed
@@ -401,7 +418,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15–N17 while implementing PR 3; N18 and N19 while implementing PR 4.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2; N15–N17 while implementing PR 3; N18 and N19 while implementing PR 4. N20 needs no Godot; it was run with mawk, gawk, BWK awk (as on macOS) and BusyBox awk while implementing F34 and again for its review fixes.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -434,15 +451,17 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N17 | Run `export.sh "Android APK" build/android/t.apk debug` with a fake `GODOT` that copies in an APK holding only `lib/arm64-v8a/readme.txt` and `lib/armeabi-v7a/libgodot_android.so` | Fails: "contains no arm64-v8a native library" | Passes: only the file size is checked. The first PR 3 check passed it too, because its `case` glob matched across lines (F26; PR 3 review) |
 | N18 | `stamp_version.sh $'v1.2.3\n'`, and `$'v1.2.3\nx'` | Fails: "must be MAJOR.MINOR.PATCH"; `project.godot` and `export_presets.cfg` are unchanged | Fails with the `sed` error ``unterminated `s' command``: there is no version check. The first PR 4 check passed both and wrote two-line values (F33; PR 4 review) |
 | N19 | Run "Check that the tag is new" in the CI image as Actions does (root, `HOME=/github/home`, `bash --noprofile --norc -eo pipefail`), in a workspace owned by another user whose `origin` is a local bare repo with tag `v0.0.1` | `v0.0.1` fails: "Tag v0.0.1 already exists"; `v0.0.2` passes; an unreachable `origin` fails (exit code 128). Without the `safe.directory` line, git ignores the workspace, cannot resolve `origin` and the step fails | The run builds the selected ref, and `publish` attaches it to the old tag (F32; PR 4 review) |
+| N20 | In a workflow: `cache: pip` or `CACHE: pip` on setup-python, or `cache: false` that goes on to `pip` on the next line; `uses: Actions/Cache/restore@v4`, `uses : actions/cache@v4`, `- &c uses: actions/cache@v4`, `steps: [uses: actions/cache@v4]`, `steps: [{&action uses: "actions/cache@v6"}]` or `{!!str uses: …}`, a quoted flow key (`- {"uses": "actions/cache@v4"}`, `{'uses' : …}`, `{"uses":"…"}`, also after a quoted value that holds `"uses":`), a tab after the `-` of `- uses: actions/cache@v4` (actionlint also rejects that YAML), an alias key `*k : actions/cache@v6` (in block or flow style, or under `with:`), `uses: actions/cache@v4` right after the step's `env:` block, or `uses: >-` with `actions/cache@v6` on the next line; `actions/cache` after a `run:` whose plain text goes on to a line starting with an unclosed `"`; `actions/setup-go` or `gradle/actions/setup-gradle` without turning its cache off, with an empty `cache-disabled: ""`, or with `cache: false` and `CACHE: ""` in one step; `cache: false` or `retention-days: "1"` under `env:` instead of `with:`; `with: {cache: pip}`, also with the `{…}` on the next line; `--cache-to type=gha` in a `run:` script, also after a quoted `#` (`--build-arg 'M=a # b'`), in a shell comment of a `run: \|` script, or written `TYPE=gha`, `type="gha",mode=max`, `type='gha'` or `t\ype=gha`; an upload with `retention-days: 14` or none, also with `with:` before `uses:` and in an indentless sequence | `check_actions_storage.sh` fails and names each line. `cache: false`, `Cache-Disabled: true`, `retention-days: "1"`, `with :` written with a space, a step anchored with `- &s` and its alias `- *s`, an anchored or tagged flow key other than `uses` (`env: {&e A: "1"}`), quoted text in flow style that holds JSON or YAML indicators (`env: {J: '{"uses": "actions/cache@v4", "a": [? x]}'}`, `matrix: {x: ['{*k : 1}']}`, also over several lines) or an escaped key (`env: {J: '{"u\x73es": 1}'}`, `name: 'say "a\"b": c'`), commented-out caches, a `workflow_dispatch` input named `cache`, a matrix value `cache: true`, an `env:` variable or `with:` input named `uses` set to `actions/cache@v6` (also after a comment at column 0), `cache: pip` inside a multi-line `run:` script, and quoted or plain text over several lines that holds quotes and `#` pass | Not checked: the IP workflows cache pip, Gradle and the import, and keep artifacts 14 days (F34) |
 
 ### 6.3 Verified only in CI
 
 | Check | PR |
 |---|---|
 | The agent setup on a GitHub runner | 1 |
-| Image pull time; `godot-env` moving templates and settings; the import cache | 2 |
-| Web, APK and AAB exports with templates; SDK and NDK install; the Gradle cache; artifact contents; free disk space | 3 |
+| Image pull time; `godot-env` moving templates and settings | 2 |
+| Web, APK and AAB exports with templates; SDK and NDK install; artifact contents; free disk space | 3 |
 | Pages deploy; the release dry run | 4 |
+| A PR run creates no caches or artifacts (seen in the F34 PR's run). Once `ci.yml` is on `main`: a manual run with `upload-builds` uploads the builds, and `deploy-web` deletes the Pages artifact (the first real release, M6.4, checks the clean-up in `publish`) | F34 |
 
 ---
 
@@ -459,6 +478,7 @@ Agents can't change repository settings. The current state was read with `gh api
 | Optional | Give environment `release` a required reviewer | Settings → Environments |
 | M6.4 | Add `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_ALIAS` and `ANDROID_KEYSTORE_PASSWORD` to environment `release` | IP §7.6 (unchanged) |
 | Only if image pulls are rate-limited (F20) | Create a read-only Docker Hub token and use it for `container.credentials` | §8 |
+| After the F34 PR merges | Delete the existing caches (about 6.6 GB on 2026-11-07); otherwise each one stays until 7 days after its last use. First make sure every open PR's branch has F34: a run of an older `ci.yml` saves its caches again | `gh cache delete --all --repo pompomon/roadgame`. Without the CLI: Actions tab → Caches (left sidebar, under Management) → the trash icon on each row; the page has no bulk delete. Artifacts need nothing: they already expire about a day after they are created, although the old workflows asked for 14 days |
 
 ---
 
@@ -468,8 +488,9 @@ Agents can't change repository settings. The current state was read with `gh api
 |---|---|---|
 | Image pulls: about 2.6 GB × 4 per run, plus Docker Hub's anonymous pull limits | Slow or red CI | Measure in PRs 2 and 3. If a pull takes more than 2 min, run `test` on the plain runner with the direct Godot download (it needs no templates). Otherwise use `container.credentials`, or mirror the image to GHCR |
 | Runner disk: the image, NDK 29 and Gradle | The AAB job fails with "No space left on device" | `export-android` prints `df -h` and the SDK and Gradle sizes after every export, even a failed one (PR 3). If space runs low, remove unused SDK packages or preinstalled runner tools |
-| NDK 29 is downloaded on every AAB run | Each AAB job takes 1–3 min longer | If it takes more than 2 min, cache `$ANDROID_HOME/ndk/29.0.14206865` with `actions/cache`, keyed on the NDK version |
-| Gradle's first-run downloads; flaky network | A red AAB check | The Gradle cache, `fail-fast: false` and re-runs. If it keeps happening, take the Q1 alternative |
+| NDK 29 is downloaded on every AAB run | Each AAB job takes 1–3 min longer | Accepted: CI keeps no caches (F34). In PR 3 CI the whole `godot-env` step of the AAB job, NDK included, took 30–45 s |
+| Gradle downloads its dependencies on every run (no cache, F34); flaky network | A slower or red AAB check | `fail-fast: false` and re-runs. If it keeps happening, take the Q1 alternative |
+| PR and `main` runs upload no builds (F34) | Trying a PR's APK or Web build takes an extra run | Actions → CI → Run workflow on the PR branch with `upload-builds` (needs `ci.yml` on `main`, §5.12); download the artifacts within a day |
 | gdformat can produce indentation that Godot rejects after multi-line lambda bodies (Scony/godot-gdscript-toolkit#424, open) | `lint` and Godot disagree | Prefer named functions to multi-line lambdas inside call arguments; `check_scripts.sh` catches the result. `@abstract` works with gdtoolkit 4.5.0 (verified) |
 | Godot prints errors but exits 0 | CI is green while broken | Every script scans its log (§5.5). Re-run §6.2 whenever `tools/ci/` changes |
 | The agent firewall blocks downloads during sessions | The agent can't fetch templates or images | The setup steps install everything needed for lint, import, tests and smoke; exports are left to CI |
@@ -853,12 +874,13 @@ fail_on "$ANY_ERROR_RE" "$log" "Errors during smoke run"
 
 ### `tools/ci/lint.sh`
 
-_Added in PR 2._
+_Added in PR 2. F34 adds the `check_actions_storage.sh` call._
 
 ```bash
 #!/usr/bin/env bash
-# Style (gdlint, gdformat), the determinism rule (IMPLEMENTATION_PLAN.md §5.3), shell scripts
-# and version pins. Needs gdtoolkit (pip install -r tools/ci/requirements.txt), not Godot.
+# Style (gdlint, gdformat), the determinism rule (IMPLEMENTATION_PLAN.md §5.3), shell scripts,
+# version pins and the Actions storage policy (no caches, artifacts kept 1 day; M0_PLAN.md F34).
+# Needs gdtoolkit (pip install -r tools/ci/requirements.txt), not Godot.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
@@ -938,6 +960,7 @@ else
 fi
 
 tools/ci/check_versions.sh
+tools/ci/check_actions_storage.sh
 ```
 
 ### `tools/ci/check_versions.sh`
@@ -974,6 +997,254 @@ if [ -f "$setup" ]; then
     || { echo "::error::$setup must set GODOT_VERSION: \"$version\""; exit 1; }
 fi
 echo "Godot $version is pinned consistently"
+```
+
+### `tools/ci/check_actions_storage.sh`
+
+_Added by F34 (after PR 4)._
+
+```bash
+#!/usr/bin/env bash
+# Actions storage policy (M0_PLAN.md F34): no caches, and every artifact is kept 1 day. Scans the
+# block-style YAML under .github/ for cache actions, cache inputs that are on (and actions that
+# cache unless told not to), Docker layer caches (type=gha) and uploads without retention-days: 1.
+# shellcheck source=tools/ci/_common.sh
+source "$(dirname "$0")/_common.sh"
+
+files=()
+while IFS= read -r f; do files+=("$f"); done \
+  < <(find .github -type f \( -name '*.yml' -o -name '*.yaml' \) | sort)
+[ "${#files[@]}" -gt 0 ] || { echo "::error::No YAML files under .github/"; exit 1; }
+
+# A step is a list item plus the more indented lines below it. Its inputs are the keys right
+# under its with: mapping, so env: entries and run: text don't count. Keys under an env: or
+# with: block mapping are names: a variable or input called uses is not an action. A comment
+# starts at a # after a blank, outside quoted text, as in YAML. Block scalars (run: | and the
+# like) and text that goes on over several lines, quoted or plain, are text, searched only for
+# type=gha (in any case, as buildx reads the key, and without the quotes and backslashes the
+# shell removes, so type="gha" counts). Keys are compared in lowercase, since GitHub ignores the
+# case of input names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip).
+# Quoted text is a value, never a key, unless a : follows it ({J: '{"uses": 1}'} has no uses:).
+# What the check can't read fails: uses: in flow style ({...} or [...], also over several
+# lines or after an anchor or tag), a with: that is not a block mapping (also on the lines below
+# it), ? keys, alias keys (*k : x), escaped keys, an input set twice, and a uses:, cache input or
+# retention-days whose value is on or goes on to the lines below, an alias or escaped. \047 is a
+# single quote.
+hits=$(awk '
+  BEGIN {
+    # Inputs that turn a cache on or off, and their off value.
+    off["cache"] = "false"
+    off["enable-cache"] = "false"
+    off["package-manager-cache"] = "false"
+    off["cache-binary"] = "false"
+    off["cache-image"] = "false"
+    off["cache-disabled"] = "true"
+    off["no-cache"] = "true"
+    # Actions that cache unless the step sets this input to its off value.
+    dflt["actions/setup-go"] = "cache"
+    dflt["actions/setup-node"] = "package-manager-cache"
+    dflt["astral-sh/setup-uv"] = "enable-cache"
+    dflt["chickensoft-games/setup-godot"] = "cache"
+    dflt["docker/setup-buildx-action"] = "cache-binary"
+    dflt["docker/setup-qemu-action"] = "cache-image"
+    dflt["gradle/actions/setup-gradle"] = "cache-disabled"
+    dflt["jdx/mise-action"] = "cache"
+    dflt["oven-sh/setup-bun"] = "no-cache"
+  }
+  # A value the check cannot read: on the lines below its key, an alias or escaped.
+  function unread(n, k) {
+    print FILENAME ":" n ": " k ": write the value on the same line, without aliases or escapes"
+    inputs[k] = "?"                          # so that end_step does not report it again
+  }
+  function noprops(s) {                      # drops anchors (&a) and tags (!!str)
+    while (s ~ /^[&!]/) sub(/^[&!][^ \t]*[ \t]*/, "", s)
+    return s
+  }
+  # The line without its comment. A quote opens quoted text only where a node can start: at the
+  # indent (unless plain text goes on there, cont), after "- ", "? ", ": ", an anchor or tag,
+  # after [ { or , in flow style, and after a ":" right behind quoted text ({"a":"b"}). oq is the
+  # quote still open at the end of the line and fd the number of flow brackets still open; both
+  # go on to the next line. pl is set if the line ends in plain text, ns if it ends where a node
+  # can start; lk is the last of - ? : on it and lc the column of that - or ?. um is the line
+  # with the text of quoted values masked (mask()), to look for keys in.
+  function uncomment(s, cont,    i, n, c, jq, qs) {
+    n = length(s); ns = !cont; pl = cont; jq = 0; lk = ""; um = s; qs = 0
+    for (i = 1; i <= n; i++) {
+      c = substr(s, i, 1)
+      if (oq != "") {
+        if (oq == "\"" && c == "\\") i++
+        else if (c == oq && oq == "\047" && substr(s, i + 1, 1) == oq) i++
+        else if (c == oq) { oq = ""; ns = 0; jq = 1; mask(qs, i, substr(s, i + 1)) }
+      } else if (c == " " || c == "\t") {
+        continue
+      } else if (c == "#" && (i == 1 || substr(s, i - 1, 1) ~ /[ \t]/)) {
+        pl = 0; um = substr(um, 1, i - 1); return substr(s, 1, i - 1)
+      } else if (ns && (c == "\"" || c == "\047")) {
+        oq = c; ns = 0; qs = i
+      } else if (c == ":" && (jq || substr(s, i + 1, 1) ~ /^[ \t]?$/)) {
+        ns = 1; jq = 0; pl = 0; lk = c
+      } else if (ns && c ~ /[-?]/ && substr(s, i + 1, 1) ~ /^[ \t]?$/) {
+        lk = c; lc = i - 1
+      } else if (i == 1 && s ~ /^(---|[.][.][.])([ \t]|$)/) {
+        i = 3                                # a document marker
+      } else if (ns && c ~ /[&!]/) {
+        while (i < n && substr(s, i + 1, 1) !~ /[ \t]/) i++
+      } else if (ns && c ~ /[[{]/) {
+        fd++
+      } else if (fd && c ~ /[]}]/) {
+        fd--; ns = 0; jq = 1; pl = 0
+      } else if (fd && c == ",") {
+        ns = 1; jq = 0; pl = 0
+      } else {
+        ns = 0; jq = 0; pl = 1
+      }
+    }
+    if (oq != "") mask(qs, n + 1, "")
+    return s
+  }
+  # Masks quoted text in um from quote `from` to quote `to` (0 and n + 1 if it goes on past the
+  # line), unless a : follows it on the line (`after`), as after a quoted key.
+  function mask(from, to, after,    t) {
+    if (from > 0 && after ~ /^[ \t]*:/) return
+    t = ""
+    while (length(t) < to - from - 1) t = t "x"
+    um = substr(um, 1, from) t substr(um, to)
+  }
+  # The shell drops quotes and backslashes: type="gha", t\ype=gha and $"gha" reach buildx as gha.
+  function gha(s,    t) {
+    t = tolower(s); gsub(/[$]?["\047]|\\/, "", t)
+    if (t ~ /type=gha/)
+      print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
+  }
+  # Flow style ({...} or [...], which may go on over the lines below): its keys are not read.
+  # An anchor or tag may come before a key ({&a uses: x}).
+  function flow(s) {
+    if (tolower(s) ~ /(^|[[{,])[ \t]*([&!][^ \t]*[ \t]+)*["\047]?uses["\047]?[ \t]*:/)
+      print FILENAME ":" FNR ": uses: must be in a block mapping, one key per line"
+    if (s ~ /[[{,][ \t]*[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
+    if (s ~ /(^|[[{,])[ \t]*[*][^ \t,{}]*[ \t]*:/)
+      print FILENAME ":" FNR ": write the key without aliases"
+  }
+  function end_step(    k, r) {
+    if (s_line) {
+      r = inputs["retention-days"]
+      if (s_uses ~ /^actions\/upload-(artifact(\/merge)?|pages-artifact)$/ \
+          && r != "1" && r != "?")
+        print s_file ":" s_line ": " s_uses " must set retention-days: 1"
+      # A missing or empty input means the default, which caches. Other values are checked
+      # where they are set.
+      if (s_uses in dflt) {
+        k = dflt[s_uses]
+        if (inputs[k] == "")
+          print s_file ":" s_line ": " s_uses " caches unless it sets " k ": " off[k]
+      }
+    }
+    s_line = 0; s_uses = ""; s_key = -1; w_ind = -1; split("", inputs)
+  }
+  FNR == 1 { end_step(); bs = -1; p_key = ""; fd = 0; oq = ""; ps = 0; pv = -1; d_ind = -1 }
+  {
+    raw = $0; sub(/[ \t\r]+$/, "", raw)
+    fl = fd                                  # flow brackets still open from the lines above
+    if (oq != "") {                          # quoted text that goes on from the line above
+      line = uncomment(raw, 0); gha(line)
+      if (fl > 0) flow(um)
+      ps = pl && fd
+      next
+    }
+    match(raw, /^ */); ind = RLENGTH
+    if (bs >= 0 && (raw == "" || ind > bs)) { gha(raw); next }   # the text of a block scalar
+    bs = -1
+    if (raw == "") next
+    # Plain text from the line above goes on here: always in flow style, and in block style if
+    # the line is more indented than the parent of that text (pc).
+    cont = ps && (fl > 0 || ind > pc)
+    line = uncomment(raw, cont); sub(/[ \t]+$/, "", line); sub(/[ \t]+$/, "", um); ps = pl
+    if (line == "") next
+    gha(line)
+    if (cont && fl == 0) {                   # the line is only text
+      if (p_key != "") unread(p_line, p_key)
+      p_key = ""; next
+    }
+
+    match(line, /^ *(-[ \t]+)*/); col = RLENGTH   # where the content starts, after any dashes
+    if (d_ind >= 0 && ind <= d_ind) d_ind = -1   # the end of an env: or with: block mapping
+    # The indent of the parent of plain text that may go on below (pc), and of a node that
+    # starts on the next line (pv).
+    if (ps && !fd) pc = (lk == "-") ? lc : (lk != "") ? col : (pv >= 0) ? pv : ind
+    pv = (!ns || fd) ? -1 : (lk == "-") ? lc : (lk != "") ? col : pv
+    rest = noprops(substr(line, col + 1)); key = ""; val = rest
+    mrest = noprops(substr(um, col + 1)); mval = mrest    # the same, with quoted text masked
+    if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?[ \t]*:/) \
+        && substr(rest, RLENGTH + 1, 1) ~ /^[ \t]?$/) {
+      key = tolower(substr(rest, 1, RLENGTH - 1)); gsub(/["\047 \t]/, "", key)
+      val = substr(rest, RLENGTH + 1); mval = substr(mrest, RLENGTH + 1)
+    }
+    sub(/^[ \t]+/, "", val); val = noprops(val); sub(/^[ \t]+/, "", mval); mval = noprops(mval)
+    f = (fl > 0) ? mrest : ((val ~ /^[[{]/) ? mval : "")
+    if (f != "") flow(f)
+    if (rest ~ /^[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
+    ak = (fl == 0 && rest ~ /^[*][^ \t]*[ \t]*:([ \t]|$)/)     # an alias key: *k : x
+    if (ak) print FILENAME ":" FNR ": write the key without aliases"
+    esc = (um ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
+    if (esc) print FILENAME ":" FNR ": write the key without escapes"
+    # The value of the key on the line above (key:, then the value further indented).
+    if (p_key != "" && ind > p_col && col == ind && key == "" && rest != "-")
+      unread(p_line, p_key)
+    p_key = ""
+
+    if (s_line && ind <= s_ind) end_step()
+    if (rest == "-" || rest == "") {         # a list item or a node that starts on the next line
+      if (!s_line && (rest == "-" || col > ind)) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+      next
+    }
+    if (!s_line && col > ind) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+    if (s_line && s_key < 0) s_key = col
+    if (val ~ /^[|>][-+0-9]*$/) { bs = (key != "") ? col : ind; ps = 0 }
+    hidden = (val ~ /^([|>][-+0-9]*|[*].*)$/ || val ~ /^"[^"]*\\/ || oq != "")
+    gsub(/["\047]/, "", val)                 # hidden: a block scalar, alias, escape or open quote
+
+    if (key == "uses" && d_ind < 0) {
+      u = ""
+      if (hidden) unread(FNR, key)
+      else { p_key = key; p_col = col; p_line = FNR; u = tolower(val); sub(/@.*/, "", u) }
+      if (u ~ /cache/) print FILENAME ":" FNR ": " u " stores a cache"
+    }
+    if ((key == "env" || key == "with") && val == "" && d_ind < 0) d_ind = col
+    if (!s_line) next
+    if (col == s_key) {                      # a key of the step: uses, with, env, run, ...
+      w_ind = -1
+      if (key == "uses") s_uses = u
+      if (key == "with" && val != "")
+        print FILENAME ":" FNR ": with: must be a block mapping, one input per line"
+      else if (key == "with") { w_ind = col; w_col = -1 }
+    } else if (w_ind >= 0 && ind > w_ind) {
+      if (w_col < 0) w_col = ind
+      if (ind == w_col && (col > ind || key == "")) {     # a list, flow, alias or scalar
+        if (!esc && !ak)
+          print FILENAME ":" FNR ": with: must be a block mapping, one input per line"
+      } else if (ind == w_col) {                         # an input of the step
+        if (key in inputs)
+          print FILENAME ":" FNR ": " key ": set it only once (input names ignore case)"
+        inputs[key] = tolower(val)
+        if ((key in off) || key == "retention-days") {
+          if (hidden) unread(FNR, key)
+          else {
+            p_key = key; p_col = col; p_line = FNR       # in case the value is on or goes on below
+            if (val != "" && (key in off) && tolower(val) != off[key])
+              print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+          }
+        }
+      }
+    }
+  }
+  END { end_step() }' "${files[@]}")
+
+if [ -n "$hits" ]; then
+  printf '%s\n' "$hits"
+  echo "::error::Caches or long-lived artifacts break the Actions storage policy (M0_PLAN.md F34)"
+  exit 1
+fi
+echo "Actions storage: no caches, artifacts kept 1 day (${#files[@]} files checked)"
 ```
 
 ### `export_presets.cfg`
@@ -1145,6 +1416,7 @@ These pass actionlint 1.7.12, including its shellcheck integration. The files be
 
 - **`godot-env`:** PR 2 adds it without the `android` input and the "Install Android SDK packages" step; PR 3 adds those.
 - **`ci.yml`:** PR 2 has `lint` and `test`. PR 3 adds `export-web` (without "Upload Pages artifact") and `export-android`. PR 4 adds the Pages upload step and `deploy-web`.
+- **F34** (after PR 4) removes every cache, the `test-reports` and `export-log-*` uploads and `GRADLE_USER_HOME`. It adds the `upload-builds` input, `retention-days: 1` on every upload, and the steps in `deploy-web` and `publish` that delete used artifacts.
 
 ### `.github/workflows/copilot-setup-steps.yml`
 
@@ -1196,17 +1468,17 @@ jobs:
 
 ### `.github/actions/godot-env/action.yml`
 
-_Added in PR 2; the `android` input and step in PR 3._
+_Added in PR 2; the `android` input and step in PR 3. F34 removes the import cache._
 
 ```yaml
 name: Godot environment
 description: >
   Prepare the barichello/godot-ci container: move export templates and editor settings into
   $HOME, optionally install the Android SDK packages that Godot 4.7's Gradle build needs,
-  restore the import cache and import the project.
+  and import the project.
 inputs:
   android:
-    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds and set GRADLE_USER_HOME
+    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds
     default: "false"
 runs:
   using: composite
@@ -1236,17 +1508,8 @@ runs:
         # Versions from Godot 4.7.2 platform/android/java/app/config.gradle. Without the NDK,
         # Gradle downloads it during the build or skips stripping the native libraries.
         "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
-        # Java takes user.home from /etc/passwd (/root), not $HOME (/github/home in container jobs),
-        # so without this Gradle uses /root/.gradle and the workflows' ~/.gradle cache stays empty.
-        echo "GRADLE_USER_HOME=$HOME/.gradle" >> "$GITHUB_ENV"
 
-    - name: Restore Godot import cache
-      uses: actions/cache@v6
-      with:
-        path: .godot
-        key: godot-import-${{ env.GODOT_TEMPLATE_VERSION }}-${{ hashFiles('project.godot', '**/*.import') }}
-        restore-keys: godot-import-${{ env.GODOT_TEMPLATE_VERSION }}-
-
+    # Always a full import: CI keeps no caches (M0_PLAN.md F34).
     - name: Import project
       shell: bash
       run: tools/ci/import.sh
@@ -1254,16 +1517,23 @@ runs:
 
 ### `.github/workflows/ci.yml`
 
-_Built up over PRs 2–4 (see above)._
+_Built up over PRs 2–4, then changed by F34 (see above)._
 
 ```yaml
 name: CI
 
+# Actions storage (M0_PLAN.md F34): no caches, and artifacts only where needed, kept 1 day.
+# To download the builds, run this workflow by hand with upload-builds.
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      upload-builds:
+        description: Upload the Web, APK and AAB builds as artifacts (kept 1 day)
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -1285,8 +1555,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: tools/ci/requirements.txt
       - run: pip install -r tools/ci/requirements.txt
       - run: tools/ci/lint.sh
       - name: actionlint
@@ -1307,13 +1575,6 @@ jobs:
         run: tools/ci/run_tests.sh
       - name: Smoke run (main scene, 60 s simulated)
         run: tools/ci/smoke.sh
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-reports
-          path: build/reports
-          retention-days: 14
 
   export-web:
     needs: [lint, test]
@@ -1325,23 +1586,20 @@ jobs:
       - uses: ./.github/actions/godot-env
       - run: tools/ci/export.sh "Web" build/web/index.html release
       - name: Upload Web build
+        if: inputs.upload-builds
         uses: actions/upload-artifact@v7
         with:
           name: web
           path: build/web
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
+          compression-level: 9
       - name: Upload Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
         with:
           path: build/web
-      - name: Upload export log
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: export-log-web
-          path: build/reports
+          retention-days: 1
 
   export-android:
     needs: [lint, test]
@@ -1354,44 +1612,31 @@ jobs:
         include:
           - preset: Android APK
             file: roadgame-debug.apk
-            slug: apk
           - preset: Android AAB
             file: roadgame-debug.aab
-            slug: aab
     name: export-android (${{ matrix.preset }})
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/godot-env
         with:
           android: ${{ matrix.preset == 'Android AAB' }}
-      - name: Cache Gradle
-        if: matrix.preset == 'Android AAB'
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
       - name: Export (debug keystore from the CI image)
         run: tools/ci/export.sh "${{ matrix.preset }}" "build/android/${{ matrix.file }}" debug
       - name: Disk usage
         if: always()
         run: |
           # The image, the SDK and NDK, and Gradle share the runner's disk (M0_PLAN.md §8).
+          # Gradle's home is /root/.gradle: Java takes user.home from /etc/passwd, not $HOME (F31).
           df -h / "$GITHUB_WORKSPACE"
-          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" "$HOME/.gradle" 2>/dev/null || true
-      - uses: actions/upload-artifact@v7
+          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" /root/.gradle 2>/dev/null || true
+      - if: inputs.upload-builds
+        uses: actions/upload-artifact@v7
         with:
           name: android-${{ matrix.preset }}
           path: build/android/${{ matrix.file }}
           if-no-files-found: error
-          retention-days: 14
-      - name: Upload export log
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: export-log-${{ matrix.slug }}
-          path: build/reports
+          retention-days: 1
+          compression-level: 9
 
   deploy-web:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -1399,6 +1644,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
+      actions: write   # delete the Pages artifact
       pages: write
       id-token: write
     environment:
@@ -1407,11 +1653,22 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v5
+      - name: Delete the Pages artifact
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The site is live. To deploy again, re-run all jobs (this job alone has no artifact).
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            --jq '.artifacts[] | select(.name == "github-pages") | .id' | while read -r id; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+            echo "Deleted artifact $id"
+          done
 ```
 
 ### `.github/workflows/release.yml`
 
-_Added in PR 4._
+_Added in PR 4. F34 removes the Gradle cache and deletes the artifacts after publishing._
 
 ```yaml
 name: Release
@@ -1488,12 +1745,6 @@ jobs:
       - uses: ./.github/actions/godot-env
         with:
           android: "true"
-      - uses: actions/cache@v6
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
       - name: Export signed APK and AAB
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -1514,12 +1765,14 @@ jobs:
             build/release/*.apk
             build/release/*.aab
           if-no-files-found: error
+          retention-days: 1
 
   web-release:
     needs: test
     runs-on: ubuntu-24.04
     container: barichello/godot-ci:4.7.2
     timeout-minutes: 20
+    environment: release
     steps:
       - uses: actions/checkout@v7
       - run: tools/ci/stamp_version.sh "$VERSION"
@@ -1531,25 +1784,42 @@ jobs:
           name: web-release
           path: build/roadgame-*-web.zip
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     needs: [android-release, web-release]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
+      actions: write   # delete the build artifacts
       contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
-          path: dist
-          merge-multiple: true
+          name: android-release
+          path: dist/android
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-release
+          path: dist/web
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           args=(--repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes)
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then args+=(--draft); fi
-          gh release create "$VERSION" dist/* --title "Road Roguelike $VERSION" "${args[@]}"
+          gh release create "$VERSION" dist/android/* dist/web/* --title "Road Roguelike $VERSION" "${args[@]}"
+      - name: Delete the build artifacts
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The files are on the release now.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            --jq '.artifacts[].id' | while read -r id; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+            echo "Deleted artifact $id"
+          done
 ```
 
 ### `.github/dependabot.yml`
