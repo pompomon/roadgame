@@ -72,12 +72,6 @@ jobs:
       - uses: ./.github/actions/godot-env
         with:
           android: "true"
-      - uses: actions/cache@v6
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-godot-${{ env.GODOT_TEMPLATE_VERSION }}
       - name: Export signed APK and AAB
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -98,12 +92,14 @@ jobs:
             build/release/*.apk
             build/release/*.aab
           if-no-files-found: error
+          retention-days: 1
 
   web-release:
     needs: test
     runs-on: ubuntu-24.04
     container: barichello/godot-ci:4.7.2
     timeout-minutes: 20
+    environment: release
     steps:
       - uses: actions/checkout@v7
       - run: tools/ci/stamp_version.sh "$VERSION"
@@ -115,22 +111,39 @@ jobs:
           name: web-release
           path: build/roadgame-*-web.zip
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     needs: [android-release, web-release]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
+      actions: write   # delete the build artifacts
       contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
-          path: dist
-          merge-multiple: true
+          name: android-release
+          path: dist/android
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-release
+          path: dist/web
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           args=(--repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes)
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then args+=(--draft); fi
-          gh release create "$VERSION" dist/* --title "Road Roguelike $VERSION" "${args[@]}"
+          gh release create "$VERSION" dist/android/* dist/web/* --title "Road Roguelike $VERSION" "${args[@]}"
+      - name: Delete the build artifacts
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The files are on the release now.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            --jq '.artifacts[].id' | while read -r id; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+            echo "Deleted artifact $id"
+          done
