@@ -2,7 +2,7 @@
 
 Status: proposed; Q1–Q17 defaults applied · 2026-11-07 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M2 row, §4 M2.1–M2.7 and "M2 tests", the M2 rows of §6, and the driving values of M4.2, which M1_PLAN.md §9 moves into M2
 
-**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m2/prototype` (2a3b915) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of #23 (938c7b2) and passed the five local checks (§6.1). The 47 negative cases in §6.2 were run too. The stacked landing was simulated (§4.5), and a probe played three runs with two retries through the real input path (§6.5).
+**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m2/prototype` (b9f28be) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of #23 (938c7b2) and passed the five local checks (§6.1). The 48 negative cases in §6.2 were run too. The stacked landing was simulated (§4.5), and a probe played three runs with two retries through the real input path (§6.5).
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -38,7 +38,7 @@ Goal (IP §3): "A human can drive with touch or keyboard; auto-speed, off-road, 
 | # | Exit criterion | Checked by |
 |---|---|---|
 | E1 | The car turns at `STEER_RATE` and moves where it faces. With no input it straightens up to the nearest grid direction. A step reports every cell it enters, in order, corners included (H10) | `test_car_sim_steering.gd` |
-| E2 | Speed rises along a straight, and the top speed grows with the run up to the cap. Braking starts at the brake distance whichever exit the car takes, and the car enters the junction tile at `junction_speed`, even from the speed cap (H1). It speeds up again after the turn | `test_car_sim_speed.gd` |
+| E2 | Speed rises along a straight, and the top speed grows with the run up to the cap. Braking starts at the brake distance whichever exit the car takes, and the car enters the junction tile at `junction_speed`, even from the speed cap and at the least brake distance `validate()` allows (H1). It speeds up again after the turn | `test_car_sim_speed.gd` |
 | E3 | Off the road the car takes damage every step and slows down, and rejoining stops the damage. The off-road limit is a crash on a straight and a missed turn near a junction (D6, H12). Health 0 is a crash. Rejoining on a dead end is a disaster, and the car stops (H2) | `test_car_sim_offroad.gd` |
 | E4 | The correct exit completes the turn, and every wrong exit is a disaster. The entry edge, edges without road, crossings off the road and other tiles decide nothing (H11). A rejoin decides by D5, also past two junctions (H13). The trigger finds the next junction for 300 turns | `test_junction_trigger.gd` |
 | E5 | The autopilot completes 300 turns on each of 20 seeds at `delta = 1/60`, with no disaster and no damage, and never enters a junction tile above `junction_speed` | `tests/sim/test_autopilot_300_turns.gd` |
@@ -71,7 +71,7 @@ IP's M2 design mostly holds up. The speed model, the D5 and D6 rules and the spl
 
 | # | Finding | Evidence | Fix |
 |---|---|---|---|
-| H1 | IP M2.2 brakes at the constant `BRAKE` (4 tiles/s²) from `junction_brake_distance` (1.25 tiles) before the junction's centre. The junction tile starts 0.5 tiles before its centre, so the car has 0.75 tiles to slow down and enters at √(v² − 6) tiles/s. From the cap of 7 that is 6.6 instead of `junction_speed` 2.0, and even from 4 it is 3.2. Too fast for the corner, the car runs off the road. | Prototype, N1: with IP's braking, the autopilot crashes on health on all 20 seeds, at turns 76–98. On each seed, its fastest entry is 1.94–2.21 tiles/s above `junction_speed`. IP's own 300-turn test fails | **Δ IP M2.2:** while braking for a junction, the rate is the larger of `BRAKE` and (v² − js²) / (2 · room), where room is the distance to the junction tile (d − 0.5). The car reaches `junction_speed` as it enters the tile. `AreaDef.validate()` requires a brake distance above 0.5. The 300-turn test checks every entry speed (Q1) |
+| H1 | IP M2.2 brakes at the constant `BRAKE` (4 tiles/s²) from `junction_brake_distance` (1.25 tiles) before the junction's centre. The junction tile starts 0.5 tiles before its centre, so the car has 0.75 tiles to slow down and enters at √(v² − 6) tiles/s. From the cap of 7 that is 6.6 instead of `junction_speed` 2.0, and even from 4 it is 3.2. Too fast for the corner, the car runs off the road. | Prototype, N1: with IP's braking, the autopilot crashes on health on all 20 seeds, at turns 76–98. On each seed, its fastest entry is 1.94–2.21 tiles/s above `junction_speed`. IP's own 300-turn test fails. Braking starts only at the start of a step, and a step at the cap moves 0.117 tiles, so a brake distance just above 0.5 isn't enough: at 0.51, 440 of 480 approaches from the cap entered the tile at 7 tiles/s (§6.5) | **Δ IP M2.2:** while braking for a junction, the rate is the larger of `BRAKE` and (v² − js²) / (2 · room), where room is the distance to the junction tile (d − 0.5). The car reaches `junction_speed` as it enters the tile. `AreaDef.validate()` requires a brake distance of at least `least_brake_distance()`, 0.5 plus one physics step at the cap: 0.617 tiles at 60 Hz. The 300-turn test checks every entry speed (Q1) |
 | H2 | IP M2.2 handles a rejoin by calling `on_rejoin(tile)` and then setting state `DRIVING`. A rejoin on a dead end ends the run inside `on_rejoin()` (state `DISASTER`), and the next line sets `DRIVING` again. The car drives on, and a later crash makes `GameState` report DISASTER → CRASH as an invalid change. | Prototype, N43: `test_rejoining_on_a_dead_end_is_a_disaster_and_the_car_stops` fails | **Δ IP M2.2:** set `DRIVING`, then call `on_rejoin()`, then end the step |
 | H3 | IP M2.7 pauses with `get_tree().paused` and gives only UI overlays `process_mode = ALWAYS`. The `InputRouter` then sleeps through a pause: a key released while paused stays held, and the car steers by itself after resuming. | Prototype, N9: `test_a_key_released_while_paused_is_not_missed` fails. N26 (the HUD without ALWAYS): that test and both II tests fail | **Δ IP M2.7:** the `InputRouter` and the HUD run with `process_mode = ALWAYS`. The HUD shows the pause message itself (Q3). The car, the camera and the world pause with the tree |
 | H4 | Losing focus sends no key-up or touch-up events. Godot's own release, `Input.release_pressed_events()`, clears only `Input`'s state, without events. It also does nothing unless `NOTIFICATION_APPLICATION_FOCUS_OUT` came first, and the Web platform never sends that one. A blur reaches nodes only as `NOTIFICATION_WM_WINDOW_FOCUS_OUT`. A key held while the player switches away stays held in a router that tracks events, so the car keeps steering. | Source: input.cpp:1600–1604, scene_tree.cpp:934–947, display_server_web.cpp:843–845 (the window blur), window.cpp:898–903 (the canvas blur); no file in `platform/web` sends the application notification. Prototype: N16, N27, N46 | The `InputRouter` drops everything held on either notification, and `main.gd` pauses the run on either (Q4) |
@@ -121,7 +121,7 @@ This plan applies the defaults below. Tell me if you want any of them changed.
 
 | # | Question | Default (applied) | Alternative |
 |---|---|---|---|
-| Q1 | How does the car brake for a junction? | At least `BRAKE`, and harder when it must be, so that it enters the junction tile at `junction_speed` (H1) | IP's constant rate, raised to about 30 tiles/s² ((7² − 2²) / (2 × 0.75)); or a brake distance of about 6 tiles, outside `AreaDef`'s range of 1–3 |
+| Q1 | How does the car brake for a junction? | At least `BRAKE`, and harder when it must be, so that it enters the junction tile at `junction_speed` (H1). `validate()` keeps the brake distance at least one step at the cap beyond the tile's edge | IP's constant rate, raised to about 30 tiles/s² ((7² − 2²) / (2 × 0.75)); or a brake distance of about 6 tiles, outside `AreaDef`'s range of 1–3. Instead of the `validate()` limit, braking a step early, which changes every approach |
 | Q2 | How does a run end until M3 adds disasters? | Game over at once. The HUD shows why, and a tap or Enter starts a new run by reloading the scene (H6, H28) | A short delay before a retry is accepted (§8) |
 | Q3 | Pause screen | The HUD shows "Paused" and how to go on. II and Esc pause and resume (H3) | A `ui/pause.tscn` overlay, as in IP §2's layout |
 | Q4 | What happens when the game loses focus? | Drop everything held and pause the run (H4) | Only drop what is held, and drive on |
@@ -175,7 +175,7 @@ Branch `m2/1-trigger`, from `main`.
 | Area | Files |
 |---|---|
 | Tuning | `config/tuning.gd`: all of M2's constants (§5.12) |
-| Areas | `areas/area_def.gd`: the driving fields and their checks (§5.2); `rural`, `meadows`, `village` and `desert` `.tres`: IP M4.2's values |
+| Areas | `areas/area_def.gd`: the driving fields, their checks and `least_brake_distance()` (§5.2); `rural`, `meadows`, `village` and `desert` `.tres`: IP M4.2's values |
 | Road | `road/junction_trigger.gd` (§5.3); `road/road_generator.gd`: `find_area()` (H24) |
 | Tests | `tests/unit/test_junction_trigger.gd`; `tests/unit/test_area_schedule.gd`: 2 more tests |
 
@@ -205,7 +205,7 @@ git checkout origin/m2/prototype -- 'car/car_sim.gd*' 'car/autopilot.gd*' tests/
   'tests/unit/test_car_sim_steering.gd*'
 ```
 
-No trims. Expect: 38 scripts; `GUT: 88 tests passed` (143,809 asserts, about 12 s). Negative cases N1, N2, N6–N8, N14, N28–N34, N43 and N44.
+No trims. Expect: 38 scripts; `GUT: 89 tests passed` (143,857 asserts, about 12 s). Negative cases N1, N2, N6–N8, N14, N28–N34, N43, N44 and N48.
 
 **Acceptance:** E1–E3, E5 and E6. Compare the CI `test` job time with M1's 62–89 s (Q11).
 
@@ -225,7 +225,7 @@ git checkout origin/m2/prototype -- autoload/ project.godot 'tests/unit/test_gam
 
 Trim: in `project.godot`, delete the `[input_devices]` section and its blank line. It turns on `emulate_touch_from_mouse`, which belongs with the input code in PR 4 (H8).
 
-Expect: 41 scripts; `GUT: 100 tests passed` (143,852 asserts, about 12 s). Like PRs 1 and 2, `smoke.sh` still prints M1's `autopilot: tile 1440, turns 247, area desert`. Negative cases N13, N15 and N40.
+Expect: 41 scripts; `GUT: 101 tests passed` (143,900 asserts, about 12 s). Like PRs 1 and 2, `smoke.sh` still prints M1's `autopilot: tile 1440, turns 247, area desert`. Negative cases N13, N15 and N40.
 
 **Acceptance:** E7.
 
@@ -251,7 +251,7 @@ git checkout origin/m2/prototype -- project.godot tools/ci/smoke.sh 'car/input_r
   tests/unit/test_smoke.gd
 ```
 
-1. No trims. Expect: 50 scripts; `GUT: 129 tests passed` (143,969 asserts, about 12 s). `smoke.sh` prints `grey box: tilesets built in … ms` and `autopilot: tile 165, turns 35, area rural`. Negative cases N9–N12, N16–N21, N25–N27, N35–N39, N41, N42 and N45–N47.
+1. No trims. Expect: 50 scripts; `GUT: 130 tests passed` (144,017 asserts, about 12 s). `smoke.sh` prints `grey box: tilesets built in … ms` and `autopilot: tile 165, turns 35, area rural`. Negative cases N9–N12, N16–N21, N25–N27, N35–N39, N41, N42 and N45–N47.
 2. Check that the stack now matches the prototype. The command prints nothing, unless a review changed something on purpose. If `main` has changed other files since 938c7b2, exclude them too:
    ```bash
    git diff --stat origin/m2/prototype -- . ':!M2_PLAN.md'
@@ -337,13 +337,14 @@ M1_PLAN.md §9 moved IP M4.2's driving values into M2. `AreaDef` gets six fields
 | Field | Range | Default (City) | Rural, Meadows | Village | Desert | `validate()` reports |
 |---|---|---|---|---|---|---|
 | `straight_accel` | 0–2 | 0.5 | 0.6 | 0.55 | 0.7 | a negative value |
-| `junction_brake_distance` | 1–3 | 1.25 | 1.25 | 1.25 | 1.5 | 0.5 or less: no room to brake before the junction tile (H1) |
+| `junction_brake_distance` | 1–3 | 1.25 | 1.25 | 1.25 | 1.5 | below `least_brake_distance()`: one step at the cap could carry the car from outside the brake distance into the junction tile (H1) |
 | `junction_speed` | 0.5–4 | 2.0 | 2.2 | 2.0 | 2.4 | 0 or less, or above `BASE_TOP_SPEED`: the car would speed up for some junctions |
 | `offroad_speed_mult` | 0.1–1 | 0.5 | 0.6 | 0.55 | 0.45 | 0 or less, or above 1 |
 | `offroad_damage_per_sec` | 0–100 | 30 | 25 | 30 | 35 | a negative value |
 | `offroad_limit_tiles` | 0.5–5 | 2.0 | 2.0 | 2.0 | 2.0 | 0 or less |
 
 - Each problem starts with the area's id, for example `desert: junction_speed is outside 0..BASE_TOP_SPEED`. The ranges only limit the inspector, so `validate()` checks what a `.tres` file can still hold.
+- `AreaDef.least_brake_distance()` is static, so the tests use it too. It is 0.5, from the junction's centre to its tile's edge, plus `GLOBAL_SPEED_CAP / Engine.physics_ticks_per_second`, the farthest one physics step moves the car. At 60 Hz that is 0.617 tiles, below the range's 1, and the problem reads `junction_brake_distance is below 0.617`.
 - `offroad_limit_tiles` is a field, as in `plan.md` §3.7, although IP M4.2 lists it with the global constants. Every area keeps 2.0.
 - `RoadGenerator.find_area(id) -> AreaDef` returns the schedule's area with that id. Every tile's `area_id` names one. Any other id is an error, `push_error("RoadGenerator: no area %s in the schedule")`, and returns the first area (H24). `CarSim` and `main.gd` use it.
 
@@ -438,6 +439,7 @@ if BRAKING and speed > target:                              # Δ H1
 speed = move_toward(speed, target, rate · delta)
 ```
 - Unless the car is off the road, its state is `BRAKING` within the brake distance and `DRIVING` outside it.
+- Braking starts only at the start of a step. As the brake distance is at least `least_brake_distance()` (§5.2), the first step that starts within it starts before the junction tile, so `room` is above 0 (H1).
 - `dist_on_straight` resets on `turn_completed`.
 
 **Off the road** (`plan.md` §2.4, D6). Whether the car is on the road is `RoadGeometry.is_on_road()` at its position after the move.
@@ -638,7 +640,7 @@ No CI script changes, apart from one comment.
 |---|---|---|---|
 | `test_junction_trigger.gd` | 15 | 1 | It starts at the first junction. The correct exit completes the turn, and every wrong exit of a crossroads is a disaster. Nothing is decided after a disaster, nor by the entry edge, an edge without road (H11), a crossing off the road, or a crossing from another tile. Rejoins: on a dead end, a disaster; past the junction, the turn; before or on it, nothing; past two junctions, both turns (H13); on a later dead end, the turn and then a disaster. The off-road limit is a missed turn. The next junction is found for 300 turns |
 | `test_area_schedule.gd` | 7 + 2 | M1, 1 | PR 1: `validate()` reports each driving value the car can't use, and allows the limits themselves. `find_area()` finds each area, and an unknown id is an error that returns the first area (H24) |
-| `test_car_sim_speed.gd` | 6 | 2 | Speed rises from 0 on the first straight, and the target rises along a straight. The top speed grows with the run, up to the cap. Braking starts at the brake distance whichever exit the car takes. The car enters the junction tile at `junction_speed`, even from the cap (H1). It speeds up again after a turn |
+| `test_car_sim_speed.gd` | 7 | 2 | Speed rises from 0 on the first straight, and the target rises along a straight. The top speed grows with the run, up to the cap. Braking starts at the brake distance whichever exit the car takes. The car enters the junction tile at `junction_speed`, even from the cap (H1). So it does at `least_brake_distance()`, with the steps at 24 distances from the junction. It speeds up again after a turn |
 | `test_car_sim_offroad.gd` | 8 | 2 | Off the road, the car takes damage every step and slows down. Rejoining stops the damage. The off-road limit is a crash on a straight and a missed turn near a junction. Health 0 is a crash. Near is at most one step from the junction (H12). A dead-end rejoin is a disaster, and the car stops (H2) |
 | `test_car_sim_steering.gd` | 3 | 2 | It turns at `STEER_RATE` and moves where it faces. With no input, it straightens up to the nearest grid direction. A move enters each cell it crosses, in order (H10) |
 | `tests/sim/test_autopilot_300_turns.gd` | 1 | 2 | E5: seeds 0–19, at most 72,000 steps each. Each run reaches turn 300 with no disaster or crash and full health, and enters no junction tile above `junction_speed` (H1) |
@@ -651,7 +653,7 @@ No CI script changes, apart from one comment.
 | `tests/integration/test_main_scene_boot.gd` | 8 | 4 | The main scene in a 360×640 `SubViewport`, with input pushed through the viewport as on a device. With the autopilot, 600 frames and no errors, and the HUD shows the turns and metres (H30). The distance is the farthest point reached (H27). With no input, the first junction ends the run. With the autopilot, the end of a run is an error (H17). A key released while paused is not missed (H3). Losing focus pauses the run and releases the keys (H4). A tap on II pauses without steering (H9). A click works like a tap and leaves Enter alone (H7, H8) |
 | `test_smoke.gd` | 4 → 3 | 4 | The project name. The HUD shows the version and the seed (`--seed=1`). Every character of every label and button, the digits, the minus sign and every message is in the default font. M1's fast-forward test goes with the viewer |
 
-- 52 tests become 129: 78 are new, and one goes.
+- 52 tests become 130: 79 are new, and one goes.
 - GUT fails a test on any `push_error()` or engine error that the test doesn't expect with `assert_push_error()`. So "no errors" in the boot test needs no assert of its own.
 - No test retries. A retry reloads the current scene, which under GUT is GUT itself. `test_hud.gd` checks the signal, and E12 checks the reload by hand.
 - `CarSim`'s tests are split by topic, as in IP's M2 tests table, and the sim tests cover `Autopilot`.
@@ -667,10 +669,10 @@ The commands are those of M0_PLAN.md §6.1: `lint.sh`, `import.sh`, `check_scrip
 | State | `check_scripts` | GUT tests | Asserts | GUT time | `smoke.sh` prints |
 |---|---|---|---|---|---|
 | M1 (938c7b2) | 29 | 52 | 143,469 | 7.3 s | `autopilot: tile 1440, turns 247, area desert` |
-| PR 1 | 31 | 69 | 143,576 | 6.9 s | the same |
-| PR 2 | 38 | 88 | 143,809 | 12.6 s | the same |
-| PR 3 | 41 | 100 | 143,852 | 12.1 s | the same |
-| PR 4 | 50 | 129 | 143,969 | 12.7 s | `autopilot: tile 165, turns 35, area rural` |
+| PR 1 | 31 | 69 | 143,576 | 6.8 s | the same |
+| PR 2 | 38 | 89 | 143,857 | 12.5 s | the same |
+| PR 3 | 41 | 101 | 143,900 | 12.2 s | the same |
+| PR 4 | 50 | 130 | 144,017 | 12.7 s | `autopilot: tile 165, turns 35, area rural` |
 
 PRs 1–3 keep M1's main scene, so their smoke line is M1's. Repeated runs of a state differ by up to 0.7 s. In every state:
 - `lint.sh` reports `Actions storage: no caches, artifacts kept 1 day (5 files checked)`;
@@ -679,7 +681,7 @@ PRs 1–3 keep M1's main scene, so their smoke line is M1's. Repeated runs of a 
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for all 47 cases on `m2/prototype` (2a3b915), and again for the 24 cases of PRs 1–3 on their own PR states. Every result below was reproduced.
+For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for all 48 cases on `m2/prototype` (b9f28be), and again for the 25 cases of PRs 1–3 on their own PR states. Every result below was reproduced.
 
 "The two II tests" are `test_a_tap_on_the_pause_button_pauses_without_steering` and `test_a_click_works_like_a_tap_and_leaves_enter_alone`. "With IP's design" says what happens with the same problem if IP is followed as written:
 - **Fails ✓:** one of IP's M2 tests fails too.
@@ -690,7 +692,7 @@ For each case, make the temporary change in the PR state listed, run the checks 
 
 | # | PR | Temporary change | Expected | With IP's design |
 |---|---|---|---|---|
-| N1 | 2 | `CarSim` brakes at the constant `BRAKE` (IP M2.2) | GUT fails: `test_300_turns_on_20_seeds`, `test_brakes_at_the_brake_distance_whichever_exit_it_takes`, `test_enters_the_junction_at_junction_speed_from_the_speed_cap` | IP's design: its own 300-turn test fails (H1) |
+| N1 | 2 | `CarSim` brakes at the constant `BRAKE` (IP M2.2) | GUT fails: `test_300_turns_on_20_seeds`, `test_brakes_at_the_brake_distance_whichever_exit_it_takes`, `test_enters_the_junction_at_junction_speed_from_the_speed_cap`, `test_the_least_brake_distance_is_enough_from_the_speed_cap` | IP's design: its own 300-turn test fails (H1) |
 | N2 | 2 | `Autopilot` connects a lambda that uses `self` to `sim.health_changed` | GUT passes, but `run_tests.sh` fails: "Objects leaked at exit: a cycle of RefCounted references, or a node that is never freed" | GUT exits 0 (H16) |
 | N3 | 1 | `on_rejoin()` compares `tile.junction == next_junction` (IP M2.3) | `check_scripts.sh` passes. GUT fails the 5 rejoin tests of `test_junction_trigger.gd`. From PR 2 on, it also fails `test_cutting_the_corner_completes_the_turn_with_damage`, `test_rejoining_stops_the_damage` and `test_rejoining_on_a_dead_end_is_a_disaster_and_the_car_stops` | IP's design: its rejoin tests fail (H5) |
 | N4 | 1 | Leaving the junction back through its entry edge decides an exit | GUT fails: `test_going_back_out_of_the_entry_edge_decides_nothing` | Not tested |
@@ -713,14 +715,14 @@ For each case, make the temporary change in the PR state listed, run the checks 
 | N21 | 4 | No `emulate_touch_from_mouse` | GUT fails: `test_a_click_works_like_a_tap_and_leaves_enter_alone` | IP's design (H8) |
 | N22 | 1 | `find_area()` returns null for an unknown id, without an error | GUT fails: `test_the_generator_finds_each_area_by_id` | Not in IP (H24) |
 | N23 | 1 | `validate()` accepts a `junction_speed` above `BASE_TOP_SPEED` | GUT fails: `test_validate_reports_driving_values_the_car_cannot_use` | Not in IP |
-| N24 | 1 | `validate()` accepts a `junction_brake_distance` of 0.5 | GUT fails: `test_validate_reports_driving_values_the_car_cannot_use` | Not in IP (H1) |
+| N24 | 1 | `validate()` accepts any `junction_brake_distance` above 0.5 | GUT fails: `test_validate_reports_driving_values_the_car_cannot_use` | Not in IP (H1) |
 | N25 | 4 | No `push_error` when an autopilot run ends | GUT fails: `test_with_the_autopilot_the_end_of_a_run_is_an_error` | IP's design (H17) |
 | N26 | 4 | The HUD pauses with the tree (no `process_mode = ALWAYS`) | GUT fails: `test_a_key_released_while_paused_is_not_missed` and the two II tests | IP's design (H3) |
 | N27 | 4 | `main.gd` doesn't pause when focus is lost | GUT fails: `test_losing_focus_pauses_the_run_and_releases_the_keys` | Not in IP (H4) |
 | N28 | 2 | `cells_crossed()` skips the corner neighbour | GUT fails: `test_a_move_enters_each_cell_it_crosses_in_order` | IP's design (H10) |
 | N29 | 2 | No off-road damage | GUT fails: `test_cutting_the_corner_completes_the_turn_with_damage`, `test_leaving_the_road_does_damage_every_step`, `test_running_out_of_health_is_a_crash` | Fails ✓ |
 | N30 | 2 | No off-road slowdown | GUT fails: `test_the_speed_drops_off_the_road` | Not tested |
-| N31 | 2 | Braking starts half a tile late | GUT fails: `test_brakes_at_the_brake_distance_whichever_exit_it_takes` | Fails ✓ |
+| N31 | 2 | Braking starts half a tile late | GUT fails: `test_brakes_at_the_brake_distance_whichever_exit_it_takes`, `test_the_least_brake_distance_is_enough_from_the_speed_cap` | Fails ✓ |
 | N32 | 2 | The top speed never grows | GUT fails: `test_the_top_speed_grows_with_the_run_up_to_the_cap` | Fails ✓ |
 | N33 | 2 | The off-road limit near a junction is a crash | GUT fails: `test_the_offroad_limit_near_a_junction_is_a_missed_turn` | Fails ✓ |
 | N34 | 2 | `CarSim` doesn't move the road buffer along | GUT fails: `test_300_turns_on_20_seeds` | IP's design (H19) |
@@ -737,6 +739,7 @@ For each case, make the temporary change in the PR state listed, run the checks 
 | N45 | 4 | The HUD marks the retry handled after emitting `retry_requested` | GUT fails: `test_a_retry_may_take_the_hud_out_of_the_tree` | Not in IP (H6) |
 | N46 | 4 | `main.gd` pauses only on `NOTIFICATION_APPLICATION_FOCUS_OUT`, which the Web never sends | GUT fails: `test_losing_focus_pauses_the_run_and_releases_the_keys` | Not in IP (H4) |
 | N47 | 4 | The `InputRouter` holds keys by action name, so the left arrow and A share one entry | GUT fails: `test_each_key_is_held_on_its_own` | Not tested |
+| N48 | 2 | `least_brake_distance()` allows for only half a step at the cap | GUT fails: `test_the_least_brake_distance_is_enough_from_the_speed_cap` | Not in IP (H1) |
 
 ### 6.3 Editor warnings
 
@@ -759,6 +762,7 @@ Without `EventBus`'s `@warning_ignore_start("unused_signal")`, it reports 18: on
 
 - **GUT.** In PR 4's state, `test_300_turns_on_20_seeds` takes 5.4 s of GUT's 12.7 s, about 0.27 s a seed (H15). M1's 200 × 500 occupancy test takes 3.6 s.
 - **IP's braking** (H1, N1). With the constant `BRAKE`, the autopilot ran out of health on all 20 seeds, at turns 76–98. On each seed, its fastest entry into a junction tile was 1.94–2.21 tiles/s above `junction_speed`.
+- **Least brake distance** (H1, N24, N48). From the cap, on seeds 0–9 with the steps at 48 distances from the first junction, the approaches that entered the junction tile above `junction_speed`: 440 of 480 at a brake distance of 0.51, 270 at 0.55, 60 at 0.60 and 20 at 0.61. There were none at the limit, 0.5 + 7/60 ≈ 0.6167, nor at 0.62, 0.7, 1.25 or 1.5.
 - **Step size** (H11). At the cap of 7 tiles/s, a 1/60 s step moves 0.117 tiles. The road is 0.32 tiles wide on each side of its centreline (`ROAD_HALF_WIDTH`), so it ends 0.18 tiles before an edge without road.
 - **Cutting corners** (H12, E6). A pure-pursuit driver that aims further along the path than the autopilot's 0.9 tiles drove to the first junction on 8 seeds. J+1 is the first tile past the junction.
 
