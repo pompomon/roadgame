@@ -17,4 +17,6 @@ fail_on "$SCRIPT_ERROR_RE|have not been imported|\\[GUT ERROR\\]" "$log" "GUT co
 [ -s "$junit" ] || { echo "::error::GUT wrote no JUnit report ($junit)"; exit 1; }
 total=$(sed -n 's/.*<testsuites[^>]* tests="\([0-9][0-9]*\)".*/\1/p' "$junit" | head -n 1)
 [ "${total:-0}" -gt 0 ] || { echo "::error::GUT ran 0 tests"; exit 1; }
+fail_on "ObjectDB instances? (was|were) leaked|resources? still in use at exit" "$log" \
+  "Objects leaked at exit: a cycle of RefCounted references, or a node that is never freed"
 echo "GUT: $total tests passed"
