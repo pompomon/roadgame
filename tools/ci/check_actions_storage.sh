@@ -11,13 +11,15 @@ while IFS= read -r f; do files+=("$f"); done \
 [ "${#files[@]}" -gt 0 ] || { echo "::error::No YAML files under .github/"; exit 1; }
 
 # A step is a list item plus the more indented lines below it. Its inputs are the keys right
-# under its with: mapping, so env: entries and run: text don't count. Block scalars (run: | and
-# the like) are text, searched only for type=gha. Keys are compared in lowercase, since GitHub
-# ignores the case of input names. Comments, quotes, anchors and tags are dropped (Cache: &c
-# "pip" is cache: pip). What the check can't read fails: uses: in flow style ({...} or [...],
-# also over several lines), a with: that is not a block mapping, ? keys, escaped keys, an input
-# set twice, and a uses:, cache input or retention-days whose value is on the lines below, an
-# alias or escaped. \047 is a single quote.
+# under its with: mapping, so env: entries and run: text don't count. A comment starts at a #
+# after a blank, outside quoted text, as in YAML. Block scalars (run: | and the like) and text
+# that goes on over several lines, quoted or plain, are text, searched only for type=gha (in any
+# case, as buildx reads the key). Keys are compared in lowercase, since GitHub ignores the case
+# of input names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip). What the
+# check can't read fails: uses: in flow style ({...} or [...], also over several lines), a with:
+# that is not a block mapping (also on the lines below it), ? keys, escaped keys, an input set
+# twice, and a uses:, cache input or retention-days whose value is on or goes on to the lines
+# below, an alias or escaped. \047 is a single quote.
 hits=$(awk '
   BEGIN {
     # Inputs that turn a cache on or off, and their off value.
@@ -48,6 +50,56 @@ hits=$(awk '
     while (s ~ /^[&!]/) sub(/^[&!][^ \t]*[ \t]*/, "", s)
     return s
   }
+  # The line without its comment. A quote opens quoted text only where a node can start: at the
+  # indent (unless plain text goes on there, cont), after "- ", "? ", ": ", an anchor or tag,
+  # after [ { or , in flow style, and after a ":" right behind quoted text ({"a":"b"}). oq is the
+  # quote still open at the end of the line and fd the number of flow brackets still open; both
+  # go on to the next line. pl is set if the line ends in plain text, ns if it ends where a node
+  # can start; lk is the last of - ? : on it and lc the column of that - or ?.
+  function uncomment(s, cont,    i, n, c, jq) {
+    n = length(s); ns = !cont; pl = cont; jq = 0; lk = ""
+    for (i = 1; i <= n; i++) {
+      c = substr(s, i, 1)
+      if (oq != "") {
+        if (oq == "\"" && c == "\\") i++
+        else if (c == oq && oq == "\047" && substr(s, i + 1, 1) == oq) i++
+        else if (c == oq) { oq = ""; ns = 0; jq = 1 }
+      } else if (c == " " || c == "\t") {
+        continue
+      } else if (c == "#" && (i == 1 || substr(s, i - 1, 1) ~ /[ \t]/)) {
+        pl = 0; return substr(s, 1, i - 1)
+      } else if (ns && (c == "\"" || c == "\047")) {
+        oq = c; ns = 0
+      } else if (c == ":" && (jq || substr(s, i + 1, 1) ~ /^[ \t]?$/)) {
+        ns = 1; jq = 0; pl = 0; lk = c
+      } else if (ns && c ~ /[-?]/ && substr(s, i + 1, 1) ~ /^[ \t]?$/) {
+        lk = c; lc = i - 1
+      } else if (i == 1 && s ~ /^(---|[.][.][.])([ \t]|$)/) {
+        i = 3                                # a document marker
+      } else if (ns && c ~ /[&!]/) {
+        while (i < n && substr(s, i + 1, 1) !~ /[ \t]/) i++
+      } else if (ns && c ~ /[[{]/) {
+        fd++
+      } else if (fd && c ~ /[]}]/) {
+        fd--; ns = 0; jq = 1; pl = 0
+      } else if (fd && c == ",") {
+        ns = 1; jq = 0; pl = 0
+      } else {
+        ns = 0; jq = 0; pl = 1
+      }
+    }
+    return s
+  }
+  function gha(s) {
+    if (tolower(s) ~ /type=gha/)
+      print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
+  }
+  # Flow style ({...} or [...], which may go on over the lines below): its keys are not read.
+  function flow(s) {
+    if (tolower(s) ~ /(^|[[{,])[ \t]*["\047]?uses["\047]?[ \t]*:/)
+      print FILENAME ":" FNR ": uses: must be in a block mapping, one key per line"
+    if (s ~ /[[{,][ \t]*[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
+  }
   function end_step(    k, r) {
     if (s_line) {
       r = inputs["retention-days"]
@@ -64,18 +116,36 @@ hits=$(awk '
     }
     s_line = 0; s_uses = ""; s_key = -1; w_ind = -1; split("", inputs)
   }
-  FNR == 1 { end_step(); bs = -1; p_key = ""; fd = 0 }
+  FNR == 1 { end_step(); bs = -1; p_key = ""; fd = 0; oq = ""; ps = 0; pv = -1 }
   {
-    line = $0
-    sub(/(^|[ \t])#.*/, "", line); sub(/[ \t\r]+$/, "", line)
-    if (line == "") next
-    if (line ~ /type=gha/)
-      print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
-    match(line, /^ */); ind = RLENGTH
-    if (bs >= 0 && ind > bs) next            # the text of a block scalar
+    raw = $0; sub(/[ \t\r]+$/, "", raw)
+    fl = fd                                  # flow brackets still open from the lines above
+    if (oq != "") {                          # quoted text that goes on from the line above
+      line = uncomment(raw, 0); gha(line)
+      if (fl > 0) flow(line)
+      ps = pl && fd
+      next
+    }
+    match(raw, /^ */); ind = RLENGTH
+    if (bs >= 0 && (raw == "" || ind > bs)) { gha(raw); next }   # the text of a block scalar
     bs = -1
+    if (raw == "") next
+    # Plain text from the line above goes on here: always in flow style, and in block style if
+    # the line is more indented than the parent of that text (pc).
+    cont = ps && (fl > 0 || ind > pc)
+    line = uncomment(raw, cont); sub(/[ \t]+$/, "", line); ps = pl
+    if (line == "") next
+    gha(line)
+    if (cont && fl == 0) {                   # the line is only text
+      if (p_key != "") unread(p_line, p_key)
+      p_key = ""; next
+    }
 
     match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
+    # The indent of the parent of plain text that may go on below (pc), and of a node that
+    # starts on the next line (pv).
+    if (ps && !fd) pc = (lk == "-") ? lc : (lk != "") ? col : (pv >= 0) ? pv : ind
+    pv = (!ns || fd) ? -1 : (lk == "-") ? lc : (lk != "") ? col : pv
     rest = noprops(substr(line, col + 1)); key = ""; val = rest
     if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?[ \t]*:/) \
         && substr(rest, RLENGTH + 1, 1) ~ /^[ \t]?$/) {
@@ -83,20 +153,11 @@ hits=$(awk '
       val = substr(rest, RLENGTH + 1)
     }
     sub(/^[ \t]+/, "", val); val = noprops(val)
-    # Flow style ({...} or [...], which may go on over the lines below): its keys are not read.
-    # fd counts the brackets still open, leaving out quoted text.
-    f = (fd > 0) ? rest : ((val ~ /^[[{]/) ? val : "")
-    if (f != "") {
-      if (tolower(f) ~ /(^|[[{,])[ \t]*["\047]?uses["\047]?[ \t]*:/)
-        print FILENAME ":" FNR ": uses: must be in a block mapping, one key per line"
-      t = $0; gsub(/"([^"\\]|\\.)*"|\047[^\047]*\047/, "", t); sub(/(^|[ \t])#.*/, "", t)
-      fd += gsub(/[[{]/, "", t) - gsub(/[]}]/, "", t)
-      if (fd < 0) fd = 0
-    }
-    if (rest ~ /^[?]([ \t]|$)/ || f ~ /[[{,][ \t]*[?]([ \t]|$)/)
-      print FILENAME ":" FNR ": ? key: write it as key: value"
-    if (line ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
-      print FILENAME ":" FNR ": write the key without escapes"
+    f = (fl > 0) ? rest : ((val ~ /^[[{]/) ? val : "")
+    if (f != "") flow(f)
+    if (rest ~ /^[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
+    esc = (line ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
+    if (esc) print FILENAME ":" FNR ": write the key without escapes"
     # The value of the key on the line above (key:, then the value further indented).
     if (p_key != "" && ind > p_col && col == ind && key == "" && rest != "-")
       unread(p_line, p_key)
@@ -109,15 +170,14 @@ hits=$(awk '
     }
     if (!s_line && col > ind) { s_line = FNR; s_ind = ind; s_file = FILENAME }
     if (s_line && s_key < 0) s_key = col
-    if (val ~ /^[|>][-+0-9]*$/) bs = (key != "") ? col : ind
-    hidden = (val ~ /^([|>][-+0-9]*|[*].*)$/ || val ~ /^"[^"]*\\/)   # block scalar, alias, escape
-    gsub(/["\047]/, "", val)
+    if (val ~ /^[|>][-+0-9]*$/) { bs = (key != "") ? col : ind; ps = 0 }
+    hidden = (val ~ /^([|>][-+0-9]*|[*].*)$/ || val ~ /^"[^"]*\\/ || oq != "")
+    gsub(/["\047]/, "", val)                 # hidden: a block scalar, alias, escape or open quote
 
     if (key == "uses") {
       u = ""
       if (hidden) unread(FNR, key)
-      else if (val == "") { p_key = key; p_col = col; p_line = FNR }
-      else { u = tolower(val); sub(/@.*/, "", u) }
+      else { p_key = key; p_col = col; p_line = FNR; u = tolower(val); sub(/@.*/, "", u) }
       if (u ~ /cache/) print FILENAME ":" FNR ": " u " stores a cache"
     }
     if (!s_line) next
@@ -129,15 +189,19 @@ hits=$(awk '
       else if (key == "with") { w_ind = col; w_col = -1 }
     } else if (w_ind >= 0 && ind > w_ind) {
       if (w_col < 0) w_col = ind
-      if (ind == w_col && col == ind && key != "") {   # an input of the step
+      if (ind == w_col && (col > ind || key == "")) {     # a list, flow, alias or scalar
+        if (!esc) print FILENAME ":" FNR ": with: must be a block mapping, one input per line"
+      } else if (ind == w_col) {                         # an input of the step
         if (key in inputs)
           print FILENAME ":" FNR ": " key ": set it only once (input names ignore case)"
         inputs[key] = tolower(val)
         if ((key in off) || key == "retention-days") {
           if (hidden) unread(FNR, key)
-          else if (val == "") { p_key = key; p_col = col; p_line = FNR }
-          else if ((key in off) && tolower(val) != off[key])
-            print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+          else {
+            p_key = key; p_col = col; p_line = FNR       # in case the value is on or goes on below
+            if (val != "" && (key in off) && tolower(val) != off[key])
+              print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+          }
         }
       }
     }
