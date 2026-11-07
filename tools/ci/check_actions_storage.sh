@@ -10,9 +10,11 @@ while IFS= read -r f; do files+=("$f"); done \
   < <(find .github -type f \( -name '*.yml' -o -name '*.yaml' \) | sort)
 [ "${#files[@]}" -gt 0 ] || { echo "::error::No YAML files under .github/"; exit 1; }
 
-# A step is a list item plus the more indented lines below it. Each line loses its comment,
-# indentation, list dash and quotes (cache: "pip" becomes cache: pip); flow mappings such as
-# with: {cache: pip} are not parsed. \047 is a single quote.
+# A step is a list item plus the more indented lines below it. Its inputs are the keys right
+# under its with: mapping, so env: entries and run: text don't count. Block scalars (run: | and
+# the like) are text, searched only for type=gha. Comments and quotes are dropped (cache: "pip"
+# is cache: pip). with: must be a block mapping; flow-style steps (- {uses: x}) are not parsed.
+# \047 is a single quote.
 hits=$(awk '
   BEGIN {
     # Inputs that turn a cache on or off, and their off value.
@@ -37,44 +39,65 @@ hits=$(awk '
   function end_step(    k) {
     if (s_line) {
       if (s_uses ~ /^actions\/upload-(artifact(\/merge)?|pages-artifact)$/ \
-          && index(s_body "\n", "\nretention-days: 1\n") == 0)
+          && inputs["retention-days"] != "1")
         print s_file ":" s_line ": " s_uses " must set retention-days: 1"
+      # A missing or empty input means the default, which caches. Other values are checked
+      # where they are set.
       if (s_uses in dflt) {
         k = dflt[s_uses]
-        if (index(s_body, "\n" k ":") == 0)
+        if (inputs[k] == "")
           print s_file ":" s_line ": " s_uses " caches unless it sets " k ": " off[k]
       }
     }
-    s_line = 0; s_uses = ""; s_body = ""
+    s_line = 0; s_uses = ""; s_key = -1; w_ind = -1; split("", inputs)
   }
-  FNR == 1 { end_step() }
+  FNR == 1 { end_step(); bs = -1 }
   {
     line = $0
-    sub(/(^|[ \t])#.*/, "", line)
-    if (line ~ /^[ \t]*$/) next
-    match(line, /^ */); ind = RLENGTH
-    if (s_line && ind <= s_ind) end_step()
-    if (!s_line && line ~ /^ *-( |$)/) { s_line = FNR; s_ind = ind; s_file = FILENAME }
-
-    norm = line
-    sub(/^ *-$/, "", norm); sub(/^ *(- +)?/, "", norm)
-    gsub(/["\047]/, "", norm); gsub(/:[ \t]+/, ": ", norm); sub(/[ \t]+$/, "", norm)
-    key = ""; val = ""
-    if (match(norm, /^[A-Za-z0-9_.-]+:/) && substr(norm, RLENGTH + 1, 1) ~ /^ ?$/) {
-      key = substr(norm, 1, RLENGTH - 1); val = substr(norm, RLENGTH + 2)
-    }
-
+    sub(/(^|[ \t])#.*/, "", line); sub(/[ \t]+$/, "", line)
+    if (line == "") next
     if (line ~ /type=gha/)
       print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
+    match(line, /^ */); ind = RLENGTH
+    if (bs >= 0 && ind > bs) next            # the text of a block scalar
+    bs = -1
+    if (s_line && ind <= s_ind) end_step()
+    if (line ~ /^ *-$/) {                    # a list item that starts on the next line
+      if (!s_line) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+      next
+    }
+    match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
+    if (!s_line && col > ind) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+    if (s_line && s_key < 0) s_key = col
+
+    rest = substr(line, col + 1); key = ""; val = rest
+    if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?:/) \
+        && substr(rest, RLENGTH + 1, 1) ~ /^[ \t]?$/) {
+      key = substr(rest, 1, RLENGTH - 1); gsub(/["\047]/, "", key)
+      val = substr(rest, RLENGTH + 1)
+    }
+    sub(/^[ \t]+/, "", val); sub(/[ \t]+$/, "", val)
+    if (val ~ /^[|>][-+0-9]*$/) bs = (key != "") ? col : ind
+    gsub(/["\047]/, "", val)
+
     if (key == "uses") {
       u = tolower(val); sub(/@.*/, "", u)
       if (u ~ /cache/) print FILENAME ":" FNR ": " u " stores a cache"
-      if (s_line) s_uses = u
     }
-    if (s_line) {
-      s_body = s_body "\n" norm
-      if ((key in off) && val != "" && tolower(val) != off[key])
-        print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+    if (!s_line) next
+    if (col == s_key) {                      # a key of the step: uses, with, env, run, ...
+      w_ind = -1
+      if (key == "uses") s_uses = u
+      if (key == "with" && val != "")
+        print FILENAME ":" FNR ": with: must be a block mapping, one input per line"
+      else if (key == "with") { w_ind = col; w_col = -1 }
+    } else if (w_ind >= 0 && ind > w_ind) {
+      if (w_col < 0) w_col = ind
+      if (ind == w_col && col == ind && key != "") {   # an input of the step
+        inputs[key] = tolower(val)
+        if ((key in off) && val != "" && tolower(val) != off[key])
+          print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+      }
     }
   }
   END { end_step() }' "${files[@]}")
