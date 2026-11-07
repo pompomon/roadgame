@@ -59,6 +59,16 @@ func next_tile() -> RoadTile:
 	return tile
 
 
+## The schedule's area whose id is `id`. Every tile's area_id names one; for any other id, the
+## first area.
+func find_area(id: StringName) -> AreaDef:
+	for entry: AreaScheduleEntry in _schedule.entries:
+		if entry.area.id == id:
+			return entry.area
+	push_error("RoadGenerator: no area %s in the schedule" % id)
+	return _schedule.entries[0].area
+
+
 func _path_tile(type: RoadTile.Type) -> RoadTile:
 	var exits := Heading.bit(Heading.opposite(_heading)) | Heading.bit(_heading)
 	var tile := RoadTile.new(_cursor, type, _heading, exits)

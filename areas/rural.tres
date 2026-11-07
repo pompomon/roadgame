@@ -10,3 +10,7 @@ id_color = Color(0.78, 0.66, 0.38, 1)
 min_straight = 3
 max_straight = 7
 cross_junction_chance = 0.25
+straight_accel = 0.6
+junction_speed = 2.2
+offroad_speed_mult = 0.6
+offroad_damage_per_sec = 25.0
