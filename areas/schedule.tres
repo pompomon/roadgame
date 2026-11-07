@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="AreaSchedule" format=3]
+
+[ext_resource type="Script" path="res://areas/area_schedule_entry.gd" id="1_d7bx6"]
+[ext_resource type="Resource" path="res://areas/city.tres" id="2_y0i0o"]
+[ext_resource type="Resource" path="res://areas/rural.tres" id="3_5gob0"]
+[ext_resource type="Resource" path="res://areas/meadows.tres" id="4_4nhs0"]
+[ext_resource type="Resource" path="res://areas/village.tres" id="5_h5fti"]
+[ext_resource type="Resource" path="res://areas/desert.tres" id="6_ebk6g"]
+[ext_resource type="Script" path="res://areas/area_schedule.gd" id="7_ojfv4"]
+
+[sub_resource type="Resource" id="Resource_cqdk6"]
+script = ExtResource("1_d7bx6")
+area = ExtResource("2_y0i0o")
+
+[sub_resource type="Resource" id="Resource_ml1f4"]
+script = ExtResource("1_d7bx6")
+turn = 34
+area = ExtResource("3_5gob0")
+set_piece = &"tunnel"
+set_piece_length = 6
+
+[sub_resource type="Resource" id="Resource_afk4n"]
+script = ExtResource("1_d7bx6")
+turn = 100
+area = ExtResource("4_4nhs0")
+set_piece = &"bridge"
+set_piece_length = 5
+
+[sub_resource type="Resource" id="Resource_306ti"]
+script = ExtResource("1_d7bx6")
+turn = 200
+area = ExtResource("5_h5fti")
+
+[sub_resource type="Resource" id="Resource_la02j"]
+script = ExtResource("1_d7bx6")
+turn = 220
+area = ExtResource("6_ebk6g")
+
+[resource]
+script = ExtResource("7_ojfv4")
+entries = Array[ExtResource("1_d7bx6")]([SubResource("Resource_cqdk6"), SubResource("Resource_ml1f4"), SubResource("Resource_afk4n"), SubResource("Resource_306ti"), SubResource("Resource_la02j")])
