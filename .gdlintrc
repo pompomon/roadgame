@@ -1,0 +1,9 @@
+# gdtoolkit 4.5.0. Options not listed here use the gdlint defaults (gdlint --dump-default-config).
+excluded_directories: !!set
+  .git: null
+  .godot: null
+  addons: null
+  android: null
+  build: null
+# GUT test scripts have one public method per test (default limit: 20).
+max-public-methods: 40
