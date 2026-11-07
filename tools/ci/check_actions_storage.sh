@@ -11,16 +11,17 @@ while IFS= read -r f; do files+=("$f"); done \
 [ "${#files[@]}" -gt 0 ] || { echo "::error::No YAML files under .github/"; exit 1; }
 
 # A step is a list item plus the more indented lines below it. Its inputs are the keys right
-# under its with: mapping, so env: entries and run: text don't count. A comment starts at a #
-# after a blank, outside quoted text, as in YAML. Block scalars (run: | and the like) and text
-# that goes on over several lines, quoted or plain, are text, searched only for type=gha (in any
-# case, as buildx reads the key, and without the quotes and backslashes the shell removes, so
-# type="gha" counts). Keys are compared in lowercase, since GitHub ignores the case of input
-# names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip). What the
-# check can't read fails: uses: in flow style ({...} or [...], also over several lines), a with:
-# that is not a block mapping (also on the lines below it), ? keys, escaped keys, an input set
-# twice, and a uses:, cache input or retention-days whose value is on or goes on to the lines
-# below, an alias or escaped. \047 is a single quote.
+# under its with: mapping, so env: entries and run: text don't count. Keys under an env: or
+# with: block mapping are names: a variable or input called uses is not an action. A comment
+# starts at a # after a blank, outside quoted text, as in YAML. Block scalars (run: | and the
+# like) and text that goes on over several lines, quoted or plain, are text, searched only for
+# type=gha (in any case, as buildx reads the key, and without the quotes and backslashes the
+# shell removes, so type="gha" counts). Keys are compared in lowercase, since GitHub ignores the
+# case of input names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip).
+# What the check can't read fails: uses: in flow style ({...} or [...], also over several
+# lines), a with: that is not a block mapping (also on the lines below it), ? keys, escaped
+# keys, an input set twice, and a uses:, cache input or retention-days whose value is on or goes
+# on to the lines below, an alias or escaped. \047 is a single quote.
 hits=$(awk '
   BEGIN {
     # Inputs that turn a cache on or off, and their off value.
@@ -119,7 +120,7 @@ hits=$(awk '
     }
     s_line = 0; s_uses = ""; s_key = -1; w_ind = -1; split("", inputs)
   }
-  FNR == 1 { end_step(); bs = -1; p_key = ""; fd = 0; oq = ""; ps = 0; pv = -1 }
+  FNR == 1 { end_step(); bs = -1; p_key = ""; fd = 0; oq = ""; ps = 0; pv = -1; d_ind = -1 }
   {
     raw = $0; sub(/[ \t\r]+$/, "", raw)
     fl = fd                                  # flow brackets still open from the lines above
@@ -145,6 +146,7 @@ hits=$(awk '
     }
 
     match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
+    if (d_ind >= 0 && ind <= d_ind) d_ind = -1   # the end of an env: or with: block mapping
     # The indent of the parent of plain text that may go on below (pc), and of a node that
     # starts on the next line (pv).
     if (ps && !fd) pc = (lk == "-") ? lc : (lk != "") ? col : (pv >= 0) ? pv : ind
@@ -177,12 +179,13 @@ hits=$(awk '
     hidden = (val ~ /^([|>][-+0-9]*|[*].*)$/ || val ~ /^"[^"]*\\/ || oq != "")
     gsub(/["\047]/, "", val)                 # hidden: a block scalar, alias, escape or open quote
 
-    if (key == "uses") {
+    if (key == "uses" && d_ind < 0) {
       u = ""
       if (hidden) unread(FNR, key)
       else { p_key = key; p_col = col; p_line = FNR; u = tolower(val); sub(/@.*/, "", u) }
       if (u ~ /cache/) print FILENAME ":" FNR ": " u " stores a cache"
     }
+    if ((key == "env" || key == "with") && val == "" && d_ind < 0) d_ind = col
     if (!s_line) next
     if (col == s_key) {                      # a key of the step: uses, with, env, run, ...
       w_ind = -1
