@@ -27,7 +27,10 @@ func _ready() -> void:
 	var schedule: AreaSchedule = load("res://areas/schedule.tres")
 	_buffer = RoadBuffer.new(RoadGenerator.new(_seed, schedule))
 	_world.show_dead_ends = true
+	var start := Time.get_ticks_usec()
 	_world.bind(_buffer, schedule)
+	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
+	print("grey box: tilesets built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	_buffer.start()
 	_update_view()
 
