@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/ci/requirements.txt
+      - run: pip install -r tools/ci/requirements.txt
+      - run: tools/ci/lint.sh
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
+  test:
+    runs-on: ubuntu-24.04
+    container: barichello/godot-ci:4.7.2   # keep in sync: tools/ci/check_versions.sh
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/godot-env
+      - name: Load every script (parse errors)
+        run: tools/ci/check_scripts.sh
+      - name: Unit, simulation and integration tests (GUT)
+        run: tools/ci/run_tests.sh
+      - name: Smoke run (main scene, 60 s simulated)
+        run: tools/ci/smoke.sh
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports
+          path: build/reports
+          retention-days: 14

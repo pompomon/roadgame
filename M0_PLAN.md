@@ -64,10 +64,11 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F1 | GUT exits 0 when a test script fails to parse. This includes untyped declarations under D12. The tests in that file silently do not run. | Spike N1, N2 | `run_tests.sh` fails on `Parse Error` / `Failed to load script` in the GUT log; also `check_scripts.sh` (F2) |
 | F2 | `godot --import` does not compile scripts, so the error grep in IP `import.sh` can never match. Scripts that the main scene never loads are not compiled anywhere in CI. | Spike: a parse error passes import; N5 passes smoke | New `check_scripts.sh` + `check_scripts.gd`: load every project script. Skips `addons/`, `android/`, `build/` and folders with a `.gdignore` |
 | F3 | Without an import cache (`.godot/`), GUT prints "…have not been imported…", runs 0 tests and exits 0. | Spike N7 | `run_tests.sh` fails on that message and requires a non-empty JUnit file with `tests` > 0 |
-| F4 | The determinism grep (IP §5.3, §7.3) both misses real violations and flags valid code:<br>(a) Under `pipefail`, a missing folder makes `grep … \| grep -v …` exit non-zero even when it prints violations, so the `if` never fires.<br>(b) It misses `randfn`, `seed`, `rand_from_seed`, `shuffle` and `pick_random`.<br>(c) `\b` also matches after a `.`, so a seeded `_rng.randf()` is flagged.<br>(d) The exclusion is applied to the whole `path:line:text`, so a file named `rng_*.gd` is exempt entirely. Comments are flagged. | Spike N6, N6b, N6c. A fixture `road/rng_ok.gd` was exempted completely | New regex flags only global calls plus `.shuffle(` and `.pick_random(`. It skips comment and `func` lines, checks grep's exit code and scans only folders that exist (§5.5) |
+| F4 | The determinism grep (IP §5.3, §7.3) both misses real violations and flags valid code:<br>(a) Under `pipefail`, a missing folder makes `grep … \| grep -v …` exit non-zero even when it prints violations, so the `if` never fires.<br>(b) It misses `randfn`, `seed`, `rand_from_seed`, `shuffle` and `pick_random`.<br>(c) `\b` also matches after a `.`, so a seeded `_rng.randf()` is flagged.<br>(d) The exclusion is applied to the whole `path:line:text`, so a file named `rng_*.gd` is exempt entirely. Comments are flagged. | Spike N6, N6b, N6c; N6d. A fixture `road/rng_ok.gd` was exempted completely | New regex flags only global calls plus `.shuffle(` and `.pick_random(`. It lexes each candidate file as GDScript does, so text in string literals (triple-quoted and backslash-continued ones too) and comments never counts, nor does the name in a `func` declaration (PR 2 reviews: the first versions skipped only full-line comments and whole `func` lines, then missed a call after a triple-quoted string). It checks grep's exit code and scans only folders that exist (§5.5) |
 | F5 | No time limits. A `-s` script (GUT, check_scripts) that hits a runtime error before `quit()` never exits, so the job runs until the 6 h default timeout. | Spike N12: `SCRIPT ERROR`, then a hang | `run_godot` (`_common.sh`) wraps every Godot run in `timeout -k 10 <s>`; every job sets `timeout-minutes` |
 | F6 | M0.1 gives `project.godot` no `config/version`. `stamp_version.sh` uses `sed`, which silently changes nothing when the key is missing, so releases keep the default version. Also:<br>- `08` is invalid octal in `$((…))`<br>- no input validation (`1.2`, `1.2.3-rc1`)<br>- parts ≥ 1000 break the D9 ordering | Spike N9–N9f | Add `config/version="0.0.0"`. The new `stamp_version.sh` validates `[v]X.Y.Z` (each part 0–999), uses `10#`, fails on a missing key and keeps the file mode |
 | F7 | In a container job, `${{ runner.temp }}` expands to the host path, not the container path. `release.yml` decodes the keystore to `$RUNNER_TEMP` but passes Godot `${{ runner.temp }}/release.keystore`, so signed exports fail at M6.4. | actions/runner#2498 | One step sets `GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/release.keystore"`, decodes the keystore, exports and removes it with `trap` |
+| F29 | GUT fails a test only for errors raised in its body. A `push_error()` or engine error in `before_all`, `before_each`, `after_each` or `after_all` is tracked under `GutUtils.NO_TEST` and never checked, so GUT exits 0 and the JUnit file shows no failure. | PR 2 review; N14 | Post-run hook `tests/gut_post_run.gd` (`post_run_script` in `.gutconfig.json`) sets exit code 1 on unhandled errors outside test bodies. Errors that a hook asserts (`assert_push_error()` and the like) are marked handled and still pass (N14b) |
 
 ### Medium
 
@@ -75,7 +76,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 |---|---|---|---|
 | F8 | gdlint and gdformat fail on a path that doesn't exist. IP `lint.sh` passes 11 folders, most of which only appear in M1–M5, and git cannot commit the empty "folder skeleton" from M0.1. | Spike | `lint.sh` passes only folders that exist. **Δ M0.1:** no empty skeleton; each folder is created with its first file |
 | F9 | IP `.gutconfig.json` lists `res://tests/sim/` and `res://tests/integration/`, which only appear in M2 and M3. GUT logs `[GUT ERROR]` for each one and carries on. | Spike N10 | `"dirs": ["res://tests/"]` with `include_subdirs`, so new folders are picked up automatically |
-| F10 | Godot exits 0 after runtime errors: `push_error` prints `ERROR:` and a call on null prints `SCRIPT ERROR:`. IP `smoke.sh` scans for both, but IP `import.sh` does not scan for engine `ERROR:` lines such as broken resources. | Spike: both lines printed, exit 0 | One regex, `ANY_ERROR_RE` in `_common.sh`, used by import, check_scripts and smoke |
+| F10 | Godot exits 0 after runtime errors: `push_error` prints `ERROR:` and a call on null prints `SCRIPT ERROR:`. IP `smoke.sh` scans for both, but IP `import.sh` does not scan for engine `ERROR:` lines such as broken resources. | Spike: both lines printed, exit 0. PR 2 CI: a corrupt image also imports with exit 0 | One regex, `ANY_ERROR_RE` in `_common.sh`, used by import, check_scripts and smoke. `IGNORE_RE` skips one harmless line: the godot-ci image has no fontconfig, so editor runs (`--import`) print `ERROR: Unable to load fontconfig, system font support is disabled.` (found in PR 2 CI) |
 | F11 | `godot-env` doesn't install the NDK. The Godot 4.7.2 Gradle build sets `ndkVersion '29.0.14206865'` and strips native libraries with it. The image ships NDK 25.2.9519653, so Gradle either downloads the NDK mid-build or skips stripping. | Godot 4.7.2 source: `platform/android/java/app/config.gradle`, `app/build.gradle` | Add `"ndk;29.0.14206865"` to `sdkmanager --install` |
 | F12 | `export.sh` writes its log next to the output (`build/web/index.html.log`), and `ci.yml` publishes that folder to Pages. The release zip excludes `*.log`; the Pages upload doesn't. | IP §7.3, §7.4 | Logs go to `build/reports/export-<preset>.log` and are uploaded only on failure, as `export-log-*` |
 | F13 | Exports include GUT, the tests and the tools, because the presets use `export_filter="all_resources"` with no exclusions. | Spike N11: a Web pack without the filter has 510 `addons/gut/` paths and 8 `tests/`/`tools/` paths (1.46 MB). With the filter it has none (6.6 KB) | `exclude_filter="addons/gut/*, tests/*, tools/*"` in every preset |
@@ -94,7 +95,7 @@ The milestone structure and most of IP §7 hold up. The problems are mostly CI g
 | F21 | Python 3.13: gdtoolkit 4.5.0 declares support only up to 3.10. 3.12 is verified. The gdtoolkit version pin appears in several places. | Use Python 3.12. Pin gdtoolkit in `tools/ci/requirements.txt`, shared by CI, the agent and developers (it is also the pip cache key) |
 | F22 | Workflows and shell scripts are not linted. | `lint` runs actionlint 1.7.12, which also shellchecks `run:` blocks. `lint.sh` runs `shellcheck -x tools/ci/*.sh`, which needs `# shellcheck source=` directives (present) |
 | F23 | The import cache key uses `runner.os`, which is always Linux. After a Godot bump, `restore-keys` can restore the old version's cache. | Key on `GODOT_TEMPLATE_VERSION` |
-| F24 | IP `check_versions.sh` exits silently when no tag is found (`set -e` with `pipefail` inside `$(…)`). It scans only `.github/workflows/`, accepts tags such as `4.7` or `4.7.2.1`, and ignores the agent setup. | Rewritten (spike N8, N8b) |
+| F24 | IP `check_versions.sh` exits silently when no tag is found (`set -e` with `pipefail` inside `$(…)`). It scans only `.github/workflows/`, accepts tags such as `4.7` or `4.7.2.1`, truncates `4.7.2-rc1` or `4.7.2${{ matrix.suffix }}` to `4.7.2`, skips `latest`, and ignores the agent setup. | Rewritten (spike N8, N8b). It compares complete tags, including any `$` or `{}` part (PR 2 reviews, N8c) |
 | F25 | `build/` is not `.gdignore`d, so the editor imports exported files such as `build/web/index.png`, and a later export packs them. | Commit `build/.gdignore` (`.gitignore`: `/build/*` plus `!/build/.gdignore`); `_common.sh` recreates it |
 | F26 | The only export check is "the output file is non-empty". | Web exports must also have `.js`, `.wasm` and `.pck` files. APK/AAB must contain an `arm64-v8a` `.so`. That check uses `case` on the `unzip -l` text, because `unzip \| grep -q` can fail with SIGPIPE under `pipefail` |
 | F27 | `release.yml` has no `defaults.run.shell: bash`, so inline steps run without `pipefail`. Its `test` job skips the script-loading check, three jobs have no `timeout-minutes`, and scripts use `${{ … }}` where env vars exist. It is otherwise actionlint-clean. | Fixed in Appendix B |
@@ -145,7 +146,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 |---|---|
 | Project | `project.godot` (§5.1), `icon.svg` (Godot's default) plus `icon.svg.import`, `ui/main.tscn`, `ui/main.gd` and `.uid` |
 | Repo hygiene | `.gitignore`, `.gitattributes`, `build/.gdignore` (§5.2) |
-| Tests | `addons/gut/` (GUT 9.7.1), `.gutconfig.json`, `tests/unit/test_smoke.gd` and `.uid` |
+| Tests | `addons/gut/` (GUT 9.7.1), `.gutconfig.json`, `tests/unit/test_smoke.gd` and `tests/gut_post_run.gd` (F29), each with its `.uid` |
 | Lint | `.gdlintrc` |
 | CI scripts | `tools/ci/_common.sh`, `import.sh`, `check_scripts.sh`, `check_scripts.gd` and `.uid`, `run_tests.sh`, `smoke.sh`, `lint.sh`, `check_versions.sh` |
 | CI | `.github/actions/godot-env/action.yml` without the `android` input and step; `.github/workflows/ci.yml` with only the `lint` and `test` jobs |
@@ -155,7 +156,7 @@ PR 1 agent env ──▶ PR 2 skeleton + GUT + lint/test CI ──▶ PR 3 expor
 2. Vendor GUT: from the release at https://github.com/bitwes/Gut/releases/tag/v9.7.1, copy only `addons/gut/` (keep its `.uid` files).
 3. Add these files:
    - `ui/main.*`
-   - `tests/unit/test_smoke.gd`
+   - `tests/unit/test_smoke.gd` and `tests/gut_post_run.gd`
    - `.gutconfig.json`
    - `.gdlintrc`
    - `.gitignore`, `.gitattributes`, `build/.gdignore`
@@ -272,7 +273,7 @@ Commit `*.uid`, `*.import` and `addons/gut/**`. Never commit `.godot/`, `android
 - `max-returns: 6`
 - `class-definitions-order`: tool, class_name, extends, docstring, signals, enums, consts, static vars, exports, public vars, private vars, onready public vars, onready private vars, others
 
-**`.gutconfig.json` Δ F9:** `"dirs": ["res://tests/"]`. All other options are as in IP.
+**`.gutconfig.json` Δ F9, F29:** `"dirs": ["res://tests/"]` and `"post_run_script": "res://tests/gut_post_run.gd"`. All other options are as in IP.
 
 ### 5.4 `export_presets.cfg`
 
@@ -291,17 +292,17 @@ Every script sources `_common.sh`, which does the following:
 - uses `$GODOT` if set (default `godot`)
 - writes logs to `build/reports/`
 - provides `run_godot <seconds> <log> <args…>`: a time limit, a log copy and Godot's exit code
-- provides `fail_on <regex> <log> <message>`
-- defines the error regexes: `SCRIPT_ERROR_RE` and `ANY_ERROR_RE` = `^(SCRIPT |USER )?ERROR:|Parse Error|Failed to load script`
+- provides `fail_on <regex> <log> <message>`, which skips lines that match `IGNORE_RE`
+- defines the error regexes: `SCRIPT_ERROR_RE`, `ANY_ERROR_RE` = `^(SCRIPT |USER )?ERROR:|Parse Error|Failed to load script`, and `IGNORE_RE` for known-harmless lines (whole-line match; today only the missing-fontconfig message)
 
 | Script | Time limit | Fails when | Δ |
 |---|---|---|---|
 | `import.sh` | 900 s | Godot exits non-zero, or the log has any error line | F10 |
 | `check_scripts.sh` + `check_scripts.gd` | 300 s | Any error line, or the "loaded N scripts" line is missing | new, F2 |
-| `run_tests.sh` | 900 s | A parse or load error, "have not been imported" or `[GUT ERROR]` appears; GUT exits non-zero; the JUnit file is missing; 0 tests ran | F1, F3, F9 |
+| `run_tests.sh` | 900 s | A parse or load error, "have not been imported" or `[GUT ERROR]` appears; GUT exits non-zero, which includes an unhandled error in a setup or teardown hook; the JUnit file is missing; 0 tests ran | F1, F3, F9, F29 |
 | `smoke.sh` | 300 s | Godot exits non-zero, or the log has any error line | F10 |
 | `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck or `check_versions.sh` fails | F4, F8, F22 |
-| `check_versions.sh` | — | The godot-ci tags differ or aren't `x.y.z`; the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
+| `check_versions.sh` | — | The complete godot-ci tags differ or aren't `x.y.z` (`4.7.2-rc1`, `latest` and `4.7.2${{ matrix.suffix }}` fail); the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
 | `export.sh` | 900 s; 1800 s for AAB | No output file; a Web export missing `.js`, `.wasm` or `.pck`; an APK or AAB with no `arm64-v8a` `.so` | F12, F26 |
 | `stamp_version.sh` | — | The version is invalid, or a key is missing | F6 |
 
@@ -310,7 +311,7 @@ Every script sources `_common.sh`, which does the following:
 - **Flagged:**
   - the global functions `randf`, `randi`, `randfn`, `randf_range`, `randi_range`, `randomize`, `seed` and `rand_from_seed`, when they are not called on an object
   - any `.shuffle(` or `.pick_random(`, because they use the global RNG
-- **Allowed:** calls on a seeded `RandomNumberGenerator` such as `_rng.randf()` or `road_rng.randi_range(0, 3)`, comments, and `func` lines.
+- **Allowed:** calls on a seeded `RandomNumberGenerator` such as `_rng.randf()` or `road_rng.randi_range(0, 3)`, any text in string literals and comments, and the name in a `func` declaration. A one-line `func` body is still checked. Strings are recognised the way GDScript lexes them, including triple-quoted strings and strings that continue on the next line.
 - **Conventions for M1+:**
   - Don't name your own methods `seed`, `randf` and so on: a bare call to them would be flagged.
   - Shuffle with a Fisher–Yates helper that takes the stream's `RandomNumberGenerator`.
@@ -378,7 +379,7 @@ pip install -r tools/ci/requirements.txt    # gdtoolkit 4.5.0, Python 3.12
 export GODOT=/path/to/godot-4.7.2           # optional; the default is godot on PATH
 tools/ci/lint.sh             # → Godot 4.7.2 is pinned consistently
 tools/ci/import.sh
-tools/ci/check_scripts.sh    # → check_scripts: loaded 3 scripts
+tools/ci/check_scripts.sh    # → check_scripts: loaded 4 scripts
 tools/ci/run_tests.sh        # → GUT: 2 tests passed
 tools/ci/smoke.sh
 ```
@@ -388,7 +389,7 @@ Parity with the CI image (Δ: adds `check_scripts.sh`):
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced in the spike with Godot 4.7.2.
+For each case, make the temporary change, run the script, then revert. Every "Expected" result was reproduced with Godot 4.7.2: N1–N12 in the spike; N6d, N8c, N13 and N14 (and the extended N6c) while implementing PR 2.
 
 | # | Temporary change | Expected | With the IP scripts |
 |---|---|---|---|
@@ -400,16 +401,22 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N5 | A parse error in `road/broken.gd`, which no scene uses | `check_scripts.sh` fails (`smoke.sh` passes) | Passes (F2) |
 | N6 | A bare `randf()` in `road/x.gd` | `lint.sh` fails | Passes while any gameplay folder is missing (F4) |
 | N6b | `a.shuffle()` in `road/` | `lint.sh` fails | Passes (F4) |
-| N6c | `_rng.randf()`, `road_rng.randi_range(0, 3)` and a `# randf()` comment | `lint.sh` passes | Flags `_rng.randf()` and the comment (F4) |
+| N6c | `_rng.randf()`, `road_rng.randi_range(0, 3)`, `func seed(…)`, full-line and trailing comments (`_rng.randf()  # replaces randf()`) and strings (`"#ff0000"`, `"call randf()"`, `&"randf()"`, `"""randi() # x"""`, prose that mentions `randi()` inside a multi-line `"""…"""` string) | `lint.sh` passes | Flags `_rng.randf()`, the comments and the strings (F4) |
+| N6d | Real calls next to a comment or string: `randi_range(0, 3)  # uses the global RNG`, `"#fff" + str(randi())`, `"""note " # x""" + str(randi())`, a call after a multi-line string closes | `lint.sh` fails | Same as N6 |
 | N7 | `rm -rf .godot`, then `run_tests.sh` | Fails ("have not been imported") | Exits 0 after 0 tests (F3) |
 | N8 | One workflow uses `godot-ci:4.7.1` | `check_versions.sh` fails | Fails ✓ |
 | N8b | `GODOT_VERSION: "4.7.1"` in the agent setup | `check_versions.sh` fails | Not checked |
+| N8c | One workflow uses `godot-ci:4.7.2-rc1`, `godot-ci:latest` or `godot-ci:4.7.2${{ matrix.suffix }}` | `check_versions.sh` fails (mismatched tags, or not `x.y.z`) | Passes: `4.7.2-rc1` and `4.7.2${{ … }}` are truncated to `4.7.2`, and `latest` is skipped (F24) |
 | N9 | `stamp_version.sh v1.2.3` | `config/version="1.2.3"`; presets get `1.2.3` and `1002003` | `config/version` is not written (F6) |
 | N9b | `stamp_version.sh 0.08.009` | `version/code=8009` | Arithmetic error (`08` is invalid octal) |
 | N9c–f | `1.2`, `1.2.3-rc1`, `1.1000.0`, a missing key | `stamp_version.sh` fails | Shell errors, or silently wrong (`1.1000.0` gets the same code as `2.0.0`; a missing key is ignored) |
 | N10 | `.gutconfig.json` with the IP `dirs` | `run_tests.sh` fails (`[GUT ERROR]`) | Exits 0 (F9) |
 | N11 | `godot --headless --path . --export-pack "Web" build/t.pck` | With `exclude_filter`: 0 `tests/`/`tools/` paths. Without: 510 GUT and 8 test/tool paths | — (F13) |
 | N12 | A `-s` script with a runtime error before `quit()` | `run_godot` stops it: exit 124, "did not finish within" | Hangs until the job timeout (F5) |
+| N13 | A corrupt `bad.png` in the project (run without fontconfig, like the CI image) | `import.sh` fails on `ERROR: Error importing 'res://bad.png'`; the fontconfig lines are ignored | Passes: Godot exits 0 and only script errors are scanned (F10) |
+| N14 | `push_error("x")` in a test's `before_each()`; likewise `before_all`, `after_each`, `after_all` or an engine error there | `run_tests.sh` fails: "Unexpected errors outside test bodies", GUT exit 1 | Passes: GUT exits 0 (F29) |
+| N14b | `before_all()` calls `push_error("x")`, then `assert_push_error("x")` | `run_tests.sh` passes | Passes ✓ |
+| N14c | `tests/gut_post_run.gd` is deleted | `run_tests.sh` fails, but only at the 900 s limit: GUT logs `[GUT ERROR]` and aborts the run without quitting | — |
 
 ### 6.3 Verified only in CI
 
@@ -547,7 +554,8 @@ _Added in PR 2._
   "suffix": ".gd",
   "log_level": 1,
   "should_exit": true,
-  "should_exit_on_success": true
+  "should_exit_on_success": true,
+  "post_run_script": "res://tests/gut_post_run.gd"
 }
 ```
 
@@ -619,6 +627,31 @@ func test_main_scene_shows_version() -> void:
 	assert_string_contains(label.text, "Road Roguelike")
 ```
 
+### `tests/gut_post_run.gd`
+
+_Added in PR 2 (F29)._
+
+```gdscript
+extends GutHookScript
+## GUT post-run hook (post_run_script in .gutconfig.json). GUT fails a test only for errors raised
+## in its body. Errors from before_all, before_each, after_each and after_all are tracked under
+## GutUtils.NO_TEST and would leave the run green, so this hook fails the run on them. Errors that
+## a hook asserts (assert_push_error() and the like) are marked handled and do not count.
+
+
+func run() -> void:
+	var tracker: GutErrorTracker = gut.error_tracker
+	if tracker.should_test_fail_from_errors(GutUtils.NO_TEST):
+		gut.logger.failed(
+			str(
+				"Unexpected errors outside test bodies (before_all, before_each, after_each",
+				" or after_all):\n",
+				tracker.get_fail_text_for_errors(GutUtils.NO_TEST)
+			)
+		)
+		set_exit_code(1)
+```
+
 ### `tools/ci/requirements.txt`
 
 _Added in PR 1._
@@ -650,6 +683,9 @@ SCRIPT_ERROR_RE='Parse Error|Failed to load script'
 # Any engine or script error. Godot exits 0 after most runtime errors, so logs must be scanned.
 # shellcheck disable=SC2034 # used by the scripts that source this file
 ANY_ERROR_RE="^(SCRIPT |USER )?ERROR:|$SCRIPT_ERROR_RE"
+# Known harmless error lines, never counted by fail_on (whole-line match). The godot-ci image has
+# no fontconfig, so editor runs (--import) cannot look up system fonts; the project uses none.
+IGNORE_RE='ERROR: Unable to load fontconfig, system font support is disabled\.'
 
 TIMEOUT_BIN=""
 if command -v timeout > /dev/null 2>&1; then
@@ -676,14 +712,16 @@ run_godot() {
 }
 
 # fail_on <regex> <log> <message>: print the matching lines and fail if <log> matches <regex>.
+# Lines that match IGNORE_RE are skipped.
 fail_on() {
-  local rc=0
-  grep -nE "$1" "$2" || rc=$?
-  case "$rc" in
-    0) echo "::error::$3 (see $2)"; return 1 ;;
-    1) return 0 ;;
-    *) echo "::error::Could not read $2"; return 1 ;;
-  esac
+  local hits rc=0
+  hits=$(grep -nE "$1" "$2") || rc=$?
+  [ "$rc" -le 1 ] || { echo "::error::Could not read $2"; return 1; }
+  hits=$(printf '%s\n' "$hits" | grep -vE "^[0-9]+:($IGNORE_RE)\$") || true
+  [ -n "$hits" ] || return 0
+  printf '%s\n' "$hits"
+  echo "::error::$3 (see $2)"
+  return 1
 }
 ```
 
@@ -760,6 +798,7 @@ _Added in PR 2._
 #!/usr/bin/env bash
 # Run every GUT test and write build/reports/gut-junit.xml. GUT exits 0 when a test script does
 # not parse or the project was never imported, so the log and the JUnit total are checked too.
+# The post-run hook tests/gut_post_run.gd makes GUT exit 1 on errors in setup/teardown hooks.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
@@ -815,18 +854,60 @@ gdlint "${gd_dirs[@]}"
 gdformat --check "${gd_dirs[@]}"
 
 # Determinism: gameplay code must use seeded RandomNumberGenerator streams. Flags bare global RNG
-# calls (rng.randf() is fine) and Array.shuffle()/pick_random(); skips comments and func lines.
+# calls (rng.randf() is fine) and Array.shuffle()/pick_random(). Text in string literals and
+# comments never counts, nor does the name in a func declaration (its one-line body does).
 rng_re='(^|[^.[:alnum:]_])(randf|randi|randfn|randf_range|randi_range|randomize|seed|rand_from_seed)[[:space:]]*\(|\.(shuffle|pick_random)[[:space:]]*\('
 gameplay_dirs=()
 for d in autoload road world car disasters areas setpieces; do
   if [ -d "$d" ]; then gameplay_dirs+=("$d"); fi
 done
 if [ "${#gameplay_dirs[@]}" -gt 0 ]; then
+  candidates="$REPORTS/rng_candidates.txt"
   hits="$REPORTS/rng_hits.txt"
   rc=0
-  grep -rnE --include='*.gd' "$rng_re" "${gameplay_dirs[@]}" > "$hits" || rc=$?
+  grep -rlE --include='*.gd' "$rng_re" "${gameplay_dirs[@]}" > "$candidates" || rc=$?
   [ "$rc" -le 1 ] || { echo "::error::Determinism check could not scan gameplay code"; exit 1; }
-  if grep -vE '^[^:]+:[0-9]+:[[:space:]]*(#|func[[:space:]])' "$hits"; then
+  files=()
+  while IFS= read -r f; do files+=("$f"); done < "$candidates"
+  : > "$hits"
+  if [ "${#files[@]}" -gt 0 ]; then
+    # Lex each candidate file as GDScript does: a backslash escapes the next character in every
+    # string kind, and triple-quoted or backslash-continued strings span lines. String literals
+    # become "", comments and declared func names are dropped, and the rest of each line is
+    # matched again. \047 is a single quote.
+    RNG_RE="$rng_re" awk '
+      function str_end(s, d,    i) {
+        for (i = 1; i <= length(s); i++) {
+          if (substr(s, i, 1) == "\\") i++
+          else if (substr(s, i, length(d)) == d) return i + length(d)
+        }
+        return 0
+      }
+      FNR == 1 { open = "" }
+      {
+        rest = $0; code = ""
+        while (rest != "") {
+          if (open != "") {
+            i = str_end(rest, open)
+            if (i == 0) break
+            code = code "\"\""; rest = substr(rest, i); open = ""
+          } else if (match(rest, /[#"\047]/)) {
+            code = code substr(rest, 1, RSTART - 1)
+            c = substr(rest, RSTART, 1)
+            if (c == "#") break
+            open = c
+            if (substr(rest, RSTART, 3) == c c c) open = c c c
+            rest = substr(rest, RSTART + length(open))
+          } else {
+            code = code rest; rest = ""
+          }
+        }
+        sub(/^[[:space:]]*(static[[:space:]]+)?func[[:space:]]+[[:alnum:]_]+/, "func", code)
+        if (code ~ ENVIRON["RNG_RE"]) print FILENAME ":" FNR ":" $0
+      }' "${files[@]}" > "$hits"
+  fi
+  if [ -s "$hits" ]; then
+    cat "$hits"
     echo "::error::Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)"
     exit 1
   fi
@@ -853,7 +934,9 @@ _Added in PR 2._
 source "$(dirname "$0")/_common.sh"
 
 rc=0
-tags=$(grep -rhoE 'barichello/godot-ci:[0-9.]+' .github | sort -u) || rc=$?
+# Capture the complete tag, including any $ and braces, so 4.7.2-rc1, latest or an expression
+# such as 4.7.2${{ matrix.suffix }} never passes as 4.7.2.
+tags=$(grep -rhoE 'barichello/godot-ci:[-[:alnum:]_.{}$]*' .github | sort -u) || rc=$?
 [ "$rc" -le 1 ] || { echo "::error::Could not scan .github/"; exit 1; }
 [ -n "$tags" ] || { echo "::error::No barichello/godot-ci image tag under .github/"; exit 1; }
 if [ "$(printf '%s\n' "$tags" | wc -l | tr -d ' ')" -ne 1 ]; then
