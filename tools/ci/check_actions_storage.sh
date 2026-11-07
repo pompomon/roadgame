@@ -12,9 +12,12 @@ while IFS= read -r f; do files+=("$f"); done \
 
 # A step is a list item plus the more indented lines below it. Its inputs are the keys right
 # under its with: mapping, so env: entries and run: text don't count. Block scalars (run: | and
-# the like) are text, searched only for type=gha. Comments and quotes are dropped (cache: "pip"
-# is cache: pip). with: must be a block mapping; flow-style steps (- {uses: x}) are not parsed.
-# \047 is a single quote.
+# the like) are text, searched only for type=gha. Keys are compared in lowercase, since GitHub
+# ignores the case of input names. Comments, quotes, anchors and tags are dropped (Cache: &c
+# "pip" is cache: pip). What the check can't read fails: uses: in flow style ({...} or [...],
+# also over several lines), a with: that is not a block mapping, ? keys, escaped keys, an input
+# set twice, and a uses:, cache input or retention-days whose value is on the lines below, an
+# alias or escaped. \047 is a single quote.
 hits=$(awk '
   BEGIN {
     # Inputs that turn a cache on or off, and their off value.
@@ -36,10 +39,20 @@ hits=$(awk '
     dflt["jdx/mise-action"] = "cache"
     dflt["oven-sh/setup-bun"] = "no-cache"
   }
-  function end_step(    k) {
+  # A value the check cannot read: on the lines below its key, an alias or escaped.
+  function unread(n, k) {
+    print FILENAME ":" n ": " k ": write the value on the same line, without aliases or escapes"
+    inputs[k] = "?"                          # so that end_step does not report it again
+  }
+  function noprops(s) {                      # drops anchors (&a) and tags (!!str)
+    while (s ~ /^[&!]/) sub(/^[&!][^ \t]*[ \t]*/, "", s)
+    return s
+  }
+  function end_step(    k, r) {
     if (s_line) {
+      r = inputs["retention-days"]
       if (s_uses ~ /^actions\/upload-(artifact(\/merge)?|pages-artifact)$/ \
-          && inputs["retention-days"] != "1")
+          && r != "1" && r != "?")
         print s_file ":" s_line ": " s_uses " must set retention-days: 1"
       # A missing or empty input means the default, which caches. Other values are checked
       # where they are set.
@@ -51,37 +64,60 @@ hits=$(awk '
     }
     s_line = 0; s_uses = ""; s_key = -1; w_ind = -1; split("", inputs)
   }
-  FNR == 1 { end_step(); bs = -1 }
+  FNR == 1 { end_step(); bs = -1; p_key = ""; fd = 0 }
   {
     line = $0
-    sub(/(^|[ \t])#.*/, "", line); sub(/[ \t]+$/, "", line)
+    sub(/(^|[ \t])#.*/, "", line); sub(/[ \t\r]+$/, "", line)
     if (line == "") next
     if (line ~ /type=gha/)
       print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
     match(line, /^ */); ind = RLENGTH
     if (bs >= 0 && ind > bs) next            # the text of a block scalar
     bs = -1
-    if (s_line && ind <= s_ind) end_step()
-    if (line ~ /^ *-$/) {                    # a list item that starts on the next line
-      if (!s_line) { s_line = FNR; s_ind = ind; s_file = FILENAME }
-      next
-    }
-    match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
-    if (!s_line && col > ind) { s_line = FNR; s_ind = ind; s_file = FILENAME }
-    if (s_line && s_key < 0) s_key = col
 
-    rest = substr(line, col + 1); key = ""; val = rest
-    if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?:/) \
+    match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
+    rest = noprops(substr(line, col + 1)); key = ""; val = rest
+    if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?[ \t]*:/) \
         && substr(rest, RLENGTH + 1, 1) ~ /^[ \t]?$/) {
-      key = substr(rest, 1, RLENGTH - 1); gsub(/["\047]/, "", key)
+      key = tolower(substr(rest, 1, RLENGTH - 1)); gsub(/["\047 \t]/, "", key)
       val = substr(rest, RLENGTH + 1)
     }
-    sub(/^[ \t]+/, "", val); sub(/[ \t]+$/, "", val)
+    sub(/^[ \t]+/, "", val); val = noprops(val)
+    # Flow style ({...} or [...], which may go on over the lines below): its keys are not read.
+    # fd counts the brackets still open, leaving out quoted text.
+    f = (fd > 0) ? rest : ((val ~ /^[[{]/) ? val : "")
+    if (f != "") {
+      if (tolower(f) ~ /(^|[[{,])[ \t]*["\047]?uses["\047]?[ \t]*:/)
+        print FILENAME ":" FNR ": uses: must be in a block mapping, one key per line"
+      t = $0; gsub(/"([^"\\]|\\.)*"|\047[^\047]*\047/, "", t); sub(/(^|[ \t])#.*/, "", t)
+      fd += gsub(/[[{]/, "", t) - gsub(/[]}]/, "", t)
+      if (fd < 0) fd = 0
+    }
+    if (rest ~ /^[?]([ \t]|$)/ || f ~ /[[{,][ \t]*[?]([ \t]|$)/)
+      print FILENAME ":" FNR ": ? key: write it as key: value"
+    if (line ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
+      print FILENAME ":" FNR ": write the key without escapes"
+    # The value of the key on the line above (key:, then the value further indented).
+    if (p_key != "" && ind > p_col && col == ind && key == "" && rest != "-")
+      unread(p_line, p_key)
+    p_key = ""
+
+    if (s_line && ind <= s_ind) end_step()
+    if (rest == "-" || rest == "") {         # a list item or a node that starts on the next line
+      if (!s_line && (rest == "-" || col > ind)) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+      next
+    }
+    if (!s_line && col > ind) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+    if (s_line && s_key < 0) s_key = col
     if (val ~ /^[|>][-+0-9]*$/) bs = (key != "") ? col : ind
+    hidden = (val ~ /^([|>][-+0-9]*|[*].*)$/ || val ~ /^"[^"]*\\/)   # block scalar, alias, escape
     gsub(/["\047]/, "", val)
 
     if (key == "uses") {
-      u = tolower(val); sub(/@.*/, "", u)
+      u = ""
+      if (hidden) unread(FNR, key)
+      else if (val == "") { p_key = key; p_col = col; p_line = FNR }
+      else { u = tolower(val); sub(/@.*/, "", u) }
       if (u ~ /cache/) print FILENAME ":" FNR ": " u " stores a cache"
     }
     if (!s_line) next
@@ -94,9 +130,15 @@ hits=$(awk '
     } else if (w_ind >= 0 && ind > w_ind) {
       if (w_col < 0) w_col = ind
       if (ind == w_col && col == ind && key != "") {   # an input of the step
+        if (key in inputs)
+          print FILENAME ":" FNR ": " key ": set it only once (input names ignore case)"
         inputs[key] = tolower(val)
-        if ((key in off) && val != "" && tolower(val) != off[key])
-          print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+        if ((key in off) || key == "retention-days") {
+          if (hidden) unread(FNR, key)
+          else if (val == "") { p_key = key; p_col = col; p_line = FNR }
+          else if ((key in off) && tolower(val) != off[key])
+            print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+        }
       }
     }
   }

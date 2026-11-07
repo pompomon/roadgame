@@ -312,7 +312,7 @@ Every script sources `_common.sh`, which does the following:
 | `smoke.sh` | 300 s | Godot exits non-zero, or the log has any error line | F10 |
 | `lint.sh` | — | gdlint, gdformat, the determinism rule, shellcheck, `check_versions.sh` or `check_actions_storage.sh` fails | F4, F8, F22, F34 |
 | `check_versions.sh` | — | The complete godot-ci tags differ or aren't `x.y.z` (`4.7.2-rc1`, `latest` and `4.7.2${{ matrix.suffix }}` fail); the minor version ≠ `config/features`; the agent's `GODOT_VERSION` differs | F24 |
-| `check_actions_storage.sh` | — | A YAML file under `.github/` uses a cache action (any `uses:` with "cache" in its name, such as `actions/cache`), sets a cache input such as `cache: pip`, uses an action that caches by default without setting the input that turns that off, uses Docker `type=gha`, uploads an artifact without `retention-days: 1`, or writes a step's `with:` on one line, such as `with: {cache: pip}` (§5.12). Only the keys right under `with:` are inputs: `env:` entries and `run:` scripts neither break the rules nor satisfy them | new, F34 |
+| `check_actions_storage.sh` | — | A YAML file under `.github/` uses a cache action (any `uses:` with "cache" in its name, such as `actions/cache`), sets a cache input such as `cache: pip`, uses an action that caches by default without setting the input that turns that off, uses Docker `type=gha`, uploads an artifact without `retention-days: 1`, or is written in a way the script can't read (§5.12). Only the keys right under `with:` are inputs, in any case: `env:` entries and `run:` scripts neither break the rules nor satisfy them | new, F34 |
 | `export.sh` | 900 s; 1800 s for AAB | Godot exits non-zero, or the log has any error line; no output file; a Web export missing `.js`, `.wasm` or `.pck`; an APK or AAB with no `arm64-v8a` `.so` | F10, F12, F26 |
 | `stamp_version.sh` | — | The version is invalid (the whole string is checked), or a key is missing | F6, F33 |
 
@@ -385,7 +385,7 @@ Unchanged: GitHub Actions, weekly.
 
 ### 5.12 Actions storage (new, F34)
 
-The owner asked for the least Actions storage, even if CI gets slower (Q9). `tools/ci/check_actions_storage.sh` (§5.5) enforces rules 1 and 3 in every YAML file under `.github/`. It reads a step's inputs only from the keys right under its `with:`, one per line, so set them there.
+The owner asked for the least Actions storage, even if CI gets slower (Q9). `tools/ci/check_actions_storage.sh` (§5.5) enforces rules 1 and 3 in every YAML file under `.github/`. It reads a step's inputs only from the keys right under its `with:`, one per line, and ignores the case of their names, as GitHub does. It fails on what it can't read: `uses:` in flow style (`- {uses: …}` or `[uses: …]`, also over several lines), a `with:` that is not a block mapping (`with: {…}`), `?` keys, keys with escapes (`"u\x73es"`), an input set twice, and a `uses:`, cache input or `retention-days` whose value is not written plainly on its key's line (a block scalar such as `>-`, a value on the next line, an alias or escapes).
 
 1. **No caches.** No `actions/cache` or other cache action, no cache inputs such as setup-python's `cache: pip`, and no Docker layers in the Actions cache (`type=gha`). Actions that cache by default must turn it off, for example `actions/setup-go` with `cache: false`, `actions/setup-node` with `package-manager-cache: false` or `gradle/actions/setup-gradle` with `cache-disabled: true`; the script lists the ones it knows. Write the off value out: an empty one, such as `cache-disabled: ""`, means the default, which caches. For setup-python, leave `cache` out: `cache: false` is an error there.
 2. **Artifacts only where something needs them.**
@@ -451,7 +451,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N17 | Run `export.sh "Android APK" build/android/t.apk debug` with a fake `GODOT` that copies in an APK holding only `lib/arm64-v8a/readme.txt` and `lib/armeabi-v7a/libgodot_android.so` | Fails: "contains no arm64-v8a native library" | Passes: only the file size is checked. The first PR 3 check passed it too, because its `case` glob matched across lines (F26; PR 3 review) |
 | N18 | `stamp_version.sh $'v1.2.3\n'`, and `$'v1.2.3\nx'` | Fails: "must be MAJOR.MINOR.PATCH"; `project.godot` and `export_presets.cfg` are unchanged | Fails with the `sed` error ``unterminated `s' command``: there is no version check. The first PR 4 check passed both and wrote two-line values (F33; PR 4 review) |
 | N19 | Run "Check that the tag is new" in the CI image as Actions does (root, `HOME=/github/home`, `bash --noprofile --norc -eo pipefail`), in a workspace owned by another user whose `origin` is a local bare repo with tag `v0.0.1` | `v0.0.1` fails: "Tag v0.0.1 already exists"; `v0.0.2` passes; an unreachable `origin` fails (exit code 128). Without the `safe.directory` line, git ignores the workspace, cannot resolve `origin` and the step fails | The run builds the selected ref, and `publish` attaches it to the old tag (F32; PR 4 review) |
-| N20 | In a workflow: `cache: pip` on setup-python; `uses: Actions/Cache/restore@v4`; `actions/setup-go` or `gradle/actions/setup-gradle` without turning its cache off, or with an empty `cache-disabled: ""`; `cache: false` or `retention-days: "1"` under `env:` instead of `with:`; `with: {cache: pip}`; `--cache-to type=gha` in a `run:` script; an upload with `retention-days: 14` or none, also with `with:` before `uses:` and in an indentless sequence | `check_actions_storage.sh` fails and names each line. `cache: false`, `cache-disabled: true`, `retention-days: "1"`, commented-out caches, a `workflow_dispatch` input named `cache`, a matrix value `cache: true` and `cache: pip` inside a multi-line `run:` script pass | Not checked: the IP workflows cache pip, Gradle and the import, and keep artifacts 14 days (F34) |
+| N20 | In a workflow: `cache: pip` or `CACHE: pip` on setup-python; `uses: Actions/Cache/restore@v4`, `uses : actions/cache@v4`, `- &c uses: actions/cache@v4`, `steps: [uses: actions/cache@v4]`, or `uses: >-` with `actions/cache@v6` on the next line; `actions/setup-go` or `gradle/actions/setup-gradle` without turning its cache off, with an empty `cache-disabled: ""`, or with `cache: false` and `CACHE: ""` in one step; `cache: false` or `retention-days: "1"` under `env:` instead of `with:`; `with: {cache: pip}`; `--cache-to type=gha` in a `run:` script; an upload with `retention-days: 14` or none, also with `with:` before `uses:` and in an indentless sequence | `check_actions_storage.sh` fails and names each line. `cache: false`, `Cache-Disabled: true`, `retention-days: "1"`, `with :` written with a space, a step anchored with `- &s`, commented-out caches, a `workflow_dispatch` input named `cache`, a matrix value `cache: true` and `cache: pip` inside a multi-line `run:` script pass | Not checked: the IP workflows cache pip, Gradle and the import, and keep artifacts 14 days (F34) |
 
 ### 6.3 Verified only in CI
 
@@ -478,7 +478,7 @@ Agents can't change repository settings. The current state was read with `gh api
 | Optional | Give environment `release` a required reviewer | Settings → Environments |
 | M6.4 | Add `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_ALIAS` and `ANDROID_KEYSTORE_PASSWORD` to environment `release` | IP §7.6 (unchanged) |
 | Only if image pulls are rate-limited (F20) | Create a read-only Docker Hub token and use it for `container.credentials` | §8 |
-| After the F34 PR merges | Delete the existing caches (about 6.6 GB on 2026-11-07); otherwise each one stays until 7 days after its last use | `gh cache delete --all --repo pompomon/roadgame`, or Actions → Caches. Artifacts need nothing: they already expire about a day after they are created, although the old workflows asked for 14 days |
+| After the F34 PR merges | Delete the existing caches (about 6.6 GB on 2026-11-07); otherwise each one stays until 7 days after its last use. First make sure every open PR's branch has F34: a run of an older `ci.yml` saves its caches again | `gh cache delete --all --repo pompomon/roadgame`. Without the CLI: Actions tab → Caches (left sidebar, under Management) → the trash icon on each row; the page has no bulk delete. Artifacts need nothing: they already expire about a day after they are created, although the old workflows asked for 14 days |
 
 ---
 
@@ -1018,9 +1018,12 @@ while IFS= read -r f; do files+=("$f"); done \
 
 # A step is a list item plus the more indented lines below it. Its inputs are the keys right
 # under its with: mapping, so env: entries and run: text don't count. Block scalars (run: | and
-# the like) are text, searched only for type=gha. Comments and quotes are dropped (cache: "pip"
-# is cache: pip). with: must be a block mapping; flow-style steps (- {uses: x}) are not parsed.
-# \047 is a single quote.
+# the like) are text, searched only for type=gha. Keys are compared in lowercase, since GitHub
+# ignores the case of input names. Comments, quotes, anchors and tags are dropped (Cache: &c
+# "pip" is cache: pip). What the check can't read fails: uses: in flow style ({...} or [...],
+# also over several lines), a with: that is not a block mapping, ? keys, escaped keys, an input
+# set twice, and a uses:, cache input or retention-days whose value is on the lines below, an
+# alias or escaped. \047 is a single quote.
 hits=$(awk '
   BEGIN {
     # Inputs that turn a cache on or off, and their off value.
@@ -1042,10 +1045,20 @@ hits=$(awk '
     dflt["jdx/mise-action"] = "cache"
     dflt["oven-sh/setup-bun"] = "no-cache"
   }
-  function end_step(    k) {
+  # A value the check cannot read: on the lines below its key, an alias or escaped.
+  function unread(n, k) {
+    print FILENAME ":" n ": " k ": write the value on the same line, without aliases or escapes"
+    inputs[k] = "?"                          # so that end_step does not report it again
+  }
+  function noprops(s) {                      # drops anchors (&a) and tags (!!str)
+    while (s ~ /^[&!]/) sub(/^[&!][^ \t]*[ \t]*/, "", s)
+    return s
+  }
+  function end_step(    k, r) {
     if (s_line) {
+      r = inputs["retention-days"]
       if (s_uses ~ /^actions\/upload-(artifact(\/merge)?|pages-artifact)$/ \
-          && inputs["retention-days"] != "1")
+          && r != "1" && r != "?")
         print s_file ":" s_line ": " s_uses " must set retention-days: 1"
       # A missing or empty input means the default, which caches. Other values are checked
       # where they are set.
@@ -1057,37 +1070,60 @@ hits=$(awk '
     }
     s_line = 0; s_uses = ""; s_key = -1; w_ind = -1; split("", inputs)
   }
-  FNR == 1 { end_step(); bs = -1 }
+  FNR == 1 { end_step(); bs = -1; p_key = ""; fd = 0 }
   {
     line = $0
-    sub(/(^|[ \t])#.*/, "", line); sub(/[ \t]+$/, "", line)
+    sub(/(^|[ \t])#.*/, "", line); sub(/[ \t\r]+$/, "", line)
     if (line == "") next
     if (line ~ /type=gha/)
       print FILENAME ":" FNR ": type=gha stores Docker layers in the Actions cache"
     match(line, /^ */); ind = RLENGTH
     if (bs >= 0 && ind > bs) next            # the text of a block scalar
     bs = -1
-    if (s_line && ind <= s_ind) end_step()
-    if (line ~ /^ *-$/) {                    # a list item that starts on the next line
-      if (!s_line) { s_line = FNR; s_ind = ind; s_file = FILENAME }
-      next
-    }
-    match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
-    if (!s_line && col > ind) { s_line = FNR; s_ind = ind; s_file = FILENAME }
-    if (s_line && s_key < 0) s_key = col
 
-    rest = substr(line, col + 1); key = ""; val = rest
-    if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?:/) \
+    match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
+    rest = noprops(substr(line, col + 1)); key = ""; val = rest
+    if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?[ \t]*:/) \
         && substr(rest, RLENGTH + 1, 1) ~ /^[ \t]?$/) {
-      key = substr(rest, 1, RLENGTH - 1); gsub(/["\047]/, "", key)
+      key = tolower(substr(rest, 1, RLENGTH - 1)); gsub(/["\047 \t]/, "", key)
       val = substr(rest, RLENGTH + 1)
     }
-    sub(/^[ \t]+/, "", val); sub(/[ \t]+$/, "", val)
+    sub(/^[ \t]+/, "", val); val = noprops(val)
+    # Flow style ({...} or [...], which may go on over the lines below): its keys are not read.
+    # fd counts the brackets still open, leaving out quoted text.
+    f = (fd > 0) ? rest : ((val ~ /^[[{]/) ? val : "")
+    if (f != "") {
+      if (tolower(f) ~ /(^|[[{,])[ \t]*["\047]?uses["\047]?[ \t]*:/)
+        print FILENAME ":" FNR ": uses: must be in a block mapping, one key per line"
+      t = $0; gsub(/"([^"\\]|\\.)*"|\047[^\047]*\047/, "", t); sub(/(^|[ \t])#.*/, "", t)
+      fd += gsub(/[[{]/, "", t) - gsub(/[]}]/, "", t)
+      if (fd < 0) fd = 0
+    }
+    if (rest ~ /^[?]([ \t]|$)/ || f ~ /[[{,][ \t]*[?]([ \t]|$)/)
+      print FILENAME ":" FNR ": ? key: write it as key: value"
+    if (line ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
+      print FILENAME ":" FNR ": write the key without escapes"
+    # The value of the key on the line above (key:, then the value further indented).
+    if (p_key != "" && ind > p_col && col == ind && key == "" && rest != "-")
+      unread(p_line, p_key)
+    p_key = ""
+
+    if (s_line && ind <= s_ind) end_step()
+    if (rest == "-" || rest == "") {         # a list item or a node that starts on the next line
+      if (!s_line && (rest == "-" || col > ind)) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+      next
+    }
+    if (!s_line && col > ind) { s_line = FNR; s_ind = ind; s_file = FILENAME }
+    if (s_line && s_key < 0) s_key = col
     if (val ~ /^[|>][-+0-9]*$/) bs = (key != "") ? col : ind
+    hidden = (val ~ /^([|>][-+0-9]*|[*].*)$/ || val ~ /^"[^"]*\\/)   # block scalar, alias, escape
     gsub(/["\047]/, "", val)
 
     if (key == "uses") {
-      u = tolower(val); sub(/@.*/, "", u)
+      u = ""
+      if (hidden) unread(FNR, key)
+      else if (val == "") { p_key = key; p_col = col; p_line = FNR }
+      else { u = tolower(val); sub(/@.*/, "", u) }
       if (u ~ /cache/) print FILENAME ":" FNR ": " u " stores a cache"
     }
     if (!s_line) next
@@ -1100,9 +1136,15 @@ hits=$(awk '
     } else if (w_ind >= 0 && ind > w_ind) {
       if (w_col < 0) w_col = ind
       if (ind == w_col && col == ind && key != "") {   # an input of the step
+        if (key in inputs)
+          print FILENAME ":" FNR ": " key ": set it only once (input names ignore case)"
         inputs[key] = tolower(val)
-        if ((key in off) && val != "" && tolower(val) != off[key])
-          print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+        if ((key in off) || key == "retention-days") {
+          if (hidden) unread(FNR, key)
+          else if (val == "") { p_key = key; p_col = col; p_line = FNR }
+          else if ((key in off) && tolower(val) != off[key])
+            print FILENAME ":" FNR ": " key ": " val " turns on a cache"
+        }
       }
     }
   }
