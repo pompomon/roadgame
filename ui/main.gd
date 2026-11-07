@@ -1,6 +1,7 @@
 extends Node
 ## M1 road viewer, the main scene until M2: the camera follows the correct path through the
-## generated road. Hold ↑, or touch and hold, to fast-forward. User arguments (after "--"):
+## generated road. Hold the up arrow, the mouse button or a touch to fast-forward. User
+## arguments (after "--"):
 ## --seed=<int> picks the road (D8); --autopilot always fast-forwards (the CI smoke run).
 
 ## Viewer speeds, in tiles per second.
@@ -66,7 +67,10 @@ func _update_view() -> void:
 		_turns = maxi(_turns, tile.turn_number + 1)
 	var version: String = ProjectSettings.get_setting("application/config/version", "dev")
 	_label.text = (
-		"Road Roguelike %s\nseed %d\ntile %d  turns %d  %s\nlookahead %d\nhold ↑ or touch: faster"
+		(
+			"Road Roguelike %s\nseed %d\ntile %d  turns %d  %s\nlookahead %d\n"
+			+ "hold up arrow, click or touch: faster"
+		)
 		% [version, _seed, tile.path_index, _turns, tile.area_id, _buffer.lookahead()]
 	)
 
