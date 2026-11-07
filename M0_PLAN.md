@@ -385,7 +385,7 @@ Unchanged: GitHub Actions, weekly.
 
 ### 5.12 Actions storage (new, F34)
 
-The owner asked for the least Actions storage, even if CI gets slower (Q9). `tools/ci/check_actions_storage.sh` (§5.5) enforces rules 1 and 3 in every YAML file under `.github/`. It reads a step's inputs only from the keys right under its `with:`, one per line, and ignores the case of their names, as GitHub does. Keys under an `env:` or `with:` block mapping are names, so a variable or input called `uses` is not read as an action. It reads comments as YAML does: a `#` starts one only after a blank and outside quoted text. It searches all other text for `type=gha`, in any case, as buildx reads it, and after dropping the quotes and backslashes the shell removes (`type="gha"`, `t\ype=gha`): block scalars such as `run: |` scripts (their shell comments too) and quoted or plain text that goes on over several lines. It fails on what it can't read: `uses:` in flow style (`- {uses: …}` or `[uses: …]`, also over several lines or after an anchor or tag, as in `{&a uses: …}`), a `with:` that is not a block mapping (`with: {…}`, also with the `{…}` on the next line), `?` keys, alias keys (`*k : …`), keys with escapes (`"u\x73es"`), an input set twice, and a `uses:`, cache input or `retention-days` whose value is not written plainly on its key's line (a block scalar such as `>-`, a value on the next line or one that goes on to it, an alias or escapes).
+The owner asked for the least Actions storage, even if CI gets slower (Q9). `tools/ci/check_actions_storage.sh` (§5.5) enforces rules 1 and 3 in every YAML file under `.github/`. It reads a step's inputs only from the keys right under its `with:`, one per line, and ignores the case of their names, as GitHub does. Keys under an `env:` or `with:` block mapping are names, so a variable or input called `uses` is not read as an action. It reads comments as YAML does: a `#` starts one only after a blank and outside quoted text. Quoted text is a value, never a key, unless a `:` follows it, so JSON in a quoted value (`env: {J: '{"uses": 1}'}`) is not read as keys. It searches all other text for `type=gha`, in any case, as buildx reads it, and after dropping the quotes and backslashes the shell removes (`type="gha"`, `t\ype=gha`): block scalars such as `run: |` scripts (their shell comments too) and quoted or plain text that goes on over several lines. It fails on what it can't read: `uses:` in flow style (`- {uses: …}` or `[uses: …]`, also over several lines or after an anchor or tag, as in `{&a uses: …}`), a `with:` that is not a block mapping (`with: {…}`, also with the `{…}` on the next line), `?` keys, alias keys (`*k : …`), keys with escapes (`"u\x73es"`), an input set twice, and a `uses:`, cache input or `retention-days` whose value is not written plainly on its key's line (a block scalar such as `>-`, a value on the next line or one that goes on to it, an alias or escapes).
 
 1. **No caches.** No `actions/cache` or other cache action, no cache inputs such as setup-python's `cache: pip`, and no Docker layers in the Actions cache (`type=gha`). Actions that cache by default must turn it off, for example `actions/setup-go` with `cache: false`, `actions/setup-node` with `package-manager-cache: false` or `gradle/actions/setup-gradle` with `cache-disabled: true`; the script lists the ones it knows. Write the off value out: an empty one, such as `cache-disabled: ""`, means the default, which caches. For setup-python, leave `cache` out: `cache: false` is an error there.
 2. **Artifacts only where something needs them.**
@@ -451,7 +451,7 @@ For each case, make the temporary change, run the script, then revert. Every "Ex
 | N17 | Run `export.sh "Android APK" build/android/t.apk debug` with a fake `GODOT` that copies in an APK holding only `lib/arm64-v8a/readme.txt` and `lib/armeabi-v7a/libgodot_android.so` | Fails: "contains no arm64-v8a native library" | Passes: only the file size is checked. The first PR 3 check passed it too, because its `case` glob matched across lines (F26; PR 3 review) |
 | N18 | `stamp_version.sh $'v1.2.3\n'`, and `$'v1.2.3\nx'` | Fails: "must be MAJOR.MINOR.PATCH"; `project.godot` and `export_presets.cfg` are unchanged | Fails with the `sed` error ``unterminated `s' command``: there is no version check. The first PR 4 check passed both and wrote two-line values (F33; PR 4 review) |
 | N19 | Run "Check that the tag is new" in the CI image as Actions does (root, `HOME=/github/home`, `bash --noprofile --norc -eo pipefail`), in a workspace owned by another user whose `origin` is a local bare repo with tag `v0.0.1` | `v0.0.1` fails: "Tag v0.0.1 already exists"; `v0.0.2` passes; an unreachable `origin` fails (exit code 128). Without the `safe.directory` line, git ignores the workspace, cannot resolve `origin` and the step fails | The run builds the selected ref, and `publish` attaches it to the old tag (F32; PR 4 review) |
-| N20 | In a workflow: `cache: pip` or `CACHE: pip` on setup-python, or `cache: false` that goes on to `pip` on the next line; `uses: Actions/Cache/restore@v4`, `uses : actions/cache@v4`, `- &c uses: actions/cache@v4`, `steps: [uses: actions/cache@v4]`, `steps: [{&action uses: "actions/cache@v6"}]` or `{!!str uses: …}`, an alias key `*k : actions/cache@v6` (in block or flow style, or under `with:`), `uses: actions/cache@v4` right after the step's `env:` block, or `uses: >-` with `actions/cache@v6` on the next line; `actions/cache` after a `run:` whose plain text goes on to a line starting with an unclosed `"`; `actions/setup-go` or `gradle/actions/setup-gradle` without turning its cache off, with an empty `cache-disabled: ""`, or with `cache: false` and `CACHE: ""` in one step; `cache: false` or `retention-days: "1"` under `env:` instead of `with:`; `with: {cache: pip}`, also with the `{…}` on the next line; `--cache-to type=gha` in a `run:` script, also after a quoted `#` (`--build-arg 'M=a # b'`), in a shell comment of a `run: \|` script, or written `TYPE=gha`, `type="gha",mode=max`, `type='gha'` or `t\ype=gha`; an upload with `retention-days: 14` or none, also with `with:` before `uses:` and in an indentless sequence | `check_actions_storage.sh` fails and names each line. `cache: false`, `Cache-Disabled: true`, `retention-days: "1"`, `with :` written with a space, a step anchored with `- &s` and its alias `- *s`, an anchored or tagged flow key other than `uses` (`env: {&e A: "1"}`), commented-out caches, a `workflow_dispatch` input named `cache`, a matrix value `cache: true`, an `env:` variable or `with:` input named `uses` set to `actions/cache@v6` (also after a comment at column 0), `cache: pip` inside a multi-line `run:` script, and quoted or plain text over several lines that holds quotes and `#` pass | Not checked: the IP workflows cache pip, Gradle and the import, and keep artifacts 14 days (F34) |
+| N20 | In a workflow: `cache: pip` or `CACHE: pip` on setup-python, or `cache: false` that goes on to `pip` on the next line; `uses: Actions/Cache/restore@v4`, `uses : actions/cache@v4`, `- &c uses: actions/cache@v4`, `steps: [uses: actions/cache@v4]`, `steps: [{&action uses: "actions/cache@v6"}]` or `{!!str uses: …}`, a quoted flow key (`- {"uses": "actions/cache@v4"}`, `{'uses' : …}`, `{"uses":"…"}`, also after a quoted value that holds `"uses":`), a tab after the `-` of `- uses: actions/cache@v4` (actionlint also rejects that YAML), an alias key `*k : actions/cache@v6` (in block or flow style, or under `with:`), `uses: actions/cache@v4` right after the step's `env:` block, or `uses: >-` with `actions/cache@v6` on the next line; `actions/cache` after a `run:` whose plain text goes on to a line starting with an unclosed `"`; `actions/setup-go` or `gradle/actions/setup-gradle` without turning its cache off, with an empty `cache-disabled: ""`, or with `cache: false` and `CACHE: ""` in one step; `cache: false` or `retention-days: "1"` under `env:` instead of `with:`; `with: {cache: pip}`, also with the `{…}` on the next line; `--cache-to type=gha` in a `run:` script, also after a quoted `#` (`--build-arg 'M=a # b'`), in a shell comment of a `run: \|` script, or written `TYPE=gha`, `type="gha",mode=max`, `type='gha'` or `t\ype=gha`; an upload with `retention-days: 14` or none, also with `with:` before `uses:` and in an indentless sequence | `check_actions_storage.sh` fails and names each line. `cache: false`, `Cache-Disabled: true`, `retention-days: "1"`, `with :` written with a space, a step anchored with `- &s` and its alias `- *s`, an anchored or tagged flow key other than `uses` (`env: {&e A: "1"}`), quoted text in flow style that holds JSON or YAML indicators (`env: {J: '{"uses": "actions/cache@v4", "a": [? x]}'}`, `matrix: {x: ['{*k : 1}']}`, also over several lines) or an escaped key (`env: {J: '{"u\x73es": 1}'}`, `name: 'say "a\"b": c'`), commented-out caches, a `workflow_dispatch` input named `cache`, a matrix value `cache: true`, an `env:` variable or `with:` input named `uses` set to `actions/cache@v6` (also after a comment at column 0), `cache: pip` inside a multi-line `run:` script, and quoted or plain text over several lines that holds quotes and `#` pass | Not checked: the IP workflows cache pip, Gradle and the import, and keep artifacts 14 days (F34) |
 
 ### 6.3 Verified only in CI
 
@@ -1024,6 +1024,7 @@ while IFS= read -r f; do files+=("$f"); done \
 # type=gha (in any case, as buildx reads the key, and without the quotes and backslashes the
 # shell removes, so type="gha" counts). Keys are compared in lowercase, since GitHub ignores the
 # case of input names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip).
+# Quoted text is a value, never a key, unless a : follows it ({J: '{"uses": 1}'} has no uses:).
 # What the check can't read fails: uses: in flow style ({...} or [...], also over several
 # lines or after an anchor or tag), a with: that is not a block mapping (also on the lines below
 # it), ? keys, alias keys (*k : x), escaped keys, an input set twice, and a uses:, cache input or
@@ -1064,21 +1065,22 @@ hits=$(awk '
   # after [ { or , in flow style, and after a ":" right behind quoted text ({"a":"b"}). oq is the
   # quote still open at the end of the line and fd the number of flow brackets still open; both
   # go on to the next line. pl is set if the line ends in plain text, ns if it ends where a node
-  # can start; lk is the last of - ? : on it and lc the column of that - or ?.
-  function uncomment(s, cont,    i, n, c, jq) {
-    n = length(s); ns = !cont; pl = cont; jq = 0; lk = ""
+  # can start; lk is the last of - ? : on it and lc the column of that - or ?. um is the line
+  # with the text of quoted values masked (mask()), to look for keys in.
+  function uncomment(s, cont,    i, n, c, jq, qs) {
+    n = length(s); ns = !cont; pl = cont; jq = 0; lk = ""; um = s; qs = 0
     for (i = 1; i <= n; i++) {
       c = substr(s, i, 1)
       if (oq != "") {
         if (oq == "\"" && c == "\\") i++
         else if (c == oq && oq == "\047" && substr(s, i + 1, 1) == oq) i++
-        else if (c == oq) { oq = ""; ns = 0; jq = 1 }
+        else if (c == oq) { oq = ""; ns = 0; jq = 1; mask(qs, i, substr(s, i + 1)) }
       } else if (c == " " || c == "\t") {
         continue
       } else if (c == "#" && (i == 1 || substr(s, i - 1, 1) ~ /[ \t]/)) {
-        pl = 0; return substr(s, 1, i - 1)
+        pl = 0; um = substr(um, 1, i - 1); return substr(s, 1, i - 1)
       } else if (ns && (c == "\"" || c == "\047")) {
-        oq = c; ns = 0
+        oq = c; ns = 0; qs = i
       } else if (c == ":" && (jq || substr(s, i + 1, 1) ~ /^[ \t]?$/)) {
         ns = 1; jq = 0; pl = 0; lk = c
       } else if (ns && c ~ /[-?]/ && substr(s, i + 1, 1) ~ /^[ \t]?$/) {
@@ -1097,7 +1099,16 @@ hits=$(awk '
         ns = 0; jq = 0; pl = 1
       }
     }
+    if (oq != "") mask(qs, n + 1, "")
     return s
+  }
+  # Masks quoted text in um from quote `from` to quote `to` (0 and n + 1 if it goes on past the
+  # line), unless a : follows it on the line (`after`), as after a quoted key.
+  function mask(from, to, after,    t) {
+    if (from > 0 && after ~ /^[ \t]*:/) return
+    t = ""
+    while (length(t) < to - from - 1) t = t "x"
+    um = substr(um, 1, from) t substr(um, to)
   }
   # The shell drops quotes and backslashes: type="gha", t\ype=gha and $"gha" reach buildx as gha.
   function gha(s,    t) {
@@ -1136,7 +1147,7 @@ hits=$(awk '
     fl = fd                                  # flow brackets still open from the lines above
     if (oq != "") {                          # quoted text that goes on from the line above
       line = uncomment(raw, 0); gha(line)
-      if (fl > 0) flow(line)
+      if (fl > 0) flow(um)
       ps = pl && fd
       next
     }
@@ -1147,7 +1158,7 @@ hits=$(awk '
     # Plain text from the line above goes on here: always in flow style, and in block style if
     # the line is more indented than the parent of that text (pc).
     cont = ps && (fl > 0 || ind > pc)
-    line = uncomment(raw, cont); sub(/[ \t]+$/, "", line); ps = pl
+    line = uncomment(raw, cont); sub(/[ \t]+$/, "", line); sub(/[ \t]+$/, "", um); ps = pl
     if (line == "") next
     gha(line)
     if (cont && fl == 0) {                   # the line is only text
@@ -1155,25 +1166,26 @@ hits=$(awk '
       p_key = ""; next
     }
 
-    match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
+    match(line, /^ *(-[ \t]+)*/); col = RLENGTH   # where the content starts, after any dashes
     if (d_ind >= 0 && ind <= d_ind) d_ind = -1   # the end of an env: or with: block mapping
     # The indent of the parent of plain text that may go on below (pc), and of a node that
     # starts on the next line (pv).
     if (ps && !fd) pc = (lk == "-") ? lc : (lk != "") ? col : (pv >= 0) ? pv : ind
     pv = (!ns || fd) ? -1 : (lk == "-") ? lc : (lk != "") ? col : pv
     rest = noprops(substr(line, col + 1)); key = ""; val = rest
+    mrest = noprops(substr(um, col + 1)); mval = mrest    # the same, with quoted text masked
     if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?[ \t]*:/) \
         && substr(rest, RLENGTH + 1, 1) ~ /^[ \t]?$/) {
       key = tolower(substr(rest, 1, RLENGTH - 1)); gsub(/["\047 \t]/, "", key)
-      val = substr(rest, RLENGTH + 1)
+      val = substr(rest, RLENGTH + 1); mval = substr(mrest, RLENGTH + 1)
     }
-    sub(/^[ \t]+/, "", val); val = noprops(val)
-    f = (fl > 0) ? rest : ((val ~ /^[[{]/) ? val : "")
+    sub(/^[ \t]+/, "", val); val = noprops(val); sub(/^[ \t]+/, "", mval); mval = noprops(mval)
+    f = (fl > 0) ? mrest : ((val ~ /^[[{]/) ? mval : "")
     if (f != "") flow(f)
     if (rest ~ /^[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
     ak = (fl == 0 && rest ~ /^[*][^ \t]*[ \t]*:([ \t]|$)/)     # an alias key: *k : x
     if (ak) print FILENAME ":" FNR ": write the key without aliases"
-    esc = (line ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
+    esc = (um ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
     if (esc) print FILENAME ":" FNR ": write the key without escapes"
     # The value of the key on the line above (key:, then the value further indented).
     if (p_key != "" && ind > p_col && col == ind && key == "" && rest != "-")

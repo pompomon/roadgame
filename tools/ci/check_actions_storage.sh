@@ -18,6 +18,7 @@ while IFS= read -r f; do files+=("$f"); done \
 # type=gha (in any case, as buildx reads the key, and without the quotes and backslashes the
 # shell removes, so type="gha" counts). Keys are compared in lowercase, since GitHub ignores the
 # case of input names. Quotes, anchors and tags are dropped (Cache: &c "pip" is cache: pip).
+# Quoted text is a value, never a key, unless a : follows it ({J: '{"uses": 1}'} has no uses:).
 # What the check can't read fails: uses: in flow style ({...} or [...], also over several
 # lines or after an anchor or tag), a with: that is not a block mapping (also on the lines below
 # it), ? keys, alias keys (*k : x), escaped keys, an input set twice, and a uses:, cache input or
@@ -58,21 +59,22 @@ hits=$(awk '
   # after [ { or , in flow style, and after a ":" right behind quoted text ({"a":"b"}). oq is the
   # quote still open at the end of the line and fd the number of flow brackets still open; both
   # go on to the next line. pl is set if the line ends in plain text, ns if it ends where a node
-  # can start; lk is the last of - ? : on it and lc the column of that - or ?.
-  function uncomment(s, cont,    i, n, c, jq) {
-    n = length(s); ns = !cont; pl = cont; jq = 0; lk = ""
+  # can start; lk is the last of - ? : on it and lc the column of that - or ?. um is the line
+  # with the text of quoted values masked (mask()), to look for keys in.
+  function uncomment(s, cont,    i, n, c, jq, qs) {
+    n = length(s); ns = !cont; pl = cont; jq = 0; lk = ""; um = s; qs = 0
     for (i = 1; i <= n; i++) {
       c = substr(s, i, 1)
       if (oq != "") {
         if (oq == "\"" && c == "\\") i++
         else if (c == oq && oq == "\047" && substr(s, i + 1, 1) == oq) i++
-        else if (c == oq) { oq = ""; ns = 0; jq = 1 }
+        else if (c == oq) { oq = ""; ns = 0; jq = 1; mask(qs, i, substr(s, i + 1)) }
       } else if (c == " " || c == "\t") {
         continue
       } else if (c == "#" && (i == 1 || substr(s, i - 1, 1) ~ /[ \t]/)) {
-        pl = 0; return substr(s, 1, i - 1)
+        pl = 0; um = substr(um, 1, i - 1); return substr(s, 1, i - 1)
       } else if (ns && (c == "\"" || c == "\047")) {
-        oq = c; ns = 0
+        oq = c; ns = 0; qs = i
       } else if (c == ":" && (jq || substr(s, i + 1, 1) ~ /^[ \t]?$/)) {
         ns = 1; jq = 0; pl = 0; lk = c
       } else if (ns && c ~ /[-?]/ && substr(s, i + 1, 1) ~ /^[ \t]?$/) {
@@ -91,7 +93,16 @@ hits=$(awk '
         ns = 0; jq = 0; pl = 1
       }
     }
+    if (oq != "") mask(qs, n + 1, "")
     return s
+  }
+  # Masks quoted text in um from quote `from` to quote `to` (0 and n + 1 if it goes on past the
+  # line), unless a : follows it on the line (`after`), as after a quoted key.
+  function mask(from, to, after,    t) {
+    if (from > 0 && after ~ /^[ \t]*:/) return
+    t = ""
+    while (length(t) < to - from - 1) t = t "x"
+    um = substr(um, 1, from) t substr(um, to)
   }
   # The shell drops quotes and backslashes: type="gha", t\ype=gha and $"gha" reach buildx as gha.
   function gha(s,    t) {
@@ -130,7 +141,7 @@ hits=$(awk '
     fl = fd                                  # flow brackets still open from the lines above
     if (oq != "") {                          # quoted text that goes on from the line above
       line = uncomment(raw, 0); gha(line)
-      if (fl > 0) flow(line)
+      if (fl > 0) flow(um)
       ps = pl && fd
       next
     }
@@ -141,7 +152,7 @@ hits=$(awk '
     # Plain text from the line above goes on here: always in flow style, and in block style if
     # the line is more indented than the parent of that text (pc).
     cont = ps && (fl > 0 || ind > pc)
-    line = uncomment(raw, cont); sub(/[ \t]+$/, "", line); ps = pl
+    line = uncomment(raw, cont); sub(/[ \t]+$/, "", line); sub(/[ \t]+$/, "", um); ps = pl
     if (line == "") next
     gha(line)
     if (cont && fl == 0) {                   # the line is only text
@@ -149,25 +160,26 @@ hits=$(awk '
       p_key = ""; next
     }
 
-    match(line, /^ *(- +)*/); col = RLENGTH  # where the content starts, after any dashes
+    match(line, /^ *(-[ \t]+)*/); col = RLENGTH   # where the content starts, after any dashes
     if (d_ind >= 0 && ind <= d_ind) d_ind = -1   # the end of an env: or with: block mapping
     # The indent of the parent of plain text that may go on below (pc), and of a node that
     # starts on the next line (pv).
     if (ps && !fd) pc = (lk == "-") ? lc : (lk != "") ? col : (pv >= 0) ? pv : ind
     pv = (!ns || fd) ? -1 : (lk == "-") ? lc : (lk != "") ? col : pv
     rest = noprops(substr(line, col + 1)); key = ""; val = rest
+    mrest = noprops(substr(um, col + 1)); mval = mrest    # the same, with quoted text masked
     if (match(rest, /^["\047]?[A-Za-z0-9_.-]+["\047]?[ \t]*:/) \
         && substr(rest, RLENGTH + 1, 1) ~ /^[ \t]?$/) {
       key = tolower(substr(rest, 1, RLENGTH - 1)); gsub(/["\047 \t]/, "", key)
-      val = substr(rest, RLENGTH + 1)
+      val = substr(rest, RLENGTH + 1); mval = substr(mrest, RLENGTH + 1)
     }
-    sub(/^[ \t]+/, "", val); val = noprops(val)
-    f = (fl > 0) ? rest : ((val ~ /^[[{]/) ? val : "")
+    sub(/^[ \t]+/, "", val); val = noprops(val); sub(/^[ \t]+/, "", mval); mval = noprops(mval)
+    f = (fl > 0) ? mrest : ((val ~ /^[[{]/) ? mval : "")
     if (f != "") flow(f)
     if (rest ~ /^[?]([ \t]|$)/) print FILENAME ":" FNR ": ? key: write it as key: value"
     ak = (fl == 0 && rest ~ /^[*][^ \t]*[ \t]*:([ \t]|$)/)     # an alias key: *k : x
     if (ak) print FILENAME ":" FNR ": write the key without aliases"
-    esc = (line ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
+    esc = (um ~ /"([^"\\]|\\.)*\\.([^"\\]|\\.)*"[ \t]*:([ \t]|$)/)
     if (esc) print FILENAME ":" FNR ": write the key without escapes"
     # The value of the key on the line above (key:, then the value further indented).
     if (p_key != "" && ind > p_col && col == ind && key == "" && rest != "-")
