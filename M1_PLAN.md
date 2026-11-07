@@ -1,8 +1,8 @@
 # M1 Generator — Detailed Plan
 
-Status: proposed; Q1–Q13 defaults applied · 2026-11-07 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M1 row, §4 M1.1–M1.6 and "M1 tests", the M1 rows of §6, and the parts of M4.1 and M4.2 that M1 needs (G5)
+Status: approved, with the Q1–Q13 defaults; implemented in #20–#23, with the review fixes in §4.6 · 2026-11-07 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M1 row, §4 M1.1–M1.6 and "M1 tests", the M1 rows of §6, and the parts of M4.1 and M4.2 that M1 needs (G5)
 
-**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m1/prototype` (c9ca9eb) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of #18 and passed the five local checks (§6.1). The 23 negative cases in §6.2 were run too.
+**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m1/prototype` (c9ca9eb) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of #18 and passed the five local checks (§6.1). The 23 negative cases in §6.2 were run too. The changes in §4.6, mostly review fixes, touch six files in the PRs; negative cases N24–N28 show that their new tests catch what they guard.
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -10,7 +10,7 @@ Status: proposed; Q1–Q13 defaults applied · 2026-11-07 · Scope: `IMPLEMENTAT
 - shellcheck 0.11.0
 - actionlint 1.7.12
 
-Some things could not be run locally: GitHub CI, browsers and the Galaxy Z Fold4. They are checked in PR 4 (E9, §6.4).
+Some things could not be run locally: GitHub CI, browsers and the Galaxy Z Fold4. They are checked in the PRs (E9, §6.4), with the results so far in §6.6.
 
 **Precedence.** For M1, this document replaces IP §4 M1 wherever they differ. Each difference is marked **Δ** with its finding number (G#, §2). The M1 rows of IP §6 still hold; §5.11 lists every test. Once this plan is approved, fold the changes back into IP (Q8).
 
@@ -41,7 +41,7 @@ Goal (IP §3): `RoadGenerator` meets every unit invariant in `plan.md` §11, and
 | E2 | The path starts north with 4 straight tiles and is a connected N/W staircase. Expected exits alternate L, R, L… starting with L. Each junction has its expected exit plus 1–2 wrong exits, and its type (T or crossroads) matches. Straights stay within the area's min/max | `test_road_generator_pattern.gd`, `test_heading.gd` |
 | E3 | Over 200 seeds × 500 turns: one tile per cell, at least one wrong exit per junction, dead ends of 1–3 tiles that end in a cap, and no wrong exit dropped | `test_road_generator_occupancy.gd` |
 | E4 | Under fuzzed car moves, lookahead stays in 25..50 and at most 5 path tiles stay behind the car. Freeing a junction also frees its dead ends and their cells. Dropping the buffer frees every tile, and Godot reports no leak at exit | `test_road_buffer.gd`; `run_tests.sh` (G1) |
-| E5 | Areas switch at turns 34 (tunnel, then rural), 100 (bridge, then meadows), 200 (village) and 220 (desert). Set-piece tiles keep the old area, and the straight after a switch comes from the new area. Desert is still active at turn 1,000. A broken schedule is reported | `test_area_schedule.gd` |
+| E5 | Areas switch at turns 34 (tunnel, then rural), 100 (bridge, then meadows), 200 (village) and 220 (desert). Set-piece tiles keep the old area, and the straight after a switch comes from the new area. Desert is still active at turn 1,000. A broken schedule is reported, and the generator then uses one default area instead | `test_area_schedule.gd` |
 | E6 | The `is_on_road` capsule cases hold for every tile type, and the grey-box atlas pixels follow the same geometry | `test_road_geometry.gd`, `test_greybox_atlas.gd` |
 | E7 | The renderer draws exactly the buffer's tiles, and its layers line up with tile space | `test_world_renderer.gd`, `test_iso.gd` |
 | E8 | The smoke run (seed 12345) drives the viewer along the road and prints no error lines. Locally it prints `autopilot: tile 1440, turns 247, area desert` | `smoke.sh`: an `autopilot: tile N` line with N ≥ 1, and no error lines. PR 4 compares the full line by hand (§4) |
@@ -108,7 +108,7 @@ This plan applies the defaults below. Tell me if you want any of them changed.
 | Q6 | Buffer signals | The buffer's own; M2.7's `EventBus` relays them (G6) | Add a minimal `EventBus` autoload now |
 | Q7 | M0_PLAN.md appendices | Freeze them as M0's final state; PR 1 adds the note below | Keep them in sync: M1 changes 5 of their files |
 | Q8 | Fold this plan into IP? | After review. Until then, this document wins for M1 | — |
-| Q9 | Test sizes | Keep them: they add about 7 s to GUT | Shrink the 200 × 500 test if the CI `test` job regularly takes more than 100 s (M0: 51–76 s) |
+| Q9 | Test sizes | Keep them: they add about 7 s to GUT (8–11 s in CI, §6.6) | Shrink the 200 × 500 test if the CI `test` job regularly takes more than 100 s (M0: 51–76 s) |
 | Q10 | Dead-end tint | On in the M1 viewer, off in runs (`show_dead_ends`) | Off, or only in debug builds |
 | Q11 | Leak guard | In PR 1, in `run_tests.sh` | Only the WeakRef test (PR 3) |
 | Q12 | How do the 4 PRs land? | Stacked branches, each retargeted to `main` in turn (§4.5) | One PR at a time, each opened after the previous one merges |
@@ -227,7 +227,7 @@ git checkout origin/m1/prototype -- 'world/greybox_atlas.gd*' 'world/world_rende
 ```
 
 1. No trims. Expect: 29 scripts; `GUT: 47 tests passed` (143,448 asserts). `smoke.sh` prints `grey box: tilesets built in … ms` and `autopilot: tile 1440, turns 247, area desert`. Negative cases N4, N9, N12, N19 and N21.
-2. Check that the stack now matches the prototype. The command prints nothing, unless a review changed something on purpose:
+2. Check that the stack now matches the prototype. The command prints nothing, unless a review changed something on purpose. After the review fixes, it lists the six files changed in §4.6:
    ```bash
    git diff --stat origin/m1/prototype -- . ':!.github' ':!IMPLEMENTATION_PLAN.md' ':!M0_PLAN.md' \
      ':!M1_PLAN.md' ':!tools/ci/check_actions_storage.sh' ':!tools/ci/lint.sh'
@@ -265,6 +265,21 @@ This procedure was checked by simulating squash merges in a scratch clone.
    ```
    Because of the trims, a plain `git merge origin/main` stops with add/add conflicts in `road_fixtures.gd` and `test_area_schedule.gd`. `-X ours` resolves them to this branch's version, which is the complete file. But `-X ours` would also silently drop a review fix that PR n got and this branch never merged. The first merge prevents that, and the `diff` check shows it: a file from PR n appears in the list.
 5. Ruleset "Copilot" blocks branch deletion, so GitHub can't retarget PR n+1 by itself when PR n merges (§7).
+
+### 4.6 Review fixes
+
+These changes came from Copilot's reviews, the E9 Web check and a read-through of PR 4 before it was opened. Each one was committed on the branch of the PR that owns the code, then merged into the later branches (§4.5).
+
+| PR | Change | Tests | Negative case |
+|---|---|---|---|
+| #20, PR 1 | `AreaSchedule.validate()` reports a missing (null) entry before it reads any entry, and a negative `set_piece_length` (§5.6) | 3 more asserts in `test_validate_reports_broken_schedules` | N24 |
+| #21, PR 2 | `RoadGenerator._init` reports a missing or broken schedule, then generates from one default area instead (§5.3) | `test_the_generator_replaces_a_broken_schedule_with_one_default_area` | N25 |
+| #22, PR 3 | Tests only: `centreline_point()` clamps at the buffer's ends, and reports an error before `start()` (§5.5) | `test_centreline_clamps_to_the_buffer_ends`, `test_centreline_before_start_is_an_error` | N26 |
+| #23, PR 4 | The viewer tracks touches by index and the mouse button separately, so fast-forward lasts while any of them is held (§5.8) | `test_fast_forward_lasts_while_any_touch_or_the_mouse_button_is_held` | N27 |
+| #23, PR 4 | Found in E9: Godot's default font has no "↑", and the Web build has no system font to fall back on, so the hint showed a box. The hint now spells it out (§5.8) | `test_main_scene_text_has_every_glyph_in_the_default_font` | N28 |
+| #23, PR 4 | The comment above the `autopilot:` print says what `smoke.sh` enforces (§5.9) | — | — |
+
+The "Expect" lines in PR 1–PR 4 give the counts right after the checkout. With the fixes, the PRs have 19, 34, 42 and 52 tests (§6.1).
 
 ---
 
@@ -323,7 +338,8 @@ var shortened_count: int       # dead ends shortened to 1 tile
 var dropped_count: int         # wrong exits dropped; always 0 (§5.4)
 ```
 
-- `_init` reports each `schedule.validate()` problem with `push_error("AreaSchedule: " + problem)`, starts in `entries[0].area`, and seeds the road stream with `hash("%d:road" % run_seed)` (D8; G7 reserves `":props"`).
+- `_init` reports a missing schedule, or each `schedule.validate()` problem, with `push_error("AreaSchedule: " + problem)`. It then generates from a one-area schedule instead: an `AreaDef` with id `fallback` and the default rules. A broken schedule is never read, so the buffer and the viewer need no null checks (§4.6).
+- `_init` starts in `entries[0].area` and seeds the road stream with `hash("%d:road" % run_seed)` (D8; G7 reserves `":props"`).
 - `next_tile()` emits, in this order of priority:
   1. a set-piece tile while a set piece is pending; after the last one, the generator enters the pending area;
   2. a straight while the current straight has tiles left (the first straight has 4, G11);
@@ -380,7 +396,7 @@ Measured over 200 seeds × 500 turns with the game schedule: 62 of 130,320 dead 
 |---|---|---|
 | `AreaDef` | `id: StringName`, `display_name`, `id_color`; `min_straight` and `max_straight`, both `@export_range(2, 20)` with defaults 2 and 5; `cross_junction_chance`, 0–1, default 0.3 | no id; `min_straight < 2` (D7); `max_straight < min_straight`; a chance outside 0–1 |
 | `AreaScheduleEntry` | `turn`, `area`, `set_piece: StringName` (Δ: not a `PackedScene`), `set_piece_length` (`@export_range(0, 20)`) | (checked by the schedule) |
-| `AreaSchedule` | `entries: Array[AreaScheduleEntry]` | no entries; a first turn other than 0; a set piece on the first entry; turns that don't strictly increase; an entry without an area, and each area's own problems; a `set_piece` without a length, or a length without a `set_piece` |
+| `AreaSchedule` | `entries: Array[AreaScheduleEntry]` | no entries; a missing (null) entry, checked before any field is read; a first turn other than 0; a set piece on the first entry; turns that don't strictly increase; an entry without an area, and each area's own problems; a negative `set_piece_length`; a `set_piece` without a length, or a length without a `set_piece` |
 
 The five areas use IP M4.2's values:
 
@@ -415,11 +431,13 @@ The five areas use IP M4.2's values:
 
 `ui/main.tscn`: `Main` (`Node`, script `main.gd`) with `World` (an instance of `world.tscn`), `Ghost` (a yellow `Polygon2D` marker), `Camera` (zoom 0.5) and `UI/Label`.
 
-- The ghost moves along `buffer.centreline_point()` at 3 tiles/s, or 24 while ↑ (`ui_up`), a touch or the left mouse button is held. These speeds are viewer settings in `main.gd`, not tuning.
+- The ghost moves along `buffer.centreline_point()` at 3 tiles/s, or 24 while the up arrow (`ui_up`), any touch or the left mouse button is held. These speeds are viewer settings in `main.gd`, not tuning.
+- Touches are tracked by index, and the mouse button separately, so lifting one finger doesn't stop fast-forward while another is still down. `is_fast_forwarding()` exposes the state to tests (§4.6).
 - Every physics frame it calls `buffer.on_car_path_index(roundi(distance))`.
 - User arguments after `--`: `--seed=N` picks the road, otherwise the seed is random (D8). `--autopilot` always fast-forwards.
 - It prints `grey box: tilesets built in %d ms` at start (E9). With `--autopilot`, it prints `autopilot: tile %d, turns %d, area %s` when it quits (`_exit_tree`), which `smoke.sh` checks (G17).
-- The label shows the version, seed, tile, turns passed, area and lookahead, and a controls hint. Dead ends are tinted (Q10).
+- The label shows the version, seed, tile, turns passed, area and lookahead, and the hint "hold up arrow, click or touch: faster". Dead ends are tinted (Q10).
+- The label uses only characters in Godot's default font. The Web build has no system font to fall back on, so a "↑" showed as a box (§4.6).
 
 ### 5.9 CI scripts
 
@@ -433,7 +451,7 @@ The five areas use IP M4.2's values:
 - `smoke.sh` (PR 4, G17). The M0 run already passes `-- --autopilot --seed=12345`. It now also requires a line that matches `^autopilot: tile [1-9]`, and otherwise fails with `::error::The main scene reported no autopilot progress (see $log)`. Its header comment changes to match.
   - The tile is the buffer's car index, so a viewer that stops driving the buffer reports `tile 0` and fails.
   - The rest of the line isn't pinned. Any intended change to the generator, the area tuning (M4) or the driving (M2's car) changes the turns and area at the end of the run, and GUT checks the generator's rules over many seeds (E1–E5).
-- `tests/unit/test_smoke.gd` (PR 4): `var main: Node`; the root was a `Control`.
+- `tests/unit/test_smoke.gd` (PR 4): `var main: Node`; the root was a `Control`. Two new tests check the label's glyphs and the fast-forward input (§4.6).
 
 ### 5.10 Tuning
 
@@ -456,14 +474,14 @@ The five areas use IP M4.2's values:
 | `test_road_geometry.gd` | 6 | 1 | the centre is on the road for every tile; a straight; the cap is rounded at the centre; T-junction and crossroads; neighbouring tiles meet at the same width; the `RoadTile` overload |
 | `test_occupancy_grid.gd` | 2 | 1 | claim and release; claiming a taken cell is an error (G3) |
 | `test_iso.gd` | 4 | 1 | `tile_to_world()`; `world_to_tile()` inverts it; road and ground layer cells line up with tile space (G2) |
-| `test_area_schedule.gd` | 2 + 4 | 1, 2 | the game schedule is valid; `validate()` reports broken schedules. PR 2: the generator reports a broken schedule; switches at 34, 100, 200 and 220; the straight after a switch uses the new area; the last area goes on forever |
+| `test_area_schedule.gd` | 2 + 5 | 1, 2 | the game schedule is valid; `validate()` reports broken schedules, missing entries and negative lengths included. PR 2: the generator reports a broken schedule; it replaces a broken schedule with one default area; switches at 34, 100, 200 and 220; the straight after a switch uses the new area; the last area goes on forever |
 | `test_road_generator_pattern.gd` | 6 | 2 | over seeds 1, 2, 3, 42 and 12345: the path starts north with a straight run; expected exits alternate; a connected N/W staircase; the expected exit plus 1–2 wrong exits, with a matching type; straights follow the area rules; dead ends run straight out of wrong exits and end in a cap |
 | `test_road_generator_occupancy.gd` | 2 | 2 | 200 seeds × 500 turns: one tile per cell, each junction keeps a wrong exit, dead ends of 1–3 tiles, nothing dropped. The densest rules over 50 seeds shorten dead ends but never drop them |
 | `test_road_generator_determinism.gd` | 2 + 1 | 2, 3 | the same seed gives the same 2,000 path tiles; different seeds differ. PR 3: buffer refills and frees don't change the road |
-| `test_road_buffer.gd` | 5 | 3 | `start()` generates 50 ahead; lookahead under a fuzz of 20 seeds × 400 random car moves, backwards included, with a jump of up to 40 tiles every 50 moves; freed tiles leave with their dead ends; `path_tile()` and the centreline; dropping the buffer frees every tile (`WeakRef`, G1) |
+| `test_road_buffer.gd` | 7 | 3 | `start()` generates 50 ahead; lookahead under a fuzz of 20 seeds × 400 random car moves, backwards included, with a jump of up to 40 tiles every 50 moves; freed tiles leave with their dead ends; `path_tile()` and the centreline; the centreline clamps at the buffer's ends; before `start()`, the centreline is an error; dropping the buffer frees every tile (`WeakRef`, G1) |
 | `test_greybox_atlas.gd` | 5 | 4 | the layout; `road_coords()`; road in every tile's centre and in no corner; the pixels follow `RoadGeometry` (G8); the ground tileset |
 | `test_world_renderer.gd` | 3 | 4 | it draws the buffer and follows refills and frees; the debug tint; the layers line up (G2) |
-| `test_smoke.gd` | 2 | M0 | unchanged apart from the type (§5.9) |
+| `test_smoke.gd` | 2 + 2 | M0, 4 | the project name; the main scene shows the version, with its root now a `Node` (§5.9). PR 4: the label's text has every glyph in the default font; fast-forward lasts while any touch or the mouse button is held (§5.8) |
 
 The determinism tests compare `road_fixtures.signature()`: the tile's cell, type, exits, `area_id`, `path_index`, `expected_exit` and `set_piece`, plus each dead end's cell, type, exits and `junction_index`. **Δ IP "M1 tests":** no `decor` (G7).
 
@@ -473,21 +491,21 @@ The determinism tests compare `road_fixtures.signature()`: the tile's cell, type
 
 ### 6.1 Local checks
 
-The commands are those of M0_PLAN.md §6.1: `lint.sh`, `import.sh`, `check_scripts.sh`, `run_tests.sh` and `smoke.sh` in `tools/ci/`. Every PR state was rebuilt on #18's head (3fbd395), and all five passed:
+The commands are those of M0_PLAN.md §6.1: `lint.sh`, `import.sh`, `check_scripts.sh`, `run_tests.sh` and `smoke.sh` in `tools/ci/`. Every PR state was rebuilt on #18's head (3fbd395), and all five passed. "Port" is the state right after the checkout (§4); "final" is the PR head after the review fixes (§4.6), all five checks run again:
 
-| State | `check_scripts` | GUT tests | Asserts | GUT time |
+| State | `check_scripts` | GUT tests: port → final | Asserts: port → final | GUT time |
 |---|---|---|---|---|
 | M0 (#18) | 4 | 2 | — | — |
-| PR 1 | 19 | 19 | 116 | 0.4 s |
-| PR 2 | 23 | 33 | 143,055 | 6.6 s |
-| PR 3 | 25 | 39 | 143,374 | 6.9 s |
-| PR 4 | 29 | 47 | 143,448 | 6.8–7.3 s |
+| PR 1 | 19 | 19 → 19 | 116 → 119 | 0.4 s |
+| PR 2 | 23 | 33 → 34 | 143,055 → 143,064 | 6.6–6.7 s |
+| PR 3 | 25 | 39 → 42 | 143,374 → 143,391 | 6.8–7.3 s |
+| PR 4 | 29 | 47 → 52 | 143,448 → 143,469 | 6.7–7.3 s |
 
 `lint.sh` reports `Actions storage: no caches, artifacts kept 1 day (5 files checked)` in every state. PR 4's `smoke.sh` prints `autopilot: tile 1440, turns 247, area desert`.
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR state that has the code, run the checks, then revert. Every "Expected" result was reproduced: N1–N22 by a script that applied each change to the prototype in turn, and N23 on the PR 1 state.
+For each case, make the temporary change in the PR state that has the code, run the checks, then revert. Every "Expected" result was reproduced: N1–N22 by a script that applied each change to the prototype in turn, N23 on the PR 1 state, and N24–N28 on the PR heads while fixing the reviews (§4.6).
 
 | # | Temporary change | Expected | With IP's design |
 |---|---|---|---|
@@ -514,6 +532,11 @@ For each case, make the temporary change in the PR state that has the code, run 
 | N21 | Ground cells are not erased when their tile is freed | GUT fails: `test_draws_the_buffer_and_follows_refills_and_frees` | Not tested |
 | N22 | Dead-end caps keep a forward exit | GUT fails: `test_dead_ends_run_straight_out_of_wrong_exits_and_end_in_a_cap` | Not tested |
 | N23 | In the PR 1 state, a test makes a `RoadTile` hold itself in `branches` | GUT passes 20/20, but `run_tests.sh` fails on "3 ObjectDB instances were leaked at exit" and "1 resources still in use at exit" | GUT exits 0 (G1) |
+| N24 | `AreaSchedule.validate()` without the missing-entry and negative-length checks | GUT fails `test_validate_reports_broken_schedules`: `[""] expected to equal ["entry 0 is missing"]`, plus the errors from reading a null entry | IP's validator checks only the turns (IP M4.1) |
+| N25 | `RoadGenerator._init` keeps a broken schedule, as in the prototype | GUT fails `test_the_generator_replaces_a_broken_schedule_with_one_default_area` on the errors from reading it | Not specified |
+| N26 | `centreline_point()` doesn't clamp the distance | GUT fails `test_centreline_clamps_to_the_buffer_ends`: 4 asserts, for example `(0.5, 3.5)` expected to equal `(0.5, 0.5)` | Not tested |
+| N27 | `main.gd` keeps one flag for every touch and the mouse, as in the prototype | GUT fails `test_fast_forward_lasts_while_any_touch_or_the_mouse_button_is_held`: "touch 0 is still down" | Not tested |
+| N28 | The hint says "↑" again, as in the prototype | GUT fails `test_main_scene_text_has_every_glyph_in_the_default_font`: `["↑"]` | Not tested |
 
 ### 6.3 Screenshots
 
@@ -528,11 +551,11 @@ The script isn't committed, because it reads the viewer's private fields; M6.6 b
 
 ### 6.4 Verified only in CI or on devices
 
-| Check | PR |
-|---|---|
-| The five checks on GitHub; the `test` job time against M0's 51–76 s (Q9) | 1–4 |
-| The Web build in Chrome and Firefox; Pages after the merge | 4 |
-| The APK on the Galaxy Z Fold4: scrolling, touch and hold, and the `grey box:` time (Q3) | 4 |
+| Check | PR | Result |
+|---|---|---|
+| The five checks on GitHub; the `test` job time against M0's 51–76 s (Q9) | 1–4 | Green on every PR head; the job takes 62–89 s (§6.6) |
+| The Web build in Chrome and Firefox; Pages after the merge | 4 | Web done on 7030e40 (§6.6); Pages after the merge |
+| The APK on the Galaxy Z Fold4: scrolling, touch and hold, and the `grey box:` time (Q3) | 4 | The owner (§7) |
 
 ### 6.5 Measurements (prototype, local)
 
@@ -540,6 +563,15 @@ The script isn't committed, because it reads the viewer's private fields; M6.6 b
 - Over 200 seeds × 500 turns with the game schedule: 6.13 path tiles per turn, and 30.3% of junctions are crossroads.
 - Grey-box tilesets: 59–62 ms to build headless, and 60–65 ms with the OpenGL renderer under xvfb; 2 ms when cached. The whole smoke run takes about 1 s.
 - The CI `test` job took 51–76 s in M0's last 8 runs (Q9).
+
+### 6.6 Measurements (PRs)
+
+- **Local GUT:** PR 4's head runs 52 tests and 143,469 asserts in 6.9–7.0 s.
+- **CI, the latest runs of each PR:** the `test` job took 62–89 s, against M0's 51–76 s. Starting the Godot container takes 41–62 s of that, and the GUT step 2 s in PR 1 and 8–11 s from PR 2 on. The job stays under Q9's 100 s, so the 200 × 500 test stays.
+- **Web (E9):** the CI artifacts, served with `python3 -m http.server` and driven with Playwright. There is no GPU, so both browsers render in software. Results are on #23.
+  - `grey box: tilesets built in` 171–213 ms in Chrome 156 (headless) and 107–216 ms in Firefox 156 (llvmpipe under Xvfb), over PR 4's builds.
+  - Holding the left mouse button for 3 s moves the ghost about 72 tiles. After release, it moves about 3 tiles/s.
+  - With Chrome's touch emulation: two fingers down, one lifted at 600 ms, the other held to 3 s. The ghost moves 74 tiles; before the fix in §4.6, it moved 28.
 
 ---
 
@@ -549,11 +581,11 @@ These need the repository owner. The current state was read with `gh api` on 202
 
 | When | Action | How |
 |---|---|---|
-| Now | Merge #18 (F34) | — |
-| Now | Require the `lint` status check in ruleset "Test" (id 26672445) | See below |
+| Done | Merge #18 (F34) | Merged on 2026-11-07 |
+| Done | Require the `lint` status check in ruleset "Test" (id 26672445) | See below |
 | Optional | Allow deleting merged PR branches, so GitHub retargets stacked PRs by itself | Ruleset "Copilot" (id 26740665): turn off "Restrict deletions". Otherwise retarget with `gh pr edit` (§4.5) |
-| After PR 4 | The E9 manual checks | §4, PR 4 step 3 |
-| Any time | Answer Q1–Q13, or accept the defaults | — |
+| Before PR 4 merges | The E9 Android check; the Web check is done (§6.6) | §4, PR 4 step 3 |
+| Done | Answer Q1–Q13, or accept the defaults | The defaults were approved with this plan |
 
 **Requiring `lint`.**
 1. Settings → Rules → Rulesets → **Test**.
@@ -580,13 +612,13 @@ gh api repos/pompomon/roadgame/rulesets/26672445 \
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The new tests add about 7 s to GUT | A slower `test` check | Measure in PR 2. Shrink the 200 × 500 test if the job regularly takes more than 100 s (Q9) |
-| Building the atlas is slow in browsers or on the phone | A late first frame | E9 measures it. Over 300 ms, PR 4 switches to a baked PNG before it merges (Q3) |
+| The new tests add about 7 s to GUT | A slower `test` check | Measured: the GUT step takes 8–11 s in CI, and the job 62–89 s (§6.6). Shrink the 200 × 500 test if the job regularly takes more than 100 s (Q9) |
+| Building the atlas is slow in browsers or on the phone | A late first frame | E9 measures it: 107–216 ms in Chrome and Firefox with software rendering (§6.6); the phone is still to check. Over 300 ms, PR 4 switches to a baked PNG before it merges (Q3) |
 | M2 replaces `ui/main.gd` | `smoke.sh` fails without the `autopilot:` line | M2 keeps the line, or changes `smoke.sh` in the same PR (G17, §9) |
 | float32 positions far from the origin | Jitter in long runs | None needed: at 200,000 px (about 6,000 path tiles), positions are precise to about 1/64 px |
 | `push_error` doesn't stop a release build | A broken invariant goes unnoticed | Every CI script fails on error lines (M0 F10), and a test covers each invariant (§6.2) |
 | Squash merges of stacked PRs | Add/add conflicts, and `-X ours` can drop a review fix | §4.5: merge PR n's final branch first, then check `git diff --name-only origin/main` |
-| The PRs drift from the prototype after reviews | The prototype stops being a reliable reference | PR 4's tree check shows every difference |
+| The PRs drift from the prototype after reviews | The prototype stops being a reliable reference | PR 4's tree check shows every difference: the six files changed in §4.6 |
 | `m1/prototype` disappears before PR 4 | PRs can't check files out | Keep it until PR 4 merges |
 | A CI run on `m1/prototype` | Caches and 14-day artifacts from its pre-F34 `ci.yml` | Never open a PR from it or start a manual run on it |
 
@@ -603,6 +635,7 @@ gh api repos/pompomon/roadgame/rulesets/26672445 \
   - `centreline_point()` clamps at the ends of the buffer without an error (§5.5), so call `on_car_path_index()` before reading it.
   - Name seed parameters `run_seed`, including M2.7's `start_run(seed := -1)` (G13).
   - Turn the dead-end tint off in the game (Q10).
+  - Use only characters in Godot's default font in UI text, or ship a font: the Web build has no system font to fall back on. Extend `test_main_scene_text_has_every_glyph_in_the_default_font` to the HUD (§4.6).
 - **M4:**
   - Add the remaining `AreaDef` fields (`palette`, `road_tileset`, `ground_variants`, `props`, `disasters`, `ambient_loop`, `music` and `transition_tiles`) and `PropDef` (M4.1).
   - Seed the props stream with `hash("%d:props" % run_seed)`, and add the prop-density determinism test (G7).
