@@ -2,7 +2,7 @@
 
 Status: proposed; Q1–Q17 defaults applied · 2026-11-07 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M2 row, §4 M2.1–M2.7 and "M2 tests", the M2 rows of §6, and the driving values of M4.2, which M1_PLAN.md §9 moves into M2
 
-**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m2/prototype` (c9fdb44) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of #23 (938c7b2) and passed the five local checks (§6.1). The 46 negative cases in §6.2 were run too. The stacked landing was simulated (§4.5), and a probe played three runs with two retries through the real input path (§6.5).
+**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m2/prototype` (2a3b915) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of #23 (938c7b2) and passed the five local checks (§6.1). The 47 negative cases in §6.2 were run too. The stacked landing was simulated (§4.5), and a probe played three runs with two retries through the real input path (§6.5).
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -44,7 +44,7 @@ Goal (IP §3): "A human can drive with touch or keyboard; auto-speed, off-road, 
 | E5 | The autopilot completes 300 turns on each of 20 seeds at `delta = 1/60`, with no disaster and no damage, and never enters a junction tile above `junction_speed` | `tests/sim/test_autopilot_300_turns.gd` |
 | E6 | A driver that cuts the inside corner leaves the road near the junction, rejoins 1–2 tiles past it, and completes the turn with 1–99 health | `tests/sim/test_corner_cut.gd` |
 | E7 | `GameState` follows its transition table, and an invalid change is an error that changes nothing (H25). Pausing pauses the tree. `end_run()` reports the cause and the stats, and quitting to the title unpauses | `test_game_state.gd` |
-| E8 | Keys and touches steer. Of the inputs held, the last one pressed wins (Q7). A touch steers by the half where it started. Losing focus, by either notification, drops everything held and pauses the run (H4). Input works while paused (H3), and a tap or click on II pauses without steering (H7–H9) | `test_input_router.gd`, `test_main_scene_boot.gd` |
+| E8 | Keys and touches steer. Each key and touch is held on its own, and of those held, the last one pressed wins (Q7). A touch steers by the half where it started. Losing focus, by either notification, drops everything held and pauses the run (H4). Input works while paused (H3), and a tap or click on II pauses without steering (H7–H9) | `test_input_router.gd`, `test_main_scene_boot.gd` |
 | E9 | The HUD shows the version, the seed, turns, health and the distance in metres, pauses by key or button, and shows why a run ended and how to retry (H6). The camera takes the zoom step nearest, by ratio, to 5 tiles across the shorter side, looks ahead and keeps the car low in portrait. The car shows the nearest of 16 frames, and dust only off the road | `test_hud.gd`, `test_camera_rig.gd`, `test_car_controller.gd` |
 | E10 | The main scene drives 600 frames with the autopilot and no errors. With no input, the first junction ends the run (H30). With the autopilot, the end of a run is an error (H17). Every glyph the HUD can show is in the default font | `test_main_scene_boot.gd`, `test_smoke.gd` |
 | E11 | The smoke run (seed 12345, 3,600 frames) drives with the autopilot and prints no error lines, so the run doesn't end (H17). Locally it prints `autopilot: tile 165, turns 35, area rural` | `smoke.sh`: an `autopilot: tile N` line with N ≥ 1, and no error lines. PR 4 compares the full line by hand (§4) |
@@ -111,7 +111,7 @@ IP's M2 design mostly holds up. The speed model, the D5 and D6 rules and the spl
 | H28 | IP M2 has no retry. | A tap or Enter retries at once. A forced `--seed` stays for every retry; without it, each run gets a new random seed (Q2) |
 | H29 | The editor reports 8 warnings in M1's code: INTEGER_DIVISION in `test_greybox_atlas.gd` (4), `test_iso.gd`, `ui/main.gd` and `world/greybox_atlas.gd`, and UNUSED_VARIABLE in `test_road_generator_occupancy.gd`. | Leave them (Q13). M2 adds none (§6.3) |
 | H30 | IP's boot test runs 600 frames with no input. With no input, the car goes straight over the first junction, a wrong turn at frame 148, so the test would check game over, not driving. | **Δ IP "M2 tests":** the boot test drives with the autopilot, and another test checks that with no input the first junction ends the run (N41) |
-| H31 | `JunctionTrigger` looks for the next junction in the buffer, which is sure to hold only 25 tiles ahead of the car (`BUFFER_REFILL_AT`). `AreaDef` allows straights of 20 tiles and a schedule entry a set piece of 20, and `validate()` doesn't check what they add up to. Past the buffer, the trigger stops judging, with only a `push_error`. | None in M2: in the game schedule, the next junction is at most 14 path tiles away. M4 checks it in `AreaSchedule.validate()` (§6.5, §9) |
+| H31 | `JunctionTrigger` looks for the next junction in the buffer as the car leaves a junction, when the buffer is sure to hold only 25 tiles past it (`BUFFER_REFILL_AT`). The set piece, the straight after it and the next junction's own tile must fit in those 25 tiles. `AreaDef` allows straights of 20 tiles and a schedule entry a set piece of 20, and `validate()` doesn't check what they add up to. Past the buffer, the trigger stops judging, with only a `push_error`. | None in M2: in the game schedule, the next junction is at most 14 path tiles away. M4 checks it in `AreaSchedule.validate()` (§6.5, §9) |
 
 ---
 
@@ -127,7 +127,7 @@ This plan applies the defaults below. Tell me if you want any of them changed.
 | Q4 | What happens when the game loses focus? | Drop everything held and pause the run (H4) | Only drop what is held, and drive on |
 | Q5 | Touch zones | None: II keeps the touches on it from steering by itself (H9) | IP M2.6's `TouchZones` |
 | Q6 | Can the mouse steer on desktop? | Yes: `emulate_touch_from_mouse` turns clicks into touches (H8) | Keyboard only on desktop |
-| Q7 | Keys and touches held at the same time | The last one pressed wins, and the others take over again as it is released. A touch keeps the side where it started | Opposite inputs cancel out |
+| Q7 | Keys and touches held at the same time | Each key and touch counts on its own. The last one pressed wins, and the others take over again as it is released. A touch keeps the side where it started | Opposite inputs cancel out |
 | Q8 | The autopilot | It replaces the player's input while it is set (`-- --autopilot`, tests) | One more input source, mixed in by Q7's rule |
 | Q9 | Which distance does the HUD show? | The farthest point reached along the path, at 10 m per tile (H27) | The distance driven (`dist_total`), which grows off the road and when driving back |
 | Q10 | `AreaDef`'s driving defaults | The City's values, so `city.tres` sets none | Every area sets all six |
@@ -251,7 +251,7 @@ git checkout origin/m2/prototype -- project.godot tools/ci/smoke.sh 'car/input_r
   tests/unit/test_smoke.gd
 ```
 
-1. No trims. Expect: 50 scripts; `GUT: 128 tests passed` (143,964 asserts, about 12 s). `smoke.sh` prints `grey box: tilesets built in … ms` and `autopilot: tile 165, turns 35, area rural`. Negative cases N9–N12, N16–N21, N25–N27, N35–N39, N41, N42, N45 and N46.
+1. No trims. Expect: 50 scripts; `GUT: 129 tests passed` (143,969 asserts, about 12 s). `smoke.sh` prints `grey box: tilesets built in … ms` and `autopilot: tile 165, turns 35, area rural`. Negative cases N9–N12, N16–N21, N25–N27, N35–N39, N41, N42 and N45–N47.
 2. Check that the stack now matches the prototype. The command prints nothing, unless a review changed something on purpose. If `main` has changed other files since 938c7b2, exclude them too:
    ```bash
    git diff --stat origin/m2/prototype -- . ':!M2_PLAN.md'
@@ -516,7 +516,7 @@ signal paused_changed(paused: bool)                # IP M2.7
   - 0 while disabled;
   - the `autopilot`'s steering if one is set (Q8);
   - otherwise the latest of the inputs held, or 0 (Q7).
-- **Keys:** the `steer_left` (−1) and `steer_right` (1) actions: the arrow keys and A/D, from M0's input map.
+- **Keys:** the `steer_left` (−1) and `steer_right` (1) actions: the arrow keys and A/D, from M0's input map. Each key is held on its own, by physical keycode, so releasing A while the left arrow is held still steers left. A gamepad, which IP M2.1 allows for but no milestone maps, would be held by action name.
 - **Touches** come in `_unhandled_input()`, keyed by touch index. A touch steers by the half of the visible rect where it started, until it lifts.
   - Touches on II never get here, because the button consumes them (H9).
   - With no touchscreen, `pointing/emulate_touch_from_mouse` turns the left mouse button into a touch (H8, Q6). PR 4 adds it to `project.godot`.
@@ -644,14 +644,14 @@ No CI script changes, apart from one comment.
 | `tests/sim/test_autopilot_300_turns.gd` | 1 | 2 | E5: seeds 0–19, at most 72,000 steps each. Each run reaches turn 300 with no disaster or crash and full health, and enters no junction tile above `junction_speed` (H1) |
 | `tests/sim/test_corner_cut.gd` | 1 | 2 | E6: a pure-pursuit driver that aims 2 or 2.5 tiles ahead, on seeds 0–7. It leaves the road next to the first junction, and its rejoin decides the turn. It ends with 1–99 health. Across the 16 runs, it rejoins on the first and on the second tile past the junction |
 | `test_game_state.gd` | 12 | 3 | It starts in `TITLE`, and `start_run()` resets the stats. Pause and resume pause the tree. Wrong and missed turns are disasters, health and off-road crashes, and `run_ended` carries the cause and the stats. Game over, then a retry. Quitting to the title unpauses, and does nothing in `TITLE`. An invalid change is an error and changes nothing, and a paused run can't end. Every state can quit to the title. Each test uses a new `GameState`, not the autoload |
-| `test_input_router.gd` | 7 | 4 | With nothing held, it steers straight. The last key pressed wins until it is released. A touch steers by the half where it started. Touches and keys mix, and the last one wins. Disabled, it steers straight and ignores input. Losing focus, by either notification, releases everything held (H4). An autopilot steers instead of the player |
+| `test_input_router.gd` | 8 | 4 | With nothing held, it steers straight. The last key pressed wins until it is released. Two keys for one side are held apart: releasing one keeps steering, and the input pressed before it takes over. A touch steers by the half where it started. Touches and keys mix, and the last one wins. Disabled, it steers straight and ignores input. Losing focus, by either notification, releases everything held (H4). An autopilot steers instead of the player |
 | `test_hud.gd` | 7 | 4 | The version and the seed; turns, health and the distance in metres. The pause action and II both pause and resume. The end of a run shows why and how to retry. A tap or Enter retries only once the game is over. A retry may take the HUD out of the tree (H6) |
 | `test_camera_rig.gd` | 4 | 4 | The zoom step for 360×640, 640×360, 1920×1080, 200×200 and 500×500 (H26). The zoom follows size changes. It looks ahead, and in portrait keeps the car low. It catches up with its target smoothly |
 | `test_car_controller.gd` | 3 | 4 | The grid headings N, E, S and W get frames 3, 5, 11 and 13, NE gets 4 and NW 0 (H21). It steps its sim with the input and moves with it. Dust flies only while the car is off the road |
 | `tests/integration/test_main_scene_boot.gd` | 8 | 4 | The main scene in a 360×640 `SubViewport`, with input pushed through the viewport as on a device. With the autopilot, 600 frames and no errors, and the HUD shows the turns and metres (H30). The distance is the farthest point reached (H27). With no input, the first junction ends the run. With the autopilot, the end of a run is an error (H17). A key released while paused is not missed (H3). Losing focus pauses the run and releases the keys (H4). A tap on II pauses without steering (H9). A click works like a tap and leaves Enter alone (H7, H8) |
 | `test_smoke.gd` | 4 → 3 | 4 | The project name. The HUD shows the version and the seed (`--seed=1`). Every character of every label and button, the digits, the minus sign and every message is in the default font. M1's fast-forward test goes with the viewer |
 
-- 52 tests become 128: 77 are new, and one goes.
+- 52 tests become 129: 78 are new, and one goes.
 - GUT fails a test on any `push_error()` or engine error that the test doesn't expect with `assert_push_error()`. So "no errors" in the boot test needs no assert of its own.
 - No test retries. A retry reloads the current scene, which under GUT is GUT itself. `test_hud.gd` checks the signal, and E12 checks the reload by hand.
 - `CarSim`'s tests are split by topic, as in IP's M2 tests table, and the sim tests cover `Autopilot`.
@@ -670,7 +670,7 @@ The commands are those of M0_PLAN.md §6.1: `lint.sh`, `import.sh`, `check_scrip
 | PR 1 | 31 | 69 | 143,576 | 6.9 s | the same |
 | PR 2 | 38 | 88 | 143,809 | 12.6 s | the same |
 | PR 3 | 41 | 100 | 143,852 | 12.1 s | the same |
-| PR 4 | 50 | 128 | 143,964 | 12.3 s | `autopilot: tile 165, turns 35, area rural` |
+| PR 4 | 50 | 129 | 143,969 | 12.7 s | `autopilot: tile 165, turns 35, area rural` |
 
 PRs 1–3 keep M1's main scene, so their smoke line is M1's. Repeated runs of a state differ by up to 0.7 s. In every state:
 - `lint.sh` reports `Actions storage: no caches, artifacts kept 1 day (5 files checked)`;
@@ -679,7 +679,7 @@ PRs 1–3 keep M1's main scene, so their smoke line is M1's. Repeated runs of a 
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for all 46 cases on `m2/prototype` (c9fdb44), and again for the 24 cases of PRs 1–3 on their own PR states. Every result below was reproduced.
+For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for all 47 cases on `m2/prototype` (2a3b915), and again for the 24 cases of PRs 1–3 on their own PR states. Every result below was reproduced.
 
 "The two II tests" are `test_a_tap_on_the_pause_button_pauses_without_steering` and `test_a_click_works_like_a_tap_and_leaves_enter_alone`. "With IP's design" says what happens with the same problem if IP is followed as written:
 - **Fails ✓:** one of IP's M2 tests fails too.
@@ -706,7 +706,7 @@ For each case, make the temporary change in the PR state listed, run the checks 
 | N14 | 2 | No straightening without input | GUT fails: `test_with_no_input_it_straightens_up_to_the_nearest_grid_direction` | Not tested |
 | N15 | 3 | A missed turn counts as a crash | GUT fails: `test_wrong_and_missed_turns_are_disasters`, `test_every_state_can_quit_to_title` | Not tested |
 | N16 | 4 | The `InputRouter` keeps what is held when the window loses focus | GUT fails: `test_losing_focus_releases_everything_held`, `test_losing_focus_pauses_the_run_and_releases_the_keys` | Not in IP (H4) |
-| N17 | 4 | The first input held wins instead of the last | GUT fails: `test_the_last_key_pressed_wins_until_it_is_released`, `test_touches_and_keys_mix_and_the_last_one_wins` | Not tested |
+| N17 | 4 | The first input held wins instead of the last | GUT fails: `test_the_last_key_pressed_wins_until_it_is_released`, `test_each_key_is_held_on_its_own`, `test_touches_and_keys_mix_and_the_last_one_wins` | Not tested |
 | N18 | 4 | II takes focus (`focus_mode` ALL, Godot's default) | GUT fails: `test_a_click_works_like_a_tap_and_leaves_enter_alone` | IP's design: a default button (H7) |
 | N19 | 4 | II passes pointer events on (`mouse_filter` PASS) | GUT fails: the two II tests | Not tested (H9) |
 | N20 | 4 | II ignores pointer events (`mouse_filter` IGNORE) | GUT fails: the two II tests | Not tested (H9) |
@@ -736,6 +736,7 @@ For each case, make the temporary change in the PR state listed, run the checks 
 | N44 | 2 | `cells_crossed()` always enters the x neighbour first | GUT fails: `test_a_move_enters_each_cell_it_crosses_in_order` | Not specified (H10) |
 | N45 | 4 | The HUD marks the retry handled after emitting `retry_requested` | GUT fails: `test_a_retry_may_take_the_hud_out_of_the_tree` | Not in IP (H6) |
 | N46 | 4 | `main.gd` pauses only on `NOTIFICATION_APPLICATION_FOCUS_OUT`, which the Web never sends | GUT fails: `test_losing_focus_pauses_the_run_and_releases_the_keys` | Not in IP (H4) |
+| N47 | 4 | The `InputRouter` holds keys by action name, so the left arrow and A share one entry | GUT fails: `test_each_key_is_held_on_its_own` | Not tested |
 
 ### 6.3 Editor warnings
 
@@ -756,7 +757,7 @@ Without `EventBus`'s `@warning_ignore_start("unused_signal")`, it reports 18: on
 
 ### 6.5 Measurements (prototype, local)
 
-- **GUT.** In PR 4's state, `test_300_turns_on_20_seeds` takes 5.1 s of GUT's 12.3 s, about 0.25 s a seed (H15). M1's 200 × 500 occupancy test takes 3.6 s.
+- **GUT.** In PR 4's state, `test_300_turns_on_20_seeds` takes 5.4 s of GUT's 12.7 s, about 0.27 s a seed (H15). M1's 200 × 500 occupancy test takes 3.6 s.
 - **IP's braking** (H1, N1). With the constant `BRAKE`, the autopilot ran out of health on all 20 seeds, at turns 76–98. On each seed, its fastest entry into a junction tile was 1.94–2.21 tiles/s above `junction_speed`.
 - **Step size** (H11). At the cap of 7 tiles/s, a 1/60 s step moves 0.117 tiles. The road is 0.32 tiles wide on each side of its centreline (`ROAD_HALF_WIDTH`), so it ends 0.18 tiles before an edge without road.
 - **Cutting corners** (H12, E6). A pure-pursuit driver that aims further along the path than the autopilot's 0.9 tiles drove to the first junction on 8 seeds. J+1 is the first tile past the junction.
@@ -797,9 +798,10 @@ Without `EventBus`'s `@warning_ignore_start("unused_signal")`, it reports 18: on
   | 2176×1812 | 1536×1280 | 320, 266 | 50% |
 
   With `scale_mode="fractional"`, the view fills every screen, and the visible sizes and zooms stay the same (window.cpp:1380–1401).
-- **Junction gaps** (H31). Over 200 seeds × 300 turns, the game schedule's largest gap between consecutive junctions is 14 path tiles. A test schedule alternates two areas, with straights of exactly 20 tiles and a tunnel at each switch, and passes `validate()`:
-  - with 10-tile tunnels, the trigger stops judging at turn 5 (`ERROR: JunctionTrigger: no junction after path index 128`);
-  - with 20-tile tunnels, it stops at turn 2 (path index 45).
+- **Junction gaps** (H31). Over 200 seeds × 300 turns, the game schedule's largest gap between consecutive junctions is 14 path tiles. A test schedule alternates two areas, with a tunnel at each switch, and passes `validate()`:
+  - with straights of exactly 20 tiles and 10-tile tunnels, the trigger stops judging at turn 5 (`ERROR: JunctionTrigger: no junction after path index 128`). With 20-tile tunnels, it stops at turn 2 (path index 45);
+  - the limit is exact: tunnel + longest straight + 1 (the next junction's own tile) ≤ 25. With straights of 15–20 tiles, over 5 seeds × 300 turns, 4-tile tunnels (4 + 20 + 1 = 25) never stop the judging, although the next junction is sometimes the buffer's last tile. 5-tile tunnels (26) stop it on 3 of the seeds, at turns 2, 34 and 180. Straights of 5–10 tiles with 14- and 15-tile tunnels give the same results;
+  - with straights of a single length, 26 passed every turn: the junctions keep step with the buffer's refills, 26 tiles apart. A test of the limit needs straights of varying length.
 - **Grey box.** The tilesets take 59–63 ms to build headless, in every PR state.
 
 ---
@@ -851,7 +853,7 @@ Done since M1: `lint` is a required check in ruleset "Test" (id 26672445), with 
   - If E12 finds accidental retries, add Q2's delay.
 - **M4:**
   - M4.1 adds the rest of `AreaDef`. M2 adds only the six driving fields (§5.2) and M4.2's values for the four areas.
-  - H31: make `AreaSchedule.validate()` check that a set piece plus the longest straight of the area it leads into stays within `BUFFER_REFILL_AT` (25 tiles), so the next junction is always in the buffer (§6.5).
+  - H31: make `AreaSchedule.validate()` check `set_piece_length + max_straight + 1 <= BUFFER_REFILL_AT`, with the `max_straight` of the area the set piece leads into. The 1 is the next junction's own tile. Then the next junction is always in the buffer. A test of the limit needs straights of varying length (§6.5).
 - **M5:** M5.1 draws the 16 car frames at the angles of §5.7: N, E, S and W are frames 3, 5, 11 and 13, 4.07° off the grid directions (H21). Its car and dust art replace M2's arrow and particles, and M5.3 adds the engine sound (H20).
 - **IP §5.4:** M2 has no F3 debug overlay.
 - **M6:**
