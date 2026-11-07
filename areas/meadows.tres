@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AreaDef" format=3]
+
+[ext_resource type="Script" path="res://areas/area_def.gd" id="1_rc7gr"]
+
+[resource]
+script = ExtResource("1_rc7gr")
+id = &"meadows"
+display_name = "Meadows"
+id_color = Color(0.42, 0.68, 0.33, 1)
+min_straight = 3
+max_straight = 7

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="AreaDef" format=3]
+
+[ext_resource type="Script" path="res://areas/area_def.gd" id="1_dlkcf"]
+
+[resource]
+script = ExtResource("1_dlkcf")
+id = &"city"
+display_name = "City"
+id_color = Color(0.55, 0.58, 0.63, 1)
+cross_junction_chance = 0.4
