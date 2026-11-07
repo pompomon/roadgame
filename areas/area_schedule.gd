@@ -11,6 +11,11 @@ func validate() -> PackedStringArray:
 	if entries.is_empty():
 		problems.append("the schedule has no entries")
 		return problems
+	# A null slot, such as an entry added in the Inspector but never assigned.
+	var missing := entries.find(null)
+	if missing != -1:
+		problems.append("entry %d is missing" % missing)
+		return problems
 	if entries[0].turn != 0:
 		problems.append("the first entry is turn %d, not 0" % entries[0].turn)
 	if entries[0].set_piece_length != 0:
@@ -24,6 +29,8 @@ func validate() -> PackedStringArray:
 			problems.append("turn %d has no area" % entry.turn)
 		else:
 			problems.append_array(entry.area.validate())
-		if (entry.set_piece == &"") != (entry.set_piece_length == 0):
+		if entry.set_piece_length < 0:
+			problems.append("turn %d: set_piece_length is negative" % entry.turn)
+		elif (entry.set_piece == &"") != (entry.set_piece_length == 0):
 			problems.append("turn %d: set_piece and set_piece_length disagree" % entry.turn)
 	return problems
