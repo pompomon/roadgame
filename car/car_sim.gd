@@ -18,8 +18,6 @@ const WRONG_TURN := &"wrong_turn"
 const MISSED_TURN := &"missed_turn"
 const HEALTH := &"health"
 const OFFROAD := &"offroad"
-## Halvings that find where a step crosses the road's edge: to within 2^-16 of the step.
-const EDGE_HALVINGS := 16
 
 ## Position in tile space (D1).
 var pos := Vector2.ZERO
@@ -44,6 +42,10 @@ var progress := 0.0
 var area: AreaDef
 var buffer: RoadBuffer
 var trigger: JunctionTrigger
+
+## While off the road: the fraction of the current step from which the off-road time is not yet
+## counted.
+var _offroad_since := 0.0
 
 
 ## Puts the car on the centre of the buffer's first path tile, facing along it, at speed 0.
@@ -70,18 +72,28 @@ func step(delta: float, steer: float) -> void:
 	_steer(delta, steer)
 	_update_speed(delta)
 	var from := pos
-	var was_on_road := state != State.OFFROAD
 	pos += velocity() * delta
 	dist_total += speed * delta
 	dist_on_straight += speed * delta
+	_offroad_since = 0.0
+	# Follow the move in order: in each cell, where it leaves or rejoins the road, then where it
+	# crosses into the next cell, which the trigger judges by whether the car is on the road there.
 	var cell := Vector2i(from.floor())
+	var done := 0.0
 	for next: Vector2i in cells_crossed(from, pos):
-		trigger.on_cell_crossed(cell, next, was_on_road)
-		cell = next
+		var at := _crossing_fraction(from, pos, cell, next)
+		if not _follow_road(from, cell, done, at, delta):
+			return
+		trigger.on_cell_crossed(cell, next, state != State.OFFROAD)
 		if is_over():
 			return
+		cell = next
+		done = at
+	if not _follow_road(from, cell, done, 1.0, delta):
+		return
 	_update_path(cell)
-	_update_road(from, cell, was_on_road, delta)
+	if state == State.OFFROAD:
+		_drive_off_road((1.0 - _offroad_since) * delta)
 
 
 func velocity() -> Vector2:
@@ -118,6 +130,13 @@ static func cells_crossed(from: Vector2, to: Vector2) -> Array[Vector2i]:
 	if a != b:
 		cells.append(b)
 	return cells
+
+
+## The fraction of the move from `from` to `to` at which it crosses from `cell` into the
+## neighbouring `next`.
+static func _crossing_fraction(from: Vector2, to: Vector2, cell: Vector2i, next: Vector2i) -> float:
+	var axis := 0 if next.x != cell.x else 1
+	return (maxi(cell[axis], next[axis]) - from[axis]) / (to[axis] - from[axis])
 
 
 ## Progress along the correct path at `p`, measured on path tile `tile`: its index plus the place of
@@ -184,31 +203,55 @@ func _update_path(cell: Vector2i) -> void:
 	progress = path_progress(path_tile, pos)
 
 
-## Off-road rules (plan.md §2.4, D6): leaving, rejoining, damage and the off-road limit. Only the
-## part of the step from `from` that is off the road counts: after the road's edge when the step
-## leaves the road, and before it when the step rejoins it. A rejoin counts only if the car reaches
-## the road before the off-road limit or 0 health.
-func _update_road(from: Vector2, cell: Vector2i, was_on_road: bool, delta: float) -> void:
+## Off-road rules (plan.md §2.4, D6) on the part of the step from `from` to `pos` between
+## fractions `start` and `end`, which lies in `cell`: the car leaves the road and rejoins it where
+## that part crosses the road's edge, however often. Only the time off the road counts, and a
+## rejoin counts only if the car reaches the road before the off-road limit or 0 health. Returns
+## false if the run ended.
+func _follow_road(from: Vector2, cell: Vector2i, start: float, end: float, delta: float) -> bool:
 	var tile := buffer.tile_at(cell)
-	var on_road := RoadGeometry.is_on_road(tile, pos - Vector2(cell))
-	if was_on_road and not on_road:
-		state = State.OFFROAD
-		offroad_dist = 0.0
-		var junction := trigger.next_junction
-		var near := junction != null and _steps(cell, junction.cell) <= 1
-		offroad_junction = junction if near else null
-		offroad_changed.emit(true)
-		_drive_off_road((1.0 - _edge_crossing(from, pos)) * delta)
-	elif not was_on_road and on_road:
-		_drive_off_road(_edge_crossing(from, pos) * delta)
-		if is_over():
-			return
-		state = State.DRIVING
-		offroad_junction = null
-		offroad_changed.emit(false)
-		trigger.on_rejoin(tile)
-	elif not on_road:
-		_drive_off_road(delta)
+	var origin := Vector2(cell)
+	var exits := 0 if tile == null else tile.exits
+	var t := start
+	for span: Vector2 in RoadGeometry.on_road_spans(exits, from - origin, pos - origin):
+		var on_from := maxf(span.x, start)
+		var on_to := minf(span.y, end)
+		if on_from > on_to:
+			continue
+		if on_from > t:
+			_leave_road(cell, t)
+		if state == State.OFFROAD and not _rejoin_road(tile, on_from, delta):
+			return false
+		t = on_to
+	if t < end:
+		_leave_road(cell, t)
+	return true
+
+
+## The car leaves the road at fraction `t` of the step, in `cell`, unless it is off it already.
+func _leave_road(cell: Vector2i, t: float) -> void:
+	if state == State.OFFROAD:
+		return
+	state = State.OFFROAD
+	offroad_dist = 0.0
+	var junction := trigger.next_junction
+	var near := junction != null and _steps(cell, junction.cell) <= 1
+	offroad_junction = junction if near else null
+	_offroad_since = t
+	offroad_changed.emit(true)
+
+
+## The car comes back onto the road on `tile` at fraction `t` of the step, after the off-road time
+## up to there counts. Returns false if the run ended first, or on the rejoin.
+func _rejoin_road(tile: RoadTile, t: float, delta: float) -> bool:
+	_drive_off_road((t - _offroad_since) * delta)
+	if is_over():
+		return false
+	state = State.DRIVING
+	offroad_junction = null
+	offroad_changed.emit(false)
+	trigger.on_rejoin(tile)
+	return not is_over()
 
 
 ## Damage and the off-road limit for `seconds` driven off the road.
@@ -223,28 +266,6 @@ func _drive_off_road(seconds: float) -> void:
 			trigger.on_offroad_limit()
 		else:
 			_crash(OFFROAD)
-
-
-## The fraction of the move from `from` to `to` made before it crosses the road's edge, or 0 if
-## both ends are on the same side of it.
-func _edge_crossing(from: Vector2, to: Vector2) -> float:
-	var to_on_road := _is_on_road_at(to)
-	if _is_on_road_at(from) == to_on_road:
-		return 0.0
-	var before := 0.0
-	var after := 1.0
-	for i: int in EDGE_HALVINGS:
-		var mid := (before + after) / 2.0
-		if _is_on_road_at(from.lerp(to, mid)) == to_on_road:
-			after = mid
-		else:
-			before = mid
-	return (before + after) / 2.0
-
-
-func _is_on_road_at(p: Vector2) -> bool:
-	var cell := Vector2i(p.floor())
-	return RoadGeometry.is_on_road(buffer.tile_at(cell), p - Vector2(cell))
 
 
 func _crash(cause: StringName) -> void:
