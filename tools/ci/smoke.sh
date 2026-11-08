@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Boot the real main scene for 3600 fixed frames (60 s simulated) and fail on any error.
-# With --autopilot the main scene fast-forwards and, when it quits, prints how far it got.
+# With --autopilot the main scene drives by itself and, when it quits, prints how far it got.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
