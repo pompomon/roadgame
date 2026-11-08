@@ -256,10 +256,12 @@ func test_after_a_wrong_turn_the_director_plays_it_in_2_to_4_seconds() -> void:
 
 
 func test_with_the_stop_it_takes_2_to_4_seconds() -> void:
-	# The director starts it once the car has stopped, which takes up to STOP_SECONDS (J4).
+	# The director starts it once the car has stopped, which takes up to STOP_SECONDS (J4). The
+	# stop and the sinkhole's clock each add up steps of DELTA, and each sum can fall just short of
+	# its time and take a frame more (M3_PLAN.md P10).
 	var quickest := DisasterParams.new()
 	quickest.delay = Tuning.DISASTER_DELAY_MIN
 	var slowest := DisasterParams.new()
 	slowest.delay = Tuning.DISASTER_DELAY_MAX
 	assert_gte(Sinkhole.duration(quickest), 2.0)
-	assert_lte(Sinkhole.duration(slowest) + Tuning.STOP_SECONDS, 4.0)
+	assert_lte(Sinkhole.duration(slowest) + Tuning.STOP_SECONDS + 2 * DELTA, 4.0)
