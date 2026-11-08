@@ -33,5 +33,7 @@ func _update_view() -> void:
 	position = Iso.tile_to_world(sim.pos)
 	var f := frame(sim.forward())
 	_arrow.rotation = f * TAU / FRAMES
-	_arrow.color = Color.from_hsv(float(f) / FRAMES, 0.6, 1.0)
+	# Not the polygon's color: setting that redraws the Polygon2D, and on the Web every redraw after
+	# the first raises WebGL errors (godotengine/godot#124726, fixed in 4.8).
+	_arrow.self_modulate = Color.from_hsv(float(f) / FRAMES, 0.6, 1.0)
 	_dust.emitting = sim.state == CarSim.State.OFFROAD
