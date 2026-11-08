@@ -107,6 +107,18 @@ func test_a_crashed_car_turns_grey_and_smokes_without_being_redrawn() -> void:
 	assert_eq(draws[0], 0, "no redraws")
 
 
+func test_every_car_smokes_alike() -> void:
+	# Godot gives each CPUParticles2D a random seed when it's made, so unless the scene fixes one,
+	# the smoke differs from run to run, whatever the run's seed (IP §5.3, M3_PLAN.md J16). The
+	# editor doesn't save a seed of 0, its default.
+	var smokes: Array[CPUParticles2D] = []
+	for _i: int in 2:
+		smokes.append(_car().get_node("%Smoke"))
+	assert_true(smokes[0].use_fixed_seed, "a fixed seed")
+	assert_ne(smokes[0].seed, 0, "one that the scene keeps")
+	assert_eq(smokes[0].seed, smokes[1].seed, "the same in every car")
+
+
 func test_only_a_crash_smokes() -> void:
 	var car := _car()
 	car.input.enabled = false
