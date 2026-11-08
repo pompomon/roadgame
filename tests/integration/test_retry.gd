@@ -40,6 +40,9 @@ func test_retry_starts_the_next_run_afresh() -> void:
 	var director: DisasterDirector = main.get_node("%Director")
 	var old_disaster := director.disaster
 	EventBus.health_changed.emit(10.0)
+	# A shake that outlasts its disaster, which a retry must end.
+	var camera: CameraRig = main.get_node("%Camera")
+	camera.shake(1.0, 10.0)
 	assert_gt(GameState.distance, 5.0, "the last run went some way")
 	watch_signals(EventBus)
 	MainScene.press_key(main, KEY_ENTER)
@@ -67,7 +70,6 @@ func test_retry_starts_the_next_run_afresh() -> void:
 	assert_eq(car.modulate, Color.WHITE)
 	assert_eq(car.sim.buffer.car_index(), 0, "at the start of a new road")
 	assert_eq(car.sim.trigger.next_junction.cell, first_junction, "the same road")
-	var camera: CameraRig = main.get_node("%Camera")
 	assert_eq(camera.car, car)
 	assert_eq(camera.offset, Vector2.ZERO, "no shake")
 	var router: InputRouter = main.get_node("%InputRouter")
