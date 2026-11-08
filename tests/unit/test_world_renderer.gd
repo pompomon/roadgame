@@ -83,3 +83,15 @@ func test_layers_line_up_with_tile_space() -> void:
 	var g := cell * Iso.GROUND_PER_TILE
 	var g_centre := Iso.tile_to_world((Vector2(g) + Vector2(0.5, 0.5)) / Iso.GROUND_PER_TILE)
 	assert_almost_eq(ground.position + ground.map_to_local(g), g_centre, Vector2(1e-3, 1e-3))
+
+
+func test_disasters_draw_above_the_road_and_below_the_car() -> void:
+	# World draws its children in order, and only Props sorts by y (M3_PLAN.md J5).
+	var names: Array[StringName] = []
+	for node: Node in _world.get_children():
+		names.append(node.name)
+	var order: Array[StringName] = [&"GroundLayer", &"RoadLayer", &"DisasterLayer", &"Props"]
+	assert_eq(names, order)
+	var layer: Node2D = _world.get_node("%DisasterLayer")
+	assert_false(layer.y_sort_enabled)
+	assert_eq(layer.z_index, 0)

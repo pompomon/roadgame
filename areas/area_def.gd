@@ -30,7 +30,7 @@ extends Resource
 
 @export_group("Disasters")
 ## What a wrong or missed turn here may end in (plan.md §4.3): scenes whose root is a DisasterBase.
-## Until M4.5 adds the others, every area has the sinkhole (M3_PLAN.md Q2).
+## In M3 every area has the sinkhole, until M4.5 adds the others (M3_PLAN.md Q2).
 @export var disasters: Array[PackedScene] = []
 
 

@@ -21,15 +21,20 @@ static func _params() -> DisasterParams:
 	return params
 
 
-## A car whose run ended at the start of the road for seed 1. Nothing steps it.
-func _car() -> CarController:
+## A car whose run ended at the start of the road for seed 1, at `speed`, under `parent` or else
+## the test. Only a simulate() of its parent steps it.
+func _car(speed := 0.0, parent: Node = null) -> CarController:
 	var buffer := RoadBuffer.new(RoadGenerator.new(1, Fixtures.schedule()))
 	buffer.start()
 	var car: CarController = CAR_SCENE.instantiate()
 	car.sim = CarSim.new(buffer)
 	car.sim.state = CarSim.State.DISASTER
+	car.sim.speed = speed
 	car.input = InputRouter.new()
-	add_child_autofree(car)
+	if parent == null:
+		add_child_autofree(car)
+	else:
+		parent.add_child(car)
 	car.add_child(car.input)
 	return car
 
@@ -200,6 +205,44 @@ func test_it_finishes_without_a_car_or_a_camera() -> void:
 	sinkhole.play(_params())
 	simulate(sinkhole, 300, DELTA)
 	assert_signal_emit_count(sinkhole, "finished", 1)
+
+
+## Seconds from the end of a run with the car at `speed` until the director has played the sinkhole:
+## the stop, then the sinkhole with the params of `run_seed`'s disaster stream. The nodes are in the
+## main scene's order, which is the order of their physics steps.
+func _director_seconds(run_seed: int, speed: float) -> float:
+	var root := Node.new()
+	add_child_autofree(root)
+	var layer := Node2D.new()
+	root.add_child(layer)
+	var car := _car(speed, root)
+	var camera := CameraRig.new()
+	root.add_child(camera)
+	var director := DisasterDirector.new()
+	director.layer = layer
+	root.add_child(director)
+	director.start_run(run_seed)
+	var area := AreaDef.new()
+	area.disasters = [SINKHOLE]
+	director.play_disaster(area, car, camera)
+	var frames := 0
+	while director.sequence != DisasterDirector.Sequence.FINISHED and frames < 600:
+		simulate(root, 1, DELTA)
+		frames += 1
+	assert_true(director.disaster is Sinkhole, "the sinkhole played")
+	return frames * DELTA
+
+
+func test_after_a_wrong_turn_the_director_plays_it_in_2_to_4_seconds() -> void:
+	# IMPLEMENTATION_PLAN.md M3.1, from the end of the run: the car stops, within STOP_SECONDS
+	# (J4), and the sinkhole plays, with the delay of its params.
+	var times: Array[float] = []
+	for run_seed: int in 10:
+		for speed: float in [2.0, Tuning.GLOBAL_SPEED_CAP]:
+			times.append(_director_seconds(run_seed, speed))
+	assert_between(times.min(), 2.0, 4.0, "the quickest")
+	assert_between(times.max(), 2.0, 4.0, "the slowest")
+	assert_gt(times.max() - times.min(), 0.2, "the delay and the stop vary")
 
 
 func test_with_the_stop_it_takes_2_to_4_seconds() -> void:

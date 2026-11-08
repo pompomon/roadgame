@@ -2,12 +2,13 @@ extends GutTest
 ## DisasterDirector (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1, M3.3): after a wrong or missed turn
 ## it waits for the car to stop and plays a disaster from the area's pool, drawn with the run's
 ## disaster stream; after a crash it shakes the camera for CRASH_SECONDS. Every sequence ends once
-## and in time, even one that is stuck.
+## and in time, even one that is stuck. The disasters here are test ones; test_sinkhole.gd plays
+## the sinkhole through the director.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const StuckDisaster := preload("res://tests/helpers/stuck_disaster.gd")
+const TimedDisaster := preload("res://tests/helpers/timed_disaster.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
-const SINKHOLE := preload("res://disasters/sinkhole.tscn")
 const DELTA := 1.0 / 60.0
 
 ## In the main scene's order, which is the order of their physics steps: the disaster layer, the
@@ -57,6 +58,11 @@ static func _area(pool: Array[PackedScene]) -> AreaDef:
 	return area
 
 
+## An area whose pool is a TimedDisaster.
+static func _timed() -> AreaDef:
+	return _area([_scene(TimedDisaster)])
+
+
 ## A scene whose root is a Node2D with `script`.
 static func _scene(script: Script) -> PackedScene:
 	var node := Node2D.new()
@@ -94,7 +100,7 @@ func test_pick_draws_every_scene_of_the_pool_with_the_stream() -> void:
 
 func test_a_disaster_waits_for_the_car_to_stop() -> void:
 	_new_car(CarSim.State.DISASTER, 2.0)
-	_director.play_disaster(_area([SINKHOLE]), _car, _camera)
+	_director.play_disaster(_timed(), _car, _camera)
 	assert_eq(_director.sequence, DisasterDirector.Sequence.STOPPING)
 	var early := false
 	var frames := 0
@@ -105,27 +111,33 @@ func test_a_disaster_waits_for_the_car_to_stop() -> void:
 	assert_false(early, "nothing before the car stops")
 	assert_eq(_car.sim.speed, 0.0, "stopped")
 	assert_eq(_director.sequence, DisasterDirector.Sequence.PLAYING, "from the frame it stops")
-	assert_true(_director.disaster is Sinkhole, "a sinkhole")
-	assert_eq(_director.disaster.get_parent(), _layer, "on the layer")
-	assert_eq(_director.disaster.car, _car)
-	assert_eq(_director.disaster.camera, _camera)
+	var disaster := _director.disaster as TimedDisaster
+	assert_not_null(disaster, "the pool's disaster")
+	assert_eq(disaster.get_parent(), _layer, "on the layer")
+	assert_eq(disaster.car, _car)
+	assert_eq(disaster.camera, _camera)
+	assert_eq(disaster.params, _director.params, "played with the params")
 	assert_eq(_director.params.origin_world, _car.position, "where the car stopped")
 
 
-func test_the_sinkhole_ends_the_sequence_2_to_4_seconds_after_the_turn() -> void:
-	var times: Array[float] = []
-	for run_seed: int in 10:
-		for speed: float in [2.0, Tuning.GLOBAL_SPEED_CAP]:
-			_director.start_run(run_seed)
-			_new_car(CarSim.State.DISASTER, speed)
-			clear_signal_watcher()
-			watch_signals(_director)
-			_director.play_disaster(_area([SINKHOLE]), _car, _camera)
-			times.append(_run(600) * DELTA)
-			assert_signal_emit_count(_director, "sequence_finished", 1)
-	assert_between(times.min(), 2.0, 4.0, "the quickest")
-	assert_between(times.max(), 2.0, 4.0, "the slowest")
-	assert_gt(times.max() - times.min(), 0.2, "the delay and the stop vary")
+func test_the_sequence_ends_once_when_the_disaster_finishes() -> void:
+	# The stop takes speed / BRAKE, but at most STOP_SECONDS (J4); then the disaster plays.
+	for speed: float in [2.0, Tuning.GLOBAL_SPEED_CAP]:
+		var why := "from %.1f tiles/s" % speed
+		_director.start_run(1)
+		_new_car(CarSim.State.DISASTER, speed)
+		clear_signal_watcher()
+		watch_signals(_director)
+		_director.play_disaster(_timed(), _car, _camera)
+		var seconds := _run(600) * DELTA
+		var stop := minf(speed / Tuning.BRAKE, Tuning.STOP_SECONDS)
+		assert_almost_eq(seconds, stop + TimedDisaster.SECONDS, DELTA * 2.01, why)
+		var disaster := _director.disaster
+		simulate(_root, 60, DELTA)
+		assert_signal_emit_count(_director, "sequence_finished", 1, why)
+		assert_eq(_director.sequence, DisasterDirector.Sequence.FINISHED, why)
+		assert_true(is_instance_valid(disaster), why + ": it stays for the game-over screen")
+		assert_eq(disaster.get_parent(), _layer, why)
 
 
 func test_a_crash_shakes_the_camera_and_ends_after_crash_seconds() -> void:
@@ -146,7 +158,7 @@ func test_a_crash_shakes_the_camera_and_ends_after_crash_seconds() -> void:
 func test_a_car_that_never_stops_times_out_with_an_error() -> void:
 	_new_car(CarSim.State.DISASTER, 2.0)
 	watch_signals(_director)
-	_director.play_disaster(_area([SINKHOLE]), _car, _camera)
+	_director.play_disaster(_timed(), _car, _camera)
 	var frames := 0
 	while _director.sequence != DisasterDirector.Sequence.FINISHED and frames < 600:
 		simulate(_director, 1, DELTA)
@@ -185,7 +197,7 @@ func test_a_scene_that_is_not_a_disaster_is_an_error_and_is_freed() -> void:
 
 func test_clear_frees_the_disaster_at_once_and_forgets_the_sequence() -> void:
 	watch_signals(_director)
-	_director.play_disaster(_area([SINKHOLE]), _car, _camera)
+	_director.play_disaster(_timed(), _car, _camera)
 	simulate(_root, 1, DELTA)
 	var disaster := _director.disaster
 	assert_not_null(disaster, "playing")
@@ -200,7 +212,7 @@ func test_clear_frees_the_disaster_at_once_and_forgets_the_sequence() -> void:
 
 func test_a_second_sequence_is_an_error() -> void:
 	_director.play_crash(_car, _camera)
-	_director.play_disaster(_area([SINKHOLE]), _car, _camera)
+	_director.play_disaster(_timed(), _car, _camera)
 	assert_push_error("a sequence is already playing")
 	assert_eq(_director.sequence, DisasterDirector.Sequence.CRASH)
 
@@ -210,28 +222,9 @@ func test_the_run_seed_decides_the_disaster() -> void:
 	for run_seed: int in [7, 7, 8]:
 		_director.start_run(run_seed)
 		_new_car()
-		_director.play_disaster(_area([SINKHOLE]), _car, _camera)
+		_director.play_disaster(_timed(), _car, _camera)
 		simulate(_root, 1, DELTA)
 		var params := _director.params
 		rolls.append([params.direction, params.intensity, params.delay, params.particle_seed])
 	assert_eq(rolls[0], rolls[1], "the same seed")
 	assert_ne(rolls[0], rolls[2], "another seed")
-
-
-func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
-	# Until M4.5 adds the others, every pool is the sinkhole (M3_PLAN.md Q2).
-	var areas := 0
-	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
-		var area := entry.area
-		areas += 1
-		assert_false(area.disasters.is_empty(), "%s has a pool" % area.id)
-		for scene: PackedScene in area.disasters:
-			var node := scene.instantiate()
-			var disaster := node as DisasterBase
-			assert_not_null(disaster, "%s: %s is a disaster" % [area.id, scene.resource_path])
-			if disaster != null:
-				assert_ne(disaster.id, &"", "%s: %s has an id" % [area.id, scene.resource_path])
-			node.free()
-	assert_eq(areas, 5, "the five areas")
-	var city: AreaDef = load("res://areas/city.tres")
-	assert_eq(city.disasters, [SINKHOLE] as Array[PackedScene], "the City's sinkhole")
