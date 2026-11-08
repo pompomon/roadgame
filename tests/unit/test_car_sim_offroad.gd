@@ -282,6 +282,58 @@ func test_a_path_tile_that_a_step_passes_through_counts_as_reached() -> void:
 	assert_eq(sim.state, CarSim.State.OFFROAD)
 
 
+func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates() -> void:
+	# Off the road beside the first junction's exit, the car steps straight on into the exit tile,
+	# the first of an area with less damage, halfway through the step. The first half counts at the
+	# old area's rate, so with health for a whole step in the new area but not for this one, the
+	# car still runs out.
+	var old_area: AreaDef = load("res://areas/desert.tres")
+	var new_area: AreaDef = load("res://areas/meadows.tres")
+	var old_damage := old_area.offroad_damage_per_sec
+	var new_damage := new_area.offroad_damage_per_sec
+	assert_gt(old_damage, new_damage)
+	var schedule := AreaSchedule.new()
+	for k: int in 2:
+		var entry := AreaScheduleEntry.new()
+		entry.turn = k
+		entry.area = old_area if k == 0 else new_area
+		schedule.entries.append(entry)
+	var cost := (old_damage + new_damage) / 2.0 * DELTA
+	for health: float in [Tuning.START_HEALTH, (cost + new_damage * DELTA) / 2.0]:
+		var buffer := RoadBuffer.new(RoadGenerator.new(1, schedule))
+		buffer.start()
+		var sim := CarSim.new(buffer)
+		watch_signals(sim)
+		var junction := sim.trigger.next_junction
+		var exit_tile := buffer.path_tile(junction.path_index + 1)
+		assert_eq(exit_tile.area_id, new_area.id, "the exit tile is the first of the new area")
+		var out := Vector2(Heading.VEC[junction.expected_exit])
+		var side := Vector2(Heading.VEC[Heading.right(junction.expected_exit)])
+		var edge := Iso.cell_centre(junction.cell) + out * 0.5
+		# At the speed it drives at off the road by a junction, half a step before the exit edge.
+		sim.speed = old_area.junction_speed * old_area.offroad_speed_mult
+		_place(sim, edge - out * sim.speed * DELTA / 2.0 + side * 0.45)
+		sim.angle = junction.expected_exit * PI / 2.0
+		sim.state = CarSim.State.OFFROAD
+		sim.health = health
+		var from := sim.pos
+		sim.step(DELTA, 0.0)
+		var why := "health %.3f" % health
+		var cells: Array[Vector2i] = [exit_tile.cell]
+		assert_eq(CarSim.cells_crossed(from, sim.pos), cells, why)
+		assert_eq(_offroad_share(sim, from), 1.0, why + ": all off the road")
+		var t := (edge - from).dot(out) / (sim.pos - from).dot(out)
+		assert_almost_eq(t, 0.5, 0.01, why + ": into the new area halfway")
+		if health == Tuning.START_HEALTH:
+			var expected := health - (old_damage * t + new_damage * (1.0 - t)) * DELTA
+			assert_almost_eq(sim.health, expected, 1e-9, why)
+			assert_eq(sim.area.id, new_area.id, why)
+			assert_eq(sim.state, CarSim.State.OFFROAD, why)
+		else:
+			assert_eq(sim.state, CarSim.State.CRASHED, why)
+			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])
+
+
 func test_the_offroad_limit_on_a_straight_is_a_crash() -> void:
 	var sim := _sim(1)
 	_put_off_road(sim, 0)
