@@ -88,14 +88,12 @@ func step(delta: float, steer: float) -> void:
 		if not _follow_road(from, cell, done, at, delta):
 			return
 		trigger.on_cell_crossed(cell, next, state != State.OFFROAD)
-		if is_over():
+		if is_over() or not _update_path(next, at, delta):
 			return
-		_update_path(next)
 		cell = next
 		done = at
-	if not _follow_road(from, cell, done, 1.0, delta):
+	if not _follow_road(from, cell, done, 1.0, delta) or not _update_path(cell, 1.0, delta):
 		return
-	_update_path(cell)
 	if state == State.OFFROAD:
 		_drive_off_road((1.0 - _offroad_since) * delta)
 
@@ -199,19 +197,27 @@ func _update_speed(delta: float) -> void:
 	speed = move_toward(speed, target, rate * delta)
 
 
-## The car is in `cell`. If it holds a correct-path tile other than path_tile, that tile becomes
-## path_tile: the buffer moves along, and the area of the farthest path tile reached drives the car.
-## Then progress is measured on path_tile at the car's position.
-func _update_path(cell: Vector2i) -> void:
+## The car is in `cell` from fraction `at` of the step. If the cell holds a correct-path tile other
+## than path_tile, that tile becomes path_tile: the buffer moves along, and the area of the farthest
+## path tile reached drives the car from there. Off the road, the time before a new area counts
+## first, at the old area's rates. Then progress is measured on path_tile at the car's position.
+## Returns false if the run ended.
+func _update_path(cell: Vector2i, at: float, delta: float) -> bool:
 	var tile := buffer.tile_at(cell)
 	if tile != null and tile.path_index >= 0 and tile != path_tile:
+		var farthest := buffer.path_tile(maxi(buffer.car_index(), tile.path_index))
+		if farthest.area_id != area.id and state == State.OFFROAD:
+			_drive_off_road((at - _offroad_since) * delta)
+			_offroad_since = at
+			if is_over():
+				return false
 		path_tile = tile
 		buffer.on_car_path_index(tile.path_index)
-		var farthest := buffer.path_tile(buffer.car_index())
 		if farthest.area_id != area.id:
 			area = buffer.generator.find_area(farthest.area_id)
 			area_changed.emit(area)
 	progress = path_progress(path_tile, pos)
+	return true
 
 
 ## Off-road rules (plan.md §2.4, D6) on the part of the step from `from` to `pos` between
