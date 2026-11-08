@@ -23,9 +23,9 @@ func _init(buffer: RoadBuffer) -> void:
 	next_junction = _junction_after(buffer.first_index() - 1)
 
 
-## The car moved from `from_cell` to the neighbouring `to_cell`, and was on the road before the
-## move. Leaving the next junction's tile through one of its exits decides that exit; going back out
-## of the entry edge decides nothing.
+## The car crossed from `from_cell` into the neighbouring `to_cell`, on the road if `on_road`.
+## Leaving the next junction's tile on the road through one of its exits decides that exit; going
+## back out of the entry edge decides nothing.
 func on_cell_crossed(from_cell: Vector2i, to_cell: Vector2i, on_road: bool) -> void:
 	var junction := next_junction
 	if junction == null or not on_road or from_cell != junction.cell:
