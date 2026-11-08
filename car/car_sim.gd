@@ -78,6 +78,7 @@ func step(delta: float, steer: float) -> void:
 	_offroad_since = 0.0
 	# Follow the move in order: in each cell, where it leaves or rejoins the road, then where it
 	# crosses into the next cell, which the trigger judges by whether the car is on the road there.
+	# A path tile the move passes through counts as reached, even if the move ends off the path.
 	var cell := Vector2i(from.floor())
 	var done := 0.0
 	for next: Vector2i in cells_crossed(from, pos):
@@ -87,6 +88,7 @@ func step(delta: float, steer: float) -> void:
 		trigger.on_cell_crossed(cell, next, state != State.OFFROAD)
 		if is_over():
 			return
+		_update_path(next)
 		cell = next
 		done = at
 	if not _follow_road(from, cell, done, 1.0, delta):
@@ -183,14 +185,21 @@ func _update_speed(delta: float) -> void:
 		state = State.BRAKING if to_junction <= area.junction_brake_distance else State.DRIVING
 	var target := target_speed()
 	var rate := Tuning.ACCEL if target > speed else Tuning.BRAKE
-	if state == State.BRAKING and speed > target:
-		# Brake hard enough to be at junction_speed on entering the junction tile, half a tile
-		# before its centre, from any speed.
+	if to_junction <= area.junction_brake_distance and speed > target:
+		# Brake hard enough to be at the target speed on entering the junction tile, half a tile
+		# before its centre, from any speed: junction_speed on the road, and less off it. Off the
+		# road in the junction tile, the car slows as it does anywhere off the road.
 		var room := to_junction - 0.5
-		rate = maxf(rate, (speed * speed - target * target) / (2.0 * room)) if room > 0.0 else INF
+		if room > 0.0:
+			rate = maxf(rate, (speed * speed - target * target) / (2.0 * room))
+		elif state == State.BRAKING:
+			rate = INF
 	speed = move_toward(speed, target, rate * delta)
 
 
+## The car is in `cell`. If it holds a correct-path tile other than path_tile, that tile becomes
+## path_tile: the buffer moves along, and the area of the farthest path tile reached drives the car.
+## Then progress is measured on path_tile at the car's position.
 func _update_path(cell: Vector2i) -> void:
 	var tile := buffer.tile_at(cell)
 	if tile != null and tile.path_index >= 0 and tile != path_tile:

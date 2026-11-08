@@ -45,6 +45,14 @@ func _put_by_the_edge(sim: CarSim, index: int, on_road: bool) -> void:
 		sim.state = CarSim.State.OFFROAD
 
 
+## Puts the car at `p`, in the cell of a correct-path tile, as if it had driven there.
+func _place(sim: CarSim, p: Vector2) -> void:
+	sim.pos = p
+	sim.path_tile = sim.buffer.tile_at(Vector2i(p.floor()))
+	sim.buffer.on_car_path_index(sim.path_tile.path_index)
+	sim.progress = CarSim.path_progress(sim.path_tile, p)
+
+
 ## The share of the move from `from` to the car that is off the road, from 2000 points along it.
 func _offroad_share(sim: CarSim, from: Vector2) -> float:
 	var off := 0
@@ -207,6 +215,70 @@ func test_a_step_that_cuts_a_corner_of_the_road_counts_the_time_off_it() -> void
 		sim.trigger, "turn_completed", "a rejoin on the junction decides nothing"
 	)
 	assert_signal_not_emitted(sim.trigger, "disaster_triggered")
+
+
+func test_off_the_road_the_car_brakes_for_the_junction_too() -> void:
+	# At the speed cap, 0.6 tiles before the first junction's centre and just off the road's right
+	# edge: whether it turns back onto the road before the junction tile or stays off the road, the
+	# car enters that tile at junction_speed at most.
+	for turn_in: float in [0.2, 0.0]:
+		var sim := _sim(1)
+		var junction := sim.trigger.next_junction
+		var along := Vector2(Heading.VEC[junction.heading])
+		var right := Vector2(Heading.VEC[Heading.right(junction.heading)])
+		var side := right * (Tuning.ROAD_HALF_WIDTH + EDGE_GAP)
+		_place(sim, Iso.cell_centre(junction.cell) - along * 0.6 + side)
+		sim.angle = junction.heading * PI / 2.0 - turn_in
+		sim.speed = Tuning.GLOBAL_SPEED_CAP
+		sim.state = CarSim.State.OFFROAD
+		sim.offroad_junction = junction
+		for i: int in 60:
+			sim.step(DELTA, 0.0)
+			if Vector2i(sim.pos.floor()) == junction.cell or sim.is_over():
+				break
+		var why := "turning in by %.1f rad" % turn_in
+		assert_eq(Vector2i(sim.pos.floor()), junction.cell, why)
+		assert_eq(sim.state != CarSim.State.OFFROAD, turn_in > 0.0, why + ": back on the road")
+		assert_lte(sim.speed, sim.area.junction_speed, why)
+
+
+func test_a_path_tile_that_a_step_passes_through_counts_as_reached() -> void:
+	# Off the road, the car steps across the outer corner of the first junction's turn: into the exit
+	# tile, the first of the second area, and on into the cell beside it, which is off the path.
+	var areas := Fixtures.schedule().entries
+	var schedule := AreaSchedule.new()
+	for k: int in 2:
+		var entry := AreaScheduleEntry.new()
+		entry.turn = k
+		entry.area = areas[k].area
+		schedule.entries.append(entry)
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, schedule))
+	buffer.start()
+	var sim := CarSim.new(buffer)
+	watch_signals(sim)
+	var junction := sim.trigger.next_junction
+	var exit_tile := buffer.path_tile(junction.path_index + 1)
+	assert_ne(exit_tile.area_id, sim.area.id, "the exit tile is the first of the second area")
+	var beside := exit_tile.cell + Heading.VEC[junction.heading]
+	assert_null(buffer.tile_at(beside), "the cell beside the exit tile is off the road")
+	var out := Vector2(Heading.VEC[junction.expected_exit])
+	var on := Vector2(Heading.VEC[junction.heading])
+	var corner := Iso.cell_centre(junction.cell) + (out + on) * 0.5
+	_place(sim, corner - out * 0.003 - on * 0.01)
+	var move := out * 0.013 + on * 0.02
+	sim.angle = atan2(move.x, -move.y)
+	sim.speed = move.length() / DELTA
+	sim.state = CarSim.State.OFFROAD
+	var from := sim.pos
+	sim.step(DELTA, 0.0)
+	var cells: Array[Vector2i] = [exit_tile.cell, beside]
+	assert_eq(CarSim.cells_crossed(from, sim.pos), cells)
+	assert_eq(sim.path_tile, exit_tile)
+	assert_eq(buffer.car_index(), exit_tile.path_index)
+	assert_almost_eq(sim.progress, CarSim.path_progress(exit_tile, sim.pos), 1e-9)
+	assert_eq(sim.area.id, exit_tile.area_id)
+	assert_signal_emitted_with_parameters(sim, "area_changed", [sim.area])
+	assert_eq(sim.state, CarSim.State.OFFROAD)
 
 
 func test_the_offroad_limit_on_a_straight_is_a_crash() -> void:
