@@ -286,7 +286,9 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 	# Off the road beside the first junction's exit, the car steps straight on into the exit tile,
 	# the first of an area with less damage, halfway through the step. The first half counts at the
 	# old area's rate, so with health for a whole step in the new area but not for this one, the
-	# car still runs out.
+	# car still runs out. Whether it runs out after the new area or before it, the end of the run
+	# sees the car where the step ends: on the exit tile, in the new area, with progress past any
+	# the junction's tile can give.
 	var old_area: AreaDef = load("res://areas/desert.tres")
 	var new_area: AreaDef = load("res://areas/meadows.tres")
 	var old_damage := old_area.offroad_damage_per_sec
@@ -299,7 +301,8 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 		entry.area = old_area if k == 0 else new_area
 		schedule.entries.append(entry)
 	var cost := (old_damage + new_damage) / 2.0 * DELTA
-	for health: float in [Tuning.START_HEALTH, (cost + new_damage * DELTA) / 2.0]:
+	var before_new_area := old_damage * DELTA / 4.0
+	for health: float in [Tuning.START_HEALTH, (cost + new_damage * DELTA) / 2.0, before_new_area]:
 		var buffer := RoadBuffer.new(RoadGenerator.new(1, schedule))
 		buffer.start()
 		var sim := CarSim.new(buffer)
@@ -316,6 +319,13 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 		sim.angle = junction.expected_exit * PI / 2.0
 		sim.state = CarSim.State.OFFROAD
 		sim.health = health
+		var seen := []
+		# Through a WeakRef: a handler that held the car would form a cycle with it, which leaks.
+		var car: WeakRef = weakref(sim)
+		var see := func() -> void:
+			var at_end := car.get_ref() as CarSim
+			seen.append([at_end.progress, at_end.path_tile.path_index, at_end.area.id])
+		sim.crashed.connect(see.unbind(1))
 		var from := sim.pos
 		sim.step(DELTA, 0.0)
 		var why := "health %.3f" % health
@@ -329,9 +339,14 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 			assert_almost_eq(sim.health, expected, 1e-9, why)
 			assert_eq(sim.area.id, new_area.id, why)
 			assert_eq(sim.state, CarSim.State.OFFROAD, why)
+			assert_eq(seen, [], why)
 		else:
 			assert_eq(sim.state, CarSim.State.CRASHED, why)
 			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])
+			var progress := CarSim.path_progress(exit_tile, sim.pos)
+			assert_gt(progress, junction.path_index + 0.5, why + ": on into the exit tile")
+			assert_eq(seen, [[progress, exit_tile.path_index, new_area.id]], why)
+			assert_signal_emitted_with_parameters(sim, "area_changed", [new_area])
 
 
 func test_the_offroad_limit_on_a_straight_is_a_crash() -> void:
