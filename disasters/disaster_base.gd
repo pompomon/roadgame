@@ -7,6 +7,8 @@ extends Node2D
 ## sequence anyway DISASTER_TIMEOUT after the turn. Its time must come from _physics_process: no
 ## Tween or timer moves in GUT's simulate() (M3_PLAN.md J2).
 
+# Emitted by the disasters, so the editor would warn that this class never uses it.
+@warning_ignore("unused_signal")
 signal finished
 
 ## What the disaster collection will record it as (plan.md §9), such as &"sinkhole".
