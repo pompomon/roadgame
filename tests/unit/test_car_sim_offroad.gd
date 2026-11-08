@@ -45,6 +45,17 @@ func _put_by_the_edge(sim: CarSim, index: int, on_road: bool) -> void:
 		sim.state = CarSim.State.OFFROAD
 
 
+## The share of the move from `from` to the car that is off the road, from 2000 points along it.
+func _offroad_share(sim: CarSim, from: Vector2) -> float:
+	var off := 0
+	for i: int in 2000:
+		var p := from.lerp(sim.pos, (i + 0.5) / 2000.0)
+		var cell := Vector2i(p.floor())
+		if not RoadGeometry.is_on_road(sim.buffer.tile_at(cell), p - Vector2(cell)):
+			off += 1
+	return off / 2000.0
+
+
 ## Steps straight on for up to `seconds`, until the run ends.
 func _drive(sim: CarSim, seconds: float) -> void:
 	for i: int in roundi(seconds / DELTA):
@@ -137,6 +148,65 @@ func test_a_rejoin_counts_only_if_the_car_reaches_the_road_within_the_limit() ->
 			assert_signal_emitted_with_parameters(sim.trigger, "disaster_triggered", [junction, -1])
 			assert_signal_not_emitted(sim.trigger, "turn_completed", why)
 			assert_signal_not_emitted(sim, "offroad_changed", why)
+
+
+func test_a_step_that_leaves_the_road_before_a_junction_edge_decides_nothing_there() -> void:
+	# On the road by each exit edge of the first junction but its entry, the car steps across the
+	# road's edge and then the tile's: it leaves the junction off the road.
+	for exit: int in 4:
+		var sim := _sim(1)
+		var junction := sim.trigger.next_junction
+		if exit == Heading.opposite(junction.heading) or not junction.has_exit(exit):
+			continue
+		var out := Vector2(Heading.VEC[exit])
+		var side := Vector2(Heading.VEC[Heading.right(exit)])
+		var edge := Vector2(junction.cell) + RoadGeometry.EDGE_MID[exit]
+		sim.pos = edge - out * 0.006 + side * (Tuning.ROAD_HALF_WIDTH - 0.002)
+		sim.angle = exit * PI / 2.0 + PI / 4.0
+		sim.speed = 1.0
+		var from := sim.pos
+		sim.step(DELTA, 0.0)
+		var why := "exit %s" % Heading.NAMES[exit]
+		assert_eq(Vector2i(sim.pos.floor()), junction.cell + Heading.VEC[exit], why)
+		assert_eq(sim.state, CarSim.State.OFFROAD, why)
+		assert_eq(sim.offroad_junction, junction, why)
+		assert_eq(sim.trigger.next_junction, junction, why)
+		assert_signal_not_emitted(sim.trigger, "turn_completed", why)
+		assert_signal_not_emitted(sim.trigger, "disaster_triggered", why)
+		var share := _offroad_share(sim, from)
+		assert_almost_eq(sim.offroad_dist, sim.speed * DELTA * share, 1e-4, why)
+
+
+func test_a_step_that_cuts_a_corner_of_the_road_counts_the_time_off_it() -> void:
+	# The car cuts the inside corner of the first junction's turn within one step, from the entry
+	# arm to the exit arm: both ends of the step are on the road, and most of it is off.
+	var sim := _sim(1)
+	var junction := sim.trigger.next_junction
+	var back := Vector2(Heading.VEC[Heading.opposite(junction.heading)])
+	var out := Vector2(Heading.VEC[junction.expected_exit])
+	var corner := (
+		Vector2(junction.cell) + RoadGeometry.CENTRE + (back + out) * Tuning.ROAD_HALF_WIDTH
+	)
+	var reach := DELTA / sqrt(2.0)
+	sim.pos = corner + back * 0.9 * reach - out * 0.1 * reach
+	var heading := out - back
+	sim.angle = atan2(heading.x, -heading.y)
+	sim.speed = 1.0
+	var from := sim.pos
+	sim.step(DELTA, 0.0)
+	var share := _offroad_share(sim, from)
+	assert_between(share, 0.7, 0.9, "most of the step is off the road")
+	assert_eq(sim.state, CarSim.State.DRIVING)
+	assert_signal_emit_count(sim, "offroad_changed", 2)
+	assert_eq(get_signal_parameters(sim, "offroad_changed", 0), [true])
+	assert_eq(get_signal_parameters(sim, "offroad_changed", 1), [false])
+	assert_almost_eq(sim.offroad_dist, sim.speed * DELTA * share, 1e-4)
+	var damage := sim.area.offroad_damage_per_sec * DELTA * share
+	assert_almost_eq(sim.health, Tuning.START_HEALTH - damage, 1e-3)
+	assert_signal_not_emitted(
+		sim.trigger, "turn_completed", "a rejoin on the junction decides nothing"
+	)
+	assert_signal_not_emitted(sim.trigger, "disaster_triggered")
 
 
 func test_the_offroad_limit_on_a_straight_is_a_crash() -> void:
