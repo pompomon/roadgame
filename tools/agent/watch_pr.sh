@@ -12,7 +12,8 @@ commit is in. --minutes 0 only prints the current state.
 
 Exit codes:
   0  Copilot reviewed the head commit, nothing that needs an answer arrived, and no check failed
-     but Copilot's own (checks may still be running: the summary says). Or the PR is closed
+     but Copilot's own (checks may still be running: the summary says). Or the PR is closed, even
+     if feedback came with that (printed above)
   2  Feedback that needs an answer (printed above the summary): anything new but a clean Copilot
      review, or Copilot's review of the head that was already there, isn't clean, and has no
      thread reply or post by anyone but Copilot after it. Handle it, push, reply, run this again
@@ -199,15 +200,19 @@ if [ -n "$checks_read" ]; then
 else
   echo "Checks on $short: unknown, gh failed 3 times"
 fi
-if [ "$attention" -eq 1 ]; then
+if [ "$state" != open ]; then
+  if [ "$attention" -eq 1 ]; then
+    echo "Exit 0: the PR is $state, so there's nothing to push. Read the feedback above: it may ask for a follow-up."
+  else
+    echo "Exit 0: the PR is $state."
+  fi
+  exit 0
+elif [ "$attention" -eq 1 ]; then
   echo "Exit 2: feedback that needs an answer, printed above. Handle each item, push, reply, then run this again."
   exit 2
 elif [ -n "$moved" ]; then
   echo "Exit 4: the head moved to ${moved:0:7}. Run this again."
   exit 4
-elif [ "$state" != open ]; then
-  echo "Exit 0: the PR is $state."
-  exit 0
 elif [ -z "$checks_read" ]; then
   echo "Exit 1: could not read the checks of $short. Check gh auth status, then run this again." >&2
   exit 1

@@ -205,7 +205,7 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 
 | Exit | Meaning | Do |
 |---|---|---|
-| 0 | Copilot reviewed the head commit, nothing new needs an answer, and no check failed but Copilot's own (`copilot-pull-request-reviewer`, §8). Or the PR is closed | If the summary shows checks still running, `gh pr checks <n> --watch --required`. Then the PR waits for the owner |
+| 0 | Copilot reviewed the head commit, nothing new needs an answer, and no check failed but Copilot's own (`copilot-pull-request-reviewer`, §8). Or the PR is closed, even if feedback came with that | If the summary shows checks still running, `gh pr checks <n> --watch --required`. Then the PR waits for the owner. Once it's closed there's nothing to push: read any feedback printed above, which may ask for a follow-up |
 | 2 | Feedback that needs an answer, printed above the summary: any new review but a clean 🟢 one, and any new comment, the owner's too. Or, if you started late, Copilot's review of the head that isn't clean and has no thread reply or post by anyone but Copilot after it | Handle it (§8), push, reply, and watch again |
 | 3 | No Copilot review of the head commit in 15 minutes | Look for a setup-failure comment from Copilot, then `gh pr edit <n> --add-reviewer @copilot` and watch once more. If there's still none, tell the owner in a PR comment |
 | 4 | The head moved: someone pushed | Watch again |
