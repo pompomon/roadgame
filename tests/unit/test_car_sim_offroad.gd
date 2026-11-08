@@ -5,6 +5,9 @@ const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
 ## How far from the road's edge _put_by_the_edge() puts the car: less than one step at speed 1.
 const EDGE_GAP := 0.005
+## Two areas, the second with less off-road damage than the first.
+const DESERT: AreaDef = preload("res://areas/desert.tres")
+const MEADOWS: AreaDef = preload("res://areas/meadows.tres")
 
 
 func _sim(run_seed: int) -> CarSim:
@@ -63,6 +66,17 @@ func _offroad_share(sim: CarSim, from: Vector2) -> float:
 		if not RoadGeometry.is_on_road(sim.buffer.tile_at(cell), p - Vector2(cell)):
 			off += 1
 	return off / 2000.0
+
+
+## A schedule with area `first` up to the first junction and `second` from its exit tile on.
+func _two_areas(first: AreaDef, second: AreaDef) -> AreaSchedule:
+	var schedule := AreaSchedule.new()
+	for k: int in 2:
+		var entry := AreaScheduleEntry.new()
+		entry.turn = k
+		entry.area = first if k == 0 else second
+		schedule.entries.append(entry)
+	return schedule
 
 
 ## Steps straight on for up to `seconds`, until the run ends.
@@ -247,13 +261,7 @@ func test_a_path_tile_that_a_step_passes_through_counts_as_reached() -> void:
 	# Off the road, the car steps across the outer corner of the first junction's turn: into the exit
 	# tile, the first of the second area, and on into the cell beside it, which is off the path.
 	var areas := Fixtures.schedule().entries
-	var schedule := AreaSchedule.new()
-	for k: int in 2:
-		var entry := AreaScheduleEntry.new()
-		entry.turn = k
-		entry.area = areas[k].area
-		schedule.entries.append(entry)
-	var buffer := RoadBuffer.new(RoadGenerator.new(1, schedule))
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, _two_areas(areas[0].area, areas[1].area)))
 	buffer.start()
 	var sim := CarSim.new(buffer)
 	watch_signals(sim)
@@ -289,17 +297,12 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 	# car still runs out. Whether it runs out after the new area or before it, the end of the run
 	# sees the car where the step ends: on the exit tile, in the new area, with progress past any
 	# the junction's tile can give.
-	var old_area: AreaDef = load("res://areas/desert.tres")
-	var new_area: AreaDef = load("res://areas/meadows.tres")
+	var old_area := DESERT
+	var new_area := MEADOWS
 	var old_damage := old_area.offroad_damage_per_sec
 	var new_damage := new_area.offroad_damage_per_sec
 	assert_gt(old_damage, new_damage)
-	var schedule := AreaSchedule.new()
-	for k: int in 2:
-		var entry := AreaScheduleEntry.new()
-		entry.turn = k
-		entry.area = old_area if k == 0 else new_area
-		schedule.entries.append(entry)
+	var schedule := _two_areas(old_area, new_area)
 	var cost := (old_damage + new_damage) / 2.0 * DELTA
 	var before_new_area := old_damage * DELTA / 4.0
 	for health: float in [Tuning.START_HEALTH, (cost + new_damage * DELTA) / 2.0, before_new_area]:
@@ -347,6 +350,80 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 			assert_gt(progress, junction.path_index + 0.5, why + ": on into the exit tile")
 			assert_eq(seen, [[progress, exit_tile.path_index, new_area.id]], why)
 			assert_signal_emitted_with_parameters(sim, "area_changed", [new_area])
+
+
+func test_a_rejoin_that_ends_the_run_sees_the_car_where_the_step_ends() -> void:
+	# Off the road beside the first junction's exit, the car steps back onto the road about a
+	# quarter of the way through the step, still in the junction's tile, and on into the exit tile
+	# about halfway, the first of a new area. Unless the time off the road before the rejoin ends
+	# the run, it counts at the old area's rate, and the car crosses into the exit tile on the road
+	# and completes the turn. If it ends the run, by health or by the off-road limit, the end of the
+	# run sees the car where the step ends: on the exit tile, in the new area.
+	var old_area := DESERT
+	var new_area := MEADOWS
+	var schedule := _two_areas(old_area, new_area)
+	for ending: StringName in [&"", CarSim.HEALTH, CarSim.MISSED_TURN]:
+		var buffer := RoadBuffer.new(RoadGenerator.new(1, schedule))
+		buffer.start()
+		var sim := CarSim.new(buffer)
+		watch_signals(sim)
+		watch_signals(sim.trigger)
+		var junction := sim.trigger.next_junction
+		var exit_tile := buffer.path_tile(junction.path_index + 1)
+		assert_eq(exit_tile.area_id, new_area.id, "the exit tile is the first of the new area")
+		var out := Vector2(Heading.VEC[junction.expected_exit])
+		var side := Vector2(Heading.VEC[Heading.right(junction.expected_exit)])
+		var edge := Iso.cell_centre(junction.cell) + out * 0.5
+		# At the speed it drives at off the road by a junction, towards the road at 30 degrees.
+		sim.speed = old_area.junction_speed * old_area.offroad_speed_mult
+		var move := (out * cos(PI / 6.0) - side * sin(PI / 6.0)) * sim.speed * DELTA
+		var start := edge - out * move.dot(out) / 2.0
+		start += side * (Tuning.ROAD_HALF_WIDTH - move.dot(side) / 4.0)
+		_place(sim, start, junction)
+		sim.angle = atan2(move.x, -move.y)
+		sim.state = CarSim.State.OFFROAD
+		sim.offroad_junction = junction
+		if ending == CarSim.HEALTH:
+			sim.health = old_area.offroad_damage_per_sec * DELTA / 8.0
+		elif ending == CarSim.MISSED_TURN:
+			sim.offroad_dist = old_area.offroad_limit_tiles - sim.speed * DELTA / 8.0
+		var seen := []
+		# Through a WeakRef: a handler that held the car would form a cycle with it, which leaks.
+		var car: WeakRef = weakref(sim)
+		var see := func() -> void:
+			var at_end := car.get_ref() as CarSim
+			seen.append([at_end.progress, at_end.path_tile.path_index, at_end.area.id])
+		sim.crashed.connect(see.unbind(1))
+		sim.trigger.disaster_triggered.connect(see.unbind(2))
+		var from := sim.pos
+		sim.step(DELTA, 0.0)
+		var why := "ending %s" % ending
+		var cells: Array[Vector2i] = [exit_tile.cell]
+		assert_eq(CarSim.cells_crossed(from, sim.pos), cells, why)
+		var t := (edge - from).dot(out) / (sim.pos - from).dot(out)
+		assert_between(t, 0.45, 0.55, why + ": into the exit tile about halfway")
+		var off := _offroad_share(sim, from)
+		assert_between(off, 0.2, 0.3, why + ": back on the road about a quarter of the way")
+		assert_eq(sim.path_tile, exit_tile, why)
+		assert_eq(sim.area.id, new_area.id, why)
+		assert_signal_emitted_with_parameters(sim, "area_changed", [new_area])
+		var progress := CarSim.path_progress(exit_tile, sim.pos)
+		assert_gt(progress, junction.path_index + 0.5, why + ": on into the exit tile")
+		assert_eq(sim.progress, progress, why)
+		if ending == &"":
+			assert_eq(sim.state, CarSim.State.DRIVING, why)
+			assert_signal_emitted_with_parameters(sim.trigger, "turn_completed", [1])
+			var damage := old_area.offroad_damage_per_sec * DELTA * off
+			assert_almost_eq(sim.health, Tuning.START_HEALTH - damage, 1e-3, why)
+			assert_eq(seen, [], why)
+			continue
+		assert_eq(seen, [[progress, exit_tile.path_index, new_area.id]], why)
+		if ending == CarSim.HEALTH:
+			assert_eq(sim.state, CarSim.State.CRASHED, why)
+			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])
+		else:
+			assert_eq(sim.state, CarSim.State.DISASTER, why)
+			assert_signal_emitted_with_parameters(sim.trigger, "disaster_triggered", [junction, -1])
 
 
 func test_the_offroad_limit_on_a_straight_is_a_crash() -> void:
