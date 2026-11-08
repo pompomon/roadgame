@@ -244,6 +244,43 @@ func test_near_is_at_most_one_step_from_the_junction() -> void:
 		assert_eq(sim.offroad_junction, expected, "%d tiles before the junction" % back)
 
 
+func test_near_is_measured_from_the_cell_after_the_step_that_leaves_the_road() -> void:
+	# The car steps off the road's right edge by the edge between the two tiles before the first
+	# junction, then across that edge: forwards from 2 steps away to 1, or backwards from 1 to 2.
+	for forward: bool in [true, false]:
+		var sim := _sim_where(
+			func(j: RoadTile, buffer: RoadBuffer) -> bool:
+				var before := j.cell - Heading.VEC[j.heading] * 2
+				return j.path_index >= 2 and buffer.path_tile(j.path_index - 2).cell == before
+		)
+		var junction := sim.trigger.next_junction
+		var along := Vector2(Heading.VEC[junction.heading])
+		var right := Vector2(Heading.VEC[Heading.right(junction.heading)])
+		var edge := Iso.cell_centre(junction.cell) - along * 1.5
+		var way := 1.0 if forward else -1.0
+		sim.pos = edge - along * way * 0.006 + right * (Tuning.ROAD_HALF_WIDTH - 0.002)
+		var heading := along * way + right
+		sim.angle = atan2(heading.x, -heading.y)
+		sim.speed = 1.0
+		sim.step(DELTA, 0.0)
+		var why := "forwards" if forward else "backwards"
+		var end_cell := junction.cell - Heading.VEC[junction.heading] * (1 if forward else 2)
+		assert_eq(Vector2i(sim.pos.floor()), end_cell, why)
+		assert_eq(sim.state, CarSim.State.OFFROAD, why)
+		var expected: RoadTile = junction if forward else null
+		assert_eq(sim.offroad_junction, expected, why)
+		sim.offroad_dist = sim.area.offroad_limit_tiles - 0.001
+		sim.step(DELTA, 0.0)
+		if forward:
+			assert_eq(sim.state, CarSim.State.DISASTER, why)
+			assert_signal_emitted_with_parameters(sim.trigger, "disaster_triggered", [junction, -1])
+			assert_signal_not_emitted(sim, "crashed", why)
+		else:
+			assert_eq(sim.state, CarSim.State.CRASHED, why)
+			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.OFFROAD])
+			assert_signal_not_emitted(sim.trigger, "disaster_triggered", why)
+
+
 func test_the_offroad_limit_near_a_junction_is_a_missed_turn() -> void:
 	# Straight on at a T-junction with no straight exit, and nothing beyond it.
 	var sim := _sim_where(
