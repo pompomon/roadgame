@@ -45,10 +45,11 @@ func _put_by_the_edge(sim: CarSim, index: int, on_road: bool) -> void:
 		sim.state = CarSim.State.OFFROAD
 
 
-## Puts the car at `p`, in the cell of a correct-path tile, as if it had driven there.
-func _place(sim: CarSim, p: Vector2) -> void:
+## Puts the car at `p` as if it had driven there. `tile` is the correct-path tile whose cell it was
+## in last: by default, the one in p's cell.
+func _place(sim: CarSim, p: Vector2, tile: RoadTile = null) -> void:
 	sim.pos = p
-	sim.path_tile = sim.buffer.tile_at(Vector2i(p.floor()))
+	sim.path_tile = tile if tile != null else sim.buffer.tile_at(Vector2i(p.floor()))
 	sim.buffer.on_car_path_index(sim.path_tile.path_index)
 	sim.progress = CarSim.path_progress(sim.path_tile, p)
 
@@ -389,3 +390,44 @@ func test_rejoining_on_a_dead_end_is_a_disaster_and_the_car_stops() -> void:
 		sim.step(DELTA, 0.0)
 	assert_eq(sim.speed, 0.0, "stopped")
 	assert_eq(sim.state, CarSim.State.DISASTER)
+
+
+func test_a_step_that_ends_the_run_measures_the_progress_first() -> void:
+	# Off the road in the dead end on the right of the first junction, the car steps along the
+	# junction's heading back onto the dead end's road, a wrong turn. With almost no health left, it
+	# crashes on the way there instead. Either way, the end of the run sees the progress after the
+	# step, though the step enters no other cell.
+	for health: float in [Tuning.START_HEALTH, 0.001]:
+		var sim := _sim(1)
+		var junction := sim.trigger.next_junction
+		var exit := Heading.right(junction.heading)
+		assert_true(junction.has_exit(exit) and exit != junction.expected_exit, "a wrong exit")
+		var along := Vector2(Heading.VEC[junction.heading])
+		var into_dead_end := Vector2(Heading.VEC[exit]) * 0.75
+		var behind := along * (Tuning.ROAD_HALF_WIDTH + EDGE_GAP)
+		_place(sim, Iso.cell_centre(junction.cell) + into_dead_end - behind, junction)
+		sim.angle = junction.heading * PI / 2.0
+		sim.speed = 3.0
+		sim.health = health
+		sim.state = CarSim.State.OFFROAD
+		sim.offroad_junction = junction
+		var seen := []
+		# Through a WeakRef: a handler that held the car would form a cycle with it, which leaks.
+		var car: WeakRef = weakref(sim)
+		var see := func() -> void: seen.append((car.get_ref() as CarSim).progress)
+		sim.crashed.connect(see.unbind(1))
+		sim.trigger.disaster_triggered.connect(see.unbind(2))
+		var before := sim.progress
+		sim.step(DELTA, 0.0)
+		var why := "health %.3f" % health
+		var after := CarSim.path_progress(junction, sim.pos)
+		assert_gt(after, before + 0.04, why + ": the step moved the car on")
+		assert_eq(seen, [after], why)
+		if health == Tuning.START_HEALTH:
+			assert_eq(sim.state, CarSim.State.DISASTER, why)
+			assert_signal_emitted_with_parameters(
+				sim.trigger, "disaster_triggered", [junction, exit]
+			)
+		else:
+			assert_eq(sim.state, CarSim.State.CRASHED, why)
+			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])

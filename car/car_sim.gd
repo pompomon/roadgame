@@ -73,6 +73,8 @@ func step(delta: float, steer: float) -> void:
 	_update_speed(delta)
 	var from := pos
 	pos += velocity() * delta
+	# Whatever ends the run during the step sees the progress at the car's new position.
+	progress = path_progress(path_tile, pos)
 	dist_total += speed * delta
 	dist_on_straight += speed * delta
 	_offroad_since = 0.0
