@@ -1,6 +1,7 @@
 extends GutTest
-## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6) on its own: what it shows, and the pause and
-## retry input. The integration test checks the Pause button inside the main scene.
+## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6, M3.3) on its own: what it shows, the pause input,
+## and the fresh start of each run. The integration test checks the Pause button inside the main
+## scene, and the game-over screen has its own test.
 
 const HUD_SCENE := preload("res://ui/hud.tscn")
 
@@ -23,13 +24,6 @@ static func _key(keycode: Key, pressed: bool) -> InputEventKey:
 	var event := InputEventKey.new()
 	event.keycode = keycode
 	event.physical_keycode = keycode
-	event.pressed = pressed
-	return event
-
-
-static func _touch(pressed: bool) -> InputEventScreenTouch:
-	var event := InputEventScreenTouch.new()
-	event.position = Vector2(100.0, 300.0)
 	event.pressed = pressed
 	return event
 
@@ -81,41 +75,32 @@ func test_the_pause_button_pauses_and_resumes() -> void:
 	assert_eq(GameState.state, GameState.State.RUNNING)
 
 
-func test_the_end_of_a_run_shows_why_and_how_to_retry() -> void:
-	for cause: StringName in Hud.END_MESSAGES:
-		var hud := _hud()
-		GameState.start_run(1)
-		GameState.end_run(cause)
-		assert_eq(_text(hud, "Message"), "%s\n%s" % [Hud.END_MESSAGES[cause], Hud.RETRY_MESSAGE])
-		assert_false(hud.get_node("%Pause").visible, "no pausing after the end")
-		GameState.quit_to_title()
+func test_the_distance_is_in_whole_metres() -> void:
+	assert_eq(Hud.distance_text(0.0), "0 m")
+	assert_eq(Hud.distance_text(12.34), "123 m")
+	assert_eq(Hud.distance_text(12.36), "124 m")
 
 
-func test_a_tap_or_enter_retries_only_once_the_game_is_over() -> void:
+func test_the_end_of_a_run_hides_the_pause_button_and_leaves_the_message_alone() -> void:
 	var hud := _hud()
-	watch_signals(hud)
-	GameState.start_run(1)
-	var events: Array[InputEvent] = [_touch(true), _key(KEY_ENTER, true)]
-	for event: InputEvent in events:
-		hud._unhandled_input(event)
-	GameState.end_run(CarSim.WRONG_TURN)
-	for event: InputEvent in events:
-		hud._unhandled_input(event)
-	assert_signal_emit_count(hud, "retry_requested", 0, "running, then in the disaster state")
-	GameState.show_game_over()
-	hud._unhandled_input(_touch(false))
-	assert_signal_emit_count(hud, "retry_requested", 0, "a touch release")
-	for event: InputEvent in events:
-		hud._unhandled_input(event)
-	assert_signal_emit_count(hud, "retry_requested", 2)
-
-
-func test_a_retry_may_take_the_hud_out_of_the_tree() -> void:
-	# The main scene's retry reloads the scene, and Godot takes the old one out of the tree at once.
-	var hud := _hud()
-	hud.retry_requested.connect(func() -> void: hud.get_parent().remove_child(hud))
 	GameState.start_run(1)
 	GameState.end_run(CarSim.WRONG_TURN)
+	assert_false(hud.get_node("%Pause").visible, "no pausing after the end")
+	assert_eq(_text(hud, "Message"), "", "the game-over screen says why")
+
+
+func test_each_run_starts_the_hud_afresh() -> void:
+	# A retry starts the next run without reloading the HUD (M3_PLAN.md J10).
+	var hud := _hud()
+	GameState.start_run(1)
+	EventBus.turn_completed.emit(5)
+	EventBus.health_changed.emit(10.0)
+	GameState.end_run(CarSim.HEALTH)
 	GameState.show_game_over()
-	hud._unhandled_input(_key(KEY_ENTER, true))
-	assert_false(hud.is_inside_tree(), "the retry went ahead")
+	GameState.start_run(2)
+	var version: String = ProjectSettings.get_setting("application/config/version")
+	assert_eq(_text(hud, "Turns"), "turns 0")
+	assert_eq((hud.get_node("%Health") as ProgressBar).value, Tuning.START_HEALTH)
+	assert_true(hud.get_node("%Pause").visible, "Pause is back")
+	assert_eq(_text(hud, "Message"), "")
+	assert_eq(_text(hud, "Info"), "Road Roguelike %s\nseed 2" % version)

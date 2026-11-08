@@ -1,8 +1,8 @@
 class_name AreaDef
 extends Resource
 ## The rules of one area (plan.md §3.7). M1 added the fields the generator and the grey-box renderer
-## use, M2 the driving fields CarSim reads; M4 adds the prop, disaster and audio fields. The driving
-## defaults are the City's values (IMPLEMENTATION_PLAN.md M4.2).
+## use, M2 the driving fields CarSim reads, M3 the disaster pool; M4 adds the prop and audio fields.
+## The driving defaults are the City's values (IMPLEMENTATION_PLAN.md M4.2).
 
 @export var id := &""
 @export var display_name := ""
@@ -27,6 +27,11 @@ extends Resource
 @export_range(0.0, 100.0, 1.0) var offroad_damage_per_sec := 30.0
 ## The farthest the car may drive off the road, in tiles: 2.0 in the MVP.
 @export_range(0.5, 5.0, 0.1) var offroad_limit_tiles := 2.0
+
+@export_group("Disasters")
+## What a wrong or missed turn here may end in (plan.md §4.3): scenes whose root is a DisasterBase.
+## Until M4.5 adds the others, every area has the sinkhole (M3_PLAN.md Q2).
+@export var disasters: Array[PackedScene] = []
 
 
 ## Returns what breaks the generator's rules, or nothing.
