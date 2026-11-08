@@ -8,3 +8,5 @@ id = &"village"
 display_name = "Village"
 id_color = Color(0.76, 0.52, 0.4, 1)
 cross_junction_chance = 0.35
+straight_accel = 0.55
+offroad_speed_mult = 0.55
