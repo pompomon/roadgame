@@ -219,23 +219,24 @@ func _follow_road(from: Vector2, cell: Vector2i, start: float, end: float, delta
 		if on_from > on_to:
 			continue
 		if on_from > t:
-			_leave_road(cell, t)
+			_leave_road(t)
 		if state == State.OFFROAD and not _rejoin_road(tile, on_from, delta):
 			return false
 		t = on_to
 	if t < end:
-		_leave_road(cell, t)
+		_leave_road(t)
 	return true
 
 
-## The car leaves the road at fraction `t` of the step, in `cell`, unless it is off it already.
-func _leave_road(cell: Vector2i, t: float) -> void:
+## The car leaves the road at fraction `t` of the step, unless it is off it already. It is near the
+## next junction (D6) if its cell after the step is at most one grid step from the junction's.
+func _leave_road(t: float) -> void:
 	if state == State.OFFROAD:
 		return
 	state = State.OFFROAD
 	offroad_dist = 0.0
 	var junction := trigger.next_junction
-	var near := junction != null and _steps(cell, junction.cell) <= 1
+	var near := junction != null and _steps(Vector2i(pos.floor()), junction.cell) <= 1
 	offroad_junction = junction if near else null
 	_offroad_since = t
 	offroad_changed.emit(true)
