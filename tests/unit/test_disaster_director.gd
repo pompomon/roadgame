@@ -176,6 +176,9 @@ func test_a_disaster_that_never_finishes_times_out_with_an_error() -> void:
 	assert_push_error("the sequence did not end")
 	simulate(_root, 60, DELTA)
 	assert_signal_emit_count(_director, "sequence_finished", 1)
+	# The game is over by then, so a disaster that finishes late ends nothing.
+	_director.disaster.finished.emit()
+	assert_signal_emit_count(_director, "sequence_finished", 1, "a late finish")
 
 
 func test_an_empty_pool_is_an_error_and_ends_the_sequence() -> void:
