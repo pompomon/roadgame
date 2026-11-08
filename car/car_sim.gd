@@ -73,28 +73,33 @@ func step(delta: float, steer: float) -> void:
 	_update_speed(delta)
 	var from := pos
 	pos += velocity() * delta
-	# Whatever ends the run during the step sees the progress at the car's new position.
-	progress = path_progress(path_tile, pos)
 	dist_total += speed * delta
 	dist_on_straight += speed * delta
-	_offroad_since = 0.0
-	# Follow the move in order: in each cell, where it leaves or rejoins the road, then where it
+	# First the path, so that whatever ends the run during the step sees the car where the step
+	# ends: on the last path tile it reached, with the progress and area there. Then the rules,
+	# along the move in order: in each cell, where it leaves or rejoins the road, then where it
 	# crosses into the next cell, which the trigger judges by whether the car is on the road there.
-	# A path tile the move passes through counts as reached, even if the move ends off the path.
+	# Off the road, the time before a new area counts at the old area's rates.
+	var crossed := cells_crossed(from, pos)
+	var areas := _update_path(crossed)
+	_offroad_since = 0.0
 	var cell := Vector2i(from.floor())
 	var done := 0.0
-	for next: Vector2i in cells_crossed(from, pos):
-		var at := _crossing_fraction(from, pos, cell, next)
-		if not _follow_road(from, cell, done, at, delta):
+	for i: int in crossed.size():
+		var at := _crossing_fraction(from, pos, cell, crossed[i])
+		if not _follow_road(from, cell, done, at, delta, areas[i]):
 			return
-		trigger.on_cell_crossed(cell, next, state != State.OFFROAD)
-		if is_over() or not _update_path(next, at, delta):
+		trigger.on_cell_crossed(cell, crossed[i], state != State.OFFROAD)
+		if is_over():
 			return
-		cell = next
+		if state == State.OFFROAD and areas[i + 1] != areas[i]:
+			_drive_off_road((at - _offroad_since) * delta, areas[i])
+			_offroad_since = at
+			if is_over():
+				return
+		cell = crossed[i]
 		done = at
-	if not _follow_road(from, cell, done, 1.0, delta) or not _update_path(cell, 1.0, delta):
-		return
-	if state == State.OFFROAD:
+	if _follow_road(from, cell, done, 1.0, delta, area) and state == State.OFFROAD:
 		_drive_off_road((1.0 - _offroad_since) * delta, area)
 
 
@@ -197,34 +202,36 @@ func _update_speed(delta: float) -> void:
 	speed = move_toward(speed, target, rate * delta)
 
 
-## The car is in `cell` from fraction `at` of the step. If the cell holds a correct-path tile other
-## than path_tile, that tile becomes path_tile: the buffer moves along, progress is measured on it
-## at the car's position, and the area of the farthest path tile reached drives the car from
-## there. Off the road, the time before a new area then counts at the old area's rates, so a run
-## that ends there ends on the new tile, in the new area. Returns false if the run ended.
-func _update_path(cell: Vector2i, at: float, delta: float) -> bool:
-	var tile := buffer.tile_at(cell)
-	if tile != null and tile.path_index >= 0 and tile != path_tile:
-		var farthest := buffer.path_tile(maxi(buffer.car_index(), tile.path_index))
-		path_tile = tile
-		buffer.on_car_path_index(tile.path_index)
-		progress = path_progress(path_tile, pos)
-		if farthest.area_id != area.id:
-			var before := area
-			area = buffer.generator.find_area(farthest.area_id)
-			area_changed.emit(area)
-			if state == State.OFFROAD:
-				_drive_off_road((at - _offroad_since) * delta, before)
-				_offroad_since = at
-	return not is_over()
+## The move enters the cells `crossed`, in order. Each that holds a correct-path tile other than
+## path_tile makes that tile path_tile, and the buffer moves along, even if the move goes on off
+## the path; the area of the farthest path tile reached drives the car from there. Then measures
+## the progress at the car's position. Returns the areas that drive the car along the move: before
+## its first crossing, and after each.
+func _update_path(crossed: Array[Vector2i]) -> Array[AreaDef]:
+	var areas: Array[AreaDef] = [area]
+	for cell: Vector2i in crossed:
+		var tile := buffer.tile_at(cell)
+		if tile != null and tile.path_index >= 0 and tile != path_tile:
+			var farthest := buffer.path_tile(maxi(buffer.car_index(), tile.path_index))
+			path_tile = tile
+			buffer.on_car_path_index(tile.path_index)
+			if farthest.area_id != area.id:
+				area = buffer.generator.find_area(farthest.area_id)
+		areas.append(area)
+	progress = path_progress(path_tile, pos)
+	if area != areas[0]:
+		area_changed.emit(area)
+	return areas
 
 
 ## Off-road rules (plan.md §2.4, D6) on the part of the step from `from` to `pos` between
 ## fractions `start` and `end`, which lies in `cell`: the car leaves the road and rejoins it where
-## that part crosses the road's edge, however often. Only the time off the road counts, and a
-## rejoin counts only if the car reaches the road before the off-road limit or 0 health. Returns
-## false if the run ended.
-func _follow_road(from: Vector2, cell: Vector2i, start: float, end: float, delta: float) -> bool:
+## that part crosses the road's edge, however often. Only the time off the road counts, at the
+## rates of `rates`, and a rejoin counts only if the car reaches the road before the off-road limit
+## or 0 health. Returns false if the run ended.
+func _follow_road(
+	from: Vector2, cell: Vector2i, start: float, end: float, delta: float, rates: AreaDef
+) -> bool:
 	var tile := buffer.tile_at(cell)
 	var origin := Vector2(cell)
 	var exits := 0 if tile == null else tile.exits
@@ -236,7 +243,7 @@ func _follow_road(from: Vector2, cell: Vector2i, start: float, end: float, delta
 			continue
 		if on_from > t:
 			_leave_road(t)
-		if state == State.OFFROAD and not _rejoin_road(tile, on_from, delta):
+		if state == State.OFFROAD and not _rejoin_road(tile, on_from, delta, rates):
 			return false
 		t = on_to
 	if t < end:
@@ -259,9 +266,10 @@ func _leave_road(t: float) -> void:
 
 
 ## The car comes back onto the road on `tile` at fraction `t` of the step, after the off-road time
-## up to there counts. Returns false if the run ended first, or on the rejoin.
-func _rejoin_road(tile: RoadTile, t: float, delta: float) -> bool:
-	_drive_off_road((t - _offroad_since) * delta, area)
+## up to there counts at the rates of `rates`. Returns false if the run ended first, or on the
+## rejoin.
+func _rejoin_road(tile: RoadTile, t: float, delta: float, rates: AreaDef) -> bool:
+	_drive_off_road((t - _offroad_since) * delta, rates)
 	if is_over():
 		return false
 	state = State.DRIVING
