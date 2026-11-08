@@ -3,6 +3,8 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
+## How far from the road's edge _put_by_the_edge() puts the car: less than one step at speed 1.
+const EDGE_GAP := 0.005
 
 
 func _sim(run_seed: int) -> CarSim:
@@ -25,6 +27,22 @@ func _put_off_road(sim: CarSim, index: int) -> void:
 
 func _right(sim: CarSim) -> Vector2:
 	return Vector2(cos(sim.angle), sin(sim.angle))
+
+
+## Puts the car EDGE_GAP from the road's edge, on the right of the centre of straight path tile
+## `index`, at speed 1. On the road, it faces away from the road; off it, towards the road. Either
+## way, its next step crosses the edge.
+func _put_by_the_edge(sim: CarSim, index: int, on_road: bool) -> void:
+	var tile := sim.buffer.path_tile(index)
+	assert_eq(tile.exits, Heading.bit(tile.heading) | Heading.bit(Heading.opposite(tile.heading)))
+	var right := Vector2(Heading.VEC[Heading.right(tile.heading)])
+	var side := Tuning.ROAD_HALF_WIDTH + (-EDGE_GAP if on_road else EDGE_GAP)
+	sim.pos = Iso.cell_centre(tile.cell) + right * side
+	var facing := Heading.right(tile.heading) if on_road else Heading.left(tile.heading)
+	sim.angle = facing * PI / 2.0
+	sim.speed = 1.0
+	if not on_road:
+		sim.state = CarSim.State.OFFROAD
 
 
 ## Steps straight on for up to `seconds`, until the run ends.
@@ -83,6 +101,42 @@ func test_rejoining_stops_the_damage() -> void:
 	assert_eq(sim.health, health)
 	assert_signal_not_emitted(sim.trigger, "turn_completed")
 	assert_signal_not_emitted(sim.trigger, "disaster_triggered")
+
+
+func test_a_step_that_leaves_the_road_counts_only_from_the_edge() -> void:
+	var sim := _sim(1)
+	_put_by_the_edge(sim, 0, true)
+	sim.step(DELTA, 0.0)
+	assert_eq(sim.state, CarSim.State.OFFROAD)
+	var seconds_off := DELTA - EDGE_GAP / sim.speed
+	assert_almost_eq(sim.offroad_dist, sim.speed * seconds_off, 1e-6)
+	var damage := sim.area.offroad_damage_per_sec * seconds_off
+	assert_almost_eq(sim.health, Tuning.START_HEALTH - damage, 1e-4)
+
+
+func test_a_rejoin_counts_only_if_the_car_reaches_the_road_within_the_limit() -> void:
+	# The car cut the first junction's corner and comes back to the road on the path tile after it,
+	# with a little more, or a little less, than EDGE_GAP to go to the off-road limit.
+	for left: float in [EDGE_GAP + 0.001, EDGE_GAP - 0.001]:
+		var sim := _sim(1)
+		var junction := sim.trigger.next_junction
+		_put_by_the_edge(sim, junction.path_index + 1, false)
+		sim.offroad_junction = junction
+		var limit := sim.area.offroad_limit_tiles
+		sim.offroad_dist = limit - left
+		sim.step(DELTA, 0.0)
+		var why := "%.3f tiles to the limit" % left
+		assert_almost_eq(sim.offroad_dist, limit - left + EDGE_GAP, 1e-6, why)
+		if left > EDGE_GAP:
+			assert_eq(sim.state, CarSim.State.DRIVING, why)
+			assert_signal_emitted_with_parameters(sim.trigger, "turn_completed", [1])
+			var damage := sim.area.offroad_damage_per_sec * EDGE_GAP / sim.speed
+			assert_almost_eq(sim.health, Tuning.START_HEALTH - damage, 1e-4, why)
+		else:
+			assert_eq(sim.state, CarSim.State.DISASTER, why)
+			assert_signal_emitted_with_parameters(sim.trigger, "disaster_triggered", [junction, -1])
+			assert_signal_not_emitted(sim.trigger, "turn_completed", why)
+			assert_signal_not_emitted(sim, "offroad_changed", why)
 
 
 func test_the_offroad_limit_on_a_straight_is_a_crash() -> void:

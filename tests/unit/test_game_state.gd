@@ -117,6 +117,37 @@ func test_invalid_changes_push_an_error_and_change_nothing() -> void:
 	assert_signal_emit_count(EventBus, "run_ended", 1)
 
 
+func test_a_paused_run_cannot_start_again() -> void:
+	_state.start_run(1)
+	_state.turn_index = 2
+	_state.distance = 8.5
+	_state.pause()
+	var stats := _state.stats()
+	_state.start_run(2)
+	assert_push_error("GameState: start_run() in PAUSED is not allowed")
+	assert_eq(_state.state, GameStateScript.State.PAUSED)
+	assert_eq(_state.stats(), stats)
+	assert_true(get_tree().paused)
+	assert_signal_emit_count(EventBus, "run_started", 1)
+	assert_signal_emit_count(EventBus, "paused_changed", 1)
+
+
+func test_only_a_paused_run_can_resume() -> void:
+	_state.resume()
+	assert_push_error("GameState: resume() in TITLE is not allowed")
+	assert_eq(_state.state, GameStateScript.State.TITLE)
+	_state.start_run(1)
+	_state.end_run(CarSim.HEALTH)
+	_state.show_game_over()
+	var stats := _state.stats()
+	_state.resume()
+	assert_push_error("GameState: resume() in GAME_OVER is not allowed")
+	assert_eq(_state.state, GameStateScript.State.GAME_OVER)
+	assert_eq(_state.stats(), stats)
+	assert_signal_emit_count(EventBus, "run_started", 1)
+	assert_signal_not_emitted(EventBus, "paused_changed")
+
+
 func test_a_paused_run_cannot_end() -> void:
 	_state.start_run(1)
 	_state.pause()

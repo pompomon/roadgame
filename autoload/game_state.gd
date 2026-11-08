@@ -26,7 +26,11 @@ var area_id := &""
 var end_cause := &""
 
 
+## Starts a run from TITLE or GAME_OVER. A paused run must be resumed or quit first.
 func start_run(p_run_seed: int) -> void:
+	if state == State.PAUSED:
+		push_error("GameState: start_run() in PAUSED is not allowed")
+		return
 	if not _change_to(State.RUNNING):
 		return
 	run_seed = p_run_seed
@@ -43,10 +47,14 @@ func pause() -> void:
 		EventBus.paused_changed.emit(true)
 
 
+## Resumes a paused run. Only start_run() leaves TITLE or GAME_OVER for RUNNING.
 func resume() -> void:
-	if _change_to(State.RUNNING):
-		get_tree().paused = false
-		EventBus.paused_changed.emit(false)
+	if state != State.PAUSED:
+		push_error("GameState: resume() in %s is not allowed" % State.keys()[state])
+		return
+	_change_to(State.RUNNING)
+	get_tree().paused = false
+	EventBus.paused_changed.emit(false)
 
 
 ## Ends the run with one of CarSim's causes: DISASTER for a wrong or missed turn, otherwise CRASH.
