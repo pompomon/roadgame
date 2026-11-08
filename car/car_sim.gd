@@ -95,7 +95,7 @@ func step(delta: float, steer: float) -> void:
 	if not _follow_road(from, cell, done, 1.0, delta) or not _update_path(cell, 1.0, delta):
 		return
 	if state == State.OFFROAD:
-		_drive_off_road((1.0 - _offroad_since) * delta)
+		_drive_off_road((1.0 - _offroad_since) * delta, area)
 
 
 func velocity() -> Vector2:
@@ -198,26 +198,25 @@ func _update_speed(delta: float) -> void:
 
 
 ## The car is in `cell` from fraction `at` of the step. If the cell holds a correct-path tile other
-## than path_tile, that tile becomes path_tile: the buffer moves along, and the area of the farthest
-## path tile reached drives the car from there. Off the road, the time before a new area counts
-## first, at the old area's rates. Then progress is measured on path_tile at the car's position.
-## Returns false if the run ended.
+## than path_tile, that tile becomes path_tile: the buffer moves along, progress is measured on it
+## at the car's position, and the area of the farthest path tile reached drives the car from
+## there. Off the road, the time before a new area then counts at the old area's rates, so a run
+## that ends there ends on the new tile, in the new area. Returns false if the run ended.
 func _update_path(cell: Vector2i, at: float, delta: float) -> bool:
 	var tile := buffer.tile_at(cell)
 	if tile != null and tile.path_index >= 0 and tile != path_tile:
 		var farthest := buffer.path_tile(maxi(buffer.car_index(), tile.path_index))
-		if farthest.area_id != area.id and state == State.OFFROAD:
-			_drive_off_road((at - _offroad_since) * delta)
-			_offroad_since = at
-			if is_over():
-				return false
 		path_tile = tile
 		buffer.on_car_path_index(tile.path_index)
+		progress = path_progress(path_tile, pos)
 		if farthest.area_id != area.id:
+			var before := area
 			area = buffer.generator.find_area(farthest.area_id)
 			area_changed.emit(area)
-	progress = path_progress(path_tile, pos)
-	return true
+			if state == State.OFFROAD:
+				_drive_off_road((at - _offroad_since) * delta, before)
+				_offroad_since = at
+	return not is_over()
 
 
 ## Off-road rules (plan.md §2.4, D6) on the part of the step from `from` to `pos` between
@@ -262,7 +261,7 @@ func _leave_road(t: float) -> void:
 ## The car comes back onto the road on `tile` at fraction `t` of the step, after the off-road time
 ## up to there counts. Returns false if the run ended first, or on the rejoin.
 func _rejoin_road(tile: RoadTile, t: float, delta: float) -> bool:
-	_drive_off_road((t - _offroad_since) * delta)
+	_drive_off_road((t - _offroad_since) * delta, area)
 	if is_over():
 		return false
 	state = State.DRIVING
@@ -272,14 +271,14 @@ func _rejoin_road(tile: RoadTile, t: float, delta: float) -> bool:
 	return not is_over()
 
 
-## Damage and the off-road limit for `seconds` driven off the road.
-func _drive_off_road(seconds: float) -> void:
+## Damage and the off-road limit for `seconds` driven off the road, at the rates of `rates`.
+func _drive_off_road(seconds: float, rates: AreaDef) -> void:
 	offroad_dist += speed * seconds
-	health = maxf(0.0, health - area.offroad_damage_per_sec * seconds)
+	health = maxf(0.0, health - rates.offroad_damage_per_sec * seconds)
 	health_changed.emit(health)
 	if health <= 0.0:
 		_crash(HEALTH)
-	elif offroad_dist >= area.offroad_limit_tiles:
+	elif offroad_dist >= rates.offroad_limit_tiles:
 		if offroad_junction != null:
 			trigger.on_offroad_limit()
 		else:
