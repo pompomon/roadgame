@@ -8,6 +8,9 @@ const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
 const SINKHOLE := preload("res://disasters/sinkhole.tscn")
 const DELTA := 1.0 / 60.0
+## More physics frames than a sinkhole takes, so that a test that waits for a phase fails instead
+## of hanging.
+const MAX_FRAMES := 600
 
 
 static func _params() -> DisasterParams:
@@ -83,7 +86,7 @@ func test_it_opens_sinks_the_car_and_finishes_once_after_its_duration() -> void:
 	assert_eq(sinkhole.position, params.origin_world, "where the car stopped")
 	var phases: Array[Sinkhole.Phase] = [sinkhole.phase]
 	var frames := 0
-	while sinkhole.phase != Sinkhole.Phase.DONE and frames < 600:
+	while sinkhole.phase != Sinkhole.Phase.DONE and frames < MAX_FRAMES:
 		simulate(sinkhole, 1, DELTA)
 		frames += 1
 		if sinkhole.phase != phases.back():
@@ -116,13 +119,16 @@ func test_it_grows_while_it_opens_and_the_car_sinks_after() -> void:
 	var hole: Polygon2D = sinkhole.get_node("%Hole")
 	var sizes: Array[float] = []
 	var car_scales: Array[float] = []
-	while sinkhole.phase != Sinkhole.Phase.DONE:
+	var frames := 0
+	while sinkhole.phase != Sinkhole.Phase.DONE and frames < MAX_FRAMES:
 		simulate(sinkhole, 1, DELTA)
+		frames += 1
 		if sinkhole.phase == Sinkhole.Phase.GROW:
 			sizes.append(hole.scale.x)
 			assert_eq(car.scale, Vector2.ONE, "the car waits for the hole")
 		elif sinkhole.phase == Sinkhole.Phase.SINK:
 			car_scales.append(car.scale.x)
+	assert_eq(sinkhole.phase, Sinkhole.Phase.DONE, "it finishes")
 	assert_gt(sizes.size(), 30, "the hole grows for a while")
 	assert_eq(sizes, _sorted(sizes), "the hole only grows")
 	assert_lt(sizes[0], 0.1, "from closed")
@@ -153,8 +159,10 @@ func test_the_debris_follows_its_params_and_flies_while_the_hole_opens() -> void
 	assert_gt(debris.direction.x, 0.0, "leans right")
 	assert_lt(debris.direction.y, 0.0, "but flies up")
 	var flying := {}
-	while sinkhole.phase != Sinkhole.Phase.DONE:
+	var frames := 0
+	while sinkhole.phase != Sinkhole.Phase.DONE and frames < MAX_FRAMES:
 		simulate(sinkhole, 1, DELTA)
+		frames += 1
 		flying[sinkhole.phase] = flying.get(sinkhole.phase, false) or debris.emitting
 	assert_eq(
 		flying,
@@ -172,9 +180,11 @@ func test_it_shakes_the_camera_as_it_opens() -> void:
 	var camera := _camera()
 	var sinkhole := _sinkhole(_car(), camera)
 	sinkhole.play(_params())
-	while sinkhole.phase == Sinkhole.Phase.DELAY:
+	var frames := 0
+	while sinkhole.phase == Sinkhole.Phase.DELAY and frames < MAX_FRAMES:
 		assert_eq(camera.offset, Vector2.ZERO, "still")
 		simulate(sinkhole, 1, DELTA)
+		frames += 1
 	assert_ne(camera.offset, Vector2.ZERO, "shakes")
 
 
@@ -226,7 +236,7 @@ func _director_seconds(run_seed: int, speed: float) -> float:
 	area.disasters = [SINKHOLE]
 	director.play_disaster(area, car, camera)
 	var frames := 0
-	while director.sequence != DisasterDirector.Sequence.FINISHED and frames < 600:
+	while director.sequence != DisasterDirector.Sequence.FINISHED and frames < MAX_FRAMES:
 		simulate(root, 1, DELTA)
 		frames += 1
 	assert_true(director.disaster is Sinkhole, "the sinkhole played")
