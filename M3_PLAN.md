@@ -2,7 +2,7 @@
 
 Status: proposed, with the Q1–Q13 defaults applied · 2026-11-08 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M3 row, §4 M3.1–M3.3 and "M3 tests", and the M3 row of §6
 
-**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m3/prototype` (2dff52b) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of `main` (73256cf) and passed the five local checks (§6.1). The 55 negative cases in §6.2 were run on the prototype and on their PR states, and the stacked landing was simulated (§4.5). A CI run on the prototype built the Web and Android exports, and the Web build ran in headless Chromium: two sinkholes, a crash and three retries, with no errors (§6.5).
+**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m3/prototype` (a816c8a) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of `main` (73256cf) and passed the five local checks (§6.1). The 56 negative cases in §6.2 were run on the prototype and on their PR states, and the stacked landing was simulated (§4.5). A CI run on the prototype built the Web and Android exports, and the Web build ran in headless Chromium: two sinkholes, a crash and three retries, with no errors (§6.5).
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -102,7 +102,7 @@ IP's M3 design holds up in its parts: a director that picks a scene from the are
 | J17 | IP's `DisasterParams` has `origin_world` "all from the disaster stream", but the stream can't know where the car stops. | `DisasterParams.roll(rng, origin)` draws the other five values, always in the same order, and takes the origin from the stopped car (N14) |
 | J18 | IP M3.3's retry takes a new seed. M2's retry kept a forced `--seed`, so that tests and bug reports can replay a road (M2 H28). | A forced `--seed` stays for every retry; without it, each run gets a new random seed (Q7, N41) |
 | J19 | IP M3.3 shows the seed on the game-over screen "in debug builds". The HUD has shown it in every build since M2 (M2 E9). | The game-over screen shows it in debug builds only. The HUD's line stays (Q6, §9, N52) |
-| J20 | IP says each sequence "must finish in 2–4 s", but not from when. | From the wrong or missed turn to the game-over screen, the stop and the delay included: 2.5–3.5 s for the sinkhole (§5.5). The 6 s timeout counts from the turn too (N32) |
+| J20 | IP says each sequence "must finish in 2–4 s", but not from when. | From the wrong or missed turn to the game-over screen, the stop and the delay included: 2.5–3.5 s for the sinkhole, and a frame or two more for rounding (§5.5; P10; N32, N56). The 6 s timeout counts from the turn too |
 | J21 | IP §5.3 seeds the disaster stream "only from `GameState.seed`", but not how. | `hash("%d:disaster" % run_seed)`, as `RoadGenerator` seeds its road stream with `hash("%d:road" % run_seed)` (`road_generator.gd:40`). One stream per run, kept from one disaster to the next (N10) |
 | J22 | IP M3.3's crash has a "crash frame", but there is no art until M5.1. | The arrow turns grey (`CRASH_TINT`) through `self_modulate`, without a redraw (M2 §5.7), and smokes (Q10, N21, N22) |
 | J23 | IP's wrong-turn test takes the wrong exit "at turn 3". | The third junction: `turn_number` 2, after two correct turns, so `turn_index` ends at 2 |
@@ -210,7 +210,7 @@ git checkout origin/m3/prototype -- 'disasters/sinkhole.*' areas/city.tres areas
   tests/unit/test_area_schedule.gd
 ```
 
-No trims. Expect: 59 scripts; `GUT: 182 tests passed` (144,483 asserts, 16–18 s). The smoke line is the same. Negative cases N24–N34.
+No trims. Expect: 59 scripts; `GUT: 182 tests passed` (144,483 asserts, 16–18 s). The smoke line is the same. Negative cases N24–N34 and N56.
 
 **Acceptance:** E6 and E7.
 
@@ -288,10 +288,11 @@ This is M2_PLAN.md §4.5's procedure, which landed #25–#28, with the `m3/` nam
 
 ### 4.6 Review fixes
 
-None yet. Each fix that the PRs' reviews bring is committed on the branch of the PR that owns the code, merged into the later branches (§4.5), and listed here with its tests and negative case.
+Copilot's review of this plan (#30) brought the first one, which is already on `m3/prototype`. Each fix that the PRs' reviews bring is committed on the branch of the PR that owns the code, merged into the later branches (§4.5), and listed here with its tests and negative case.
 
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
+| #30, for PR 2 | A longer `STOP_SECONDS` must keep the end within 4 s (E6). The bound now adds a frame each for the rounding of the stop and of the sinkhole's clock (a816c8a; P10), and §8 gives the stop's ceiling, 1.05 s. Before, the bound let 1.1 s pass, where the longest end takes 4.02 s | `test_with_the_stop_it_takes_2_to_4_seconds` | N56 |
 
 ---
 
@@ -429,7 +430,7 @@ var camera: CameraRig
 
 Every disaster keeps to these rules. The class's doc comment states them:
 - The director adds it to `DisasterLayer` once the car has stopped, sets `car` and `camera`, and calls `play()` once.
-- It emits `finished` once, 2–4 s after the wrong or missed turn. The car's stop, up to `STOP_SECONDS`, and the params' delay count towards that (J20). The director ends the sequence anyway at `DISASTER_TIMEOUT`, with an error.
+- It emits `finished` once, 2–4 s after the wrong or missed turn. The car's stop, up to `STOP_SECONDS`, and the params' delay count towards that (J20). So does rounding: the stop and the sinkhole's clock each add up steps of 1/60 s, and each sum can take a frame more than its time (P10). The director ends the sequence anyway at `DISASTER_TIMEOUT`, with an error.
 - Its time comes from `_physics_process` deltas. No Tween or timer: GUT's `simulate()` moves neither (J2, P1).
 - It may change the car's `scale` and `modulate`, but not its position, which `CarController` sets from `CarSim` every frame (J3, P7; N23, N25).
 - It works without a car or a camera, for tests (N31).
@@ -509,7 +510,7 @@ The screen fills the window: a `Shade` (black at 55 %), which stops taps and cli
 
 | Constant | Value | Unit | What | IP |
 |---|---|---|---|---|
-| `STOP_SECONDS` | 0.6 | s | the longest the car takes to stop once the run is over | M3.1's tween **Δ J4** |
+| `STOP_SECONDS` | 0.6 | s | the longest the car takes to stop once the run is over. At most 1.05 s with the sinkhole's values (§8) | M3.1's tween **Δ J4** |
 | `CRASH_SECONDS` | 1.2 | s | from a crash to game over | M3.3 |
 | `DISASTER_TIMEOUT` | 6.0 | s | from the end of the run, the latest game over may come | M3.1 |
 | `DISASTER_DELAY_MIN`, `_MAX` | 0.1, 0.5 | s | `DisasterParams.delay` | M3.1 gives no range |
@@ -538,7 +539,7 @@ These are first guesses for the grey box. E13 judges them on the Fold4, and M6 t
 | `test_camera_rig.gd` | 4 + 4 | M2, 1 | A shake moves only the offset, and fades out and ends. It is the same every time. `stop_shake()` ends it, and a new shake replaces the last. It has the same size on screen at zoom 1 and 2 (E5) |
 | `test_disaster_params.gd` | 4 | 1 | The same seed gives the same params, and different seeds different ones. The stream goes on from one disaster to the next. Every value is in its range, and the origin is the one given (E2) |
 | `test_disaster_director.gd` | 11 | 1 | `pick()` draws every scene of a pool with the stream. A disaster waits for the car to stop. The sequence ends once, when the disaster finishes, and a late `finished` ends nothing. A crash shakes the camera and ends after `CRASH_SECONDS`. A car that never stops and a disaster that never finishes both time out, with an error. An empty pool and a scene that isn't a disaster are errors that end the sequence, and the scene is freed. `clear()` frees the disaster at once. A second sequence is an error. The run's seed decides the disaster (E3, E4) |
-| `test_sinkhole.gd` | 10 | 2 | It is a disaster with an id, and waits for `play()`. It opens, sinks the car and finishes once, after its duration. It grows while it opens, and the car sinks after that. The debris follows its params and flies only while the hole opens. It shakes the camera as it opens. Nothing is redrawn. It finishes without a car or a camera. After a wrong turn, for 10 seeds from `junction_speed` and from the cap, the director plays it in 2–4 s; so do the shortest and longest params (E6) |
+| `test_sinkhole.gd` | 10 | 2 | It is a disaster with an id, and waits for `play()`. It opens, sinks the car and finishes once, after its duration. It grows while it opens, and the car sinks after that. The debris follows its params and flies only while the hole opens. It shakes the camera as it opens. Nothing is redrawn. It finishes without a car or a camera. After a wrong turn, for 10 seeds from `junction_speed` and from the cap, the director plays it in 2–4 s; so do the shortest and longest params, with a frame each for rounding (E6) |
 | `test_area_schedule.gd` | 9 + 1 | M1, M2, 2 | Every area of the game has a pool of disasters, each with an id (E7) |
 | `test_game_over.gd` | 6 | 3 | It is hidden until it opens. It shows why the run ended and its stats. A cause without a message is an error, and shows "Game over". The seed shows in debug builds only. Retry takes the focus, and Enter or Space presses it. `close()` drops the focus, and Retry does nothing while the screen is closed (E9) |
 | `test_hud.gd` | 7 − 3 + 3 | M2, 3 | M2's three retry tests go. New: the distance is in whole metres; the end of a run hides the pause button and leaves the message alone; each run starts the HUD afresh (E10) |
@@ -560,28 +561,29 @@ These are first guesses for the grey box. E13 judges them on the Fold4, and M6 t
 
 ### 6.1 Local checks
 
-The commands are those of `AGENTS.md` §4: `lint.sh`, `import.sh`, `check_scripts.sh`, `run_tests.sh` and `smoke.sh` in `tools/ci/`. Each PR state was built with §4's commands from `m3/prototype` (2dff52b) on top of `main` (73256cf), and all five checks passed on it:
+The commands are those of `AGENTS.md` §4: `lint.sh`, `import.sh`, `check_scripts.sh`, `run_tests.sh` and `smoke.sh` in `tools/ci/`. Each PR state was built with §4's commands from `m3/prototype` (a816c8a) on top of `main` (73256cf), and all five checks passed on it:
 
 | State | `check_scripts` | GUT tests | Asserts | GUT time | `smoke.sh` prints |
 |---|---|---|---|---|---|
 | M2 (`main`, 73256cf) | 50 | 147 | 144,193 | 15.7 s | `autopilot: tile 165, turns 35, area rural` |
 | PR 1 | 57 | 171 | 144,342 | 15.9 s | the same |
-| PR 2 | 59 | 182 | 144,483 | 16.5 s | the same |
-| PR 3 | 66 | 200 | 144,611 | 17.6 s | the same |
+| PR 2 | 59 | 182 | 144,483 | 16.2 s | the same |
+| PR 3 | 66 | 200 | 144,611 | 16.4 s | the same |
 
-PR 3's state is the prototype's tree. Repeated runs differ by about 1 s: an earlier run of the prototype took 16.4 s. The smoke line is M2's, because the stop changes the car only once a run is over, and the autopilot's run doesn't end in 60 s (E12). In every state:
+PR 3's state is the prototype's tree. Repeated runs differ by about 1 s: an earlier run of PR 3's state took 17.6 s. The smoke line is M2's, because the stop changes the car only once a run is over, and the autopilot's run doesn't end in 60 s (E12). In every state:
 - `lint.sh` reports `Actions storage: no caches, artifacts kept 1 day (5 files checked)`;
 - `smoke.sh` also prints `grey box: tilesets built in 60–62 ms`;
 - `git status` is clean after the checks, so `import.sh` creates no files (§4.1 step 4).
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for all 55 cases, each on its PR's state and again on PR 3's, so a case of PR 1 or 2 also shows which later tests catch it. Every case fails at least one check in both states. "GUT fails" means `run_tests.sh`, which also fails on error lines and leaks. N9 and N18 run `lint.sh` too.
+For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for all 56 cases, each on its PR's state and again on PR 3's, so a case of PR 1 or 2 also shows which later tests catch it. Every case fails at least one check in both states. "GUT fails" means `run_tests.sh`, which also fails on error lines and leaks. N9 and N18 run `lint.sh` too.
 
-Three cases needed work before they failed as they should:
+Four cases needed work before they failed as they should:
 - **N9** also renames `pick()`'s `rng` parameter, which the change leaves unused, to `_rng`. Without that, gdlint's `unused-argument` stops `lint.sh` (`set -e`) before its RNG rule runs.
 - **N28** at first hung GUT until its 900 s timeout: three loops in `test_sinkhole.gd` waited for a phase without a bound. 7244faf bounds them by `MAX_FRAMES`, so the tests fail instead.
 - **N39** passed at first, because every shake in the tests ended before game over. 27505b1 starts a long shake before the retry in `test_retry_starts_the_next_run_afresh`.
+- **N56** passed `run_tests.sh` at first: `test_with_the_stop_it_takes_2_to_4_seconds` added up the stop, the delay and the phases, but not the frame that the stop and the sinkhole's clock can each take for rounding (P10). a816c8a adds the two frames.
 
 One rule can't fail a check here: `show_seed`'s default, `OS.is_debug_build()` (J19). GUT runs a debug build, where a default of `true` passes too, so a release build checks it (§6.4). N52 breaks the use of `show_seed` instead.
 
@@ -649,6 +651,7 @@ One rule can't fail a check here: `show_seed`'s default, `OS.is_debug_build()` (
 | N53 | 3 | A game-over message uses a glyph that the default font lacks (↩) | GUT fails: `test_main_scene_text_has_every_glyph_in_the_default_font` | Not in IP: the font rule is M1's |
 | N54 | 3 | A cause without a message is no error | GUT fails: `test_a_cause_with_no_message_is_an_error_and_shows_game_over` | Not specified |
 | N55 | 1 | The crash smoke has no fixed seed | GUT fails: `test_every_car_smokes_alike` | Not specified (J16) |
+| N56 | 2 | `STOP_SECONDS` is 1.1 s, so the longest end takes 4.02 s (P10) | GUT fails: `test_with_the_stop_it_takes_2_to_4_seconds` | Not tested (J20) |
 
 ### 6.3 Editor warnings
 
@@ -658,7 +661,7 @@ None of the five checks reports GDScript warnings, so, as in M2 (M2_PLAN.md §6.
 
 | Check | PR | Result |
 |---|---|---|
-| The five checks on GitHub, and the `test` job's time against M2's 64–105 s | 1–3 | Green on the prototype in three manual runs (§6.5). The PRs' runs: to do |
+| The five checks on GitHub, and the `test` job's time against M2's 64–105 s | 1–3 | Green on the prototype in four manual runs (§6.5). The PRs' runs: to do |
 | The Web build in Chrome and Firefox (E13) | 3 | Headless Chromium ran the prototype's build (§6.5). Headed Chrome and Firefox: to do |
 | The debug APK on the Galaxy Z Fold4, folded and unfolded (E13) | 3 | To do (owner, §7) |
 | The game-over screen hides the seed in release builds: GUT runs a debug build, which can't tell `show_seed`'s default from `true` (J19, §6.2) | 3 | The prototype's Web build, a release build, showed none (§6.5). In E13's Web checks: to do |
@@ -679,17 +682,19 @@ The probes ran on Godot 4.7.2, headless, in scratch scripts that aren't committe
 | P7 | Move the car's node, then step its `CarController` | The next physics frame puts it back where `CarSim` is | J3; N25 |
 | P8 | Stop the car after a crash at 5.73 tiles/s | At `BRAKE`, 4 tiles/s², M2's car rolls 4.06 tiles in 1.45 s. M3's stop takes 0.6 s and 1.72 tiles. From the cap of 7 tiles/s: 6.1 tiles in 1.75 s, against 2.1 tiles at 11.7 tiles/s² | J4 |
 | P9 | The speed at wrong and missed turns | About `junction_speed`, 2.0 tiles/s, so the car stops in about 0.5 s and 0.5 tiles | J4, J20 |
+| P10 | The end of a wrong turn with the longest delay, 0.5 s, against `STOP_SECONDS` | From the cap: 3.52 s at 0.6 s, 3.93 s at 1.0 s, 3.98 s at 1.05 s, 4.02 s at 1.1 s and 4.12 s at 1.2 s. From `junction_speed`, 3.43 s at each, as the stop is at `BRAKE`. Each is a frame or two more than the stop, the delay and the phases added up: the stop and the sinkhole's clock each add up steps of 1/60 s, and each sum can take a frame more than its time | J20, §8; N56 |
 
-- **The end's timing.** The sinkhole takes its params' delay, 0.1–0.5 s, plus 2.4 s for its phases: 2.5–2.9 s. With the stop, game over comes 2.5–3.5 s after the turn, inside IP's 2–4 s (J20). After a crash, it comes 1.2 s later.
+- **The end's timing.** The sinkhole takes its params' delay, 0.1–0.5 s, plus 2.4 s for its phases: 2.5–2.9 s. With the stop, game over comes 2.5–3.5 s after the turn, and a frame or two more for rounding, inside IP's 2–4 s (J20). With the longest delay, P10 measured 3.43 s from `junction_speed` and 3.52 s from the cap. After a crash, it comes 1.2 s later.
 - **Web.** The prototype's Web export from run 42512134595 (afc0ce9) was served locally and played in headless Chromium with Playwright. In one session: two sinkholes, a crash and three retries. Since afc0ce9, the game has changed only by `DisasterBase`'s `@warning_ignore` (ff30033, J25) and the smoke's fixed seed (2dff52b, J16); the other changes are tests.
   - No errors. There was one `grey box: tilesets built in 390 ms` line for the whole session, so no retry built the tilesets again (J12).
   - The game-over screens showed no seed: the Web export is a release build (`ci.yml` runs `tools/ci/export.sh "Web" … release`). The HUD's seed line stayed (J19, Q6).
   - In each new browser, Chromium's GL driver logged 4 performance notes, `GPU stall due to ReadPixels`, 0.3–0.6 s after the `grey box:` line, and then stopped repeating them. That was while the first run was still driving, before any junction, so before any disaster, crash or game-over screen. They aren't WebGL errors like M2's `INVALID_OPERATION` (M2 §4.6). M2's build couldn't be run in the same browser, so E13 compares the two in headed Chrome (§8).
 - **Tilesets.** 59–63 ms headless, and 100–390 ms in headless Chromium: what each retry would cost if it rebuilt `World` (J12).
-- **CI.** Three manual runs on the prototype passed all five jobs:
+- **CI.** Four manual runs on the prototype passed all five jobs:
   - 42512134595 on afc0ce9, with `upload-builds`: `lint` 15 s, `test` 79 s, `export-web` 57 s, `export-android` 90 s (APK) and 185 s (AAB);
   - 42514884362 on 27505b1, without `upload-builds`: `lint` 13 s, `test` 88 s, `export-web` 59 s, `export-android` 71 s (APK) and 176 s (AAB);
-  - 42517328547 on 2dff52b, the final prototype, without `upload-builds`: `lint` 14 s, `test` 93 s, `export-web` 76 s, `export-android` 66 s (APK) and 174 s (AAB).
+  - 42517328547 on 2dff52b, without `upload-builds`: `lint` 14 s, `test` 93 s, `export-web` 76 s, `export-android` 66 s (APK) and 174 s (AAB);
+  - 42518895468 on a816c8a, the final prototype, without `upload-builds`: `lint` 17 s, `test` 80 s, `export-web` 60 s, `export-android` 69 s (APK) and 205 s (AAB).
 
   M2's `test` job took 64–105 s.
 
@@ -719,7 +724,7 @@ These need the repository owner. The current state was read with `gh api` on 202
 |---|---|---|
 | Focus and touch may work differently on devices. Retry takes the focus, a focused button presses when Enter or Space is released, and a button skips the emulated touch that comes with a click (§5.8) | A retry that needs a second tap or fires twice, or arrow keys that move the focus instead of steering | `test_game_over.gd` and `test_retry.gd` press keys, click and tap on the desktop (N49–N51). E13 tries all three on the Fold4 and in both browsers |
 | The end's timings, sizes and shakes are first guesses (§5.9) | The end drags, or the player misses what happened | E13 judges them on the Fold4. They are all in `config/tuning.gd`, and M6 tunes them |
-| Once the run is over, the car stops within 0.6 s: at up to 11.7 tiles/s² from the cap, about three times `BRAKE` (P8) | A crash at speed may stop abruptly | E13 looks at it. Wrong and missed turns come at about `junction_speed`, 2.0 tiles/s, where the stop is at `BRAKE` (P9). `STOP_SECONDS` can grow to `CRASH_SECONDS`, 1.2 s, and the car still stops before game over |
+| Once the run is over, the car stops within 0.6 s: at up to 11.7 tiles/s² from the cap, about three times `BRAKE` (P8) | A crash at speed may stop abruptly | E13 looks at it. Wrong and missed turns come at about `junction_speed`, 2.0 tiles/s, where the stop is at `BRAKE` (P9). A longer `STOP_SECONDS` stops it more gently, but a wrong turn's end adds the stop to the sinkhole's delay and phases, within 4 s (E6). With the other values as they are, it can grow to 1.05 s, where the longest end takes 3.98 s; at 1.1 s it takes 4.02 s, and at `CRASH_SECONDS`, 1.2 s, 4.12 s (P10). Beyond 1.05 s, the delay or the phases must shrink as much. `test_with_the_stop_it_takes_2_to_4_seconds` fails if they don't (N56) |
 | The debris and the smoke are `CPUParticles2D`: 40 particles in the sinkhole, 20 in the smoke | Dropped frames on the Fold4 or in browsers during the end | Headless Chromium ran them without errors (§6.5). E13 watches for it, and the amounts are in `sinkhole.tscn` and `car.tscn` |
 | Chromium's `GPU stall due to ReadPixels` notes (§6.5) | A Web check takes them for an M3 bug, or misses one | E13 opens M2's Pages site in the same headed Chrome first. If only M3 shows them, PR 3 finds what reads the pixels |
 | A retry in place keeps something of the last run: a node, a shake, a signal, the HUD's numbers or its pause button | The next run starts wrong, or memory grows run after run | `test_retry.gd` checks every part afresh, three runs in a row, and no orphans; `run_tests.sh` fails on leaks (E10; N38–N43, N46–N51). E13 retries several times on the Fold4 |
