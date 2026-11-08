@@ -206,11 +206,11 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 | Exit | Meaning | Do |
 |---|---|---|
 | 0 | Copilot reviewed the head commit, nothing new needs an answer, and no check failed but Copilot's own (`copilot-pull-request-reviewer`, §8). Or the PR is closed, even if feedback came with that | If the summary shows checks still running, `gh pr checks <n> --watch --required`. Then the PR waits for the owner. Once it's closed there's nothing to push: read any feedback printed above, which may ask for a follow-up |
-| 2 | Feedback that needs an answer, printed above the summary: any new review but a clean 🟢 one, and any new comment, the owner's too. Or, if you started late, Copilot's review of the head that isn't clean and has no thread reply or post by anyone but Copilot after it | Handle it (§8), push, reply, and watch again |
+| 2 | Feedback that needs an answer, printed above the summary: any new review but a clean 🟢 one, and any new comment, the owner's too. Or, if you started late, Copilot's review of the head that isn't clean and has no thread reply or post by anyone but Copilot after it | Handle it (§8), push, reply, and watch again. If the last line says someone pushed, pull first |
 | 3 | No Copilot review of the head commit in 15 minutes | Look for a setup-failure comment from Copilot, then `gh pr edit <n> --add-reviewer @copilot` and watch once more. If there's still none, tell the owner in a PR comment |
-| 4 | The head moved: someone pushed | Watch again |
+| 4 | The head moved, so someone pushed, and nothing new needs an answer | Pull, then watch again |
 | 5 | A check other than Copilot's own failed (named in the summary) | §10, then watch again |
-| 1 | Bad arguments, or `gh` failed 3 times in a row, while polling or reading the checks | Check `gh auth status` and try again |
+| 1 | Bad arguments, or `gh` failed 3 times in a row, while starting, polling or reading the checks | Check `gh auth status` and try again |
 
 - The script can't tell your posts from others'. Replies made with `gh` post as the account `gh` is logged in as: #2–#28's 35 thread replies came from the owner's, `pompomon`. The cloud agent's own replies post as `Copilot`, the same login as Copilot's inline comments (#1, #17). Post your replies first; anything new after that came from someone else.
 - Repeat the cycle (push, watch, handle) until it exits 0. Each run waits at most 15 minutes: when a review doesn't come, follow exit 3 rather than waiting longer.

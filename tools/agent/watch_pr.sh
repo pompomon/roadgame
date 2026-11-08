@@ -16,9 +16,10 @@ Exit codes:
      if feedback came with that (printed above)
   2  Feedback that needs an answer (printed above the summary): anything new but a clean Copilot
      review, or Copilot's review of the head that was already there, isn't clean, and has no
-     thread reply or post by anyone but Copilot after it. Handle it, push, reply, run this again
+     thread reply or post by anyone but Copilot after it. Handle it, push, reply, run this again.
+     If the head moved too, the last line says so: pull first
   3  No Copilot review of the head commit in time (AGENTS.md §9 says what to do)
-  4  The head commit changed while watching: run this again
+  4  The head commit changed while watching, and nothing new needs an answer: pull, run this again
   5  A check other than Copilot's own failed on the head commit (named in the summary; AGENTS.md
      §10)
   1  Usage error, or gh failed 3 times in a row
@@ -50,7 +51,20 @@ for n in "$pr" "$minutes" "$interval"; do
   case "$n" in '' | *[!0-9]*) usage >&2; exit 1 ;; esac
 done
 [ "$interval" -ge 10 ] || { echo "--interval must be at least 10 seconds" >&2; exit 1; }
-[ -n "$repo" ] || repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+
+# Runs "$@" up to 3 times, 10 s apart, until it succeeds.
+try3() {
+  local attempt
+  for attempt in 1 2 3; do
+    if "$@"; then return 0; fi
+    [ "$attempt" -eq 3 ] || { echo "warning: gh failed ($attempt of 3), retrying in 10 s" >&2; sleep 10; }
+  done
+  return 1
+}
+gh_down() { echo "Exit 1: gh failed 3 times in a row." >&2; exit 1; }
+
+find_repo() { repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner); }
+[ -n "$repo" ] || try3 find_repo || gh_down
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -59,10 +73,11 @@ tab=$(printf '\t')
 # Each feedback item is one line: key, time, author, text, URL, separated by tabs. Bodies lose
 # their HTML and line breaks and are cut to 300 characters. Comment-only reviews without a body
 # are the containers of thread replies; their comments are listed on their own. A sixth field
-# marks Copilot's reviews of the head commit, "true" if clean (approval recommended, no open or
-# previously missed issues) and "false" if not, so one request finds both the new items and
-# Copilot's review; and thread replies, "reply", whoever posted them (the cloud agent replies
-# as Copilot, like Copilot's own inline comments, but those never reply in a thread).
+# marks Copilot's reviews of any commit, "true" if clean (approval recommended, no open or
+# previously missed issues) and "false" if not; and thread replies, "reply", whoever posted them
+# (the cloud agent replies as Copilot, like Copilot's own inline comments, but those never reply
+# in a thread). Reviews have a seventh, the commit they review, so one request finds both the new
+# items and Copilot's review of the head.
 jq_text='def text: (. // "") | gsub("<[^>]*>"; "") | gsub("\\s+"; " ") | ltrimstr(" ") | .[0:300];'
 items() {
   gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" --jq "$jq_text"'
@@ -71,10 +86,11 @@ items() {
        "review of \(.commit_id[0:7])\(if .state == "COMMENTED" then ""
                                        else " (\(.state | ascii_downcase))" end): \(.body | text)",
        .html_url,
-       if .commit_id == "'"$head"'" and (.user.login | startswith("copilot-pull-request-reviewer"))
+       if .user.login | startswith("copilot-pull-request-reviewer")
        then .body // "" | test("Approval recommended") and test("No open issues")
                           and (test("previously missed") | not) | tostring
-       else "" end] | @tsv' &&
+       else "" end,
+       .commit_id // ""] | @tsv' &&
     gh api --paginate "repos/$repo/pulls/$pr/comments?per_page=100" --jq "$jq_text"'
     .[] | ["inline-\(.id)", .created_at, .user.login,
            "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url,
@@ -85,7 +101,7 @@ items() {
 
 # Copilot's latest review of the head commit, from the items: id, whether it is clean, text.
 head_review() {
-  awk -F '\t' '$6 == "true" || $6 == "false" {
+  awk -F '\t' -v head="$head" '($6 == "true" || $6 == "false") && $7 == head {
                  r = substr($1, 8) "\t" $6 "\t" substr($4, index($4, ": ") + 2) }
                END { if (r != "") print r }' "$tmp/all"
 }
@@ -96,13 +112,17 @@ show() {
   LC_ALL=C sort -t "$tab" -k2,2 "$1" | awk -F '\t' '{ printf "  %s  %s: %s\n      %s\n", $2, $3, $4, $5 }'
 }
 
-info=$(pr_state)
-read -r state merged head <<< "$info"
+# The PR's state and head, when the head was committed, and the feedback so far.
+start_state() {
+  info=$(pr_state) || return 1
+  read -r state merged head <<< "$info"
+  since=$(gh api "repos/$repo/commits/$head" --jq .commit.committer.date) || return 1
+  items > "$tmp/all"
+}
+try3 start_state || gh_down
 short=${head:0:7}
-items > "$tmp/all"
 cut -f1 "$tmp/all" | LC_ALL=C sort > "$tmp/seen"
 review=$(head_review)
-since=$(gh api "repos/$repo/commits/$head" --jq .commit.committer.date)
 echo "Watching $repo#$pr ($state) at $short for up to $minutes min, polling every $interval s."
 awk -F '\t' -v since="$since" '$2 >= since' "$tmp/all" > "$tmp/recent"
 if [ -s "$tmp/recent" ]; then
@@ -139,7 +159,7 @@ while [ "$state" = open ]; do
   if ! { info=$(pr_state) && items > "$tmp/poll"; }; then
     failures=$((failures + 1))
     echo "warning: gh failed ($failures in a row)" >&2
-    [ "$failures" -lt 3 ] || { echo "Exit 1: gh failed 3 times in a row." >&2; exit 1; }
+    [ "$failures" -lt 3 ] || gh_down
     continue
   fi
   failures=0
@@ -153,7 +173,7 @@ while [ "$state" = open ]; do
     awk -F '\t' 'NR == FNR { new[$1] = 1; next } $1 in new' "$tmp/new" "$tmp/all" > "$tmp/items"
     echo "New at $(date -u +%H:%M:%S) UTC:"
     show "$tmp/items"
-    # A clean Copilot review of the head needs no answer; anything else does.
+    # A clean Copilot review needs no answer, whichever commit it reviews; anything else does.
     if awk -F '\t' '$6 != "true" { found = 1 } END { exit !found }' "$tmp/items"; then
       attention=1
     fi
@@ -178,15 +198,12 @@ else
 fi
 # The head's check runs, all pages: status, conclusion, name. Copilot's own check doesn't make
 # this exit 5: its setup failures also arrive as a PR comment (AGENTS.md §8).
+read_checks() {
+  gh api --paginate "repos/$repo/commits/$head/check-runs?per_page=100" \
+    --jq '.check_runs[] | [.status, (.conclusion // ""), .name] | @tsv' > "$tmp/checks"
+}
 checks_read=""
-for attempt in 1 2 3; do
-  if gh api --paginate "repos/$repo/commits/$head/check-runs?per_page=100" \
-    --jq '.check_runs[] | [.status, (.conclusion // ""), .name] | @tsv' > "$tmp/checks"; then
-    checks_read=1
-    break
-  fi
-  [ "$attempt" -eq 3 ] || sleep 10
-done
+if try3 read_checks; then checks_read=1; fi
 commas() { awk 'NR > 1 { printf ", " } { printf "%s", $0 } END { if (NR) print "" }'; }
 failed=""
 if [ -n "$checks_read" ]; then
@@ -208,10 +225,16 @@ if [ "$state" != open ]; then
   fi
   exit 0
 elif [ "$attention" -eq 1 ]; then
-  echo "Exit 2: feedback that needs an answer, printed above. Handle each item, push, reply, then run this again."
+  # Feedback before a moved head: a new run lists only what came after the new head's commit, and
+  # looks only for Copilot's review of that head, so it could miss this feedback.
+  if [ -n "$moved" ]; then
+    echo "Exit 2: feedback that needs an answer, printed above, and someone pushed ${moved:0:7}. Pull it, handle each item, push, reply, then run this again."
+  else
+    echo "Exit 2: feedback that needs an answer, printed above. Handle each item, push, reply, then run this again."
+  fi
   exit 2
 elif [ -n "$moved" ]; then
-  echo "Exit 4: the head moved to ${moved:0:7}. Run this again."
+  echo "Exit 4: the head moved to ${moved:0:7}. Pull it, then run this again."
   exit 4
 elif [ -z "$checks_read" ]; then
   echo "Exit 1: could not read the checks of $short. Check gh auth status, then run this again." >&2
