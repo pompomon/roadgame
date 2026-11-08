@@ -102,6 +102,41 @@ func test_the_distance_is_the_farthest_point_reached() -> void:
 	assert_eq(GameState.distance, farthest)
 
 
+func test_a_rejoin_that_ends_the_run_counts_its_last_step() -> void:
+	# As in test_car_sim_offroad.gd's test_a_step_that_ends_the_run_measures_the_progress_first:
+	# off the road in the dead end on the right of the first junction, the car steps along the
+	# junction's heading back onto the dead end's road, a wrong turn. It is fast enough for the step
+	# to add a metre to the HUD.
+	watch_signals(EventBus)
+	var main := _main(["--seed=1"])
+	var car: CarController = main.get_node("%World/%Props").get_child(0)
+	var sim := car.sim
+	var junction := sim.trigger.next_junction
+	var exit := Heading.right(junction.heading)
+	var along := Vector2(Heading.VEC[junction.heading])
+	var behind := along * (Tuning.ROAD_HALF_WIDTH + 0.005)
+	sim.pos = Iso.cell_centre(junction.cell) + Vector2(Heading.VEC[exit]) * 0.75 - behind
+	sim.path_tile = junction
+	sim.buffer.on_car_path_index(junction.path_index)
+	sim.progress = CarSim.path_progress(junction, sim.pos)
+	sim.angle = junction.heading * PI / 2.0
+	sim.speed = 6.0
+	sim.state = CarSim.State.OFFROAD
+	sim.offroad_junction = junction
+	var before := sim.progress
+	_drive(main, 1)
+	assert_eq(GameState.state, GameState.State.GAME_OVER)
+	assert_eq(GameState.end_cause, CarSim.WRONG_TURN)
+	var after := CarSim.path_progress(junction, sim.pos)
+	var metres := roundi(after * Tuning.METRES_PER_TILE)
+	assert_gt(metres, roundi(before * Tuning.METRES_PER_TILE), "the step adds a metre")
+	assert_eq(GameState.distance, after, "the distance counts the last step")
+	var stats: Dictionary = get_signal_parameters(EventBus, "run_ended")[1]
+	assert_eq(stats["distance"], after, "and so do the run's stats")
+	var distance: Label = main.get_node("%HUD/%Distance")
+	assert_eq(distance.text, "%d m" % metres, "and so does the HUD")
+
+
 func test_with_no_input_the_first_junction_ends_the_run() -> void:
 	watch_signals(EventBus)
 	var main := _main(["--seed=1"])
