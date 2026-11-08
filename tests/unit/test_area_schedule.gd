@@ -51,6 +51,43 @@ func test_validate_reports_broken_schedules() -> void:
 	assert_eq(_problems([_entry(0, city), _entry(5, city, &"bridge", 3)]), "")
 
 
+func test_validate_reports_driving_values_the_car_cannot_use() -> void:
+	var least_brake := AreaDef.least_brake_distance()
+	var cases := {
+		"straight_accel": [-0.1, "straight_accel is negative"],
+		"junction_brake_distance":
+		[least_brake - 0.001, "junction_brake_distance is below %.3f" % least_brake],
+		"junction_speed": [0.0, "junction_speed is outside 0..BASE_TOP_SPEED"],
+		"offroad_speed_mult": [0.0, "offroad_speed_mult is outside 0..1"],
+		"offroad_damage_per_sec": [-1.0, "offroad_damage_per_sec is negative"],
+		"offroad_limit_tiles": [0.0, "offroad_limit_tiles must be above 0"],
+	}
+	for field: String in cases:
+		var area := _area(&"bad")
+		area.set(field, cases[field][0])
+		assert_eq(_problems([_entry(0, area)]), "bad: %s" % cases[field][1], field)
+	var fast := _area(&"fast")
+	fast.junction_speed = Tuning.BASE_TOP_SPEED + 0.1
+	assert_string_contains(_problems([_entry(0, fast)]), "junction_speed is outside")
+	var loose := _area(&"loose")
+	loose.offroad_speed_mult = 1.1
+	assert_string_contains(_problems([_entry(0, loose)]), "offroad_speed_mult is outside")
+	var edge := _area(&"edge")
+	edge.junction_speed = Tuning.BASE_TOP_SPEED
+	edge.offroad_speed_mult = 1.0
+	edge.junction_brake_distance = least_brake
+	assert_eq(_problems([_entry(0, edge)]), "", "the limits themselves are allowed")
+
+
+func test_the_generator_finds_each_area_by_id() -> void:
+	var schedule := Fixtures.schedule()
+	var generator := RoadGenerator.new(1, schedule)
+	for entry: AreaScheduleEntry in schedule.entries:
+		assert_same(generator.find_area(entry.area.id), entry.area, entry.area.id)
+	assert_same(generator.find_area(&"nowhere"), schedule.entries[0].area, "the first area")
+	assert_push_error("no area nowhere")
+
+
 func test_a_broken_schedule_is_reported_by_the_generator() -> void:
 	var schedule := AreaSchedule.new()
 	schedule.entries = [_entry(0, _area(&"short", 1, 5))]
