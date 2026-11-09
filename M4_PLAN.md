@@ -15,7 +15,7 @@ Some things could not be run here: a headed Chrome, Firefox and the Galaxy Z Fol
 
 **Precedence.** For M4, this document replaces IP §4 M4 wherever they differ. Each difference is marked **Δ** with its finding number (K#, §2). Where it differs from `plan.md`, it says so too (K2, K3, K14). Once this plan is approved, fold the changes back into IP (Q8).
 
-**Reference code (Q9).** This plan has no appendices: each PR checks its files out of `m4/prototype` (§4.1). Don't open a PR from that branch, because the three PRs carry its code. Pushes to it start nothing: `ci.yml` runs only for pull requests, pushes to `main` and manual runs. Its `ci.yml` is `main`'s, so a manual run saves no caches and keeps artifacts for one day (M0 F34).
+**Reference code (Q9).** This plan has no appendices: each PR checks its files out of `m4/prototype` (§4.1), which never gets a PR of its own. Pushes to it start no CI: `ci.yml` runs for pull requests, pushes to `main` and manual runs.
 
 **Prerequisites.** M3 is merged (#30–#33). No repository settings change.
 
@@ -58,19 +58,13 @@ Goal (IP §3): "5 areas, tunnel, bridge and schedule; per-area disaster pools (g
 
 ## 2. Review findings
 
-IP's M4 design holds up in its parts: areas as data on a schedule, set pieces as scenes over runs of road, and a pool of disasters per area behind M3's `DisasterBase`. The problems are in how they meet M1–M3's code:
-- a schedule that can put the next junction out of the buffer;
-- set pieces in the y-sorted `Props`, and a tunnel that hides the car;
-- a renderer that would add a set piece before its run is made;
-- a river that can reach other roads;
-- a first area that nobody hears of;
-- a definition of done that the autopilot can't meet, and no way to test an area without driving to it.
+IP's M4 design holds up in its parts: areas as data on a schedule, set pieces as scenes over runs of road, and a pool of disasters per area behind M3's `DisasterBase`. The problems are in how they meet M1–M3's code.
 
 - **High:** following IP gives a broken game, or a check that passes when it shouldn't.
 - **Medium:** fragile, missing from the code it depends on, or broken in some order of events.
 - **Low:** clarity, naming or polish.
 
-"Prototype" means the problem was reproduced with Godot 4.7.2 on `m4/prototype`, with the probes P1–P5 (§6.5) or the negative cases N# (§6.2). "Source" means Godot's code at the 4.7.2-stable tag, which its file and line numbers refer to. Line numbers in the repository's files are `main`'s (5c1e0ba).
+"Prototype" means the problem was reproduced with Godot 4.7.2 on `m4/prototype`, with the probes P1–P5 (§6.5) or the negative cases N# (§6.2). Line numbers are `main`'s (5c1e0ba) in the repository's files, and the 4.7.2-stable tag's in Godot's.
 
 ### High
 
@@ -132,7 +126,7 @@ The values in §5.10 are first guesses for the grey box. E14 judges them on the 
 
 ## 4. Work breakdown
 
-There are three PRs, and each one leaves CI green (E15). The total estimate is about 3 days, at the top of IP's size "M" (2–3 days). The code exists and is verified, but M4 is wider than M3: two set pieces and three disasters, each with its own tests. Most of the remaining risk is in PR 3: how the set pieces and the disasters look and time on the Fold4 and in real browsers can't be checked locally (E14).
+There are three PRs, and each one leaves CI green (E15). The estimate is about 3 days, at the top of IP's size "M" (2–3 days): the code is verified, but M4 has two set pieces and three disasters, each with its own tests. Most of the risk left is in PR 3: how they look and time on the Fold4 and in real browsers (E14).
 
 ```
 PR 1 areas ──▶ PR 2 world ──▶ PR 3 disasters
@@ -264,30 +258,14 @@ git checkout origin/m4/prototype -- disasters areas/rural.tres areas/meadows.tre
 
 ### 4.5 Landing the stack (Q7)
 
-This is M3_PLAN.md §4.5's procedure, which landed #31–#33, with the `m4/` names. It was checked again by simulating the squash merges with `git merge-tree`, on the PR states of §6.1.
-
-1. Each PR branches from the previous PR's branch, and its PR targets that branch, so its diff shows only its own files. `ci.yml` runs on every `pull_request` with no branch filter, so every PR gets the five checks. Required checks only gate PRs into `main`.
-2. A review fix for PR n is committed on PR n's branch and then merged (`git merge --no-ff --no-edit`) into each later branch. No rebases and no force-pushes.
-3. Merge only a PR whose base is `main`. A merge into another PR's branch skips the required checks; in M0, that is why #16 was needed.
-4. After PR n squash-merges, update PR n+1:
-   ```bash
-   git fetch origin main '+refs/heads/m4/*:refs/remotes/origin/m4/*'
-   git switch <PR n+1 branch>
-   git merge origin/<PR n branch>     # PR n's final state, in case a fix wasn't merged up yet
-   git merge origin/main              # the squash commit
-   git diff --name-only origin/main   # must list only PR n+1's files
-   git push
-   gh pr edit <PR n+1> --base main    # unless GitHub did it (step 5)
-   ```
-   - If PR n's branch is already deleted, fetch its last state with `git fetch origin pull/<PR n>/head` and merge `FETCH_HEAD` instead.
-   - The simulated merges had no conflicts, and the `diff` listed only each PR's own files: 13, 23 and 28. The last squash gave the prototype's tree. A conflict here means that a later branch changed the same lines as a review fix of PR n. Resolve it by hand.
-   - A later branch mustn't change a file that an earlier PR adds or changes, unless the earlier PR makes the same change: merging `main` is then a conflict. So a review fix goes on the branch of the PR that owns the file (step 2). PR 1 owns `config/tuning.gd`, which PRs 2 and 3 use. `ui/main.gd` is the one file that two PRs change: PR 1 all but one line, and PR 2 that line. It merged without a conflict, because PR 2's branch has PR 1's change. A fix to `ui/main.gd` goes on PR 1's branch, unless it is to that line.
-   - The merges bring no change that the branch doesn't have already, so the push may start no Copilot review. If the PR needs one, request it with `gh pr edit <PR n+1> --add-reviewer @copilot`.
-5. If the owner deletes PR n's branch after the merge, GitHub retargets PR n+1 to `main` by itself, as it did for #21 and #22. Either way, step 4 is still needed: until PR n+1 merges `main`, its diff also shows PR n's files.
+The PRs land by `AGENTS.md` §5's procedure for stacked PRs, which landed M3's #31–#33, with the `m4/` names: each PR targets the previous PR's branch, a review fix goes on the branch of the PR that owns the file and is merged into each later branch, only a PR whose base is `main` merges, and after PR n's squash merge, PR n+1 merges PR n's final branch and `main`. That was simulated with `git merge-tree` on the PR states of §6.1: no conflicts, `git diff --name-only origin/main` listed only each PR's own files (13, 23 and 28), and the last squash gave the prototype's tree.
+- If PR n's branch is already deleted, merge its last state from `git fetch origin pull/<PR n>/head` (`FETCH_HEAD`). If the owner deletes it, GitHub retargets PR n+1 to `main` by itself, as for #21 and #22, but PR n+1 still needs the merges: until then, its diff also shows PR n's files.
+- A fix to `config/tuning.gd`, which PRs 2 and 3 use, goes on PR 1's branch. So does one to `ui/main.gd`, the one file that two PRs change, unless it is to the line that PR 2 adds (§4.1 step 3). That file merged without a conflict, as PR 2's branch has PR 1's change.
+- The merges change no files in PR n+1, so the push may start no Copilot review: if it needs one, request it with `gh pr edit <PR n+1> --add-reviewer @copilot`.
 
 ### 4.6 Review fixes
 
-This plan's internal review (`AGENTS.md` §7, by `gpt-6.1-sol`) brought the first five fixes below, committed on `m4/prototype` in 14e01cc, before the PRs check their files out of it. It also brought two fixes to §4's commands: PR 2 adds its line to `ui/main.gd` with `sed`, as checking the file out again would undo PR 1's review fixes to it (§4.1 step 3), and PR 3 step 3 removes an earlier download first, which `cp -r` would nest the new copy into. A second review, of 14e01cc and of this plan, by the same model, brought the last fix, in e81adc9. A fix that a PR's review brings is committed on the branch of the PR that owns the code, merged into the later branches (§4.5), and listed here with its tests and negative case; PR 3's step 2 then lists its files.
+Both internal reviews (`AGENTS.md` §7) were by `gpt-6.1-sol`. The first brought the first five fixes below, in 14e01cc on `m4/prototype`, and two fixes to §4's commands: PR 2 adds its line to `ui/main.gd` with `sed`, as checking the file out again would undo PR 1's fixes to it, and PR 3 step 3 removes an earlier download, which `cp -r` would nest into. The second, of 14e01cc and this plan, brought the last, in e81adc9. The PRs' review fixes are added here with their tests and negative cases (§4.5), and PR 3's step 2 then lists their files.
 
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
@@ -306,28 +284,7 @@ The code on `m4/prototype` is the reference. This section summarizes it and list
 
 ### 5.1 Files
 
-| File | Class | PR | IP |
-|---|---|---|---|
-| `config/tuning.gd` | `Tuning` | 1 | M4.3–M4.5's values (§5.10) |
-| `areas/area_schedule.gd` | `AreaSchedule` | 1 | M4.1's validator **Δ K1**; `starting_at()` (K10) (§5.2) |
-| `areas/area_def.gd` | `AreaDef` | 1 | comments only **Δ K3** |
-| `ui/main.gd` | (the game) | 1, 2 | `--area` (K10) and the first area (K4) (§5.2, §5.3); in PR 2, the world's car (§5.5) |
-| `ui/hud.gd`, `ui/hud.tscn` | `Hud` | 1 | M4.3's area name **Δ K16** (§5.3) |
-| `world/greybox_atlas.gd` | `GreyboxAtlas` | 2 | M4.3's transitions **Δ K14** (§5.4) |
-| `world/world_renderer.gd` | `WorldRenderer` | 2 | M4.3, M4.4 **Δ K6, K12, K14** (§5.4, §5.5) |
-| `world/world.tscn` | — | 2 | **Δ K2** (§5.5) |
-| `setpieces/set_piece.gd` | `SetPiece` | 2 | M4.4 **Δ K6, K17** (§5.5) |
-| `setpieces/tunnel.gd`, `tunnel.tscn` | `Tunnel` | 2 | M4.4 **Δ K5, K8, K9, K18** (§5.6) |
-| `setpieces/bridge.gd`, `bridge.tscn` | `Bridge` | 2 | M4.4 **Δ K7, K8, K9, K18** (§5.7) |
-| `disasters/disaster_base.gd` | `DisasterBase` | 3 | `apply_params()`, `outline()` and two more rules **Δ K19, K20** (§5.8) |
-| `disasters/sinkhole.gd` | `Sinkhole` | 3 | uses `apply_params()` and `outline()`, which move from it to `DisasterBase` |
-| `disasters/tornado.gd`, `tornado.tscn` | `Tornado` | 3 | M4.5 (§5.9) |
-| `disasters/flood.gd`, `flood.tscn` | `Flood` | 3 | M4.5 (§5.9) |
-| `disasters/quicksand.gd`, `quicksand.tscn` | `Quicksand` | 3 | M4.5 (§5.9) |
-| `areas/rural.tres`, `meadows.tres`, `village.tres`, `desert.tres` | — | 3 | M4.2's pools (§5.8) |
-| `car/car_controller.gd` | `CarController` | 3 | a comment **Δ K19** |
-
-All of them are in IP §2's layout, with the scripts of the new scenes. M4 adds neither `areas/prop_def.gd` nor `world/prop_pool.gd` (Q1), and no shader or `autoload/audio_director.gd` (Q4). `GameState`, `EventBus`, `CarSim`, `RoadGenerator`, `RoadBuffer`, `JunctionTrigger`, `DisasterDirector`, `schedule.tres` and `city.tres` don't change (K13, K15).
+§4's tables list each PR's files. M4 adds `SetPiece`, `Tunnel` and `Bridge` in `setpieces/` (§5.5–§5.7), and `Tornado`, `Flood` and `Quicksand` in `disasters/` (§5.9). It changes `AreaSchedule` (§5.2), `ui/main.gd` and `Hud` (§5.2, §5.3), `GreyboxAtlas`, `WorldRenderer` and `world.tscn` (§5.4, §5.5), `DisasterBase`, `Sinkhole` and four areas' pools (§5.8), and `Tuning` (§5.10), and only comments in `AreaDef` (K3) and `CarController` (K19). All of them are in IP §2's layout, with the scripts of the new scenes. M4 adds neither `areas/prop_def.gd` nor `world/prop_pool.gd` (Q1), and no shader or `autoload/audio_director.gd` (Q4). `GameState`, `EventBus`, `CarSim`, `RoadGenerator`, `RoadBuffer`, `JunctionTrigger`, `DisasterDirector`, `schedule.tres` and `city.tres` don't change (K13, K15).
 
 ### 5.2 The schedule and `--area` (PR 1) **Δ IP M4.1**
 
@@ -338,7 +295,7 @@ static func gap(entry: AreaScheduleEntry) -> int   # set_piece_length + area.max
 func starting_at(id: StringName) -> AreaSchedule   # K10
 ```
 
-- **The gap (K1).** In an entry's area, a junction is at most `gap(entry)` path tiles after the last one: the set piece that leads into the area, the area's longest straight, and the junction's own tile. `JunctionTrigger` looks for the next junction as the car enters the tile after a junction. `CarSim.step()` moves the buffer on first, so the buffer then holds at least `BUFFER_REFILL_AT` (25) tiles past that tile, and a gap of up to 26 tiles is found. P1 found every junction with gaps of 25 and 26, and lost one at 27 on 12 of 20 seeds (§6.5).
+- **The gap (K1).** In an entry's area, a junction is at most `gap(entry)` path tiles after the last one: the set piece that leads into the area, the area's longest straight, and the junction's own tile. `JunctionTrigger` looks for the next junction as the car enters the tile after a junction. `CarSim.step()` moves the buffer on first, so the buffer then holds at least `BUFFER_REFILL_AT` (25) tiles past that tile, and a gap of up to 26 tiles is found (P1).
   - `validate()` allows up to 25: then the next junction is in the buffer even if the trigger looked before the buffer moved. `test_area_schedule.gd` drives schedules whose every junction is as far as they allow: at a gap of 25, the next junction is sometimes the buffer's last tile but one (N1–N3).
   - The message is `turn 34: the next junction can be 26 tiles away, above BUFFER_REFILL_AT (25)`. The gap is checked only for an entry that passes M1's checks, which report the rest.
   - The game's gaps: 6 in the City and the Village, 9 in the Desert, 13 in Meadows (the bridge's 5, 7 and 1) and 14 in Rural (the tunnel's 6, 7 and 1).
@@ -357,7 +314,7 @@ EventBus.run_ended ─▶ Hud._on_run_ended(): hides the pause button and the na
 ```
 
 - **The first area (K4, Q2).** `_start_run()` used to set `GameState.area_id` itself. Now, after `GameState.start_run()` has cleared it, it calls `_on_area_changed(_sim.area)`, as `CarSim`'s signal does for each new area (N15). So the first run and every retry set `GameState.area_id`, emit `EventBus.area_changed`, and the HUD names the area (N13). M5's `AudioDirector` can start the area's music on it (§9).
-- **The name (K16).** `%AreaBanner` is a `Label` across the HUD, 72–112 px from the top, under the top bar of the distance, the turns, the health and the pause button. It has the game-over screen's cause's look, 24 px with a 6 px black outline, and is hidden until an area comes. A `Label` ignores the mouse by default (probed in 4.7.2), so it stops no tap.
+- **The name (K16).** `%AreaBanner` is a `Label` across the HUD, 72–112 px from the top, under the top bar. It looks like the game-over screen's cause, 24 px with a 6 px black outline, and is hidden until an area comes. A `Label` ignores the mouse by default (probed in 4.7.2), so it stops no tap.
   - `_on_area_changed()` shows the area's `display_name`, not its id (N12), and sets `_banner_left` to `AREA_BANNER_SECONDS` (2 s).
   - `_physics_process()` counts it down and hides the name at 0 (N8). The HUD processes while the game is paused (M2), so it counts only while `GameState.state` isn't `PAUSED`: a pause keeps the name and its time (N7).
   - A new area replaces the name and starts its 2 s again (N11).
@@ -439,15 +396,7 @@ static func duration(params: DisasterParams) -> float   # the seconds from play(
   - A disaster may also turn the car's root (K19): `rotation` joins `scale` and `modulate`. `CarController` sets the car's `position` and its arrow's `rotation`, not the root's, so neither undoes the other. A disaster still may not move the car (N60).
   - Each disaster's script has `static func duration(params)`. `test_disasters.gd` checks it for every scene of every pool (K20; N55).
 - **`apply_params()`** moves M3's particle set-up from the sinkhole to the base, for all four disasters: a fixed seed from `particle_seed` (M3 J16), the speed times `intensity` and the size times `particle_scale` (N48–N51). **`outline()`**, the sinkhole's circle on the ground, moves with it, and its `POINTS` becomes `OUTLINE_POINTS` (N52). The sinkhole works as before: its 10 tests don't change.
-- **The pools** are IP M4.2's, from `plan.md` §4.3. The director picks from a pool with the run's disaster stream, as in M3 (M3_PLAN.md §5.3), so in the Village the seed decides: seed 1 plays the tornado, and seed 12345 the flood (P5; N45–N47).
-
-| Area | `disasters` | Since |
-|---|---|---|
-| City | sinkhole | M3 |
-| Rural | tornado | PR 3 |
-| Meadows | flood | PR 3 |
-| Village | flood, tornado | PR 3 |
-| Desert | quicksand | PR 3 |
+- **The pools** are IP M4.2's, from `plan.md` §4.3. The director picks from a pool with the run's disaster stream, as in M3 (M3_PLAN.md §5.3), so in the Village the seed decides: seed 1 plays the tornado, and seed 12345 the flood (P5; N45–N47). Each area's pool is E12's.
 
 - **Timing (E10).** `delay` is 0.1–0.5 s and `intensity` 0.5–1.0:
 
@@ -464,7 +413,7 @@ static func duration(params: DisasterParams) -> float   # the seconds from play(
 
 ### 5.9 The tornado, the flood and the quicksand (PR 3) **Δ IP M4.5**
 
-Each is a scene whose root is its class, a `Node2D` with its `id`, and works like the sinkhole. `play()` moves it to `origin_world`, sets up its particles with `apply_params()` and starts its clock. Its phases come from `_physics_process` deltas (M3 J2), and at `DONE` it emits `finished`, once (N56). Before `play()` (`WAITING`) and during the params' `delay` (`DELAY`), nothing shows (N57, N77). As IP M4.5 says, the params drive the tornado's path, the flood's rise speed and the quicksand's sink speed: the direction sets where the tornado and the water come from, and the intensity how fast the water rises and the car sinks. The intensity also sets the tornado's size and spin and the size of the quicksand's pit.
+Each is a scene whose root is its class, a `Node2D` with its `id`, and works like the sinkhole. `play()` moves it to `origin_world`, sets up its particles with `apply_params()` and starts its clock. Its phases come from `_physics_process` deltas (M3 J2), and at `DONE` it emits `finished`, once (N56). Before `play()` (`WAITING`) and during the params' `delay` (`DELAY`), nothing shows (N57, N77). As IP M4.5 says, the params drive the tornado's path, the flood's rise speed and the quicksand's sink speed. The intensity also sets the tornado's size and spin and the quicksand's pit.
 
 **The tornado** (`tornado.tscn`, id `tornado`): `Funnel`, a `Node2D` at `z_index` 1 so that it draws over the car (N67), holds the `Shadow` (`z_index` −1, so 0 in all: under the car; N68), the `Body` and the `Core` `Polygon2D`s, and the `Dust` (48 particles). The funnel and everything in it scale with `intensity` (N64).
 
@@ -497,7 +446,7 @@ Each is a scene whose root is its class, a `Node2D` with its `id`, and works lik
 
 - A ripple grows from the centre to the pit's edge 1.5 times a second, fading as it grows, from the spread on. It never leaves the pit (N80). The quicksand works without a car (N78).
 
-As with the sinkhole (M3_PLAN.md §5.5), the shapes, the colours and the particles are each disaster's grey-box art, in its script and scene: the funnel's widths, the sway, the shadow, the surface's share, the underwater colour, the ripples, and the car's scale at the end. M5's art replaces them. Their sizes and times are in `Tuning` (§5.10).
+As with the sinkhole (M3_PLAN.md §5.5), the shapes, colours and particles are each disaster's grey-box art, in its script and scene, which M5's art replaces. Their sizes and times are in `Tuning` (§5.10).
 
 ### 5.10 Tuning (PR 1)
 
@@ -521,31 +470,31 @@ As with the sinkhole (M3_PLAN.md §5.5), the shapes, the colours and the particl
 | `QUICKSAND_SPREAD_SECONDS`, `_SINK_`, `_HOLD_` | 0.6, 0.75, 0.6 | s | the quicksand's phases; the sinking at intensity 1 | M4.5's sink speed |
 | `QUICKSAND_WOBBLE`, `_WOBBLE_HZ` | 0.3, 3.0 | rad, Hz | how far and how often the car rocks as it starts to sink | — |
 
-These are first guesses for the grey box. E14 judges them on the Fold4, and M6 tunes them. `test_disasters.gd` and `test_set_pieces_on_the_road.gd` guard the two limits: 2–4 s for every disaster, and the river's bank.
+`test_disasters.gd` and `test_set_pieces_on_the_road.gd` guard the two limits: 2–4 s for every disaster, and the river's bank.
 
 ### 5.11 Tests
 
 | File | Tests | PR | What they check |
 |---|---|---|---|
-| `test_area_schedule.gd` | 10 + 3 | M1–M3, 1 | `validate()` rejects a gap above 25: with straights of 20 and set pieces of 2–6 tiles, gaps of 23–25 pass and the trigger finds every junction, with one tile to spare at 25; 26 and 27 fail, and so does a straight of 25. A schedule can start in any of its areas, with the later turns and set pieces, sharing its areas and leaving itself unchanged. An area that it lacks is an error (E1, E2) |
-| `test_hud.gd` | 7 + 4 | M2, M3, 1 | The HUD names the area the car enters for 2 s. A pause keeps the name. A new area replaces it and starts its time again. The end of a run and a new run hide it (E4) |
-| `tests/integration/test_area_start.gd` | 5 | 1 | Each run starts by naming its area, after a retry too. `main.gd` reports each new area to `GameState` and `EventBus`. `--area=village` starts every run in the Village, retries too. An unknown area, or an empty `--area=`, is an error, and the run starts in the City (E2–E4) |
-| `tests/sim/test_area_order.gd` | 1 | 1 | The autopilot drives seed 1 to turn 230: Rural at turn 34, Meadows at 100, the Village at 200 and the Desert at 220, one `area_changed` each, and the tunnel and the bridge on the way (E3; N16) |
-| `test_greybox_atlas.gd` | 5 + 1 | M1, 2 | The ground atlas has a column for each transition after the areas', with the two areas' colours as its rows (E5) |
-| `test_world_renderer.gd` | 5 + 9 | M1, M3, 2 | The first 2 tiles of each new area blend with the last area. Set pieces draw above the ground and below the road. A set piece comes once its run is made, over two batches, and goes with its last tile. A new buffer drops the last run's set pieces, its car and its unfinished run. A set piece without a scene, with a null one, an empty one, or one whose root isn't a `SetPiece` is an error (E5, E6) |
-| `test_tunnel.gd` | 6 | 2 | A set piece covers its run's cells. The rock covers the run and a little more across it. The mouth is in the end face that shows, on N and W runs. The tunnel draws over the car, fades while the car is near, and is never redrawn (E7) |
-| `test_bridge.gd` | 6 | 2 | The river flows across the run between its banks, on N and W runs, and is drawn where it is. A 1-tile run is an error, with neither river nor waves. The near railing draws over the car, and the rest under it. The waves drift down the river and never leave it, and each is where its rectangle is. The bridge is never redrawn (E8) |
-| `test_car_controller.gd` | 9 + 1 | M2, M3, 2 | The smoke shows through a tunnel. The smoke test's backgrounds now include what the bridge draws under the car (E7, E8) |
-| `tests/sim/test_set_pieces_on_the_road.gd` | 2 | 2 | The autopilot drives seed 1 through the tunnel and over the bridge, each drawn while the car is on it and gone after. Over 1,010 rivers, on 10 seeds of the game's schedule and of one with a bridge at every turn, no other road comes within `BRIDGE_BANK` (E9) |
+| `test_area_schedule.gd` | 10 + 3 | M1–M3, 1 | The gap: with straights of 20 and set pieces of 2–6 tiles, gaps of 23–25 pass and the trigger finds every junction, with one tile to spare at 25; 26, 27 and a straight of 25 fail. `starting_at()` in each area, sharing the areas and leaving the schedule unchanged, and in an area it lacks (E1, E2) |
+| `test_hud.gd` | 7 + 4 | M2, M3, 1 | The area's name for 2 s; a pause, a new area, the end of a run and a new run (E4) |
+| `tests/integration/test_area_start.gd` | 5 | 1 | Each run names its first area, after a retry too; `main.gd` reports each new area; `--area=village`, an unknown area and an empty `--area=` (E2–E4) |
+| `tests/sim/test_area_order.gd` | 1 | 1 | The autopilot drives seed 1 to turn 230: each area and set piece at its turn, with one `area_changed` each (E3; N16) |
+| `test_greybox_atlas.gd` | 5 + 1 | M1, 2 | A ground column for each transition, with the two areas' colours as its rows (E5) |
+| `test_world_renderer.gd` | 5 + 9 | M1, M3, 2 | The transitions' tiles; set pieces between the ground and the road; a set piece comes once its run is made, over two batches, and goes with its last tile; `bind()`; a set piece without a usable scene (E5, E6) |
+| `test_tunnel.gd` | 6 | 2 | A set piece's cells; the rock, the mouth on N and W runs, the `z_index`, the fade, and no redraw (E7) |
+| `test_bridge.gd` | 6 | 2 | The river between its banks on N and W runs, a 1-tile run, the railings' `z_index`, the waves, and no redraw (E8) |
+| `test_car_controller.gd` | 9 + 1 | M2, M3, 2 | The smoke through a tunnel, and over what the bridge draws under the car (E7, E8) |
+| `tests/sim/test_set_pieces_on_the_road.gd` | 2 | 2 | The autopilot through the tunnel and over the bridge; 1,010 rivers clear of other roads (E9) |
 | `tests/integration/test_retry.gd` | 6 | M3, 2 | Also: the world has the run's car, and a retry gives it the next (E6) |
-| `test_disasters.gd` | 9 | 3 | Each area has its pool. Each of the four disasters shows nothing until its delay is over. It finishes once, after its `duration()`, with the car where it stopped and out of sight, and also without a car or a camera. It seeds its particles from its params and scales them, and redraws no polygon and not the car. An `outline()` is a circle on the ground. With the stop, each takes 2–4 s, and after a wrong turn the director plays each in 2–4 s, for 10 seeds from `junction_speed` and from the cap (E10, E12) |
-| `test_tornado.gd` | 7 | 3 | It comes along its direction, carries the car off and goes on. The funnel moves in a straight line, and fades in and out. The car spins, shrinks and fades as it lifts. A stronger tornado is bigger and spins the car faster, as played with a car. The dust whirls while it comes and lifts the car. It shakes the camera as it comes. The funnel draws over the car, and its shadow under it (E11) |
-| `test_flood.gd` | 5 | 3 | The water rolls in along its direction and spreads around the car; then it rises over the car, faster when the flood is stronger. The spray flies while it rises. The water lies under the car, and its surface over it (E11) |
-| `test_quicksand.gd` | 5 | 3 | The pit spreads under the car, as big as the quicksand is strong. Ripples grow and fade within the pit. The car rocks less and less as it sinks, faster when the quicksand is stronger. Sand flies while the car sinks (E11) |
-| `tests/integration/test_disaster_pools.gd` | 2 | 3 | In each area, started with `--area` on seed 1, a wrong exit at the third junction plays a disaster from the area's pool, and game over comes 2–4 s after the turn. The Village plays both of its disasters within 8 seeds (E12) |
+| `test_disasters.gd` | 9 | 3 | Every disaster of every pool: M3's contract, `duration()`, its particles, no redraw, `outline()`, and 2–4 s with the stop and through the director, for 10 seeds from `junction_speed` and from the cap (E10, E12) |
+| `test_tornado.gd` | 7 | 3 | Its path; the funnel's fades; the car's spin, shrink and fade; the intensity, played with a car; the dust, the shake and the `z_index`s (E11) |
+| `test_flood.gd` | 5 | 3 | The water rolls in and rises, faster when stronger; the spray; the `z_index`s (E11) |
+| `test_quicksand.gd` | 5 | 3 | The pit, as big as it is strong; the ripples; the rocking and the sinking, faster when stronger; the sand (E11) |
+| `tests/integration/test_disaster_pools.gd` | 2 | 3 | In each area, started with `--area` on seed 1, a wrong exit at the third junction plays a disaster from its pool, and game over comes 2–4 s after the turn. The Village plays both within 8 seeds (E12) |
 
 - 201 tests become 267: 66 are new, 13 in PR 1, 25 in PR 2 and 28 in PR 3. None is removed. `test_retry.gd` gets two asserts, and a comment changes in `test_area_schedule.gd`'s pool test and in `tests/helpers/main_scene.gd`.
-- `tests/helpers/road_fixtures.gd` adds two schedules: `set_piece_schedule()`, for the renderer's tests, and `bridge_every_turn()`. `tests/helpers/disaster_fixtures.gd` gives the disaster tests their scenes, params, car and camera, and what they check: what shows, the polygons and particles, the `z_index` that each part draws at, and the director's time after a wrong turn.
+- `tests/helpers/road_fixtures.gd` adds two schedules, `set_piece_schedule()` and `bridge_every_turn()`. `tests/helpers/disaster_fixtures.gd` holds the disaster tests' scenes, params, car and camera, and their shared checks.
 - `test_disaster_pools.gd` runs the main scene in a 360×640 `SubViewport` with `main_scene.gd` and M3's `wrong_turn_pilot.gd`, as `test_wrong_turn_disaster.gd` does.
 - Like M3's, the new timings come from physics deltas, so GUT's `simulate()` runs a disaster, 2–4 s, in a fraction of a second.
 - M4 adds no `RefCounted`. The set pieces and the disasters are nodes, with unit tests of their own (IP §1.3).
@@ -572,17 +521,17 @@ PR 3's state is the prototype's tree. Each GUT time is the range of two runs of 
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script made each change on its PR's state and again on PR 3's, so a case of PR 1 or 2 also shows which later tests catch it. Every case fails at least one check in both states. "GUT fails" means `run_tests.sh`, which also fails on error lines and leaks; only N87 leaves a leak or an error line that no failing test reports (below). N44 and N69 run `lint.sh` too.
+For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script made each change on its PR's state and again on PR 3's, and every case failed at least one check in both. "Expected" names the GUT tests that fail, so that `run_tests.sh` fails, and the other checks that fail: `lint.sh` for N44 and N69, and for N87 only `run_tests.sh`, which also fails on leaks and error lines that no test reports (below).
 
-The script first ran N1–N83 on the prototype at 49a8ac1, where 80 failed as they should, and a0c9199 fixed the tests for the other three. Then it ran them on the PR states built from 21fd140, and on those built from 49c24e1. N84–N90 came with the internal review's fixes (§4.6), and each failed as it should on the prototype at 14e01cc. N91 and N92 came with the second review's fix, and failed as they should on the prototype at e81adc9, as did N27 and N85–N87, the other cases on set-piece scenes. Last, all 92 ran on the PR states of §6.1, built from e81adc9. PR 1's cases ran on its state built from 14e01cc, which is the same tree, as e81adc9 changes only PR 2's files. After a0c9199, every case failed a check every time it ran, in both states. The table gives the checks that each failed on its PR's state in the last run. In earlier runs some failed only part of them, as 14e01cc and e81adc9 added tests, and N44's GUT test varies from run to run (below).
+The script ran N1–N83 on the prototype at 49a8ac1, where 80 failed as they should; a0c9199 fixed the tests for the other three (below). Then it ran them on the PR states built from 21fd140 and from 49c24e1. N84–N92 came with the internal reviews' fixes (§4.6), and failed as they should on the prototype. Last, all 92 ran on the PR states of §6.1; PR 1's ran on its state built from 14e01cc, the same tree, as e81adc9 changes only PR 2's files. Since a0c9199, every case has failed a check in every run, in both states. The table gives the checks that each failed on its PR's state in the last run; earlier runs, before 14e01cc and e81adc9 added tests, failed fewer, and N44's GUT test varies (below).
 
-Three cases needed work before they failed as they should:
-- **N29** passed at first: the test gave the world its car only after the set pieces were added, so `set_car()` gave it to them all. a0c9199 gives the world the car before the run is made, and checks that the tunnel has it once it's added.
-- **N37** passed at first: the rock test took its expected width from `Tunnel.HALF_WIDTH`, so it passed at any width. a0c9199 also requires the rock to be 1.05–1.5 tiles across.
-- **N52** passed at first: no test looked at `outline()`. a0c9199 adds `test_an_outline_is_a_circle_of_its_radius_on_the_ground`.
+Three cases passed at first, and a0c9199 fixed their tests:
+- **N29:** the test gave the world its car only after the set pieces were added, so `set_car()` gave it to them all. Now the world has the car before the run is made, and the test checks that the tunnel has it once it's added.
+- **N37:** the rock test took its expected width from `Tunnel.HALF_WIDTH`, so it passed at any width. It also requires 1.05–1.5 tiles across now.
+- **N52:** no test looked at `outline()`. `test_an_outline_is_a_circle_of_its_radius_on_the_ground` does now.
 
 Three more need a note:
-- **N44** drifts the waves by the global RNG, so whether `test_each_wave_is_where_its_rectangle_is` fails depends on the draws: it failed in 7 of its 9 runs. `lint.sh` fails every time.
+- **N44** drifts the waves by the global RNG, so whether `test_each_wave_is_where_its_rectangle_is` fails depends on the draws. `lint.sh` fails every time.
 - **N69** fails only `lint.sh`. The core's sway is grey-box art, and a test checks only that it doesn't redraw the core (N59).
 - **N87** keeps the node of a scene whose root isn't a `SetPiece`. Every test passes, and `run_tests.sh` fails on the leak at exit.
 
@@ -599,108 +548,104 @@ One rule can't fail a check here: `--area` works in every build (Q5). GUT runs a
 
 | # | PR | Temporary change | Expected | With IP's design |
 |---|---|---|---|---|
-| N1 | 1 | `validate()` doesn't check how far the next junction can be | GUT fails: `test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer` | IP's design (K1) |
-| N2 | 1 | `gap()` leaves out the junction's own tile | GUT fails: `test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer` | Not in IP (K1) |
-| N3 | 1 | `validate()` also rejects a gap of exactly `BUFFER_REFILL_AT`: `>=` for `>` | GUT fails: `test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer` | Not in IP (K1) |
-| N4 | 1 | `starting_at()` keeps the set piece that leads into the first area | GUT fails: `test_a_schedule_can_start_in_any_of_its_areas`. On PR 3, also `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool` | Not in IP (K10) |
-| N5 | 1 | `starting_at()` keeps the entries' turns | GUT fails: `test_the_area_argument_starts_every_run_in_that_area`, `test_a_schedule_can_start_in_any_of_its_areas`. On PR 3, also `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`, `test_the_village_plays_both_of_its_disasters` | Not in IP (K10) |
-| N6 | 1 | `starting_at()` an area that the schedule lacks is no error | GUT fails: `test_an_unknown_area_argument_starts_in_the_first_area`, `test_a_schedule_cannot_start_in_an_area_it_lacks` | Not in IP (K10) |
-| N7 | 1 | The area's name counts down while the game is paused | GUT fails: `test_the_area_name_waits_while_the_game_is_paused` | Not specified (K16) |
-| N8 | 1 | The area's name never hides | GUT fails: `test_it_names_the_area_the_car_enters_for_a_while`, `test_the_area_name_waits_while_the_game_is_paused`, `test_a_new_area_replaces_the_name_and_starts_its_time_again` | Not tested |
-| N9 | 1 | The end of a run leaves the area's name | GUT fails: `test_the_end_of_a_run_and_a_new_run_hide_the_area_name` | Not specified (K16) |
-| N10 | 1 | A new run leaves the last run's area name | GUT fails: `test_the_end_of_a_run_and_a_new_run_hide_the_area_name` | Not specified (K16) |
-| N11 | 1 | A new area adds 2 s to the time left, instead of starting it again | GUT fails: `test_a_new_area_replaces_the_name_and_starts_its_time_again` | Not specified (K16) |
-| N12 | 1 | The HUD shows the area's id, not its name | GUT fails 5 tests: `test_each_run_starts_by_naming_its_area`, `test_main_reports_each_new_area_of_the_car`, `test_the_area_argument_starts_every_run_in_that_area`, `test_it_names_the_area_the_car_enters_for_a_while`, `test_a_new_area_replaces_the_name_and_starts_its_time_again` | Not tested |
-| N13 | 1 | A run doesn't report the area it starts in, as on `main`: `_start_run()` sets `GameState.area_id` itself | GUT fails: `test_each_run_starts_by_naming_its_area`, `test_main_reports_each_new_area_of_the_car`, `test_the_area_argument_starts_every_run_in_that_area` | IP's design (K4) |
-| N14 | 1 | `main.gd` ignores `--area` | GUT fails: `test_the_area_argument_starts_every_run_in_that_area`, `test_an_unknown_area_argument_starts_in_the_first_area`. On PR 3, also `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`, `test_the_village_plays_both_of_its_disasters` | Not in IP (K10) |
-| N15 | 1 | `main.gd` doesn't relay the car's new areas | GUT fails: `test_main_reports_each_new_area_of_the_car` | Fails ✓: IP's order test, if it listens to `GameState` (K15) |
-| N16 | 1 | The schedule swaps the tunnel and the bridge | GUT fails: `test_the_autopilot_meets_the_areas_and_set_pieces_in_order`, `test_areas_and_set_pieces_switch_at_34_100_200_and_220`, `test_a_schedule_can_start_in_any_of_its_areas`. On PR 3, also `test_the_autopilot_drives_through_the_tunnel_and_over_the_bridge` | Fails ✓: M1's `test_areas_and_set_pieces_switch_at_34_100_200_and_220` |
-| N17 | 2 | A transition's rows swap its two areas' colours | GUT fails: `test_ground_tileset_has_a_column_for_each_transition`, `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not in IP: a transition TileSet (K14) |
-| N18 | 2 | No ground transitions: the loop over the tiles before runs over none | GUT fails: `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not tested |
-| N19 | 2 | A transition covers one tile too many | GUT fails: `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not tested (K14) |
-| N20 | 2 | A transition takes the column of the reverse pair, from the new area into the last | GUT fails: `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not in IP (K14) |
-| N21 | 2 | A set piece is added at the end of each batch, even if its run isn't finished | GUT fails: `test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile` | Not specified (K6) |
-| N22 | 2 | Each tile of a run gets a set piece of its own | GUT fails 6 tests: `test_the_autopilot_drives_through_the_tunnel_and_over_the_bridge`, `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one`, `test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile`, `test_a_new_buffer_drops_the_last_runs_set_pieces_and_car`, `test_a_set_piece_scene_whose_root_isnt_a_set_piece_is_an_error`, `test_an_empty_set_piece_scene_is_an_error` | Not tested |
-| N23 | 2 | A set piece is freed with its run's first tile | GUT fails: `test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile` | Not tested |
-| N24 | 2 | `bind()` forgets the last run's set pieces without freeing them | GUT fails: `test_a_new_buffer_drops_the_last_runs_set_pieces_and_car` | Not specified (K6) |
-| N25 | 2 | `bind()` keeps the last run's car | GUT fails: `test_a_new_buffer_drops_the_last_runs_set_pieces_and_car` | Not in IP (K5) |
-| N26 | 2 | `bind()` keeps the tiles of the last run's unfinished set piece | GUT fails: `test_a_new_buffer_drops_the_last_runs_unfinished_set_piece` | Not specified (K6) |
-| N27 | 2 | A set piece without a scene is no error | GUT fails: `test_a_set_piece_without_a_scene_is_an_error`, `test_a_set_piece_whose_scene_is_null_is_an_error` | Not in IP: a `PackedScene` (K12) |
-| N28 | 2 | `set_car()` doesn't give the car to the set pieces already there | GUT fails: `test_a_new_buffer_drops_the_last_runs_set_pieces_and_car` | Not in IP (K5) |
-| N29 | 2 | A new set piece doesn't get the car | GUT fails: `test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile` | Not in IP (K5) |
-| N30 | 2 | `main.gd` doesn't give the world the car | GUT fails: `test_retry_starts_the_next_run_afresh` | Not in IP (K5) |
-| N31 | 2 | `RIVER_REACH` is 2.5 tiles, so a river can reach other road | GUT fails: `test_rivers_keep_a_bank_clear_of_every_other_road` | Not specified (K7) |
-| N32 | 2 | The river runs along the road, not across it | GUT fails: `test_rivers_keep_a_bank_clear_of_every_other_road`, `test_the_river_flows_across_the_run_between_its_banks`, `test_the_waves_drift_down_the_river_and_never_leave_it` | Not tested |
-| N33 | 2 | The waves and the railings take the run's direction for the river's | GUT fails: `test_the_river_flows_across_the_run_between_its_banks`, `test_the_near_railing_draws_over_the_car_and_the_rest_under_it`, `test_the_waves_drift_down_the_river_and_never_leave_it` | Not tested |
-| N34 | 2 | The waves' room down the river doesn't leave out a wave's length | GUT fails: `test_the_waves_drift_down_the_river_and_never_leave_it` | Not specified |
-| N35 | 2 | The waves move by their `offset`, which redraws them | GUT fails: `test_each_wave_is_where_its_rectangle_is`, `test_the_bridge_is_never_redrawn` | Not in IP: a shader (K9) |
-| N36 | 2 | The near railing has no `z_index`, so it draws under the car | GUT fails: `test_the_near_railing_draws_over_the_car_and_the_rest_under_it`, `test_the_smoke_shows_over_everything_the_grey_box_draws`, `test_the_smoke_shows_through_a_tunnel` | Not specified (K8) |
-| N37 | 2 | The tunnel's rock is only a tile wide: `HALF_WIDTH` 0.5 | GUT fails: `test_the_rock_covers_the_run_and_a_little_more_across_it` | Not specified |
-| N38 | 2 | The mouth is in the end face that doesn't show | GUT fails: `test_the_mouth_is_in_the_end_face_that_shows` | Not specified |
-| N39 | 2 | The tunnel has no `z_index`, so it draws under the car | GUT fails: `test_the_tunnel_draws_over_the_car` | Not tested (K8) |
-| N40 | 2 | The tunnel never fades | GUT fails: `test_the_tunnel_fades_while_the_car_is_near`, `test_the_tunnel_is_never_redrawn` | IP's design: an occluding roof (K5) |
-| N41 | 2 | The tunnel also fades its roof by its `color`, which redraws it | GUT fails: `test_the_tunnel_is_never_redrawn` | Not in IP (K5, K9) |
-| N42 | 2 | `TUNNEL_SEE_THROUGH` is 0.35 | GUT fails: `test_the_smoke_shows_through_a_tunnel` | Not in IP (K5) |
-| N43 | 2 | `SetPieces` comes after `RoadLayer` in `world.tscn`, so set pieces draw over the road | GUT fails: `test_disasters_draw_above_the_road_and_below_the_car`, `test_set_pieces_draw_above_the_ground_and_below_the_road` | IP's design: in `Props`, after `RoadLayer` (K2) |
-| N44 | 2 | The waves drift by the global RNG: `_time += delta * randf_range(0.9, 1.1)` | `lint.sh` fails: `Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)`. GUT fails `test_each_wave_is_where_its_rectangle_is` in some runs, as the draws decide: in 7 of its 9 runs | Fails ✓: IP §5.3's lint rule |
-| N45 | 3 | Rural's pool is the sinkhole, as in M3 | GUT fails: `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`, `test_each_area_has_its_pool_of_disasters` | Fails ✓: IP's pool test |
-| N46 | 3 | The Village's pool is only the flood | GUT fails: `test_the_village_plays_both_of_its_disasters`, `test_each_area_has_its_pool_of_disasters` | Not tested: a pool that lacks a disaster passes IP's pool test |
-| N47 | 3 | The director always plays the first disaster of a pool | GUT fails: `test_the_village_plays_both_of_its_disasters`, `test_pick_draws_every_scene_of_the_pool_with_the_stream` | Fails ✓: M3's `test_pick_draws_every_scene_of_the_pool_with_the_stream` |
-| N48 | 3 | `apply_params()` doesn't fix the particles' seed | GUT fails: `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
-| N49 | 3 | `apply_params()` doesn't scale the particles' speed by the intensity | GUT fails: `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
-| N50 | 3 | `apply_params()` doesn't scale the particles' size | GUT fails: `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
-| N51 | 3 | The sinkhole doesn't apply its params to its debris | GUT fails: `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
-| N52 | 3 | `outline()` is half as big | GUT fails: `test_an_outline_is_a_circle_of_its_radius_on_the_ground` | Not tested |
-| N53 | 3 | `TORNADO_LEAVE_SECONDS` is 1.5 s, so the longest tornado takes over 4 s | GUT fails: `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`, `test_the_village_plays_both_of_its_disasters`, `test_with_the_stop_each_takes_2_to_4_seconds`, `test_after_a_wrong_turn_the_director_plays_each_in_2_to_4_seconds` | Not tested (K20) |
-| N54 | 3 | `FLOOD_HOLD_SECONDS` is 0.1 s, so the shortest flood takes under 2 s | GUT fails: `test_with_the_stop_each_takes_2_to_4_seconds` | Not tested (K20) |
-| N55 | 3 | The tornado's `duration()` leaves out its delay | GUT fails: `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight` | Not in IP (K20) |
-| N56 | 3 | The tornado emits `finished` on every frame after its end | GUT fails 5 tests: `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight`, `test_each_finishes_without_a_car_or_a_camera`, `test_it_comes_along_its_direction_carries_the_car_off_and_goes_on`, `test_the_funnel_moves_straight_and_fades_in_and_out`, `test_the_dust_whirls_while_it_comes_and_lifts_the_car` | Not tested |
-| N57 | 3 | The funnel shows during the delay | GUT fails: `test_each_shows_nothing_until_its_delay_is_over`, `test_the_funnel_moves_straight_and_fades_in_and_out` | Not tested |
-| N58 | 3 | The tornado leaves back the way it came, against its direction | GUT fails: `test_it_comes_along_its_direction_carries_the_car_off_and_goes_on` | Not tested |
-| N59 | 3 | The core sways by its `offset`, which redraws it | GUT fails: `test_none_redraws_a_polygon_or_the_car` | Not specified (K9) |
-| N60 | 3 | The tornado moves the car up a pixel each frame | GUT fails: `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight` | Not specified (K19) |
-| N61 | 3 | The tornado only half hides the car | GUT fails: `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight`, `test_it_comes_along_its_direction_carries_the_car_off_and_goes_on` | Not tested |
-| N62 | 3 | The car doesn't shrink as the tornado lifts it | GUT fails: `test_it_comes_along_its_direction_carries_the_car_off_and_goes_on`, `test_the_car_spins_shrinks_and_fades_as_it_lifts` | Not specified |
-| N63 | 3 | The spin doesn't grow with the intensity | GUT fails: `test_a_stronger_tornado_is_bigger_and_spins_the_car_faster` | Not specified |
-| N64 | 3 | The funnel's size doesn't grow with the intensity | GUT fails: `test_a_stronger_tornado_is_bigger_and_spins_the_car_faster` | Not specified |
-| N65 | 3 | The dust stops as the lift starts | GUT fails: `test_the_dust_whirls_while_it_comes_and_lifts_the_car` | Not specified |
-| N66 | 3 | The tornado doesn't shake the camera | GUT fails: `test_it_shakes_the_camera_as_it_comes` | Not specified |
-| N67 | 3 | The funnel has no `z_index`, so it draws under the car | GUT fails: `test_the_funnel_draws_over_the_car_and_its_shadow_under` | Not specified (K8) |
-| N68 | 3 | The shadow has no `z_index`, so it draws with the funnel, over the car | GUT fails: `test_the_funnel_draws_over_the_car_and_its_shadow_under` | Not specified (K8) |
-| N69 | 3 | The core sways by the global RNG: `randf_range(-SWAY_PX, SWAY_PX)` | `lint.sh` fails: `Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)` | Fails ✓: IP §5.3's lint rule |
-| N70 | 3 | The water rolls in against its direction | GUT fails: `test_the_water_rolls_in_along_its_direction_and_spreads_around_the_car` | Not specified |
-| N71 | 3 | The flood rises as fast whatever its intensity | GUT fails: `test_a_stronger_flood_rises_faster` | Not tested |
-| N72 | 3 | The spray starts as the water rolls in | GUT fails: `test_the_spray_flies_while_it_rises` | Not specified |
-| N73 | 3 | The spray never stops | GUT fails: `test_the_spray_flies_while_it_rises` | Not specified |
-| N74 | 3 | The surface has no `z_index`, so it draws under the car | GUT fails: `test_the_water_lies_under_the_car_and_its_surface_over_it` | Not specified (K8) |
-| N75 | 3 | The car under water still half shows | GUT fails: `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight` | Not tested |
-| N76 | 3 | The car fades under water without taking its colour | GUT fails: `test_then_it_rises_over_the_car` | Not specified |
-| N77 | 3 | The quicksand ignores its delay | GUT fails: `test_each_shows_nothing_until_its_delay_is_over`, `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight`, `test_the_sand_flies_while_the_car_sinks` | Not tested |
-| N78 | 3 | The quicksand needs a car | GUT fails: `test_each_finishes_without_a_car_or_a_camera`, `test_ripples_grow_and_fade_within_the_pit`, `test_stronger_quicksand_sinks_the_car_faster`, `test_the_sand_flies_while_the_car_sinks` | Not in IP: M3's contract (M3_PLAN.md §5.5) |
-| N79 | 3 | The pit's size doesn't grow with the intensity | GUT fails: `test_the_pit_spreads_under_the_car_as_big_as_the_quicksand_is_strong` | Not specified |
-| N80 | 3 | The ripple grows beyond the pit | GUT fails: `test_ripples_grow_and_fade_within_the_pit` | Not specified |
-| N81 | 3 | The car rocks as much until it has sunk | GUT fails: `test_the_car_rocks_less_and_less_as_it_sinks` | Not specified |
-| N82 | 3 | The quicksand sinks the car as fast whatever its intensity | GUT fails: `test_stronger_quicksand_sinks_the_car_faster` | Not tested |
-| N83 | 3 | The sand never stops flying | GUT fails: `test_the_sand_flies_while_the_car_sinks` | Not specified |
-| N84 | 1 | `--area=` without an id is no error | GUT fails: `test_an_empty_area_argument_starts_in_the_first_area` | Not in IP (K10) |
-| N85 | 2 | `build()` looks the scene up with `has()`, so an id that maps to null passes | GUT fails: `test_a_set_piece_whose_scene_is_null_is_an_error` | Not in IP: a `PackedScene` (K12) |
-| N86 | 2 | A scene whose root isn't a `SetPiece` is no error | GUT fails: `test_a_set_piece_scene_whose_root_isnt_a_set_piece_is_an_error`, `test_an_empty_set_piece_scene_is_an_error` | Not in IP: a `PackedScene` (K12) |
-| N87 | 2 | The node of a scene whose root isn't a `SetPiece` is never freed | `run_tests.sh` fails on the leak, `Objects leaked at exit: a cycle of RefCounted references, or a node that is never freed`; no test fails | Not in IP: a `PackedScene` (K12) |
-| N88 | 2 | The river is drawn a tile bigger than its water: `corners(water.grow(1.0))` | GUT fails: `test_the_river_flows_across_the_run_between_its_banks` | Not tested |
-| N89 | 2 | A run too short for the river is no error | GUT fails: `test_a_run_too_short_for_the_river_is_an_error` | Not specified (K7) |
-| N90 | 3 | The tornado spins the car as fast whatever its intensity | GUT fails: `test_a_stronger_tornado_is_bigger_and_spins_the_car_faster` | Not specified |
-| N91 | 2 | An empty scene is instantiated: `scene.instantiate()`, without `can_instantiate()` | GUT fails: `test_an_empty_set_piece_scene_is_an_error` | Not in IP: a `PackedScene` (K12) |
-| N92 | 2 | The error path frees the null node of an empty scene: `if true:` for `if node != null:` | GUT fails: `test_an_empty_set_piece_scene_is_an_error` | Not in IP: a `PackedScene` (K12) |
+| N1 | 1 | `validate()` doesn't check how far the next junction can be | `test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer` | IP's design (K1) |
+| N2 | 1 | `gap()` leaves out the junction's own tile | `test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer` | Not in IP (K1) |
+| N3 | 1 | `validate()` also rejects a gap of exactly `BUFFER_REFILL_AT`: `>=` for `>` | `test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer` | Not in IP (K1) |
+| N4 | 1 | `starting_at()` keeps the set piece that leads into the first area | `test_a_schedule_can_start_in_any_of_its_areas`; on PR 3, also `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool` | Not in IP (K10) |
+| N5 | 1 | `starting_at()` keeps the entries' turns | `test_the_area_argument_starts_every_run_in_that_area`, `test_a_schedule_can_start_in_any_of_its_areas`; on PR 3, also `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool` and 1 more | Not in IP (K10) |
+| N6 | 1 | `starting_at()` an area that the schedule lacks is no error | `test_an_unknown_area_argument_starts_in_the_first_area`, `test_a_schedule_cannot_start_in_an_area_it_lacks` | Not in IP (K10) |
+| N7 | 1 | The area's name counts down while the game is paused | `test_the_area_name_waits_while_the_game_is_paused` | Not specified (K16) |
+| N8 | 1 | The area's name never hides | `test_it_names_the_area_the_car_enters_for_a_while`, `test_the_area_name_waits_while_the_game_is_paused` and 1 more | Not tested |
+| N9 | 1 | The end of a run leaves the area's name | `test_the_end_of_a_run_and_a_new_run_hide_the_area_name` | Not specified (K16) |
+| N10 | 1 | A new run leaves the last run's area name | `test_the_end_of_a_run_and_a_new_run_hide_the_area_name` | Not specified (K16) |
+| N11 | 1 | A new area adds 2 s to the time left, instead of starting it again | `test_a_new_area_replaces_the_name_and_starts_its_time_again` | Not specified (K16) |
+| N12 | 1 | The HUD shows the area's id, not its name | `test_each_run_starts_by_naming_its_area`, `test_main_reports_each_new_area_of_the_car` and 3 more | Not tested |
+| N13 | 1 | A run doesn't report the area it starts in, as on `main`: `_start_run()` sets `GameState.area_id` itself | `test_each_run_starts_by_naming_its_area`, `test_main_reports_each_new_area_of_the_car` and 1 more | IP's design (K4) |
+| N14 | 1 | `main.gd` ignores `--area` | `test_the_area_argument_starts_every_run_in_that_area`, `test_an_unknown_area_argument_starts_in_the_first_area`; on PR 3, also `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool` and 1 more | Not in IP (K10) |
+| N15 | 1 | `main.gd` doesn't relay the car's new areas | `test_main_reports_each_new_area_of_the_car` | Fails ✓: IP's order test, if it listens to `GameState` (K15) |
+| N16 | 1 | The schedule swaps the tunnel and the bridge | `test_the_autopilot_meets_the_areas_and_set_pieces_in_order`, `test_areas_and_set_pieces_switch_at_34_100_200_and_220` and 1 more; on PR 3, also `test_the_autopilot_drives_through_the_tunnel_and_over_the_bridge` | Fails ✓: M1's `test_areas_and_set_pieces_switch_at_34_100_200_and_220` |
+| N17 | 2 | A transition's rows swap its two areas' colours | `test_ground_tileset_has_a_column_for_each_transition`, `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not in IP: a transition TileSet (K14) |
+| N18 | 2 | No ground transitions: the loop over the tiles before runs over none | `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not tested |
+| N19 | 2 | A transition covers one tile too many | `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not tested (K14) |
+| N20 | 2 | A transition takes the column of the reverse pair, from the new area into the last | `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` | Not in IP (K14) |
+| N21 | 2 | A set piece is added at the end of each batch, even if its run isn't finished | `test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile` | Not specified (K6) |
+| N22 | 2 | Each tile of a run gets a set piece of its own | `test_the_autopilot_drives_through_the_tunnel_and_over_the_bridge`, `test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one` and 4 more | Not tested |
+| N23 | 2 | A set piece is freed with its run's first tile | `test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile` | Not tested |
+| N24 | 2 | `bind()` forgets the last run's set pieces without freeing them | `test_a_new_buffer_drops_the_last_runs_set_pieces_and_car` | Not specified (K6) |
+| N25 | 2 | `bind()` keeps the last run's car | `test_a_new_buffer_drops_the_last_runs_set_pieces_and_car` | Not in IP (K5) |
+| N26 | 2 | `bind()` keeps the tiles of the last run's unfinished set piece | `test_a_new_buffer_drops_the_last_runs_unfinished_set_piece` | Not specified (K6) |
+| N27 | 2 | A set piece without a scene is no error | `test_a_set_piece_without_a_scene_is_an_error`, `test_a_set_piece_whose_scene_is_null_is_an_error` | Not in IP: a `PackedScene` (K12) |
+| N28 | 2 | `set_car()` doesn't give the car to the set pieces already there | `test_a_new_buffer_drops_the_last_runs_set_pieces_and_car` | Not in IP (K5) |
+| N29 | 2 | A new set piece doesn't get the car | `test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile` | Not in IP (K5) |
+| N30 | 2 | `main.gd` doesn't give the world the car | `test_retry_starts_the_next_run_afresh` | Not in IP (K5) |
+| N31 | 2 | `RIVER_REACH` is 2.5 tiles, so a river can reach other road | `test_rivers_keep_a_bank_clear_of_every_other_road` | Not specified (K7) |
+| N32 | 2 | The river runs along the road, not across it | `test_rivers_keep_a_bank_clear_of_every_other_road`, `test_the_river_flows_across_the_run_between_its_banks` and 1 more | Not tested |
+| N33 | 2 | The waves and the railings take the run's direction for the river's | `test_the_river_flows_across_the_run_between_its_banks`, `test_the_near_railing_draws_over_the_car_and_the_rest_under_it` and 1 more | Not tested |
+| N34 | 2 | The waves' room down the river doesn't leave out a wave's length | `test_the_waves_drift_down_the_river_and_never_leave_it` | Not specified |
+| N35 | 2 | The waves move by their `offset`, which redraws them | `test_each_wave_is_where_its_rectangle_is`, `test_the_bridge_is_never_redrawn` | Not in IP: a shader (K9) |
+| N36 | 2 | The near railing has no `z_index`, so it draws under the car | `test_the_near_railing_draws_over_the_car_and_the_rest_under_it`, `test_the_smoke_shows_over_everything_the_grey_box_draws` and 1 more | Not specified (K8) |
+| N37 | 2 | The tunnel's rock is only a tile wide: `HALF_WIDTH` 0.5 | `test_the_rock_covers_the_run_and_a_little_more_across_it` | Not specified |
+| N38 | 2 | The mouth is in the end face that doesn't show | `test_the_mouth_is_in_the_end_face_that_shows` | Not specified |
+| N39 | 2 | The tunnel has no `z_index`, so it draws under the car | `test_the_tunnel_draws_over_the_car` | Not tested (K8) |
+| N40 | 2 | The tunnel never fades | `test_the_tunnel_fades_while_the_car_is_near`, `test_the_tunnel_is_never_redrawn` | IP's design: an occluding roof (K5) |
+| N41 | 2 | The tunnel also fades its roof by its `color`, which redraws it | `test_the_tunnel_is_never_redrawn` | Not in IP (K5, K9) |
+| N42 | 2 | `TUNNEL_SEE_THROUGH` is 0.35 | `test_the_smoke_shows_through_a_tunnel` | Not in IP (K5) |
+| N43 | 2 | `SetPieces` comes after `RoadLayer` in `world.tscn`, so set pieces draw over the road | `test_disasters_draw_above_the_road_and_below_the_car`, `test_set_pieces_draw_above_the_ground_and_below_the_road` | IP's design: in `Props`, after `RoadLayer` (K2) |
+| N44 | 2 | The waves drift by the global RNG: `_time += delta * randf_range(0.9, 1.1)` | `lint.sh`: `Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)`. Also `test_each_wave_is_where_its_rectangle_is`, as the draws decide: in 7 of its 9 runs | Fails ✓: IP §5.3's lint rule |
+| N45 | 3 | Rural's pool is the sinkhole, as in M3 | `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`, `test_each_area_has_its_pool_of_disasters` | Fails ✓: IP's pool test |
+| N46 | 3 | The Village's pool is only the flood | `test_the_village_plays_both_of_its_disasters`, `test_each_area_has_its_pool_of_disasters` | Not tested: a pool that lacks a disaster passes IP's pool test |
+| N47 | 3 | The director always plays the first disaster of a pool | `test_the_village_plays_both_of_its_disasters`, `test_pick_draws_every_scene_of_the_pool_with_the_stream` | Fails ✓: M3's `test_pick_draws_every_scene_of_the_pool_with_the_stream` |
+| N48 | 3 | `apply_params()` doesn't fix the particles' seed | `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
+| N49 | 3 | `apply_params()` doesn't scale the particles' speed by the intensity | `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
+| N50 | 3 | `apply_params()` doesn't scale the particles' size | `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
+| N51 | 3 | The sinkhole doesn't apply its params to its debris | `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_the_debris_follows_its_params_and_flies_while_the_hole_opens` | Fails ✓: M3's sinkhole test |
+| N52 | 3 | `outline()` is half as big | `test_an_outline_is_a_circle_of_its_radius_on_the_ground` | Not tested |
+| N53 | 3 | `TORNADO_LEAVE_SECONDS` is 1.5 s, so the longest tornado takes over 4 s | `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`, `test_the_village_plays_both_of_its_disasters` and 2 more | Not tested (K20) |
+| N54 | 3 | `FLOOD_HOLD_SECONDS` is 0.1 s, so the shortest flood takes under 2 s | `test_with_the_stop_each_takes_2_to_4_seconds` | Not tested (K20) |
+| N55 | 3 | The tornado's `duration()` leaves out its delay | `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight` | Not in IP (K20) |
+| N56 | 3 | The tornado emits `finished` on every frame after its end | `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight`, `test_each_finishes_without_a_car_or_a_camera` and 3 more | Not tested |
+| N57 | 3 | The funnel shows during the delay | `test_each_shows_nothing_until_its_delay_is_over`, `test_the_funnel_moves_straight_and_fades_in_and_out` | Not tested |
+| N58 | 3 | The tornado leaves back the way it came, against its direction | `test_it_comes_along_its_direction_carries_the_car_off_and_goes_on` | Not tested |
+| N59 | 3 | The core sways by its `offset`, which redraws it | `test_none_redraws_a_polygon_or_the_car` | Not specified (K9) |
+| N60 | 3 | The tornado moves the car up a pixel each frame | `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight` | Not specified (K19) |
+| N61 | 3 | The tornado only half hides the car | `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight`, `test_it_comes_along_its_direction_carries_the_car_off_and_goes_on` | Not tested |
+| N62 | 3 | The car doesn't shrink as the tornado lifts it | `test_it_comes_along_its_direction_carries_the_car_off_and_goes_on`, `test_the_car_spins_shrinks_and_fades_as_it_lifts` | Not specified |
+| N63 | 3 | The spin doesn't grow with the intensity | `test_a_stronger_tornado_is_bigger_and_spins_the_car_faster` | Not specified |
+| N64 | 3 | The funnel's size doesn't grow with the intensity | `test_a_stronger_tornado_is_bigger_and_spins_the_car_faster` | Not specified |
+| N65 | 3 | The dust stops as the lift starts | `test_the_dust_whirls_while_it_comes_and_lifts_the_car` | Not specified |
+| N66 | 3 | The tornado doesn't shake the camera | `test_it_shakes_the_camera_as_it_comes` | Not specified |
+| N67 | 3 | The funnel has no `z_index`, so it draws under the car | `test_the_funnel_draws_over_the_car_and_its_shadow_under` | Not specified (K8) |
+| N68 | 3 | The shadow has no `z_index`, so it draws with the funnel, over the car | `test_the_funnel_draws_over_the_car_and_its_shadow_under` | Not specified (K8) |
+| N69 | 3 | The core sways by the global RNG: `randf_range(-SWAY_PX, SWAY_PX)` | `lint.sh`: `Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)` | Fails ✓: IP §5.3's lint rule |
+| N70 | 3 | The water rolls in against its direction | `test_the_water_rolls_in_along_its_direction_and_spreads_around_the_car` | Not specified |
+| N71 | 3 | The flood rises as fast whatever its intensity | `test_a_stronger_flood_rises_faster` | Not tested |
+| N72 | 3 | The spray starts as the water rolls in | `test_the_spray_flies_while_it_rises` | Not specified |
+| N73 | 3 | The spray never stops | `test_the_spray_flies_while_it_rises` | Not specified |
+| N74 | 3 | The surface has no `z_index`, so it draws under the car | `test_the_water_lies_under_the_car_and_its_surface_over_it` | Not specified (K8) |
+| N75 | 3 | The car under water still half shows | `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight` | Not tested |
+| N76 | 3 | The car fades under water without taking its colour | `test_then_it_rises_over_the_car` | Not specified |
+| N77 | 3 | The quicksand ignores its delay | `test_each_shows_nothing_until_its_delay_is_over`, `test_each_finishes_once_after_its_duration_with_the_car_out_of_sight` and 1 more | Not tested |
+| N78 | 3 | The quicksand needs a car | `test_each_finishes_without_a_car_or_a_camera`, `test_ripples_grow_and_fade_within_the_pit` and 2 more | Not in IP: M3's contract (M3_PLAN.md §5.5) |
+| N79 | 3 | The pit's size doesn't grow with the intensity | `test_the_pit_spreads_under_the_car_as_big_as_the_quicksand_is_strong` | Not specified |
+| N80 | 3 | The ripple grows beyond the pit | `test_ripples_grow_and_fade_within_the_pit` | Not specified |
+| N81 | 3 | The car rocks as much until it has sunk | `test_the_car_rocks_less_and_less_as_it_sinks` | Not specified |
+| N82 | 3 | The quicksand sinks the car as fast whatever its intensity | `test_stronger_quicksand_sinks_the_car_faster` | Not tested |
+| N83 | 3 | The sand never stops flying | `test_the_sand_flies_while_the_car_sinks` | Not specified |
+| N84 | 1 | `--area=` without an id is no error | `test_an_empty_area_argument_starts_in_the_first_area` | Not in IP (K10) |
+| N85 | 2 | `build()` looks the scene up with `has()`, so an id that maps to null passes | `test_a_set_piece_whose_scene_is_null_is_an_error` | Not in IP: a `PackedScene` (K12) |
+| N86 | 2 | A scene whose root isn't a `SetPiece` is no error | `test_a_set_piece_scene_whose_root_isnt_a_set_piece_is_an_error`, `test_an_empty_set_piece_scene_is_an_error` | Not in IP: a `PackedScene` (K12) |
+| N87 | 2 | The node of a scene whose root isn't a `SetPiece` is never freed | `run_tests.sh`, on the leak: `Objects leaked at exit: a cycle of RefCounted references, or a node that is never freed`. No test fails | Not in IP: a `PackedScene` (K12) |
+| N88 | 2 | The river is drawn a tile bigger than its water: `corners(water.grow(1.0))` | `test_the_river_flows_across_the_run_between_its_banks` | Not tested |
+| N89 | 2 | A run too short for the river is no error | `test_a_run_too_short_for_the_river_is_an_error` | Not specified (K7) |
+| N90 | 3 | The tornado spins the car as fast whatever its intensity | `test_a_stronger_tornado_is_bigger_and_spins_the_car_faster` | Not specified |
+| N91 | 2 | An empty scene is instantiated: `scene.instantiate()`, without `can_instantiate()` | `test_an_empty_set_piece_scene_is_an_error` | Not in IP: a `PackedScene` (K12) |
+| N92 | 2 | The error path frees the null node of an empty scene: `if true:` for `if node != null:` | `test_an_empty_set_piece_scene_is_an_error` | Not in IP: a `PackedScene` (K12) |
 
 ### 6.3 Editor warnings
 
-None of the five checks reports GDScript warnings, so, as in M2 and M3 (M2_PLAN.md §6.3), a probe asked the editor's language server for them. On each PR state it reports 8 warnings: the same 8 as on `main`, all in M1's code (M2 H29). `ui/main.gd`'s INTEGER_DIVISION, the `grey box:` line, moves from line 33 to 37.
+None of the five checks reports GDScript warnings, so, as in M2 and M3 (M2_PLAN.md §6.3), a probe asked the editor's language server for them. The PR states of §6.1 report 8, in 68, 74 and 83 scripts: the same 8 as `main`, all in M1's code (M2 H29). `ui/main.gd`'s INTEGER_DIVISION, the `grey box:` line, moves from line 33 to 37. The probe isn't committed (§9).
 
-On 21fd140 it reported 14 in 83 scripts. The 6 new ones were in M4's tests, and 49c24e1 clears them:
-- SHADOWED_VARIABLE: `set_piece_schedule()`'s local `schedule` hid the helper `schedule()` in `road_fixtures.gd` (`AGENTS.md` §3). It is `built`.
-- INTEGER_DIVISION, 5 times: the middle of a tile in `test_greybox_atlas.gd` (3) and `test_world_renderer.gd`, and half the banner's frames in `test_hud.gd`. Each division is meant, so each test that keeps one has `@warning_ignore("integer_division")`, once. The transition test lists its four tiles by their atlas coordinates instead of working them out.
-
-14e01cc and e81adc9 add none: the PR states of §6.1 report the same 8, in 68, 74 and 83 scripts. PR 3's state was probed as the prototype's tree. The probe isn't committed (§9).
+On 21fd140 it reported 6 more, in M4's tests, which 49c24e1 clears. A SHADOWED_VARIABLE: `set_piece_schedule()`'s local `schedule` hid the helper `schedule()` in `road_fixtures.gd` (`AGENTS.md` §3), and is now `built`. Five INTEGER_DIVISIONs, in `test_greybox_atlas.gd` (3), `test_world_renderer.gd` and `test_hud.gd`, each meant: the transition test now lists its tiles by their atlas coordinates, and each test that keeps a division has `@warning_ignore("integer_division")`, once.
 
 ### 6.4 Verified only in CI or on devices
 
@@ -725,13 +670,12 @@ The probes ran on Godot 4.7.2, headless, in scratch scripts that aren't committe
 | P4 | Can user arguments reach the APK or the Web build? | No. Godot's `platform/android/java/lib/src/main/java/org/godotengine/godot/GodotActivity.kt` strips `command_line_params` from the intents of exported activities (`sanitizeLaunchIntent`, :99–107), and reads them only for activities that aren't exported (:113–121). The game's launcher activity is exported. The Web export's `index.html` starts the engine with `"args":[]` | Q6; §4, PR 3 step 3 |
 | P5 | Which disaster the Village plays on a seed: the director's first pick from its pool | The tornado on seeds 1, 3, 4, 5 and 6; the flood on 0, 2, 7, 8 and 12345 | §5.8; §4, PR 3 step 3; N46, N47 |
 
-- **M2's H31.** M2 found that 5-tile tunnels (26) lost junctions on 3 of 5 seeds (M2_PLAN.md §6.5). That ran on M2's prototype, whose `CarSim.step()` let the trigger look before `_update_path()` moved the buffer on (`car_sim.gd:77, 81` at db1506d). 684a976, in M2 PR 2 (#26), updates the path first, which gives the trigger one more tile: on `main`, 26 is found, and 27 is the first gap that can be lost (P1). M4's limit of 25 holds in either order (§5.2).
-- **The end's timing.** Without the stop, the new disasters take 2.05–3.2 s (§5.8). With it, P3 measured 2.88–3.62 s from the end of the run to `sequence_finished`, inside IP's 2–4 s. The longest that §5.8's values allow is 3.83 s (N53, N54).
-- **Web.** The prototype's Web export from run 42643948618 (e81adc9) was served locally as §4's copy that takes `?arg=` (PR 3 step 3), and played in headless Chrome 156 with Playwright. There is no GPU here, so Chrome drew with SwiftShader at 14–21 frames a second: the sessions say nothing about speed. The export of 21fd140, from run 42620851884, gave the same results in the same eight sessions:
-  - Six started a run with no input: the City, Rural, Meadows, the Village and the Desert with seed 1, and the Village with seed 12345. In each, the HUD named the area, the car went straight on at the first junction, the area's disaster played (the sinkhole, the tornado, the flood, the tornado, the quicksand and the flood), and the game-over screen named the area. It said "Wrong turn!" in the City and the Village with seed 1, where that junction is a crossroads, whose straight-on road is a wrong exit (IP M1.4), and "You missed the turn!" in the other four.
-  - With the autopilot and seed 12345, from the City, the screenshots from 50 to 64 s show the tunnel's rock with the car through it, the ground's blend and "Rural" for 2 s. From Rural, those from 118 to 132 s show the river and its waves, the deck, the blend and "Meadows".
-  - Each session logged Godot's 3 start-up lines and one `grey box:` line, and nothing else: no errors, no warnings, and none of the `GPU stall due to ReadPixels` notes that M3's build logged (M3_PLAN.md §6.5).
-- **Tilesets.** 60–68 ms headless, against M3's 60–67 ms (§6.1), and 178–217 ms in headless Chrome.
+- **M2's H31.** M2 lost junctions at a gap of 26 (M2_PLAN.md §6.5) on its prototype, whose `CarSim.step()` let the trigger look before the buffer moved on (`car_sim.gd:77, 81` at db1506d). 684a976 (#26) moves the buffer first, so on `main` 27 is the first gap that can be lost (P1). M4's limit of 25 holds in either order (§5.2).
+- **Web.** The prototype's Web export from run 42643948618 (e81adc9), served as §4's copy (PR 3 step 3), ran eight sessions in headless Chrome 156 with Playwright, with the same results as that of 21fd140 (run 42620851884). Without a GPU, Chrome drew with SwiftShader at 14–21 frames a second, so the sessions say nothing about speed.
+  - Six started a run with no input: each area with seed 1, and the Village with seed 12345. In each, the HUD named the area, the car went straight on at the first junction, the area's disaster played (the sinkhole, the tornado, the flood, the tornado, the quicksand and the flood), and the game-over screen named the area. It said "Wrong turn!" in the City and the Village with seed 1, whose first junction is a crossroads, where straight on is a wrong exit (IP M1.4), and "You missed the turn!" in the other four.
+  - With the autopilot and seed 12345, the screenshots from 50 to 64 s from the City show the tunnel's rock with the car through it, the ground's blend and "Rural" for 2 s; from 118 to 132 s from Rural, the river and its waves, the deck, the blend and "Meadows".
+  - Each session logged Godot's 3 start-up lines and one `grey box:` line: no errors, no warnings, and none of the `GPU stall due to ReadPixels` notes of M3's build (M3_PLAN.md §6.5).
+- **Tilesets.** 60–68 ms headless (§6.1), and 178–217 ms in headless Chrome.
 - **CI.** Three manual runs on the prototype with `upload-builds` passed all five jobs: 42620851884 on 21fd140, 42640815100 on 14e01cc and 42643948618 on e81adc9. They took 16–17 s for `lint`, 82–89 s for `test`, 59–75 s for `export-web`, 72–90 s for `export-android`'s APK, and 180–187 s for its AAB. M3's `test` job took 78–90 s.
 
 ### 6.6 Measurements (PRs)
@@ -749,8 +693,8 @@ These need the repository owner. The current state was read with `gh api` on 202
 | Now | Answer Q1–Q9, or accept the defaults | A comment on this plan's PR. Without an answer, the PRs follow the defaults |
 | Now | Merge this plan's PR | Squash-merge it into `main`. PR 1 branches from `main` with this plan, and PR 3's tree check leaves the plan out (§4, PR 3 step 2) |
 | Before PR 3 merges | The E14 checks on the Galaxy Z Fold4: the debug APK of PR 3's final head, and the other areas in the Fold4's Chrome. An agent does the Web checks in Chrome and Firefox | §4, PR 3 step 3 |
-| To land M4 | Merge PRs 1, 2 and 3, in that order, each once its base is `main` and it is updated as in §4.5 step 4 | §4.5 |
-| Optional | Delete each PR's branch after it merges, so GitHub retargets the next PR by itself. Delete `m4/prototype` once PR 3 has merged | The **Delete branch** button on the merged PR (§4.5 step 5); `git push origin --delete m4/prototype` |
+| To land M4 | Merge PRs 1, 2 and 3, in that order, each once its base is `main` and it is updated as in §4.5 | §4.5 |
+| Optional | Delete each PR's branch after it merges, so GitHub retargets the next PR by itself. Delete `m4/prototype` once PR 3 has merged | The **Delete branch** button on the merged PR (§4.5); `git push origin --delete m4/prototype` |
 
 ---
 
@@ -765,11 +709,8 @@ These need the repository owner. The current state was read with `gh api` on 202
 | The disasters' particles: 48 in the tornado, 36 in the flood and 30 in the quicksand, against the sinkhole's 40 and the smoke's 20 | Dropped frames on the Fold4 or in browsers during the end | One disaster plays at a time. E14 watches for it, and the amounts are in the scenes |
 | A set piece outlives its run, or a retry keeps one (E6) | Set pieces pile up as the car drives, or one shows in the next run | `test_world_renderer.gd` checks that each goes with its last tile and that `bind()` frees them (N21–N26). `run_tests.sh` fails on leaks |
 | The Village's disaster depends on the seed (P5) | A check that expects one of its two disasters sees the other | §4's steps name the seeds: 1 for the tornado and 12345 for the flood. `test_disaster_pools.gd` plays both (N46, N47) |
-| `push_error` doesn't stop a release build | A broken rule goes unnoticed in the game | Every CI script fails on error lines (M0 F10), and a test covers each rule (§6.2) |
-| Squash merges of stacked PRs. `ui/main.gd` is the one file that two PRs change | Conflicts, or a lost review fix | §4.5: merge PR n's final branch first, then check `git diff --name-only origin/main`. Fix a file only on the branch of the PR that owns it; `ui/main.gd` on PR 1's, unless the fix is to PR 2's line |
+| Squash merges of stacked PRs, with `ui/main.gd` changed by two | Conflicts, or a lost review fix | §4.5's procedure, simulated without conflicts |
 | The PRs drift from the prototype after reviews | The prototype stops being a reliable reference | PR 3's tree check lists every difference, which must be §4.6's files (§4, PR 3 step 2) |
-| `m4/prototype` disappears before PR 3 merges | The PRs can't check their files out | Keep it until PR 3 merges (§7) |
-| GUT's update check hits GitHub's rate limit in an editor run on CI | A red `export-*` job | Re-run the failed jobs (`AGENTS.md` §10) |
 | M4 adds 66 tests, and some drive the autopilot or the main scene for minutes of game time | A slower `test` job | They add 1–2 s locally (§6.1). On the prototype, `test` took 82–89 s, within M3's 78–90 s (§6.5) |
 
 ---
