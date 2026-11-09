@@ -72,19 +72,29 @@ func test_then_it_rises_over_the_car() -> void:
 
 
 func test_a_stronger_flood_rises_faster() -> void:
+	# Its rise lasts rise_seconds(), and the surface and the car follow it: half risen halfway.
 	var frames: Array[int] = []
 	for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
-		var flood := _flood(null)
+		var car := Disasters.car(self)
+		var flood := _flood(car)
+		var surface: Polygon2D = flood.get_node("%Surface")
 		var params := Disasters.params(intensity)
 		flood.play(params)
+		var rise := Flood.rise_seconds(params)
 		var rising := 0
+		var half := 0
 		var steps := 0
 		while flood.phase != Flood.Phase.DONE and steps < MAX_FRAMES:
 			simulate(flood, 1, DELTA)
 			steps += 1
 			if flood.phase == Flood.Phase.RISE:
 				rising += 1
-		assert_almost_eq(rising * DELTA, Flood.rise_seconds(params), DELTA * 1.01, "its rise")
+				if half == 0 and surface.scale.x >= 0.5:
+					half = rising
+					var tint := Color.WHITE.lerp(Flood.UNDERWATER, surface.scale.x)
+					assert_true(car.modulate.is_equal_approx(tint), "the car goes under with it")
+		assert_almost_eq(rising * DELTA, rise, DELTA * 1.01, "its rise")
+		assert_almost_eq(half * DELTA, rise / 2.0, DELTA * 2.0, "half risen halfway")
 		frames.append(rising)
 	assert_lt(frames[1], frames[0], "faster")
 

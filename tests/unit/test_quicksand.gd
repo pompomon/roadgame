@@ -105,19 +105,29 @@ func test_the_car_rocks_less_and_less_as_it_sinks() -> void:
 
 
 func test_stronger_quicksand_sinks_the_car_faster() -> void:
+	# Its sinking lasts sink_seconds(), and the car follows it: half sunk halfway.
 	var frames: Array[int] = []
+	var half_sunk := lerpf(1.0, Quicksand.SUNK_SCALE, 0.5)
 	for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
-		var quicksand := _quicksand(null)
+		var car := Disasters.car(self)
+		var quicksand := _quicksand(car)
 		var params := Disasters.params(intensity)
 		quicksand.play(params)
+		var sink := Quicksand.sink_seconds(params)
 		var sinking := 0
+		var half := 0
 		var steps := 0
 		while quicksand.phase != Quicksand.Phase.DONE and steps < MAX_FRAMES:
 			simulate(quicksand, 1, DELTA)
 			steps += 1
 			if quicksand.phase == Quicksand.Phase.SINK:
 				sinking += 1
-		assert_almost_eq(sinking * DELTA, Quicksand.sink_seconds(params), DELTA * 1.01, "its sink")
+				if half == 0 and car.scale.x <= half_sunk:
+					half = sinking
+					var sunk := (1.0 - car.scale.x) / (1.0 - Quicksand.SUNK_SCALE)
+					assert_almost_eq(car.modulate.a, 1.0 - sunk, 1e-4, "it fades as it sinks")
+		assert_almost_eq(sinking * DELTA, sink, DELTA * 1.01, "its sink")
+		assert_almost_eq(half * DELTA, sink / 2.0, DELTA * 2.0, "half sunk halfway")
 		frames.append(sinking)
 	assert_lt(frames[1], frames[0], "faster")
 
@@ -142,3 +152,12 @@ func test_the_sand_flies_while_the_car_sinks() -> void:
 			Quicksand.Phase.DONE: false,
 		}
 	)
+
+
+func test_the_pit_and_ripples_lie_under_the_car_and_the_sand_flies_over_it() -> void:
+	# World's DisasterLayer comes before Props, which holds the car at z_index 0 (M3_PLAN.md J5).
+	var car := Disasters.car(self)
+	var quicksand := _quicksand(car)
+	assert_eq(Disasters.z(quicksand.get_node("%Pit")), Disasters.z(car), "under the car")
+	assert_eq(Disasters.z(quicksand.get_node("%Ripple")), Disasters.z(car), "and the ripples")
+	assert_gt(Disasters.z(quicksand.get_node("%Grains")), Disasters.z(car), "the sand over it")
