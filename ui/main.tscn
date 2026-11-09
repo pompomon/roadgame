@@ -5,6 +5,8 @@
 [ext_resource type="Script" path="res://car/input_router.gd" id="3_input"]
 [ext_resource type="Script" path="res://world/camera_rig.gd" id="4_camera"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="5_hud"]
+[ext_resource type="Script" path="res://disasters/disaster_director.gd" id="6_director"]
+[ext_resource type="PackedScene" path="res://ui/game_over.tscn" id="7_game_over"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -21,7 +23,14 @@ unique_name_in_owner = true
 process_mode = 3
 script = ExtResource("3_input")
 
+[node name="Director" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("6_director")
+
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="HUD" parent="UI" instance=ExtResource("5_hud")]
+unique_name_in_owner = true
+
+[node name="GameOver" parent="UI" instance=ExtResource("7_game_over")]
 unique_name_in_owner = true
