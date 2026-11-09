@@ -17,14 +17,19 @@ func test_main_scene_shows_the_version_and_the_seed() -> void:
 
 func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# The Web build has no system fonts to fall back on: a glyph missing from the default
-	# font shows as a box. The HUD also shows numbers, and messages it keeps in constants.
+	# font shows as a box. The HUD and the game-over screen also show numbers, the areas' names,
+	# and messages they keep in constants.
 	var main := _main()
 	var shown: Array[Control] = []
 	shown.append_array(main.find_children("*", "Label", true, false))
 	shown.append_array(main.find_children("*", "Button", true, false))
-	assert_gt(shown.size(), 4, "labels and buttons")
-	var texts: Array[String] = ["-0123456789", Hud.RETRY_MESSAGE, Hud.PAUSED_MESSAGE]
-	texts.append_array(Hud.END_MESSAGES.values())
+	assert_gt(shown.size(), 8, "labels and buttons")
+	var texts: Array[String] = ["-0123456789", Hud.PAUSED_MESSAGE, GameOver.FALLBACK_MESSAGE]
+	texts.append_array(GameOver.END_MESSAGES.values())
+	var schedule: AreaSchedule = load("res://areas/schedule.tres")
+	for entry: AreaScheduleEntry in schedule.entries:
+		var stats := {"distance": 1.0, "turn_index": 1, "run_seed": 1}
+		texts.append(GameOver.stats_text(stats, entry.area))
 	var missing := ""
 	for control: Control in shown:
 		var font := control.get_theme_font("font")

@@ -66,7 +66,8 @@ func end_run(cause: StringName) -> void:
 	EventBus.run_ended.emit(cause, stats())
 
 
-## After the disaster or crash sequence. Until M3 adds those, the main scene calls it right away.
+## After the disaster or crash sequence: the main scene calls it when the DisasterDirector's
+## sequence ends (IMPLEMENTATION_PLAN.md M3).
 func show_game_over() -> void:
 	_change_to(State.GAME_OVER)
 

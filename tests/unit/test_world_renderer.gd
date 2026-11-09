@@ -29,7 +29,8 @@ func _wrong_cells() -> int:
 
 func test_draws_the_buffer_and_follows_refills_and_frees() -> void:
 	_buffer.start()
-	_world.bind(_buffer, Fixtures.schedule())
+	_world.build(Fixtures.schedule())
+	_world.bind(_buffer)
 	assert_eq(_wrong_cells(), 0, "tiles generated before bind()")
 	for i: int in range(1, 400):
 		_buffer.on_car_path_index(i)
@@ -37,9 +38,29 @@ func test_draws_the_buffer_and_follows_refills_and_frees() -> void:
 	assert_eq(_wrong_cells(), 0, "after refills and frees")
 
 
+func test_a_new_buffer_replaces_the_last_one() -> void:
+	# A retry binds the next run's buffer to the same renderer (M3_PLAN.md J11).
+	var last := RoadBuffer.new(RoadGenerator.new(5, Fixtures.schedule()))
+	last.start()
+	_world.build(Fixtures.schedule())
+	_world.bind(last)
+	for i: int in range(1, 40):
+		last.on_car_path_index(i)
+	_buffer.start()
+	_world.bind(_buffer)
+	assert_eq(_wrong_cells(), 0, "only the new buffer's tiles")
+	for i: int in range(40, 100):
+		last.on_car_path_index(i)
+	assert_eq(_wrong_cells(), 0, "the last buffer's refills and frees change nothing")
+	for i: int in range(1, 100):
+		_buffer.on_car_path_index(i)
+	assert_eq(_wrong_cells(), 0, "the new buffer's do")
+
+
 func test_debug_view_tints_dead_ends() -> void:
 	_world.show_dead_ends = true
-	_world.bind(_buffer, Fixtures.schedule())
+	_world.build(Fixtures.schedule())
+	_world.bind(_buffer)
 	_buffer.start()
 	var road: TileMapLayer = _world.get_node("%RoadLayer")
 	var dead_ends := 0
@@ -51,7 +72,8 @@ func test_debug_view_tints_dead_ends() -> void:
 
 
 func test_layers_line_up_with_tile_space() -> void:
-	_world.bind(_buffer, Fixtures.schedule())
+	_world.build(Fixtures.schedule())
+	_world.bind(_buffer)
 	_buffer.start()
 	var road: TileMapLayer = _world.get_node("%RoadLayer")
 	var ground: TileMapLayer = _world.get_node("%GroundLayer")
@@ -61,3 +83,15 @@ func test_layers_line_up_with_tile_space() -> void:
 	var g := cell * Iso.GROUND_PER_TILE
 	var g_centre := Iso.tile_to_world((Vector2(g) + Vector2(0.5, 0.5)) / Iso.GROUND_PER_TILE)
 	assert_almost_eq(ground.position + ground.map_to_local(g), g_centre, Vector2(1e-3, 1e-3))
+
+
+func test_disasters_draw_above_the_road_and_below_the_car() -> void:
+	# World draws its children in order, and only Props sorts by y (M3_PLAN.md J5).
+	var names: Array[StringName] = []
+	for node: Node in _world.get_children():
+		names.append(node.name)
+	var order: Array[StringName] = [&"GroundLayer", &"RoadLayer", &"DisasterLayer", &"Props"]
+	assert_eq(names, order)
+	var layer: Node2D = _world.get_node("%DisasterLayer")
+	assert_false(layer.y_sort_enabled)
+	assert_eq(layer.z_index, 0)

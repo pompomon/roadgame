@@ -1,8 +1,8 @@
 extends GutTest
 ## The main scene (IMPLEMENTATION_PLAN.md M2 tests): it boots, drives, ends a run, and routes input.
 ## It runs in a SubViewport, and input goes in through the viewport as on a device, so the HUD's
-## Pause button gets the first look at touches and clicks. Nothing here may retry: the retry
-## reloads the current scene, which under GUT is GUT itself.
+## Pause button gets the first look at touches and clicks. What follows the end of a run, the
+## disaster or the crash, the game-over screen and Retry, has its own tests (M3).
 
 const MAIN_SCENE := preload("res://ui/main.tscn")
 const DELTA := 1.0 / 60.0
@@ -125,7 +125,7 @@ func test_a_rejoin_that_ends_the_run_counts_its_last_step() -> void:
 	sim.offroad_junction = junction
 	var before := sim.progress
 	_drive(main, 1)
-	assert_eq(GameState.state, GameState.State.GAME_OVER)
+	assert_eq(GameState.state, GameState.State.DISASTER)
 	assert_eq(GameState.end_cause, CarSim.WRONG_TURN)
 	var after := CarSim.path_progress(junction, sim.pos)
 	var metres := roundi(after * Tuning.METRES_PER_TILE)
@@ -141,7 +141,7 @@ func test_with_no_input_the_first_junction_ends_the_run() -> void:
 	watch_signals(EventBus)
 	var main := _main(["--seed=1"])
 	_drive(main, 600)
-	assert_eq(GameState.state, GameState.State.GAME_OVER)
+	assert_eq(GameState.state, GameState.State.DISASTER)
 	assert_has([CarSim.WRONG_TURN, CarSim.MISSED_TURN], GameState.end_cause)
 	assert_eq(GameState.turn_index, 0)
 	assert_signal_emitted_with_parameters(
@@ -152,11 +152,7 @@ func test_with_no_input_the_first_junction_ends_the_run() -> void:
 	assert_eq(junction.path_index, Tuning.START_STRAIGHT_TILES, "the first junction")
 	assert_eq((disaster[0] as AreaDef).id, junction.area_id)
 	assert_false(_router(main).enabled, "the input is off")
-	var message: Label = main.get_node("%HUD/%Message")
-	var end := Hud.END_MESSAGES[GameState.end_cause]
-	assert_eq(message.text, "%s\n%s" % [end, Hud.RETRY_MESSAGE])
-	var hud: Hud = main.get_node("%HUD")
-	assert_true(hud.retry_requested.is_connected(get_tree().reload_current_scene), "retry reloads")
+	assert_false(main.get_node("%HUD/%Pause").visible, "no pausing after the end")
 
 
 func test_with_the_autopilot_the_end_of_a_run_is_an_error() -> void:
@@ -164,7 +160,7 @@ func test_with_the_autopilot_the_end_of_a_run_is_an_error() -> void:
 	var main := _main(["--seed=1", "--autopilot"])
 	_router(main).enabled = false
 	_drive(main, 600)
-	assert_eq(GameState.state, GameState.State.GAME_OVER)
+	assert_eq(GameState.state, GameState.State.DISASTER)
 	assert_push_error("main: the autopilot's run ended")
 
 
