@@ -158,5 +158,8 @@ static func _parse_seed(p_args: PackedStringArray) -> int:
 static func _parse_area(p_args: PackedStringArray) -> StringName:
 	for arg: String in p_args:
 		if arg.begins_with("--area="):
-			return StringName(arg.trim_prefix("--area="))
+			var id := arg.trim_prefix("--area=")
+			if id.is_empty():
+				push_error("main: --area= needs the id of an area")
+			return StringName(id)
 	return &""

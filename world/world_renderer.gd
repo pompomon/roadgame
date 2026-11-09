@@ -9,7 +9,8 @@ extends Node2D
 
 ## Tint dead ends. For debug views only: in a run they must look like real road.
 @export var show_dead_ends := false
-## The scene of each set piece, by its id in the schedule (RoadTile.set_piece).
+## The scene of each set piece, by its id in the schedule (RoadTile.set_piece). Its root is a
+## SetPiece.
 @export var set_piece_scenes: Dictionary[StringName, PackedScene] = {}
 
 ## The run's car, which the set pieces follow, or null. bind() clears it.
@@ -51,7 +52,7 @@ func build(schedule: AreaSchedule) -> void:
 	_ground.position = Iso.layer_offset(_ground, Iso.GROUND_PER_TILE)
 	_road.position = Iso.layer_offset(_road, 1)
 	for entry: AreaScheduleEntry in schedule.entries:
-		if entry.set_piece != &"" and not set_piece_scenes.has(entry.set_piece):
+		if entry.set_piece != &"" and set_piece_scenes.get(entry.set_piece) == null:
 			push_error("WorldRenderer: no scene for set piece %s" % entry.set_piece)
 
 
@@ -115,7 +116,12 @@ func _add_set_piece(run: Array[RoadTile]) -> void:
 	var scene: PackedScene = set_piece_scenes.get(run[0].set_piece)
 	if scene == null:
 		return
-	var piece := scene.instantiate() as SetPiece
+	var node := scene.instantiate()
+	if node is not SetPiece:
+		push_error("WorldRenderer: the scene for set piece %s isn't a SetPiece" % run[0].set_piece)
+		node.free()
+		return
+	var piece := node as SetPiece
 	piece.car = car
 	_set_pieces.add_child(piece)
 	piece.setup(run[0], run.size())

@@ -105,12 +105,19 @@ func test_the_car_spins_shrinks_and_fades_as_it_lifts() -> void:
 func test_a_stronger_tornado_is_bigger_and_spins_the_car_faster() -> void:
 	var spins: Array[float] = []
 	for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
-		var tornado := _tornado(null, null)
+		var car := Disasters.car(self)
+		var tornado := _tornado(car, null)
 		var params := Disasters.params(intensity)
 		tornado.play(params)
 		var funnel: Node2D = tornado.get_node("%Funnel")
 		assert_eq(funnel.scale, Vector2.ONE * intensity, "its size")
-		spins.append(Tornado.spin(params, 1.0))
+		var frames := 0
+		while tornado.phase != Tornado.Phase.LEAVE and frames < MAX_FRAMES:
+			simulate(tornado, 1, DELTA)
+			frames += 1
+		var full := Tornado.spin(params, Tuning.TORNADO_LIFT_SECONDS)
+		assert_almost_eq(car.rotation, full, 1e-4, "the whole spin at intensity %s" % intensity)
+		spins.append(car.rotation)
 	assert_gt(spins[1], spins[0], "a faster spin")
 
 

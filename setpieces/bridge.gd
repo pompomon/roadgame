@@ -4,7 +4,8 @@ extends SetPiece
 ## run, between banks at both ends, and a deck carries the road over it, between two railings.
 ## Waves drift down the river: dashes that move, and are never redrawn. The railings only show the
 ## edge: off the road, the car still takes damage by the capsule test. The near railing draws over
-## the car (z_index 1). The river's shader comes with M5's art (M4_PLAN.md Q4).
+## the car (z_index 1). The river's shader comes with M5's art (M4_PLAN.md Q4). A run too short
+## for the waves' rows between its banks is an error, and gets neither river nor waves.
 
 ## How far the deck reaches across the run from its centreline, in tiles.
 const DECK_HALF_WIDTH := 0.42
@@ -74,6 +75,11 @@ func _build() -> void:
 	for _k: int in range(1, WAVE_ROWS * WAVES_PER_ROW):
 		_waves.add_child(wave.duplicate())
 	_place_waves()
+	if water.size.dot(along()) < WAVE_ROWS * WAVE_WIDTH:
+		var tiles := roundi(rect.size.dot(along()))
+		push_error("Bridge: no room for the river between the banks of a %d-tile run" % tiles)
+		_river.hide()
+		_waves.hide()
 
 
 func _physics_process(delta: float) -> void:

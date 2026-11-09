@@ -68,3 +68,9 @@ func test_an_unknown_area_argument_starts_in_the_first_area() -> void:
 	var main := MainScene.open(self, ["--seed=1", "--area=moon"])
 	assert_push_error("no area moon")
 	assert_eq(MainScene.car(main).sim.area.id, &"city")
+
+
+func test_an_empty_area_argument_starts_in_the_first_area() -> void:
+	var main := MainScene.open(self, ["--seed=1", "--area="])
+	assert_push_error("--area= needs the id of an area")
+	assert_eq(MainScene.car(main).sim.area.id, &"city")

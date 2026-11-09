@@ -23,6 +23,29 @@ func test_the_river_flows_across_the_run_between_its_banks() -> void:
 	var west := _bridge(Heading.W)
 	assert_eq(west.water, Rect2(6 + bank, 20.5 - reach, 5 - bank * 2, reach * 2))
 	assert_eq(west.across(), Vector2.DOWN)
+	for bridge: Bridge in [north, west]:
+		var river: Polygon2D = bridge.get_node("%River")
+		assert_eq(river.polygon.size(), 4)
+		var drawn := Rect2(Iso.world_to_tile(river.polygon[0]), Vector2.ZERO)
+		for point: Vector2 in river.polygon:
+			drawn = drawn.expand(Iso.world_to_tile(point))
+		var run := Heading.NAMES[bridge.heading]
+		var within := Vector2.ONE * 1e-4
+		assert_almost_eq(drawn.position, bridge.water.position, within, "%s: drawn" % run)
+		assert_almost_eq(drawn.end, bridge.water.end, within, "%s: drawn" % run)
+		assert_true(river.visible and bridge.get_node("%Waves").visible, "%s: shown" % run)
+
+
+func test_a_run_too_short_for_the_river_is_an_error() -> void:
+	# The banks take a whole tile: the waves' rows need WAVE_ROWS * WAVE_WIDTH more.
+	var short := _bridge(Heading.N, 1)
+	assert_push_error("no room for the river between the banks of a 1-tile run")
+	assert_false(short.get_node("%River").visible, "no river")
+	assert_false(short.get_node("%Waves").visible, "and no waves")
+	assert_true(short.get_node("%Deck").visible, "only the deck and the railings")
+	var shortest := _bridge(Heading.N, 2)
+	assert_gte(shortest.water.size.y, Bridge.WAVE_ROWS * Bridge.WAVE_WIDTH, "2 tiles have room")
+	assert_true(shortest.get_node("%River").visible)
 
 
 func test_the_near_railing_draws_over_the_car_and_the_rest_under_it() -> void:

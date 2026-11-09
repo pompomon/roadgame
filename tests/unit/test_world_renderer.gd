@@ -232,3 +232,32 @@ func test_a_set_piece_without_a_scene_is_an_error() -> void:
 	_buffer.start()
 	assert_eq(_buffer.path_tile(5).set_piece, &"ferris_wheel")
 	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
+
+
+func test_a_set_piece_whose_scene_is_null_is_an_error() -> void:
+	var scenes: Dictionary[StringName, PackedScene] = {&"ferris_wheel": null}
+	_world.set_piece_scenes = scenes
+	var schedule := Fixtures.set_piece_schedule(1, &"ferris_wheel", 5)
+	_world.build(schedule)
+	assert_push_error("no scene for set piece ferris_wheel")
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.bind(_buffer)
+	_buffer.start()
+	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
+
+
+func test_a_set_piece_scene_whose_root_isnt_a_set_piece_is_an_error() -> void:
+	var scene := PackedScene.new()
+	var root := Node2D.new()
+	assert_eq(scene.pack(root), OK)
+	root.free()
+	var scenes: Dictionary[StringName, PackedScene] = {&"ferris_wheel": scene}
+	_world.set_piece_scenes = scenes
+	var schedule := Fixtures.set_piece_schedule(1, &"ferris_wheel", 5)
+	_world.build(schedule)
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.bind(_buffer)
+	_buffer.start()
+	# It frees the node it made: run_tests.sh fails on a leak.
+	assert_push_error("the scene for set piece ferris_wheel isn't a SetPiece")
+	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
