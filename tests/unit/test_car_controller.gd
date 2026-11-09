@@ -4,6 +4,9 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
+## The least change of luminance that a puff of smoke must make to what it covers, so that it
+## shows. Measured on the sRGB values, as the 2D renderer blends them.
+const SMOKE_CONTRAST := 0.1
 
 
 func _car() -> CarController:
@@ -117,6 +120,30 @@ func test_every_car_smokes_alike() -> void:
 	assert_true(smokes[0].use_fixed_seed, "a fixed seed")
 	assert_ne(smokes[0].seed, 0, "one that the scene keeps")
 	assert_eq(smokes[0].seed, smokes[1].seed, "the same in every car")
+
+
+func test_the_smoke_shows_over_everything_the_grey_box_draws() -> void:
+	# The smoke covers the grey arrow, and around it the road, its edge lines, or the ground under
+	# a road tile, in the area's two shades (GreyboxAtlas.build_ground_tileset()). Further from
+	# the road the grey box draws nothing, so the clear colour shows: a car lost off the road ends
+	# there.
+	var smoke: CPUParticles2D = _car().get_node("%Smoke")
+	var backgrounds: Array[Color] = [Tuning.CRASH_TINT, GreyboxAtlas.EDGE_COLOR]
+	backgrounds.append_array(GreyboxAtlas.ROAD_COLORS)
+	backgrounds.append(
+		ProjectSettings.get_setting("rendering/environment/defaults/default_clear_color")
+	)
+	var schedule: AreaSchedule = load("res://areas/schedule.tres")
+	for entry: AreaScheduleEntry in schedule.entries:
+		for shade: int in 2:
+			backgrounds.append(entry.area.id_color.darkened(GreyboxAtlas.GROUND_SHADE * shade))
+	for background: Color in backgrounds:
+		var puff := background.blend(smoke.color)
+		assert_gte(
+			absf(puff.get_luminance() - background.get_luminance()),
+			SMOKE_CONTRAST,
+			"a puff over %s" % background
+		)
 
 
 func test_only_a_crash_smokes() -> void:
