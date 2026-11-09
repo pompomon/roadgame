@@ -4,7 +4,8 @@ extends Node2D
 ## (IMPLEMENTATION_PLAN.md M2.4). The grey box is an arrow in one of 16 directions, with a hue per
 ## direction, and dust while the car is off the road. After a crash the arrow turns grey, its crash
 ## frame, and smokes (M3.3). It lives under World/Props, which y-sorts it. It sets its position
-## every frame, so a disaster may change only its scale and modulate (M3_PLAN.md J3).
+## and its arrow's rotation every frame, so a disaster may change only its scale, modulate and
+## rotation (M3_PLAN.md J3, M4_PLAN.md K19).
 
 ## Sprite frames: the screen directions the car can face, clockwise from straight up.
 const FRAMES := 16

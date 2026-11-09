@@ -1,7 +1,8 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_o7rpv"]
-[ext_resource type="PackedScene" path="res://disasters/sinkhole.tscn" id="2_sinkhole"]
+[ext_resource type="PackedScene" path="res://disasters/flood.tscn" id="2_flood"]
+[ext_resource type="PackedScene" path="res://disasters/tornado.tscn" id="3_tornado"]
 
 [resource]
 script = ExtResource("1_o7rpv")
@@ -11,4 +12,4 @@ id_color = Color(0.76, 0.52, 0.4, 1)
 cross_junction_chance = 0.35
 straight_accel = 0.55
 offroad_speed_mult = 0.55
-disasters = Array[PackedScene]([ExtResource("2_sinkhole")])
+disasters = Array[PackedScene]([ExtResource("2_flood"), ExtResource("3_tornado")])

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_xlbr5"]
-[ext_resource type="PackedScene" path="res://disasters/sinkhole.tscn" id="2_sinkhole"]
+[ext_resource type="PackedScene" path="res://disasters/quicksand.tscn" id="2_quicksand"]
 
 [resource]
 script = ExtResource("1_xlbr5")
@@ -15,4 +15,4 @@ junction_brake_distance = 1.5
 junction_speed = 2.4
 offroad_speed_mult = 0.45
 offroad_damage_per_sec = 35.0
-disasters = Array[PackedScene]([ExtResource("2_sinkhole")])
+disasters = Array[PackedScene]([ExtResource("2_quicksand")])
