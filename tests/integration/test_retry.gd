@@ -33,6 +33,8 @@ static func _retry_centre(main: Node) -> Vector2:
 func test_retry_starts_the_next_run_afresh() -> void:
 	var main := MainScene.open(self, ["--seed=1"])
 	var first_junction := MainScene.car(main).sim.trigger.next_junction.cell
+	var world: WorldRenderer = main.get_node("%World")
+	assert_eq(world.car, MainScene.car(main), "the set pieces follow the car (M4.4)")
 	_to_game_over(main)
 	var old_car := MainScene.car(main)
 	var old_sim: WeakRef = weakref(old_car.sim)
@@ -71,6 +73,7 @@ func test_retry_starts_the_next_run_afresh() -> void:
 	assert_eq(car.sim.buffer.car_index(), 0, "at the start of a new road")
 	assert_eq(car.sim.trigger.next_junction.cell, first_junction, "the same road")
 	assert_eq(camera.car, car)
+	assert_eq(world.car, car, "and so do the set pieces")
 	assert_eq(camera.offset, Vector2.ZERO, "no shake")
 	var router: InputRouter = main.get_node("%InputRouter")
 	assert_true(router.enabled, "the input is on")

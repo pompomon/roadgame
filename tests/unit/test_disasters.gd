@@ -95,7 +95,7 @@ func test_each_finishes_once_after_its_duration_with_the_car_out_of_sight() -> v
 			)
 			simulate(disaster, 120, DELTA)
 			assert_signal_emit_count(disaster, "finished", 1, "%s: once" % what)
-			assert_eq(car.position, at, "%s: CarController keeps the position" % what)
+			assert_eq(car.position, at, "%s: it leaves the car where it stopped" % what)
 			assert_eq(car.modulate.a, 0.0, "%s: the car is out of sight" % what)
 
 
