@@ -119,6 +119,7 @@ func test_it_grows_while_it_opens_and_the_car_sinks_after() -> void:
 	var hole: Polygon2D = sinkhole.get_node("%Hole")
 	var sizes: Array[float] = []
 	var car_scales: Array[float] = []
+	var car_alphas: Array[float] = []
 	var frames := 0
 	while sinkhole.phase != Sinkhole.Phase.DONE and frames < MAX_FRAMES:
 		simulate(sinkhole, 1, DELTA)
@@ -128,12 +129,26 @@ func test_it_grows_while_it_opens_and_the_car_sinks_after() -> void:
 			assert_eq(car.scale, Vector2.ONE, "the car waits for the hole")
 		elif sinkhole.phase == Sinkhole.Phase.SINK:
 			car_scales.append(car.scale.x)
+			car_alphas.append(car.modulate.a)
 	assert_eq(sinkhole.phase, Sinkhole.Phase.DONE, "it finishes")
 	assert_gt(sizes.size(), 30, "the hole grows for a while")
 	assert_eq(sizes, _sorted(sizes), "the hole only grows")
 	assert_lt(sizes[0], 0.1, "from closed")
 	assert_gt(car_scales.size(), 30, "the car sinks for a while")
 	assert_eq(car_scales, _sorted(car_scales, true), "the car only shrinks")
+	assert_eq(car_alphas, _sorted(car_alphas, true), "and only fades")
+	# Halfway through its phase, each change is about halfway done: it takes the whole phase,
+	# rather than jumping at its start or its end.
+	var open := params.intensity
+	assert_between(_middle(sizes), 0.25 * open, 0.75 * open, "half open")
+	var shrunk := lerpf(1.0, Sinkhole.SUNK_SCALE, 0.75)
+	assert_between(_middle(car_scales), shrunk, lerpf(1.0, Sinkhole.SUNK_SCALE, 0.25), "half sunk")
+	assert_between(_middle(car_alphas), 0.25, 0.75, "half faded")
+
+
+## The value in the middle of `values`.
+static func _middle(values: Array[float]) -> float:
+	return values[floori(values.size() * 0.5)]
 
 
 static func _sorted(values: Array[float], descending := false) -> Array[float]:
