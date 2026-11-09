@@ -94,7 +94,7 @@ func test_each_wave_is_where_its_rectangle_is() -> void:
 		var waves: Node2D = bridge.get_node("%Waves")
 		simulate(bridge, 90, DELTA)
 		for index: int in waves.get_child_count():
-			var drawn := _drawn(waves.get_child(index) as Polygon2D)
+			var drawn := _drawn(bridge, waves.get_child(index) as Polygon2D)
 			var expected := bridge.wave_rect(index, 90 * DELTA)
 			var where := "%s: wave %d" % [run, index]
 			assert_almost_eq(drawn.position, expected.position, Vector2(1e-3, 1e-3), where)
@@ -104,16 +104,18 @@ func test_each_wave_is_where_its_rectangle_is() -> void:
 		for _frame: int in ceili(Tuning.RIVER_REACH * 2 / Tuning.WAVE_SPEED / DELTA):
 			simulate(bridge, 1, DELTA)
 			for wave: Node in waves.get_children():
-				if not river.encloses(_drawn(wave as Polygon2D)):
+				if not river.encloses(_drawn(bridge, wave as Polygon2D)):
 					outside += 1
 		assert_eq(outside, 0, "%s: drawn inside the river" % run)
 
 
-## A wave's polygon where it is drawn, in tile space.
-static func _drawn(wave: Polygon2D) -> Rect2:
-	var drawn := Rect2(Iso.world_to_tile(wave.position + wave.polygon[0]), Vector2.ZERO)
+## A wave's polygon as it is drawn, in the bridge's tile space: with its offset, and every
+## transform between the wave and the bridge.
+static func _drawn(bridge: Bridge, wave: Polygon2D) -> Rect2:
+	var to_bridge := bridge.get_global_transform().affine_inverse() * wave.get_global_transform()
+	var drawn := Rect2(Iso.world_to_tile(to_bridge * (wave.polygon[0] + wave.offset)), Vector2.ZERO)
 	for point: Vector2 in wave.polygon:
-		drawn = drawn.expand(Iso.world_to_tile(wave.position + point))
+		drawn = drawn.expand(Iso.world_to_tile(to_bridge * (point + wave.offset)))
 	return drawn
 
 
