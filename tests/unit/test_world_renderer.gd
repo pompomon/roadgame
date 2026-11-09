@@ -71,6 +71,8 @@ func test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one() -> voi
 	var source: TileSetAtlasSource = ground.tile_set.get_source(0)
 	var image := source.texture.get_image()
 	var size := ground.tile_set.tile_size
+	@warning_ignore("integer_division")
+	var middle := size / 2
 	var last_area := &"city"
 	var in_area := 0
 	var blended: Array[StringName] = []
@@ -92,7 +94,7 @@ func test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one() -> voi
 				var want := colors[each.area_id].darkened(GreyboxAtlas.GROUND_SHADE * coords.y)
 				if blend and each == tile:
 					want = colors[from] if coords.y == 0 else colors[tile.area_id]
-				var got := image.get_pixelv(coords * size + size / 2)
+				var got := image.get_pixelv(coords * size + middle)
 				if not _near(got, want):
 					fail_test("path index %d, %s: %s, not %s" % [index, each.cell, got, want])
 					return

@@ -27,7 +27,7 @@ static func dense_schedule() -> AreaSchedule:
 static func set_piece_schedule(
 	turn: int, set_piece: StringName, length: int, straight := 3
 ) -> AreaSchedule:
-	var schedule := AreaSchedule.new()
+	var built := AreaSchedule.new()
 	for id: StringName in [&"before", &"after"]:
 		var area := AreaDef.new()
 		area.id = id
@@ -40,8 +40,8 @@ static func set_piece_schedule(
 			entry.turn = turn
 			entry.set_piece = set_piece
 			entry.set_piece_length = length
-		schedule.entries.append(entry)
-	return schedule
+		built.entries.append(entry)
+	return built
 
 
 ## dense_schedule()'s area, with a bridge after every junction up to `turns`, 2 to 6 tiles long.

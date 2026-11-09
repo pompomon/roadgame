@@ -152,6 +152,7 @@ func test_a_new_area_replaces_the_name_and_starts_its_time_again() -> void:
 	var banner: Label = hud.get_node("%AreaBanner")
 	GameState.start_run(1)
 	EventBus.area_changed.emit(_area("Meadows"))
+	@warning_ignore("integer_division")
 	simulate(hud, BANNER_FRAMES / 2, DELTA)
 	EventBus.area_changed.emit(_area("Village"))
 	assert_eq(banner.text, "Village")

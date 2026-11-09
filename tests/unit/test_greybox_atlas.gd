@@ -99,10 +99,16 @@ func test_ground_tileset_has_a_column_for_each_transition() -> void:
 	assert_eq(source.get_atlas_grid_size(), Vector2i(5, 2))
 	assert_eq(source.get_tiles_count(), 10)
 	var image := source.texture.get_image()
-	var expected: Array[Color] = [Color.RED, Color.BLUE, Color.BLUE, Color.GREEN]
-	for k: int in expected.size():
-		var at := Vector2i(3 + k / 2, k % 2)
-		var pixel := image.get_pixelv(at * size + size / 2)
-		assert_true(_near(pixel, expected[k]), "%s: %s, not %s" % [at, pixel, expected[k]])
+	@warning_ignore("integer_division")
+	var middle := size / 2
+	var expected: Dictionary[Vector2i, Color] = {
+		Vector2i(3, 0): Color.RED,
+		Vector2i(3, 1): Color.BLUE,
+		Vector2i(4, 0): Color.BLUE,
+		Vector2i(4, 1): Color.GREEN,
+	}
+	for at: Vector2i in expected:
+		var pixel := image.get_pixelv(at * size + middle)
+		assert_true(_near(pixel, expected[at]), "%s: %s, not %s" % [at, pixel, expected[at]])
 	var dark := Color.GREEN.darkened(GreyboxAtlas.GROUND_SHADE)
-	assert_true(_near(image.get_pixelv(Vector2i(2, 1) * size + size / 2), dark), "areas first")
+	assert_true(_near(image.get_pixelv(Vector2i(2, 1) * size + middle), dark), "areas first")
