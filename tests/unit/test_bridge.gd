@@ -86,13 +86,35 @@ func test_the_waves_drift_down_the_river_and_never_leave_it() -> void:
 
 
 func test_each_wave_is_where_its_rectangle_is() -> void:
-	var bridge := _bridge(Heading.N)
-	simulate(bridge, 90, DELTA)
-	var waves: Node2D = bridge.get_node("%Waves")
-	for index: int in waves.get_child_count():
-		var at := Iso.world_to_tile((waves.get_child(index) as Node2D).position)
-		var expected := bridge.wave_rect(index, 90 * DELTA).position
-		assert_almost_eq(at, expected, Vector2(1e-3, 1e-3), "wave %d" % index)
+	# The waves as drawn: each polygon, back in tile space, is its wave_rect(), and stays in the
+	# river all the way down and back to the top.
+	for heading: int in [Heading.N, Heading.W]:
+		var bridge := _bridge(heading)
+		var run := Heading.NAMES[heading]
+		var waves: Node2D = bridge.get_node("%Waves")
+		simulate(bridge, 90, DELTA)
+		for index: int in waves.get_child_count():
+			var drawn := _drawn(waves.get_child(index) as Polygon2D)
+			var expected := bridge.wave_rect(index, 90 * DELTA)
+			var where := "%s: wave %d" % [run, index]
+			assert_almost_eq(drawn.position, expected.position, Vector2(1e-3, 1e-3), where)
+			assert_almost_eq(drawn.size, expected.size, Vector2(1e-3, 1e-3), where + "'s size")
+		var river := bridge.water.grow(1e-3)
+		var outside := 0
+		for _frame: int in ceili(Tuning.RIVER_REACH * 2 / Tuning.WAVE_SPEED / DELTA):
+			simulate(bridge, 1, DELTA)
+			for wave: Node in waves.get_children():
+				if not river.encloses(_drawn(wave as Polygon2D)):
+					outside += 1
+		assert_eq(outside, 0, "%s: drawn inside the river" % run)
+
+
+## A wave's polygon where it is drawn, in tile space.
+static func _drawn(wave: Polygon2D) -> Rect2:
+	var drawn := Rect2(Iso.world_to_tile(wave.position + wave.polygon[0]), Vector2.ZERO)
+	for point: Vector2 in wave.polygon:
+		drawn = drawn.expand(Iso.world_to_tile(wave.position + point))
+	return drawn
 
 
 func test_the_bridge_is_never_redrawn() -> void:

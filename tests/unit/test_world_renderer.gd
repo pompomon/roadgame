@@ -90,11 +90,12 @@ func test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one() -> voi
 			blended.append(tile.area_id)
 		for each: RoadTile in [tile] + tile.branches:
 			for cell: Vector2i in WorldRenderer._ground_cells(each.cell):
-				var coords := ground.get_cell_atlas_coords(cell)
-				var want := colors[each.area_id].darkened(GreyboxAtlas.GROUND_SHADE * coords.y)
+				# The checker's row from the cell's parity, not from the layer, which may have none.
+				var row := posmod(cell.x + cell.y, 2)
+				var want := colors[each.area_id].darkened(GreyboxAtlas.GROUND_SHADE * row)
 				if blend and each == tile:
-					want = colors[from] if coords.y == 0 else colors[tile.area_id]
-				var got := image.get_pixelv(coords * size + middle)
+					want = colors[from] if row == 0 else colors[tile.area_id]
+				var got := image.get_pixelv(ground.get_cell_atlas_coords(cell) * size + middle)
 				if not _near(got, want):
 					fail_test("path index %d, %s: %s, not %s" % [index, each.cell, got, want])
 					return
