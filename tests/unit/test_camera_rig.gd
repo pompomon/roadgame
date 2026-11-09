@@ -1,6 +1,6 @@
 extends GutTest
-## CameraRig (IMPLEMENTATION_PLAN.md M2.5): the zoom steps and where the camera heads, in a
-## SubViewport of the size under test.
+## CameraRig (IMPLEMENTATION_PLAN.md M2.5, M3.2): the zoom steps, where the camera heads, and its
+## shake, in a SubViewport of the size under test.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
@@ -76,3 +76,68 @@ func test_it_catches_up_with_its_target_smoothly() -> void:
 	assert_almost_eq(gap, 300.0 * exp(-Tuning.CAMERA_SMOOTHING / 60.0), 0.01, "one frame")
 	simulate(rig, 59, 1.0 / 60.0)
 	assert_lt(rig.position.distance_to(rig.target()), 1.0, "after a second")
+
+
+## The offsets of `rig` over `frames` frames.
+func _offsets(rig: CameraRig, frames: int) -> Array[Vector2]:
+	var offsets: Array[Vector2] = []
+	for _i: int in frames:
+		simulate(rig, 1, 1.0 / 60.0)
+		offsets.append(rig.offset)
+	return offsets
+
+
+func test_a_shake_moves_the_view_and_fades_out() -> void:
+	var rig := _rig(_view(Vector2i(360, 640)))
+	rig.snap_to_target()
+	rig.shake(1.0, 0.5)
+	# 30 frames, and 2 more in case they add up to a hair under 0.5 s.
+	var offsets := _offsets(rig, 32)
+	var biggest := 0.0
+	var moved := 0
+	for offset: Vector2 in offsets:
+		biggest = maxf(biggest, offset.length())
+		if offset != Vector2.ZERO:
+			moved += 1
+	assert_gt(moved, 25, "shakes")
+	assert_lte(biggest, Tuning.SHAKE_PX * sqrt(2.0), "by up to SHAKE_PX on each axis")
+	var early := 0.0
+	var late := 0.0
+	for i: int in 8:
+		early = maxf(early, offsets[i].length())
+		late = maxf(late, offsets[22 + i].length())
+	assert_lt(late, early / 2.0, "fades out")
+	assert_eq(offsets.back(), Vector2.ZERO, "over after 0.5 s")
+	assert_eq(_offsets(rig, 30).count(Vector2.ZERO), 30, "and stays over")
+	assert_eq(rig.position, rig.target(), "the position follows the car alone")
+
+
+func test_a_shake_is_the_same_every_time() -> void:
+	var view := _view(Vector2i(360, 640))
+	var rigs: Array[CameraRig] = [_rig(view), _rig(view)]
+	for rig: CameraRig in rigs:
+		rig.shake(0.7, 1.0)
+	assert_eq(_offsets(rigs[0], 50), _offsets(rigs[1], 50))
+
+
+func test_stop_shake_ends_it_and_a_new_shake_replaces_the_last() -> void:
+	var rig := _rig(_view(Vector2i(360, 640)))
+	rig.shake(1.0, 2.0)
+	_offsets(rig, 10)
+	rig.stop_shake()
+	assert_eq(rig.offset, Vector2.ZERO, "stopped")
+	assert_eq(_offsets(rig, 10).count(Vector2.ZERO), 10, "and stays stopped")
+	rig.shake(1.0, 2.0)
+	_offsets(rig, 10)
+	rig.shake(0.5, 0.2)
+	assert_eq(rig.offset, Vector2(0.0, 0.5 * Tuning.SHAKE_PX), "the new one starts")
+	var offsets := _offsets(rig, 13)
+	assert_eq(offsets.back(), Vector2.ZERO, "and ends after 0.2 s")
+
+
+func test_the_shake_is_in_screen_pixels() -> void:
+	var view := _view(Vector2i(1920, 1080))
+	var rig := _rig(view)
+	assert_eq(rig.zoom, Vector2(2.0, 2.0))
+	rig.shake(1.0, 1.0)
+	assert_eq(rig.offset, Vector2(0.0, Tuning.SHAKE_PX / 2.0), "half the world pixels at zoom 2")

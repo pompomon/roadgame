@@ -46,6 +46,8 @@ var trigger: JunctionTrigger
 ## While off the road: the fraction of the current step from which the off-road time is not yet
 ## counted.
 var _offroad_since := 0.0
+## Once the run is over: how hard the car brakes, in tiles/s².
+var _stop_rate := 0.0
 
 
 ## Puts the car on the centre of the buffer's first path tile, facing along it, at speed 0.
@@ -63,10 +65,14 @@ func _init(p_buffer: RoadBuffer) -> void:
 
 
 ## Moves the car on by `delta` seconds, with steering `steer` from -1 (left) to 1 (right). One step
-## must move less than a tile.
+## must move less than a tile. Once the run is over, the car brakes in a straight line: at BRAKE,
+## or harder if it must, so that it stops within STOP_SECONDS of the step that ended the run
+## (M3_PLAN.md J4).
 func step(delta: float, steer: float) -> void:
 	if is_over():
-		speed = move_toward(speed, 0.0, Tuning.BRAKE * delta)
+		if _stop_rate == 0.0:
+			_stop_rate = maxf(Tuning.BRAKE, speed / Tuning.STOP_SECONDS)
+		speed = move_toward(speed, 0.0, _stop_rate * delta)
 		pos += velocity() * delta
 		return
 	_steer(delta, steer)
