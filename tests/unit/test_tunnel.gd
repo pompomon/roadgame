@@ -44,6 +44,7 @@ func test_the_rock_covers_the_run_and_a_little_more_across_it() -> void:
 	var expected := Rect2(10.5 - Tunnel.HALF_WIDTH, 15, Tunnel.HALF_WIDTH * 2, 6)
 	assert_almost_eq(box.position, expected.position, Vector2(1e-4, 1e-4))
 	assert_almost_eq(box.size, expected.size, Vector2(1e-4, 1e-4))
+	assert_between(box.size.x, 1.05, 1.5, "a little wider than the run's cells")
 
 
 func test_the_mouth_is_in_the_end_face_that_shows() -> void:

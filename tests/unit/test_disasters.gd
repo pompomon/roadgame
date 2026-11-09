@@ -139,6 +139,16 @@ static func _amounts(particles: CPUParticles2D) -> Vector4:
 	)
 
 
+func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
+	# The sinkhole, the flood and the quicksand draw their ground with it.
+	for radius: float in [Tuning.SINKHOLE_RADIUS, Tuning.FLOOD_RADIUS]:
+		var points := DisasterBase.outline(radius)
+		assert_eq(points.size(), DisasterBase.OUTLINE_POINTS)
+		for point: Vector2 in points:
+			var distance := Iso.world_to_tile(point).length()
+			assert_almost_eq(distance, radius, 1e-4, "%.1f tiles from its centre" % radius)
+
+
 func test_none_redraws_a_polygon_or_the_car() -> void:
 	# Every redraw of a Polygon2D after its first raises WebGL errors on the Web (M2_PLAN.md §5.7).
 	for scene: PackedScene in Disasters.scenes():

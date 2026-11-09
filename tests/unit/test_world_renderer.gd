@@ -165,6 +165,8 @@ func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -
 	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
 	_world.build(schedule)
 	_world.bind(_buffer)
+	var car: Node2D = add_child_autofree(Node2D.new())
+	_world.car = car
 	_buffer.start()
 	var pieces: Node2D = _world.get_node("%SetPieces")
 	assert_eq(_buffer.last_index(), Tuning.BUFFER_AHEAD)
@@ -173,6 +175,7 @@ func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -
 	_buffer.on_car_path_index(Tuning.BUFFER_AHEAD - Tuning.BUFFER_REFILL_AT + 1)
 	assert_eq(pieces.get_child_count(), 1, "now it has")
 	var tunnel := pieces.get_child(0) as Tunnel
+	assert_eq(tunnel.car, car, "it follows the run's car")
 	var cells := Rect2(_buffer.path_tile(49).cell, Vector2.ONE)
 	assert_eq(tunnel.rect, cells.merge(Rect2(_buffer.path_tile(52).cell, Vector2.ONE)))
 	assert_eq(_buffer.path_tile(53).set_piece, &"", "the run ends at 52")
