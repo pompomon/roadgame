@@ -1,8 +1,8 @@
 # M3 Failure — Detailed Plan
 
-Status: proposed, with the Q1–Q13 defaults applied · 2026-11-08 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M3 row, §4 M3.1–M3.3 and "M3 tests", and the M3 row of §6
+Status: approved, with the Q1–Q13 defaults; implemented in #31–#33, with the review fixes in §4.6 · 2026-11-09 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M3 row, §4 M3.1–M3.3 and "M3 tests", and the M3 row of §6
 
-**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m3/prototype` (a816c8a) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of `main` (73256cf) and passed the five local checks (§6.1). The 56 negative cases in §6.2 were run on the prototype and on their PR states, and the stacked landing was simulated (§4.5). A CI run on the prototype built the Web and Android exports, and the Web build ran in headless Chromium: two sinkholes, a crash and three retries, with no errors (§6.5).
+**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m3/prototype` (a816c8a) and was run with the tools below. Each PR state in §4 was rebuilt from that branch on top of `main` (73256cf) and passed the five local checks (§6.1). The 56 negative cases in §6.2 were run on the prototype and on their PR states, and the stacked landing was simulated (§4.5). A CI run on the prototype built the Web and Android exports, and the Web build ran in headless Chromium: two sinkholes, a crash and three retries, with no errors (§6.5). Since then, a review fix has made one test stricter, and E13's Web checks made the crash smoke darker, with a new test (§4.6). Their negative cases, N57–N60, show that the tests catch what they guard, and all 60 cases were run again on the PRs' final heads (§6.2).
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -10,7 +10,7 @@ Status: proposed, with the Q1–Q13 defaults applied · 2026-11-08 · Scope: `IM
 - shellcheck 0.11.0
 - actionlint 1.7.12
 
-Some things could not be run here: a headed Chrome, Firefox and the Galaxy Z Fold4. They are checked in PR 3 (E13, §6.4).
+Some things could not be run here: a headed Chrome, Firefox and the Galaxy Z Fold4. They are checked in PR 3 (E13, §6.4), with the results so far in §6.6.
 
 **Precedence.** For M3, this document replaces IP §4 M3 wherever they differ. Each difference is marked **Δ** with its finding number (J#, §2). Where it differs from `plan.md`, it says so too (J5). Once this plan is approved, fold the changes back into IP (Q12).
 
@@ -190,7 +190,7 @@ git checkout origin/m3/prototype -- config/tuning.gd areas/area_def.gd car/car_s
   'tests/helpers/stuck_disaster.gd*' 'tests/helpers/timed_disaster.gd*'
 ```
 
-No trims. Expect: `check_scripts: loaded 57 scripts`; `GUT: 171 tests passed` (144,342 asserts, 16–18 s). `smoke.sh` still prints `autopilot: tile 165, turns 35, area rural`. Negative cases N1–N23 and N55.
+No trims. Expect: `check_scripts: loaded 57 scripts`; `GUT: 171 tests passed` (144,342 asserts, 16–18 s). `smoke.sh` still prints `autopilot: tile 165, turns 35, area rural`. Negative cases N1–N23 and N55; after the Web checks' fix (§4.6), also N59 and N60.
 
 **Acceptance:** E1–E3 and E5; E4 except `test_crash.gd`, which needs the game (PR 3).
 
@@ -210,7 +210,7 @@ git checkout origin/m3/prototype -- 'disasters/sinkhole.*' areas/city.tres areas
   tests/unit/test_area_schedule.gd
 ```
 
-No trims. Expect: 59 scripts; `GUT: 182 tests passed` (144,483 asserts, 16–18 s). The smoke line is the same. Negative cases N24–N34 and N56.
+No trims. Expect: 59 scripts; `GUT: 182 tests passed` (144,483 asserts, 16–18 s). The smoke line is the same. Negative cases N24–N34 and N56; after the review fix (§4.6), also N57 and N58.
 
 **Acceptance:** E6 and E7.
 
@@ -235,7 +235,7 @@ git checkout origin/m3/prototype -- ui/main.gd ui/main.tscn ui/hud.gd 'ui/game_o
 ```
 
 1. No trims. Expect: 66 scripts; `GUT: 200 tests passed` (144,611 asserts, 16–18 s). `smoke.sh` prints `grey box: tilesets built in … ms` and `autopilot: tile 165, turns 35, area rural`. Negative cases N35–N54.
-2. Check that the stack now matches the prototype. The command prints nothing, unless a review changed something on purpose; then it lists the files of §4.6. If `main` has changed other files since 73256cf, exclude them too:
+2. Check that the stack now matches the prototype. The command prints nothing, unless a review changed something on purpose. After the fixes, it lists the 3 files that §4.6 changes. If `main` has changed other files since 73256cf, exclude them too:
    ```bash
    git diff --stat origin/m3/prototype -- . ':!M3_PLAN.md'
    ```
@@ -258,7 +258,7 @@ git checkout origin/m3/prototype -- ui/main.gd ui/main.tscn ui/hud.gd 'ui/game_o
      - Esc doesn't pause during the end. The arrow keys steer the next run at once, without a click first.
      - The game-over screen shows no seed, because the Web export is a release build (J19); the HUD still shows it (Q6). Only a release build can check `show_seed`'s default (§6.4).
      - The browser console shows one `grey box:` line and no errors. Open M2's Pages site in the same browser first: a WebGL warning that it doesn't show is M3's (M2 §5.7). Headless Chromium logged 4 `GPU stall due to ReadPixels` notes at startup (§6.5).
-     - Headless Chromium already ran the prototype's build: two sinkholes, a crash and three retries, with no errors and no seed on the game-over screen (§6.5). The rest of these checks, in a headed Chrome and in Firefox, remain.
+     - Headless Chromium already ran the prototype's build: two sinkholes, a crash and three retries, with no errors and no seed on the game-over screen (§6.5). The rest of these checks, in a headed Chrome and in Firefox, are done (§6.6).
 4. After the merge, https://pompomon.github.io/roadgame/ runs the game with M3.
 
 **Acceptance:** E4, E8–E12 and E13.
@@ -288,11 +288,13 @@ This is M2_PLAN.md §4.5's procedure, which landed #25–#28, with the `m3/` nam
 
 ### 4.6 Review fixes
 
-Copilot's review of this plan (#30) brought the first one, which is already on `m3/prototype`. Each fix that the PRs' reviews bring is committed on the branch of the PR that owns the code, merged into the later branches (§4.5), and listed here with its tests and negative case.
+Copilot's review of this plan (#30) brought the first one, which is already on `m3/prototype`. Each fix that the PRs' reviews bring is committed on the branch of the PR that owns the code, merged into the later branches (§4.5), and listed here with its tests and negative case. The internal review of PR 2 (`AGENTS.md` §7) brought the second, and E13's Web checks the third. Copilot's reviews of #31–#33 found nothing to fix.
 
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
 | #30, for PR 2 | A longer `STOP_SECONDS` must keep the end within 4 s (E6). The bound now adds a frame each for the rounding of the stop and of the sinkhole's clock (a816c8a; P10), and §8 gives the stop's ceiling, 1.05 s. Before, the bound let 1.1 s pass, where the longest end takes 4.02 s | `test_with_the_stop_it_takes_2_to_4_seconds` | N56 |
+| #32 (PR 2), from the internal review | The growth test only required its samples to be sorted, and the other tests check only where each change ends. So a hole that stays closed until the end of its phase and then pops open passed it, and so did a car that vanishes as its phase starts. Halfway through its phase, the hole must now be a quarter to three quarters open, and the car a quarter to three quarters of the way to `SUNK_SCALE` and to transparent. The car also only fades (c3d9380, merged into PR 3 in 213258e) | `test_it_grows_while_it_opens_and_the_car_sinks_after` | N57, N58 |
+| #31 (PR 1), from E13's Web checks | The smoke showed only where it crossed the grey arrow. A car lost off the road ends past the ground that the grey box draws under each road tile, where only the clear colour shows: Godot's default, (0.3, 0.3, 0.3), the grey of the smoke itself. In Firefox's frames, the void measured 77 of 255, and the smoke over it about 76. The smoke is now black, at 0.8 alpha. A new test blends a puff over each colour it can cover: the crashed arrow, the clear colour, every road row, the edge lines, and each area's two ground shades. The luminance must change by at least 0.1, and the least change is 0.13, over the tunnel. On 622742a's Web build, a puff over the void measured 15 in both browsers (0e7a372, merged into PR 2 in c5d4dc0 and into PR 3 in 622742a; §6.6) | `test_the_smoke_shows_over_everything_the_grey_box_draws` | N59, N60 |
 
 ---
 
@@ -459,7 +461,7 @@ Every disaster keeps to these rules. The class's doc comment states them:
   - From the cap of 7 tiles/s it brakes at 11.7 tiles/s² and stops after 2.1 tiles.
   - From the 5.73 tiles/s of P8's crash, after 1.72 tiles, where M2's car rolled 4.06 tiles in 1.45 s.
   - From `junction_speed`, 2.0 tiles/s, at `BRAKE`: 0.5 s and 0.5 tiles.
-- **The crash (J22, Q10).** When `CarSim`'s state is `CRASHED`, `CarController` tints the arrow `CRASH_TINT` (grey) through `self_modulate`, which doesn't redraw it (M2 §5.7; N21), and turns on `%Smoke`: a new `CPUParticles2D` in `car.tscn`, 20 grey puffs that rise for 1 s. Only a crash smokes (N22). The scene fixes the smoke's seed (`use_fixed_seed`, `seed = 1`), so every crash smokes alike (J16; N55): Godot gives each `CPUParticles2D` a random seed when it's made (`scene/2d/cpu_particles_2d.cpp:1733` in 4.7.2), and each run makes a new car. The seed isn't 0, the declared default (`:1553`), which the editor doesn't save. The dust shows only while the car is off the road, as in M2, so it stops at the crash.
+- **The crash (J22, Q10).** When `CarSim`'s state is `CRASHED`, `CarController` tints the arrow `CRASH_TINT` (grey) through `self_modulate`, which doesn't redraw it (M2 §5.7; N21), and turns on `%Smoke`: a new `CPUParticles2D` in `car.tscn`, 20 black puffs at 0.8 alpha that rise for 1 s. They show over everything the grey box draws, and over the clear colour past it, where a lost car ends (§4.6; N59, N60). Only a crash smokes (N22). The scene fixes the smoke's seed (`use_fixed_seed`, `seed = 1`), so every crash smokes alike (J16; N55): Godot gives each `CPUParticles2D` a random seed when it's made (`scene/2d/cpu_particles_2d.cpp:1733` in 4.7.2), and each run makes a new car. The seed isn't 0, the declared default (`:1553`), which the editor doesn't save. The dust shows only while the car is off the road, as in M2, so it stops at the crash.
 - `CarController` never sets its own `scale` or `modulate`, which a disaster may change (J3; N23).
 
 ### 5.7 Camera shake (PR 1)
@@ -535,7 +537,7 @@ These are first guesses for the grey box. E13 judges them on the Fold4, and M6 t
 | File | Tests | PR | What they check |
 |---|---|---|---|
 | `test_car_sim_speed.gd` | 7 + 1 | M2, 1 | Once the run is over, the car stops within `STOP_SECONDS`, from `junction_speed` and from the cap. It goes on in a straight line along its heading, whatever the steering (E1) |
-| `test_car_controller.gd` | 4 + 4 | M2, 1 | It leaves its scale and modulate to a disaster. A crashed car turns grey and smokes, without a redraw. Every car's smoke has the same fixed seed. Only a crash smokes (E4) |
+| `test_car_controller.gd` | 4 + 5 | M2, 1 | It leaves its scale and modulate to a disaster. A crashed car turns grey and smokes, without a redraw. Every car's smoke has the same fixed seed. The smoke shows over everything the grey box draws (§4.6). Only a crash smokes (E4) |
 | `test_camera_rig.gd` | 4 + 4 | M2, 1 | A shake moves only the offset, and fades out and ends. It is the same every time. `stop_shake()` ends it, and a new shake replaces the last. It has the same size on screen at zoom 1 and 2 (E5) |
 | `test_disaster_params.gd` | 4 | 1 | The same seed gives the same params, and different seeds different ones. The stream goes on from one disaster to the next. Every value is in its range, and the origin is the one given (E2) |
 | `test_disaster_director.gd` | 11 | 1 | `pick()` draws every scene of a pool with the stream. A disaster waits for the car to stop. The sequence ends once, when the disaster finishes, and a late `finished` ends nothing. A crash shakes the camera and ends after `CRASH_SECONDS`. A car that never stops and a disaster that never finishes both time out, with an error. An empty pool and a scene that isn't a disaster are errors that end the sequence, and the scene is freed. `clear()` frees the disaster at once. A second sequence is an error. The run's seed decides the disaster (E3, E4) |
@@ -550,7 +552,7 @@ These are first guesses for the grey box. E13 judges them on the Fold4, and M6 t
 | `tests/integration/test_crash.gd` | 1 | 3 | A crash, sideways off the first straight, turns the car grey; it smokes, the camera shakes, the car stops within `STOP_SECONDS`, no disaster plays, and game over comes `CRASH_SECONDS` later (E4) |
 | `tests/integration/test_retry.gd` | 6 | 3 | Enter on Retry starts the next run afresh: `GameState`, the HUD, a new car and road on the same seed, no disaster or shake, the input on, and the last run's car, disaster, sim and road freed at once. After a retry, the arrow keys steer and Enter does nothing. A tap or a click on Retry retries once. Three runs in a row, each with a new seed. No orphan nodes. A retry while the run goes on is an error (E9, E10) |
 
-- 147 tests become 200: 53 are new, and three of the HUD's are replaced.
+- 147 tests become 201: 54 are new, one of them from §4.6, and three of the HUD's are replaced.
 - The integration tests run the main scene in a 360×640 `SubViewport` with `tests/helpers/main_scene.gd`, and push input through the viewport as a device sends it, as M2's boot test does. `wrong_turn_pilot.gd` is an `Autopilot` that takes a wrong exit at the third junction.
 - Every timing in M3 comes from physics deltas, so GUT's `simulate()` runs the whole end of a run, 2–4 s, in a fraction of a second, with no real-time waits.
 - `DisasterParams` is the only new `RefCounted`, and has its own test (IP §1.3). The director and the sinkhole are nodes, with unit tests of their own too.
@@ -577,7 +579,7 @@ PR 3's state is the prototype's tree. Repeated runs differ by about 1 s: an earl
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for all 56 cases, each on its PR's state and again on PR 3's, so a case of PR 1 or 2 also shows which later tests catch it. Every case fails at least one check in both states. "GUT fails" means `run_tests.sh`, which also fails on error lines and leaks. N9 and N18 run `lint.sh` too.
+For each case, make the temporary change in the PR state listed, run the checks named under "Expected", then revert. A script did this for the first 56 cases, each on its PR's state and again on PR 3's, so a case of PR 1 or 2 also shows which later tests catch it. Every case fails at least one check in both states. N57–N60 came with the fixes (§4.6), and the script ran all 60 again on the PRs' final heads, with the same results (§6.6). "GUT fails" means `run_tests.sh`, which also fails on error lines and leaks. N9 and N18 run `lint.sh` too.
 
 Four cases needed work before they failed as they should:
 - **N9** also renames `pick()`'s `rng` parameter, which the change leaves unused, to `_rng`. Without that, gdlint's `unused-argument` stops `lint.sh` (`set -e`) before its RNG rule runs.
@@ -605,7 +607,7 @@ One rule can't fail a check here: `show_seed`'s default, `OS.is_debug_build()` (
 | N7 | 1 | A `finished` outside `PLAYING` ends the sequence again | GUT fails: `test_a_disaster_that_never_finishes_times_out_with_an_error` | Not specified |
 | N8 | 1 | `clear()` frees the disaster with `queue_free()` | GUT fails: `test_clear_frees_the_disaster_at_once_and_forgets_the_sequence`. On PR 3, also `test_retry_starts_the_next_run_afresh` | Not specified (J13) |
 | N9 | 1 | `pick()` uses the global RNG: `pool.pick_random()` | `lint.sh` fails: `Global RNG in gameplay code; use a seeded RandomNumberGenerator stream (§5.3)`. GUT fails: `test_pick_draws_every_scene_of_the_pool_with_the_stream` | Fails ✓: IP §5.3's lint rule |
-| N10 | 1 | The disaster stream isn't seeded | GUT fails: `test_the_run_seed_decides_the_disaster`, `test_the_same_seed_gives_the_same_params`. On PR 3, also `test_the_same_seed_plays_the_same_disaster`, `test_pick_draws_every_scene_of_the_pool_with_the_stream` | Fails ✓: `test_disaster_params.gd` |
+| N10 | 1 | The disaster stream isn't seeded | GUT fails: `test_the_run_seed_decides_the_disaster`, `test_the_same_seed_gives_the_same_params`. On PR 3, also `test_the_same_seed_plays_the_same_disaster`. `test_pick_draws_every_scene_of_the_pool_with_the_stream` fails only some of the time: its two streams are made on consecutive lines, and each takes its seed from the clock in microseconds (`core/math/random_pcg.cpp:43`), so they sometimes match | Fails ✓: `test_disaster_params.gd` |
 | N11 | 1 | A second sequence replaces the first, without an error | GUT fails: `test_a_second_sequence_is_an_error` | Not specified |
 | N12 | 1 | An empty pool is no error | GUT fails: `test_an_empty_pool_is_an_error_and_ends_the_sequence`, `test_a_scene_that_is_not_a_disaster_is_an_error_and_is_freed` | Not specified (J6) |
 | N13 | 1 | A scene that isn't a disaster is never freed | GUT fails: `test_a_scene_that_is_not_a_disaster_is_an_error_and_is_freed`. `run_tests.sh` reports the leak | Not specified |
@@ -652,6 +654,10 @@ One rule can't fail a check here: `show_seed`'s default, `OS.is_debug_build()` (
 | N54 | 3 | A cause without a message is no error | GUT fails: `test_a_cause_with_no_message_is_an_error_and_shows_game_over` | Not specified |
 | N55 | 1 | The crash smoke has no fixed seed | GUT fails: `test_every_car_smokes_alike` | Not specified (J16) |
 | N56 | 2 | `STOP_SECONDS` is 1.1 s, so the longest end takes 4.02 s (P10) | GUT fails: `test_with_the_stop_it_takes_2_to_4_seconds` | Not tested (J20) |
+| N57 | 2 | `_grow()` opens the hole only at the end of its phase | GUT fails: `test_it_grows_while_it_opens_and_the_car_sinks_after` | Not tested |
+| N58 | 2 | `_sink()` sinks the car at once | GUT fails: `test_it_grows_while_it_opens_and_the_car_sinks_after` | Not tested |
+| N59 | 1 | The smoke is grey again, `Color(0.3, 0.3, 0.3, 0.7)`, as before §4.6's fix | GUT fails: `test_the_smoke_shows_over_everything_the_grey_box_draws`, over the clear colour, the crashed arrow and every road row | Not specified |
+| N60 | 1 | The smoke is dark grey, `Color(0.1, 0.1, 0.1, 0.8)` | GUT fails: `test_the_smoke_shows_over_everything_the_grey_box_draws`, over the tunnel only | Not specified |
 
 ### 6.3 Editor warnings
 
@@ -661,10 +667,10 @@ None of the five checks reports GDScript warnings, so, as in M2 (M2_PLAN.md §6.
 
 | Check | PR | Result |
 |---|---|---|
-| The five checks on GitHub, and the `test` job's time against M2's 64–105 s | 1–3 | Green on the prototype in four manual runs (§6.5). The PRs' runs: to do |
-| The Web build in Chrome and Firefox (E13) | 3 | Headless Chromium ran the prototype's build (§6.5). Headed Chrome and Firefox: to do |
+| The five checks on GitHub, and the `test` job's time against M2's 64–105 s | 1–3 | Green on the final heads. The `test` job took 78–90 s (§6.6) |
+| The Web build in Chrome and Firefox (E13) | 3 | Done on d951ad7, where it found §4.6's smoke fix, and again on 622742a (§6.6) |
 | The debug APK on the Galaxy Z Fold4, folded and unfolded (E13) | 3 | To do (owner, §7) |
-| The game-over screen hides the seed in release builds: GUT runs a debug build, which can't tell `show_seed`'s default from `true` (J19, §6.2) | 3 | The prototype's Web build, a release build, showed none (§6.5). In E13's Web checks: to do |
+| The game-over screen hides the seed in release builds: GUT runs a debug build, which can't tell `show_seed`'s default from `true` (J19, §6.2) | 3 | Done: the Web build, a release build, showed none in Chrome or Firefox (§6.6) |
 | https://pompomon.github.io/roadgame/ runs the game with M3 after the merge | 3 | To do |
 
 ### 6.5 Measurements (prototype, local)
@@ -700,7 +706,46 @@ The probes ran on Godot 4.7.2, headless, in scratch scripts that aren't committe
 
 ### 6.6 Measurements (PRs)
 
-Filled in while the PRs are reviewed, as M2_PLAN.md §6.6 was: each PR's counts on its final head, its CI times, and the E13 results.
+The PRs' final heads, after the review fixes (§4.6), are 0e7a372, c5d4dc0 and 622742a. PR 3's later commits change only this plan. The local numbers are from those heads, and the CI times are from every run on the three PR branches.
+
+- **Local checks** (§6.1). All five pass on each head, and `git status` is clean after them:
+
+  | Head | `check_scripts` | GUT tests | Asserts | GUT time | `smoke.sh` prints |
+  |---|---|---|---|---|---|
+  | PR 1, 0e7a372 | 57 | 172 | 144,359 | 15.9–16.0 s | `autopilot: tile 165, turns 35, area rural` |
+  | PR 2, c5d4dc0 | 59 | 183 | 144,504 | 16.0 s | the same |
+  | PR 3, 622742a | 66 | 201 | 144,632 | 16.2–17.5 s | the same |
+
+  The review fixes add to §6.1's counts: #31's adds a test and 17 asserts on each head, and #32's 4 asserts from PR 2 on (§4.6). The GUT times are from two runs on each head, and `smoke.sh` printed `grey box: tilesets built in 60–67 ms`.
+- **Negative cases** (§6.2). The script ran all 60 again on the final heads, each on its PR's head and on PR 3's. Each failed the checks that §6.2 gives it, in both states.
+- **CI.** Every run on the PR branches passed all five jobs. The `test` job took 78–90 s, against M2's 64–105 s and the prototype's 79–93 s (§6.5):
+
+  | PR | Head | Run | `test` | `lint` | `export-web` | Android AAB | Android APK |
+  |---|---|---|---|---|---|---|---|
+  | 1 | a49cd44 | 42558636551 | 79 s | 16 s | 73 s | 176 s | 96 s |
+  | 1 | 0e7a372 | 42563013269 | 78 s | 18 s | 88 s | 226 s | 79 s |
+  | 2 | c3d9380 | 42558644906 | 89 s | 12 s | 84 s | 174 s | 68 s |
+  | 2 | c5d4dc0 | 42563014274 | 86 s | 15 s | 57 s | 169 s | 89 s |
+  | 3 | d951ad7, by hand | 42557588302 | 90 s | 14 s | 77 s | 208 s | 88 s |
+  | 3 | 213258e | 42558650345 | 87 s | 12 s | 81 s | 173 s | 92 s |
+  | 3 | 622742a | 42563011996 | 82 s | 16 s | 81 s | 189 s | 65 s |
+  | 3 | 622742a, by hand | 42563011680 | 87 s | 15 s | 83 s | 172 s | 86 s |
+
+  The runs by hand had `upload-builds`, for E13. On a49cd44, PR 1's AAB export first failed after 201 s, when GUT's update check got a 403 from GitHub's rate limit, and passed when re-run (`AGENTS.md` §10). The smoke fix's push updated the three branches at once, and #32 and #33 each got two runs of their new head. The workflow's concurrency group cancelled one of each, 42563014188 and 42563011894. `watch_pr.sh` counted the cancelled run's jobs as failed and exited 5 on #32, whose checks were all green in `gh pr checks`.
+- **Web (E13)**, with the Web builds of the two runs by hand, served by `python3 -m http.server`: first d951ad7's, then 622742a's, after the smoke fix that the first round brought (§4.6). Since 622742a, only this plan has changed, so the second build is the heads' game. There is no GPU here, so the browsers ran headed under Xvfb, with software GL. M2's build, from run 42559505939 on `main` (f8b0dfb), ran in the same browsers as the control (§4, PR 3 step 3). Every check passed on both builds, and the numbers below are 622742a's.
+  - Playwright drove Chrome 156.0.8078.79 and Firefox 156.0 through §4's Web checks (PR 3 step 3), one session each. The times are bounded by the screenshots around each change: one every 0.27 s in Chrome and every 0.14 s in Firefox, as medians.
+    - Esc paused a running game and resumed it.
+    - Run 1, with no input, missed the first turn. The car stopped, a hole opened under it with debris and a shake, and the car darkened, shrank and was gone. Esc during the end showed no pause. "You missed the turn!" came 3.12–3.63 s after the run ended in Chrome, and 2.83–3.28 s in Firefox.
+    - Three clicks away from Retry did nothing, and Enter retried. ArrowLeft right after, without a click, steered the car off the road until it crashed. The arrow turned grey and smoked, the view shook, and "You got lost off the road." came 1.04–1.63 s later in Chrome and 1.03–1.34 s in Firefox.
+    - Space retried. Run 3, with no input, took a wrong turn: "Wrong turn!" came 2.82–3.44 s after the run ended in Chrome, and 3.17–3.41 s in Firefox. A click on Retry retried.
+    - Each game-over screen showed the cause, the distance, the turns and the area, and no seed: the Web export is a release build (J19). The HUD kept its seed line (Q6). After each retry, the run had 0 turns, full health, the pause button and one car.
+  - Playwright keeps its pages focused, so the focus checks ran in Chrome 156 without it, driven over the DevTools protocol, with real X input from `xdotool` under a window manager (openbox). A switch to another window or tab paused a running game, and Esc resumed it. A switch during the end didn't pause it, and game over came. M2's build paused in the same way.
+  - Each session printed one `grey box:` line, so no retry built the tilesets again (J12). They took 207 ms in Chrome, 121 ms in Firefox and 193 ms in Chrome without Playwright, against 231 ms, 110 ms and 164 ms for M2's build in the same browsers.
+  - The game logged no errors, and M3's build logged no warning that M2's didn't in the same browser:
+    - Chrome logged §6.5's 4 `GPU stall due to ReadPixels` notes once in each browser, for its first page, M2's or M3's (§8). In some sessions it also logged a `CONTEXT_LOST_WEBGL` warning before Godot started, for either build, as in M2_PLAN.md §6.6.
+    - Without Playwright, which turns Chrome's autoplay policy off, both builds logged `The AudioContext was not allowed to start` as the page loaded and at each focus change. M3 adds no audio.
+    - Firefox logged M1's two warnings for both builds: the wasm `try` instruction is deprecated, and an AudioContext can't start before a user gesture.
+  - **The smoke.** On d951ad7's build, the crash's smoke showed only where it crossed the grey arrow. Off the road, past the ground under the road tiles, the void is Godot's default clear colour, 77 of 255, and no pixel of the crash's frames was darker than 76 there. On 622742a's, a puff over the void measured 15 in both browsers, as a blend at 0.8 alpha predicts, and a puff over the arrow 20. Where puffs overlapped, it went down to 0–3. Firefox's crash frames had 351–1,251 pixels darker than 40 each, and d951ad7's none. The Fold4 judges the look, with the other sizes and timings (§5.9).
 
 ---
 
@@ -710,10 +755,10 @@ These need the repository owner. The current state was read with `gh api` on 202
 
 | When | Action | How |
 |---|---|---|
-| Now | Answer Q1–Q13, or accept the defaults | A comment on this plan's PR. Without an answer, the PRs follow the defaults |
-| Now | Merge this plan's PR | Squash-merge it into `main`. The landing simulation (§4.5) starts from `main` with this plan |
-| Before PR 3 merges | The E13 checks on the Galaxy Z Fold4, with the debug APK of PR 3's final head. An agent does the Web checks | §4, PR 3 step 3 |
-| To land M3 | Merge PRs 1, 2 and 3, in that order, each once its base is `main` and it is updated as in §4.5 step 4 | §4.5 |
+| Done | Answer Q1–Q13, or accept the defaults | The defaults were approved with this plan (#30) |
+| Done | Merge this plan's PR | #30, squash-merged into `main` as f8b0dfb |
+| Before PR 3 merges | The E13 checks on the Galaxy Z Fold4, with the debug APK of PR 3's final head: run 42563011680 has 622742a's until 2026-11-10 04:39 UTC, and PR 3's later commits change only this plan. The Web checks are done (§6.6) | §4, PR 3 step 3 |
+| To land M3 | Merge #31, #32 and #33, in that order, each once its base is `main` and it is updated as in §4.5 step 4 | §4.5 |
 | Optional | Delete each PR's branch after it merges, so GitHub retargets the next PR by itself. Delete `m3/prototype` once PR 3 has merged | The **Delete branch** button on the merged PR (§4.5 step 5); `git push origin --delete m3/prototype` |
 
 ---
@@ -726,7 +771,7 @@ These need the repository owner. The current state was read with `gh api` on 202
 | The end's timings, sizes and shakes are first guesses (§5.9) | The end drags, or the player misses what happened | E13 judges them on the Fold4. They are all in `config/tuning.gd`, and M6 tunes them |
 | Once the run is over, the car stops within 0.6 s: at up to 11.7 tiles/s² from the cap, about three times `BRAKE` (P8) | A crash at speed may stop abruptly | E13 looks at it. Wrong and missed turns come at about `junction_speed`, 2.0 tiles/s, where the stop is at `BRAKE` (P9). A longer `STOP_SECONDS` stops it more gently, but a wrong turn's end adds the stop to the sinkhole's delay and phases, within 4 s (E6). With the other values as they are, it can grow to 1.05 s, where the longest end takes 3.98 s; at 1.1 s it takes 4.02 s, and at `CRASH_SECONDS`, 1.2 s, 4.12 s (P10). Beyond 1.05 s, the delay or the phases must shrink as much. `test_with_the_stop_it_takes_2_to_4_seconds` fails if they don't (N56) |
 | The debris and the smoke are `CPUParticles2D`: 40 particles in the sinkhole, 20 in the smoke | Dropped frames on the Fold4 or in browsers during the end | Headless Chromium ran them without errors (§6.5). E13 watches for it, and the amounts are in `sinkhole.tscn` and `car.tscn` |
-| Chromium's `GPU stall due to ReadPixels` notes (§6.5) | A Web check takes them for an M3 bug, or misses one | E13 opens M2's Pages site in the same headed Chrome first. If only M3 shows them, PR 3 finds what reads the pixels |
+| Chromium's `GPU stall due to ReadPixels` notes (§6.5) | A Web check takes them for an M3 bug, or misses one | E13 opens M2's Pages site in the same headed Chrome first. If only M3 shows them, PR 3 finds what reads the pixels. Done: M2's build logs them too, for the first page in each browser (§6.6) |
 | A retry in place keeps something of the last run: a node, a shake, a signal, the HUD's numbers or its pause button | The next run starts wrong, or memory grows run after run | `test_retry.gd` checks every part afresh, three runs in a row, and no orphans; `run_tests.sh` fails on leaks (E10; N38–N43, N46–N51). E13 retries several times on the Fold4 |
 | A disaster that never finishes | The game hangs at the end of a run | The director ends the sequence at `DISASTER_TIMEOUT`, with an error (E3; N5–N7). Every CI script fails on error lines |
 | The sinkhole plays in every area until M4.5 (Q2) | A sinkhole in the desert, unlike `plan.md` §4.3 | Accept until M4.5 brings the other disasters (§9) |
@@ -747,6 +792,7 @@ These need the repository owner. The current state was read with `gh api` on 202
   - Until Godot 4.8, grow a `Polygon2D` by its `scale` and tint it by `self_modulate`, never by its `polygon` or `color` (P5, godotengine/godot#124726).
 - **M5:**
   - M5.1's art replaces the grey crash arrow (J22), and can bring the sinkhole's shader and clip mask (Q3, J15).
+  - `test_the_smoke_shows_over_everything_the_grey_box_draws` takes its backgrounds from the grey box: `GreyboxAtlas`, the areas' `id_color` and the clear colour (§4.6). Art that draws the road or the ground some other way needs the same check, or smoke that shows over anything, such as a dark puff with a light edge.
   - M5.2's `PropPool` is part of `World`, which a retry keeps (J12). It must take back the last run's props when a new run starts, as `WorldRenderer.bind()` drops the last run's tiles (J11).
   - M5.4's `SaveService.record_disaster(id, area, stats)` goes in `main.gd`, where the sequence ends, with the `id` of the director's `disaster` (J7).
   - M5.5 adds the title screen, and the **Title** button on the game-over screen (Q5, J8). `GameState` already allows `GAME_OVER` → `TITLE`.
