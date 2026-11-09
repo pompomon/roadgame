@@ -116,10 +116,11 @@ func _add_set_piece(run: Array[RoadTile]) -> void:
 	var scene: PackedScene = set_piece_scenes.get(run[0].set_piece)
 	if scene == null:
 		return
-	var node := scene.instantiate()
+	var node: Node = scene.instantiate() if scene.can_instantiate() else null
 	if node is not SetPiece:
 		push_error("WorldRenderer: the scene for set piece %s isn't a SetPiece" % run[0].set_piece)
-		node.free()
+		if node != null:
+			node.free()
 		return
 	var piece := node as SetPiece
 	piece.car = car

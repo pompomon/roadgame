@@ -261,3 +261,16 @@ func test_a_set_piece_scene_whose_root_isnt_a_set_piece_is_an_error() -> void:
 	# It frees the node it made: run_tests.sh fails on a leak.
 	assert_push_error("the scene for set piece ferris_wheel isn't a SetPiece")
 	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
+
+
+func test_an_empty_set_piece_scene_is_an_error() -> void:
+	var scenes: Dictionary[StringName, PackedScene] = {&"ferris_wheel": PackedScene.new()}
+	_world.set_piece_scenes = scenes
+	var schedule := Fixtures.set_piece_schedule(1, &"ferris_wheel", 5)
+	_world.build(schedule)
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.bind(_buffer)
+	_buffer.start()
+	# It has no root to instantiate, and so nothing to free.
+	assert_push_error("the scene for set piece ferris_wheel isn't a SetPiece")
+	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
