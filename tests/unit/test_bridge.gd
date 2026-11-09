@@ -85,6 +85,37 @@ func test_the_waves_drift_down_the_river_and_never_leave_it() -> void:
 		assert_almost_eq(highest, top + Tuning.RIVER_REACH * 2, 0.02, "%s: to its bottom" % run)
 
 
+func test_the_waves_of_a_row_are_spread_down_the_river() -> void:
+	# Waves that touch show as one long line: a row's waves stay a wave's length apart or more, all
+	# the way down. And the nine start evenly spread down the river, no two level.
+	for heading: int in [Heading.N, Heading.W]:
+		var bridge := _bridge(heading)
+		var run := Heading.NAMES[heading]
+		var count := Bridge.WAVE_ROWS * Bridge.WAVES_PER_ROW
+		var room := bridge.water.size.dot(bridge.across()) - Bridge.WAVE_LENGTH
+		var closest := INF
+		for frame: int in ceili(room / Tuning.WAVE_SPEED / DELTA):
+			for row: int in Bridge.WAVE_ROWS:
+				var first := row * Bridge.WAVES_PER_ROW
+				for index: int in range(first, first + Bridge.WAVES_PER_ROW):
+					for other: int in range(index + 1, first + Bridge.WAVES_PER_ROW):
+						var apart := _down(bridge, index, frame) - _down(bridge, other, frame)
+						closest = minf(closest, absf(apart) - Bridge.WAVE_LENGTH)
+		assert_gte(closest, Bridge.WAVE_LENGTH, "%s: the gap between a row's waves" % run)
+		var starts: Array[float] = []
+		for index: int in count:
+			starts.append(_down(bridge, index, 0))
+		starts.sort()
+		for k: int in range(1, count):
+			var step := starts[k] - starts[k - 1]
+			assert_almost_eq(step, room / count, 1e-4, "%s: start %d" % [run, k])
+
+
+## How far down the river wave `index` is after `frame` physics frames, in tiles.
+static func _down(bridge: Bridge, index: int, frame: int) -> float:
+	return bridge.wave_rect(index, frame * DELTA).position.dot(bridge.across())
+
+
 func test_each_wave_is_where_its_rectangle_is() -> void:
 	# The waves as drawn: each polygon, back in tile space, is its wave_rect(), and stays in the
 	# river all the way down and back to the top.

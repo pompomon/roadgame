@@ -87,14 +87,15 @@ func _physics_process(delta: float) -> void:
 	_place_waves()
 
 
-## Wave `index`'s tile-space rectangle `time` seconds after setup(). The waves of a row start
-## spread down the river; each drifts down at WAVE_SPEED, and back to the top once its end reaches
-## the bottom.
+## Wave `index`'s tile-space rectangle `time` seconds after setup(). A row's waves start evenly
+## spread down the river, so they never touch, and each row a step below the last, so no two waves
+## start level. Each drifts down at WAVE_SPEED, and back to the top once its end reaches the bottom.
 func wave_rect(index: int, time: float) -> Rect2:
 	@warning_ignore("integer_division")
 	var row := index / WAVES_PER_ROW
 	var room := water.size.dot(across()) - WAVE_LENGTH
-	var phase := float(index) / (WAVE_ROWS * WAVES_PER_ROW)
+	var slot := (index % WAVES_PER_ROW) * WAVE_ROWS + row
+	var phase := float(slot) / (WAVE_ROWS * WAVES_PER_ROW)
 	var down := fposmod(phase * room + time * Tuning.WAVE_SPEED, room)
 	var row_centre := water.size.dot(along()) * (row + 0.5) / WAVE_ROWS
 	var start := water.position + across() * down + along() * (row_centre - WAVE_WIDTH * 0.5)
