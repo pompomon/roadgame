@@ -2,7 +2,9 @@ class_name GreyboxAtlas
 ## Grey-box TileSets, drawn at run time from RoadGeometry so that the road on screen is exactly
 ## the road the off-road test sees. Road atlas: column = exits bitmask - 1, which covers all 15
 ## road tiles of plan.md §5.3 (caps, straights, corners, T-junctions, crossroads); row = Row.
-## Ground atlas: one column per area, two checker shades as rows.
+## Ground atlas: one column per area, with two checker shades as rows, and after them one column
+## per transition between two areas, with the two areas' colours as rows (IMPLEMENTATION_PLAN.md
+## M4.3).
 
 enum Row { ROAD, DEAD_END, TUNNEL, BRIDGE }
 
@@ -62,13 +64,20 @@ static func road_tileset() -> TileSet:
 	return _road_tileset
 
 
-static func build_ground_tileset(colors: Array[Color]) -> TileSet:
+## `colors` are the areas' colours. Each transition is a pair of indices into them: from, to.
+static func build_ground_tileset(
+	colors: Array[Color], transitions: Array[Vector2i] = []
+) -> TileSet:
 	var size := Vector2i(Iso.TILE_W, Iso.TILE_H) / Iso.GROUND_PER_TILE
-	var grid := Vector2i(colors.size(), 2)
+	var grid := Vector2i(colors.size() + transitions.size(), 2)
 	var image := Image.create_empty(grid.x * size.x, grid.y * size.y, false, Image.FORMAT_RGBA8)
 	for column: int in grid.x:
 		for shade: int in grid.y:
-			var color := colors[column].darkened(GROUND_SHADE * shade)
+			var color: Color
+			if column < colors.size():
+				color = colors[column].darkened(GROUND_SHADE * shade)
+			else:
+				color = colors[transitions[column - colors.size()][shade]]
 			_draw_diamond(image, Vector2i(column, shade) * size, size, color)
 	return _tileset(image, size, grid)
 
