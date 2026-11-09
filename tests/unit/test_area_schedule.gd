@@ -234,7 +234,7 @@ func test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer() 
 			continue
 		assert_eq(problems, "", "gap %d" % gap)
 		assert_gte(_least_margin(schedule, 60), 0, "gap %d: the trigger found every junction" % gap)
-	# The limit leaves one tile spare: the next junction is sometimes the buffer's last but one (K2).
+	# The limit leaves one tile spare: the next junction is sometimes the buffer's last but one (K1).
 	assert_eq(_least_margin(_gap_schedule(4, 20, 60), 60), 1)
 	var long := _area(&"long", 2, Tuning.BUFFER_REFILL_AT - 1)
 	assert_eq(_problems([_entry(0, long)]), "", "a straight of 24 and the junction")
@@ -243,7 +243,7 @@ func test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer() 
 
 
 func test_a_schedule_can_start_in_any_of_its_areas() -> void:
-	# For main.gd's --area (K11): the run starts in that area, without the set piece that leads in.
+	# For main.gd's --area (K10): the run starts in that area, without the set piece that leads in.
 	var schedule := Fixtures.schedule()
 	var areas := {}
 	for entry: AreaScheduleEntry in schedule.entries:

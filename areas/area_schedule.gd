@@ -48,7 +48,7 @@ func validate() -> PackedStringArray:
 ## JunctionTrigger looks for the next junction as the car enters the tile after a junction, when
 ## the buffer is sure to hold only BUFFER_REFILL_AT tiles past that tile (M2_PLAN.md H31).
 ## validate() keeps one of them spare, so that it doesn't rest on CarSim moving the buffer on
-## before the trigger looks (M4_PLAN.md K2).
+## before the trigger looks (M4_PLAN.md K1).
 static func gap(entry: AreaScheduleEntry) -> int:
 	return entry.set_piece_length + entry.area.max_straight + 1
 

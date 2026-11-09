@@ -1,7 +1,7 @@
 extends GutTest
 ## The tunnel (IMPLEMENTATION_PLAN.md M4.4) and what it shares with every SetPiece: a block over its
 ## run, with a mouth on the end face that shows, which draws over the car and fades while the car
-## is near (M4_PLAN.md K12).
+## is near (M4_PLAN.md K5).
 
 const SCENE := preload("res://setpieces/tunnel.tscn")
 const DELTA := 1.0 / 60.0

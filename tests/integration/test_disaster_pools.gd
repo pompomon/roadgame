@@ -1,6 +1,6 @@
 extends GutTest
 ## A forced wrong turn in each area plays a disaster from that area's pool only
-## (IMPLEMENTATION_PLAN.md M4 tests): the main scene starts in the area (--area, M4_PLAN.md K11),
+## (IMPLEMENTATION_PLAN.md M4 tests): the main scene starts in the area (--area, M4_PLAN.md K10),
 ## the pilot takes a wrong exit at its third junction, and the area's disaster swallows the car
 ## before the game-over screen, 2 to 4 s after the turn.
 

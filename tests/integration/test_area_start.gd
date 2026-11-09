@@ -1,7 +1,7 @@
 extends GutTest
 ## Each run starts by naming its area (IMPLEMENTATION_PLAN.md M4.3, M4_PLAN.md K4): main reports
 ## the first area as it reports each later one, to GameState and on EventBus, and the HUD shows its
-## name. --area=<id> starts every run in that area (K11).
+## name. --area=<id> starts every run in that area (K10).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const RUNNING := GameState.State.RUNNING

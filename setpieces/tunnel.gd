@@ -4,7 +4,7 @@ extends SetPiece
 ## run. Its roof and the two faces towards the viewer show, the +x and +y faces, and the end face
 ## among them has a dark mouth: the entrance on N and W runs, which are all the generator makes.
 ## It draws over the car (z_index 1), so as the car nears, the whole tunnel fades and the car shows
-## through it (M4_PLAN.md K12). The art and the darkening CanvasModulate come with M5's art, and
+## through it (M4_PLAN.md K5). The art and the darkening CanvasModulate come with M5's art, and
 ## the reverb with M5's AudioDirector (M4_PLAN.md Q4).
 
 ## How far the rock reaches across the run from its centreline, in tiles.

@@ -5,7 +5,7 @@ extends Node
 ## and then the game-over screen shows; Retry builds the next run in place, without reloading the
 ## scene (M3.3). User arguments (after "--"): --seed=<int> picks the road (D8); --autopilot drives
 ## by itself (the CI smoke run); --area=<id> starts every run in that area, for tests and manual
-## checks (M4_PLAN.md K11).
+## checks (M4_PLAN.md K10).
 
 const CAR_SCENE := preload("res://car/car.tscn")
 

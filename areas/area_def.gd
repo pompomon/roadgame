@@ -2,7 +2,7 @@ class_name AreaDef
 extends Resource
 ## The rules of one area (plan.md §3.7). M1 added the fields the generator and the grey-box renderer
 ## use, M2 the driving fields CarSim reads, M3 the disaster pool. The art, prop and audio fields
-## come with what reads them, in M5 (M4_PLAN.md K5). The driving defaults are the City's values
+## come with what reads them, in M5 (M4_PLAN.md K3). The driving defaults are the City's values
 ## (IMPLEMENTATION_PLAN.md M4.2).
 
 @export var id := &""

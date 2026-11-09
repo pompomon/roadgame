@@ -25,7 +25,7 @@ const TUNNEL_FADE_NEAR := 0.75
 const TUNNEL_FADE_FAR := 2.5
 ## The bridge's banks, at each end of its road, and how far its river reaches across the road
 ## from its centreline, in tiles. With min_straight 2, other road can come within 2.5 tiles of the
-## centreline (M4_PLAN.md K15). How fast the waves drift down the river, in tiles/s.
+## centreline (M4_PLAN.md K7). How fast the waves drift down the river, in tiles/s.
 const BRIDGE_BANK := 0.5
 const RIVER_REACH := 2.0
 const WAVE_SPEED := 0.6
