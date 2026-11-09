@@ -89,6 +89,7 @@ func _start_run(run_seed: int) -> void:
 	_world.get_node("%Props").add_child(_car)
 	_camera.car = _car
 	_camera.snap_to_target()
+	_world.car = _car
 	_director.start_run(run_seed)
 	GameState.start_run(run_seed)
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).

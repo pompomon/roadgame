@@ -123,11 +123,41 @@ func test_every_car_smokes_alike() -> void:
 
 
 func test_the_smoke_shows_over_everything_the_grey_box_draws() -> void:
-	# The smoke covers the grey arrow, and around it the road, its edge lines, or the ground under
-	# a road tile, in the area's two shades (GreyboxAtlas.build_ground_tileset()). Further from
-	# the road the grey box draws nothing, so the clear colour shows: a car lost off the road ends
-	# there.
 	var smoke: CPUParticles2D = _car().get_node("%Smoke")
+	for background: Color in _backgrounds():
+		var puff := background.blend(smoke.color)
+		assert_gte(
+			absf(puff.get_luminance() - background.get_luminance()),
+			SMOKE_CONTRAST,
+			"a puff over %s" % background
+		)
+
+
+func test_the_smoke_shows_through_a_tunnel() -> void:
+	# A tunnel draws over the car (z_index 1), at TUNNEL_SEE_THROUGH while the car is in it
+	# (Tunnel.opacity()): what it lets through of the smoke must still show.
+	var smoke: CPUParticles2D = _car().get_node("%Smoke")
+	var covers: Array[Color] = []
+	for polygon: Polygon2D in _polygons(load("res://setpieces/tunnel.tscn")):
+		covers.append(Color(polygon.color, polygon.color.a * Tuning.TUNNEL_SEE_THROUGH))
+	assert_eq(covers.size(), 4)
+	for background: Color in _backgrounds():
+		var puff := background.blend(smoke.color)
+		for cover: Color in covers:
+			assert_gte(
+				absf(puff.blend(cover).get_luminance() - background.blend(cover).get_luminance()),
+				SMOKE_CONTRAST,
+				"a puff over %s, through %s" % [background, cover]
+			)
+
+
+## What the grey box can draw under a puff of smoke. The smoke covers the grey arrow, and around it
+## the road, its edge lines, or the ground under a road tile, in the area's two shades
+## (GreyboxAtlas.build_ground_tileset()), or their transitions. Further from the road the grey box
+## draws nothing, so the clear colour shows: a car lost off the road ends there. On a bridge, it
+## draws the river, its waves, the deck and the far railing (M4.4); the near railing and a tunnel
+## draw over the car.
+func _backgrounds() -> Array[Color]:
 	var backgrounds: Array[Color] = [Tuning.CRASH_TINT, GreyboxAtlas.EDGE_COLOR]
 	backgrounds.append_array(GreyboxAtlas.ROAD_COLORS)
 	backgrounds.append(
@@ -137,13 +167,22 @@ func test_the_smoke_shows_over_everything_the_grey_box_draws() -> void:
 	for entry: AreaScheduleEntry in schedule.entries:
 		for shade: int in 2:
 			backgrounds.append(entry.area.id_color.darkened(GreyboxAtlas.GROUND_SHADE * shade))
-	for background: Color in backgrounds:
-		var puff := background.blend(smoke.color)
-		assert_gte(
-			absf(puff.get_luminance() - background.get_luminance()),
-			SMOKE_CONTRAST,
-			"a puff over %s" % background
-		)
+	var under := 0
+	for polygon: Polygon2D in _polygons(load("res://setpieces/bridge.tscn")):
+		if polygon.z_index <= 0:
+			backgrounds.append(polygon.color)
+			under += 1
+	assert_eq(under, 4, "the river, a wave, the deck and the far railing")
+	return backgrounds
+
+
+## The polygons of a set piece, as its scene has them.
+func _polygons(scene: PackedScene) -> Array[Polygon2D]:
+	var piece: Node2D = autofree(scene.instantiate())
+	var polygons: Array[Polygon2D] = []
+	for polygon: Node in piece.find_children("*", "Polygon2D"):
+		polygons.append(polygon)
+	return polygons
 
 
 func test_only_a_crash_smokes() -> void:
