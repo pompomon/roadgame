@@ -35,6 +35,26 @@ func test_the_game_schedule_is_valid() -> void:
 	assert_eq(turns, [0, 34, 100, 200, 220] as Array[int])
 
 
+func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
+	# Until M4.5 adds the others, every pool is the sinkhole (M3_PLAN.md Q2).
+	var areas := 0
+	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
+		var area := entry.area
+		areas += 1
+		assert_false(area.disasters.is_empty(), "%s has a pool" % area.id)
+		for scene: PackedScene in area.disasters:
+			var node := scene.instantiate()
+			var disaster := node as DisasterBase
+			assert_not_null(disaster, "%s: %s is a disaster" % [area.id, scene.resource_path])
+			if disaster != null:
+				assert_ne(disaster.id, &"", "%s: %s has an id" % [area.id, scene.resource_path])
+			node.free()
+	assert_eq(areas, 5, "the five areas")
+	var city: AreaDef = load("res://areas/city.tres")
+	var sinkhole: PackedScene = load("res://disasters/sinkhole.tscn")
+	assert_eq(city.disasters, [sinkhole] as Array[PackedScene], "the City's sinkhole")
+
+
 func test_validate_reports_broken_schedules() -> void:
 	var city := _area(&"city")
 	assert_string_contains(_problems([]), "no entries")
