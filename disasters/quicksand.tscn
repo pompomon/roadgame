@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://disasters/quicksand.gd" id="1_quicksand"]
+
+[node name="Quicksand" type="Node2D"]
+script = ExtResource("1_quicksand")
+id = &"quicksand"
+
+[node name="Pit" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.62, 0.5, 0.3, 1)
+
+[node name="Ripple" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.48, 0.37, 0.21, 1)
+
+[node name="Grains" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 30
+lifetime = 0.8
+direction = Vector2(0, -1)
+spread = 30.0
+gravity = Vector2(0, 260)
+initial_velocity_min = 30.0
+initial_velocity_max = 70.0
+scale_amount_min = 1.5
+scale_amount_max = 3.0
+color = Color(0.8, 0.68, 0.45, 1)
