@@ -1,12 +1,16 @@
 class_name Hud
 extends Control
 ## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6): distance, turns, health and the pause button,
-## and a message while the game is paused. It reads GameState, listens to EventBus, starts afresh
-## with each run, and processes while the game is paused. When the run ends it hides the pause
-## button, and the game-over screen shows why it ended (M3.3). Its text uses only characters in
-## Godot's default font: the Web build has no system font to fall back on.
+## and a message while the game is paused. When the car enters an area, the area's name shows for
+## AREA_BANNER_SECONDS (M4.3). It reads GameState, listens to EventBus, starts afresh with each
+## run, and processes while the game is paused. When the run ends it hides the pause button and
+## the area's name, and the game-over screen shows why it ended (M3.3). Its text uses only
+## characters in Godot's default font: the Web build has no system font to fall back on.
 
 const PAUSED_MESSAGE := "Paused\nTap II or press Esc to go on"
+
+## Seconds left to show the area's name.
+var _banner_left := 0.0
 
 @onready var _distance: Label = %Distance
 @onready var _turns: Label = %Turns
@@ -14,6 +18,7 @@ const PAUSED_MESSAGE := "Paused\nTap II or press Esc to go on"
 @onready var _pause: Button = %Pause
 @onready var _message: Label = %Message
 @onready var _info: Label = %Info
+@onready var _area_banner: Label = %AreaBanner
 
 
 func _ready() -> void:
@@ -22,6 +27,7 @@ func _ready() -> void:
 	EventBus.health_changed.connect(_on_health_changed)
 	EventBus.paused_changed.connect(_on_paused_changed)
 	EventBus.run_ended.connect(_on_run_ended)
+	EventBus.area_changed.connect(_on_area_changed)
 	_pause.pressed.connect(toggle_pause)
 	_health.max_value = Tuning.START_HEALTH
 	_reset()
@@ -29,6 +35,13 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_distance.text = distance_text(GameState.distance)
+
+
+func _physics_process(delta: float) -> void:
+	# The HUD processes while the game is paused, but the name waits for the run to go on.
+	if _banner_left > 0.0 and GameState.state != GameState.State.PAUSED:
+		_banner_left -= delta
+		_area_banner.visible = _banner_left > 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -55,6 +68,7 @@ func _reset() -> void:
 	_on_turn_completed(0)
 	_on_health_changed(Tuning.START_HEALTH)
 	_message.text = ""
+	_hide_banner()
 	_pause.visible = true
 	var version: String = ProjectSettings.get_setting("application/config/version", "dev")
 	_info.text = "Road Roguelike %s\nseed %d" % [version, GameState.run_seed]
@@ -78,3 +92,15 @@ func _on_paused_changed(paused: bool) -> void:
 
 func _on_run_ended(_cause: StringName, _stats: Dictionary) -> void:
 	_pause.visible = false
+	_hide_banner()
+
+
+func _on_area_changed(area: AreaDef) -> void:
+	_area_banner.text = area.display_name
+	_area_banner.visible = true
+	_banner_left = Tuning.AREA_BANNER_SECONDS
+
+
+func _hide_banner() -> void:
+	_area_banner.visible = false
+	_banner_left = 0.0

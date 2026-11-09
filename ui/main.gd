@@ -4,7 +4,8 @@ extends Node
 ## car's signals to EventBus and GameState. When the run ends, the DisasterDirector plays its end,
 ## and then the game-over screen shows; Retry builds the next run in place, without reloading the
 ## scene (M3.3). User arguments (after "--"): --seed=<int> picks the road (D8); --autopilot drives
-## by itself (the CI smoke run).
+## by itself (the CI smoke run); --area=<id> starts every run in that area, for tests and manual
+## checks (M4_PLAN.md K10).
 
 const CAR_SCENE := preload("res://car/car.tscn")
 
@@ -27,6 +28,9 @@ var _car: CarController
 func _ready() -> void:
 	_autopilot = args.has("--autopilot")
 	_schedule = load("res://areas/schedule.tres")
+	var area := _parse_area(args)
+	if area != &"":
+		_schedule = _schedule.starting_at(area)
 	var start := Time.get_ticks_usec()
 	_world.build(_schedule)
 	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
@@ -87,7 +91,8 @@ func _start_run(run_seed: int) -> void:
 	_camera.snap_to_target()
 	_director.start_run(run_seed)
 	GameState.start_run(run_seed)
-	GameState.area_id = _sim.area.id
+	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
+	_on_area_changed(_sim.area)
 
 
 ## Retry on the game-over screen: the next run, on the same nodes. The last run's car and disaster
@@ -147,3 +152,13 @@ static func _parse_seed(p_args: PackedStringArray) -> int:
 		if arg.begins_with("--seed="):
 			return arg.trim_prefix("--seed=").to_int()
 	return RandomNumberGenerator.new().randi()
+
+
+static func _parse_area(p_args: PackedStringArray) -> StringName:
+	for arg: String in p_args:
+		if arg.begins_with("--area="):
+			var id := arg.trim_prefix("--area=")
+			if id.is_empty():
+				push_error("main: --area= needs the id of an area")
+			return StringName(id)
+	return &""

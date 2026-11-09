@@ -4,6 +4,10 @@ extends GutTest
 ## scene, and the game-over screen has its own test.
 
 const HUD_SCENE := preload("res://ui/hud.tscn")
+const DELTA := 1.0 / 60.0
+## The frames that add up to AREA_BANNER_SECONDS. Sums of 1/60 can fall short, so the name may stay
+## a frame longer.
+const BANNER_FRAMES := roundi(Tuning.AREA_BANNER_SECONDS / DELTA)
 
 
 func after_each() -> void:
@@ -18,6 +22,12 @@ func _hud() -> Hud:
 
 static func _text(hud: Hud, label: String) -> String:
 	return hud.get_node("%" + label).text
+
+
+static func _area(display_name: String) -> AreaDef:
+	var area := AreaDef.new()
+	area.display_name = display_name
+	return area
 
 
 static func _key(keycode: Key, pressed: bool) -> InputEventKey:
@@ -104,3 +114,68 @@ func test_each_run_starts_the_hud_afresh() -> void:
 	assert_true(hud.get_node("%Pause").visible, "Pause is back")
 	assert_eq(_text(hud, "Message"), "")
 	assert_eq(_text(hud, "Info"), "Road Roguelike %s\nseed 2" % version)
+
+
+func test_it_names_the_area_the_car_enters_for_a_while() -> void:
+	var hud := _hud()
+	var banner: Label = hud.get_node("%AreaBanner")
+	GameState.start_run(1)
+	assert_false(banner.visible, "no name before an area")
+	EventBus.area_changed.emit(_area("Rural"))
+	assert_true(banner.visible)
+	assert_eq(banner.text, "Rural")
+	simulate(hud, BANNER_FRAMES - 1, DELTA)
+	assert_true(banner.visible, "a frame before the end")
+	simulate(hud, 2, DELTA)
+	assert_false(banner.visible, "gone")
+
+
+func test_the_area_name_waits_while_the_game_is_paused() -> void:
+	# GUT's simulate() steps the HUD while the tree is paused, as the HUD processes then too.
+	var hud := _hud()
+	var banner: Label = hud.get_node("%AreaBanner")
+	GameState.start_run(1)
+	EventBus.area_changed.emit(_area("Village"))
+	simulate(hud, 60, DELTA)
+	GameState.pause()
+	simulate(hud, BANNER_FRAMES * 2, DELTA)
+	assert_true(banner.visible, "the pause doesn't count")
+	GameState.resume()
+	simulate(hud, BANNER_FRAMES - 61, DELTA)
+	assert_true(banner.visible, "a frame before the end")
+	simulate(hud, 2, DELTA)
+	assert_false(banner.visible, "gone")
+
+
+func test_a_new_area_replaces_the_name_and_starts_its_time_again() -> void:
+	var hud := _hud()
+	var banner: Label = hud.get_node("%AreaBanner")
+	GameState.start_run(1)
+	EventBus.area_changed.emit(_area("Meadows"))
+	@warning_ignore("integer_division")
+	simulate(hud, BANNER_FRAMES / 2, DELTA)
+	EventBus.area_changed.emit(_area("Village"))
+	assert_eq(banner.text, "Village")
+	simulate(hud, BANNER_FRAMES - 1, DELTA)
+	assert_true(banner.visible, "a frame before the end")
+	simulate(hud, 2, DELTA)
+	assert_false(banner.visible, "gone")
+
+
+func test_the_end_of_a_run_and_a_new_run_hide_the_area_name() -> void:
+	var hud := _hud()
+	var banner: Label = hud.get_node("%AreaBanner")
+	GameState.start_run(1)
+	EventBus.area_changed.emit(_area("Desert"))
+	GameState.end_run(CarSim.WRONG_TURN)
+	assert_false(banner.visible, "the game-over screen names the area")
+	simulate(hud, 1, DELTA)
+	assert_false(banner.visible, "and it stays hidden")
+	GameState.quit_to_title()
+	GameState.start_run(2)
+	EventBus.area_changed.emit(_area("City"))
+	GameState.quit_to_title()
+	GameState.start_run(3)
+	assert_false(banner.visible, "a new run starts without the last one's name")
+	simulate(hud, 1, DELTA)
+	assert_false(banner.visible, "and it stays hidden")

@@ -26,7 +26,7 @@ static func run_while(test: GutTest, main: Node, state: int, frames: int) -> int
 	return frames
 
 
-## The run's car: the one child of World's Props layer until M4 adds props.
+## The run's car: the one child of World's Props layer until M5 adds props (M4_PLAN.md K3).
 static func car(main: Node) -> CarController:
 	return main.get_node("%World/%Props").get_child(0)
 
