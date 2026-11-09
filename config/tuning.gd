@@ -44,3 +44,37 @@ const CAMERA_SMOOTHING := 6.0
 
 ## HUD distance: metres shown per road tile (IMPLEMENTATION_PLAN.md M2.6).
 const METRES_PER_TILE := 10
+
+## The end of a run (IMPLEMENTATION_PLAN.md M3). After a disaster or a crash, the car brakes at
+## BRAKE, or harder if it must, so that it stops within STOP_SECONDS.
+const STOP_SECONDS := 0.6
+## From a crash to the game-over screen.
+const CRASH_SECONDS := 1.2
+## From a wrong or missed turn, the latest the game-over screen may come: the director then ends a
+## sequence that has not finished.
+const DISASTER_TIMEOUT := 6.0
+## The ranges of DisasterParams (plan.md §4.2): the seconds before a disaster shows, how strong it
+## is, and the scale of its particles.
+const DISASTER_DELAY_MIN := 0.1
+const DISASTER_DELAY_MAX := 0.5
+const DISASTER_INTENSITY_MIN := 0.5
+const DISASTER_INTENSITY_MAX := 1.0
+const PARTICLE_SCALE_MIN := 0.75
+const PARTICLE_SCALE_MAX := 1.25
+## Screen shake (CameraRig.shake): the offset at intensity 1, in screen pixels, which fades out over
+## the shake, and its frequencies across and up the screen, in rad/s. They differ, so the camera
+## moves in a figure rather than along a line.
+const SHAKE_PX := 6.0
+const SHAKE_FREQ_X := 47.0
+const SHAKE_FREQ_Y := 31.0
+## A crash's shake.
+const CRASH_SHAKE := 0.5
+const CRASH_SHAKE_SECONDS := 0.4
+## The crashed car's tint (its grey-box crash frame).
+const CRASH_TINT := Color(0.4, 0.4, 0.4)
+## The sinkhole (IMPLEMENTATION_PLAN.md M3.2): the hole's radius at intensity 1, in tiles; how long
+## it grows, how long the car takes to sink into it, and how long the scene then holds, in seconds.
+const SINKHOLE_RADIUS := 0.8
+const SINKHOLE_GROW_SECONDS := 0.8
+const SINKHOLE_SINK_SECONDS := 1.0
+const SINKHOLE_HOLD_SECONDS := 0.6

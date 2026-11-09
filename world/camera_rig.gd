@@ -2,9 +2,15 @@ class_name CameraRig
 extends Camera2D
 ## Follows the car (IMPLEMENTATION_PLAN.md M2.5): smoothly, a little ahead along its heading, and,
 ## on a portrait screen, with the car in the lower part. The zoom shows about VISIBLE_TILES tiles
-## across the screen's shorter side, in the steps of CAMERA_ZOOMS, which keep pixels crisp.
+## across the screen's shorter side, in the steps of CAMERA_ZOOMS, which keep pixels crisp. A shake
+## (M3.2) moves the view by its offset, which leaves the position and the smoothing alone.
 
 var car: CarController
+
+## The shake's offset at its start, in screen pixels; its length and its age, in seconds.
+var _shake_px := 0.0
+var _shake_seconds := 0.0
+var _shake_time := 0.0
 
 
 func _ready() -> void:
@@ -15,6 +21,24 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if car != null:
 		position = position.lerp(target(), 1.0 - exp(-Tuning.CAMERA_SMOOTHING * delta))
+	if _shake_seconds > 0.0:
+		_shake_time += delta
+		_update_shake()
+
+
+## Shakes the view for `seconds`, by up to `intensity` × SHAKE_PX screen pixels, fading out. It
+## replaces a shake that is still going. No randomness: the offset follows two sine waves.
+func shake(intensity: float, seconds: float) -> void:
+	_shake_px = intensity * Tuning.SHAKE_PX
+	_shake_seconds = seconds
+	_shake_time = 0.0
+	_update_shake()
+
+
+## Ends a shake at once.
+func stop_shake() -> void:
+	_shake_seconds = 0.0
+	offset = Vector2.ZERO
 
 
 ## Where the camera heads: ahead of the car, and above it on a portrait screen.
@@ -40,6 +64,18 @@ static func zoom_for(size: Vector2) -> float:
 		if absf(log(step / ideal)) < absf(log(best / ideal)):
 			best = step
 	return best
+
+
+func _update_shake() -> void:
+	if _shake_time >= _shake_seconds:
+		stop_shake()
+		return
+	var fade := 1.0 - _shake_time / _shake_seconds
+	var wave := Vector2(
+		sin(_shake_time * Tuning.SHAKE_FREQ_X), cos(_shake_time * Tuning.SHAKE_FREQ_Y)
+	)
+	# The offset is in world pixels, which the zoom scales.
+	offset = wave * _shake_px * fade / zoom.x
 
 
 func _on_size_changed() -> void:
