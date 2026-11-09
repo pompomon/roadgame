@@ -8,8 +8,6 @@ extends DisasterBase
 
 enum Phase { WAITING, DELAY, GROW, SINK, HOLD, DONE }
 
-## Points on the outline of the hole and of its rim.
-const POINTS := 32
 ## The rim's radius, as a multiple of the hole's.
 const RIM := 1.25
 ## How far the debris leans from straight up towards the params' direction.
@@ -37,23 +35,10 @@ func _ready() -> void:
 func play(params: DisasterParams) -> void:
 	_params = params
 	position = params.origin_world
-	_debris.use_fixed_seed = true
-	_debris.seed = params.particle_seed
+	apply_params(_debris, params)
 	var lean := Iso.tile_to_world(params.direction).normalized() * LEAN
 	_debris.direction = (Vector2.UP + lean).normalized()
-	_debris.initial_velocity_min *= params.intensity
-	_debris.initial_velocity_max *= params.intensity
-	_debris.scale_amount_min *= params.particle_scale
-	_debris.scale_amount_max *= params.particle_scale
 	phase = Phase.DELAY
-
-
-## The ellipse that a circle of `radius` tiles around the origin makes on screen, in world pixels.
-static func outline(radius: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
-	for i: int in POINTS:
-		points.append(Iso.tile_to_world(Vector2.from_angle(TAU * i / POINTS) * radius))
-	return points
 
 
 ## The seconds from play() to finished: the delay and the three phases.

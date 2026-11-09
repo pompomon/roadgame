@@ -36,7 +36,7 @@ func test_the_game_schedule_is_valid() -> void:
 
 
 func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
-	# Until M4.5 adds the others, every pool is the sinkhole (M3_PLAN.md Q2).
+	# A wrong turn in any area ends in a disaster (M3_PLAN.md J6).
 	var areas := 0
 	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
 		var area := entry.area
@@ -186,3 +186,101 @@ func test_the_last_area_goes_on_forever() -> void:
 	assert_eq(path[-1].turn_number, 999)
 	assert_eq(path[-1].area_id, &"desert")
 	assert_eq(gen.current_area.id, &"desert")
+
+
+## A schedule that changes area at every junction, through a set piece of `piece` tiles and then a
+## straight of exactly `straight` tiles: every junction is as far from the last as it allows.
+func _gap_schedule(piece: int, straight: int, turns: int) -> AreaSchedule:
+	var areas: Array[AreaDef] = [_area(&"a", straight, straight), _area(&"b", straight, straight)]
+	var schedule := AreaSchedule.new()
+	schedule.entries.append(_entry(0, areas[0]))
+	for turn: int in range(1, turns):
+		schedule.entries.append(_entry(turn, areas[turn % 2], &"tunnel", piece))
+	return schedule
+
+
+## Takes the path a tile at a time and the right exit at each junction, in CarSim's order: the
+## buffer moves on, then the trigger judges. Returns the fewest buffer tiles there were past the
+## next junction when the trigger found it, or -1 if it lost it.
+static func _least_margin(schedule: AreaSchedule, turns: int) -> int:
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, schedule))
+	buffer.start()
+	var trigger := JunctionTrigger.new(buffer)
+	var least := Tuning.BUFFER_AHEAD
+	var index := 0
+	while trigger.turn_index < turns:
+		var junction := trigger.next_junction
+		if junction == null:
+			return -1
+		index += 1
+		buffer.on_car_path_index(index)
+		if buffer.path_tile(index - 1) != junction:
+			continue
+		trigger.on_cell_crossed(junction.cell, buffer.path_tile(index).cell, true)
+		if trigger.next_junction != null:
+			least = mini(least, buffer.last_index() - trigger.next_junction.path_index)
+	return least
+
+
+func test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer() -> void:
+	# H31: the set piece, the longest straight after it and the next junction's own tile. Straights
+	# of 20 tiles and a 4-tile tunnel put the next junction 25 tiles on, the most allowed.
+	for piece: int in [2, 3, 4, 5, 6]:
+		var gap := piece + 20 + 1
+		var schedule := _gap_schedule(piece, 20, 60)
+		var problems := " | ".join(schedule.validate())
+		if gap > Tuning.BUFFER_REFILL_AT:
+			assert_string_contains(problems, "can be %d tiles away" % gap)
+			continue
+		assert_eq(problems, "", "gap %d" % gap)
+		assert_gte(_least_margin(schedule, 60), 0, "gap %d: the trigger found every junction" % gap)
+	# The limit leaves one tile spare: the next junction is sometimes the buffer's last but one (K2).
+	assert_eq(_least_margin(_gap_schedule(4, 20, 60), 60), 1)
+	var long := _area(&"long", 2, Tuning.BUFFER_REFILL_AT - 1)
+	assert_eq(_problems([_entry(0, long)]), "", "a straight of 24 and the junction")
+	long.max_straight += 1
+	assert_string_contains(_problems([_entry(0, long)]), "above BUFFER_REFILL_AT")
+
+
+func test_a_schedule_can_start_in_any_of_its_areas() -> void:
+	# For main.gd's --area (K11): the run starts in that area, without the set piece that leads in.
+	var schedule := Fixtures.schedule()
+	var areas := {}
+	for entry: AreaScheduleEntry in schedule.entries:
+		areas[entry.area.id] = entry.area
+	var expected := {
+		&"city":
+		[
+			[0, &"city", &"", 0],
+			[34, &"rural", &"tunnel", 6],
+			[100, &"meadows", &"bridge", 5],
+			[200, &"village", &"", 0],
+			[220, &"desert", &"", 0],
+		],
+		&"rural":
+		[
+			[0, &"rural", &"", 0],
+			[66, &"meadows", &"bridge", 5],
+			[166, &"village", &"", 0],
+			[186, &"desert", &"", 0],
+		],
+		&"meadows": [[0, &"meadows", &"", 0], [100, &"village", &"", 0], [120, &"desert", &"", 0]],
+		&"village": [[0, &"village", &"", 0], [20, &"desert", &"", 0]],
+		&"desert": [[0, &"desert", &"", 0]],
+	}
+	for id: StringName in expected:
+		var start := schedule.starting_at(id)
+		assert_eq(_problems(start.entries), "", id)
+		var got: Array = []
+		for entry: AreaScheduleEntry in start.entries:
+			got.append([entry.turn, entry.area.id, entry.set_piece, entry.set_piece_length])
+			assert_same(entry.area, areas[entry.area.id], "%s: the same %s" % [id, entry.area.id])
+		assert_eq(got, expected[id], id)
+	assert_eq(schedule.entries[1].turn, 34, "the schedule itself stays")
+	assert_eq(schedule.entries[1].set_piece, &"tunnel")
+
+
+func test_a_schedule_cannot_start_in_an_area_it_lacks() -> void:
+	var schedule := Fixtures.schedule()
+	assert_same(schedule.starting_at(&"moon"), schedule)
+	assert_push_error("no area moon")

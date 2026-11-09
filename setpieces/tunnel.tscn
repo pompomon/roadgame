@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://setpieces/tunnel.gd" id="1_tunnel"]
+
+[node name="Tunnel" type="Node2D"]
+z_index = 1
+script = ExtResource("1_tunnel")
+
+[node name="FaceX" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.27, 0.25, 0.22, 1)
+
+[node name="FaceY" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.33, 0.3, 0.27, 1)
+
+[node name="Mouth" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.1, 0.1, 0.12, 1)
+
+[node name="Roof" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.42, 0.39, 0.35, 1)

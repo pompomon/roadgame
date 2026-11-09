@@ -87,3 +87,22 @@ func test_ground_tileset() -> void:
 	var dark := Color.BLUE.darkened(GreyboxAtlas.GROUND_SHADE)
 	assert_true(_near(image.get_pixelv(Vector2i(1, 1) * size + size / 2), dark))
 	assert_eq(image.get_pixel(0, 0).a, 0.0, "outside the diamond")
+
+
+func test_ground_tileset_has_a_column_for_each_transition() -> void:
+	# The transition's two areas, one per checker row (IMPLEMENTATION_PLAN.md M4.3).
+	var colors: Array[Color] = [Color.RED, Color.BLUE, Color.GREEN]
+	var transitions: Array[Vector2i] = [Vector2i(0, 1), Vector2i(1, 2)]
+	var ground := GreyboxAtlas.build_ground_tileset(colors, transitions)
+	var size := ground.tile_size
+	var source: TileSetAtlasSource = ground.get_source(0)
+	assert_eq(source.get_atlas_grid_size(), Vector2i(5, 2))
+	assert_eq(source.get_tiles_count(), 10)
+	var image := source.texture.get_image()
+	var expected: Array[Color] = [Color.RED, Color.BLUE, Color.BLUE, Color.GREEN]
+	for k: int in expected.size():
+		var at := Vector2i(3 + k / 2, k % 2)
+		var pixel := image.get_pixelv(at * size + size / 2)
+		assert_true(_near(pixel, expected[k]), "%s: %s, not %s" % [at, pixel, expected[k]])
+	var dark := Color.GREEN.darkened(GreyboxAtlas.GROUND_SHADE)
+	assert_true(_near(image.get_pixelv(Vector2i(2, 1) * size + size / 2), dark), "areas first")

@@ -57,6 +57,56 @@ func test_a_new_buffer_replaces_the_last_one() -> void:
 	assert_eq(_wrong_cells(), 0, "the new buffer's do")
 
 
+func test_the_first_tiles_of_an_area_blend_its_ground_with_the_last_one() -> void:
+	# plan.md §5.3 and IMPLEMENTATION_PLAN.md M4.3: the first TRANSITION_TILES path tiles of an area
+	# show both areas' colours in a checker; every other tile, dead ends too, its own area's shades.
+	var schedule := Fixtures.schedule()
+	_world.build(schedule)
+	_world.bind(_buffer)
+	_buffer.start()
+	var colors: Dictionary[StringName, Color] = {}
+	for entry: AreaScheduleEntry in schedule.entries:
+		colors[entry.area.id] = entry.area.id_color
+	var ground: TileMapLayer = _world.get_node("%GroundLayer")
+	var source: TileSetAtlasSource = ground.tile_set.get_source(0)
+	var image := source.texture.get_image()
+	var size := ground.tile_set.tile_size
+	var last_area := &"city"
+	var in_area := 0
+	var blended: Array[StringName] = []
+	var index := 0
+	while last_area != &"desert" or in_area < Tuning.TRANSITION_TILES + 1:
+		index += 1
+		_buffer.on_car_path_index(index)
+		var tile := _buffer.path_tile(index)
+		var from := last_area
+		in_area = in_area + 1 if tile.area_id == last_area else 1
+		last_area = tile.area_id
+		var blend := in_area <= Tuning.TRANSITION_TILES and index > in_area
+		if blend:
+			from = _buffer.path_tile(index - in_area).area_id
+			blended.append(tile.area_id)
+		for each: RoadTile in [tile] + tile.branches:
+			for cell: Vector2i in WorldRenderer._ground_cells(each.cell):
+				var coords := ground.get_cell_atlas_coords(cell)
+				var want := colors[each.area_id].darkened(GreyboxAtlas.GROUND_SHADE * coords.y)
+				if blend and each == tile:
+					want = colors[from] if coords.y == 0 else colors[tile.area_id]
+				var got := image.get_pixelv(coords * size + size / 2)
+				if not _near(got, want):
+					fail_test("path index %d, %s: %s, not %s" % [index, each.cell, got, want])
+					return
+	var expected: Array[StringName] = []
+	for id: StringName in [&"rural", &"meadows", &"village", &"desert"]:
+		for k: int in Tuning.TRANSITION_TILES:
+			expected.append(id)
+	assert_eq(blended, expected, "TRANSITION_TILES tiles at each change of area")
+
+
+static func _near(a: Color, b: Color) -> bool:
+	return absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) + absf(a.a - b.a) < 0.02
+
+
 func test_debug_view_tints_dead_ends() -> void:
 	_world.show_dead_ends = true
 	_world.build(Fixtures.schedule())
@@ -90,8 +140,90 @@ func test_disasters_draw_above_the_road_and_below_the_car() -> void:
 	var names: Array[StringName] = []
 	for node: Node in _world.get_children():
 		names.append(node.name)
-	var order: Array[StringName] = [&"GroundLayer", &"RoadLayer", &"DisasterLayer", &"Props"]
+	var order: Array[StringName] = [
+		&"GroundLayer", &"SetPieces", &"RoadLayer", &"DisasterLayer", &"Props"
+	]
 	assert_eq(names, order)
 	var layer: Node2D = _world.get_node("%DisasterLayer")
 	assert_false(layer.y_sort_enabled)
 	assert_eq(layer.z_index, 0)
+
+
+func test_set_pieces_draw_above_the_ground_and_below_the_road() -> void:
+	# A river runs under the road; what must cover the car sets its own z_index (M4.4).
+	var layer: Node2D = _world.get_node("%SetPieces")
+	assert_eq(layer.get_index(), _world.get_node("%GroundLayer").get_index() + 1)
+	assert_false(layer.y_sort_enabled)
+	assert_eq(layer.z_index, 0)
+	assert_eq(_world.set_piece_scenes.keys(), [&"bridge", &"tunnel"])
+
+
+func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -> void:
+	# Junction 11 is path tile 48, so the tunnel's run is tiles 49 to 52, and the buffer's first
+	# batch ends at tile 50 (BUFFER_AHEAD): the run comes in two batches.
+	var schedule := Fixtures.set_piece_schedule(12, &"tunnel", 4)
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.build(schedule)
+	_world.bind(_buffer)
+	_buffer.start()
+	var pieces: Node2D = _world.get_node("%SetPieces")
+	assert_eq(_buffer.last_index(), Tuning.BUFFER_AHEAD)
+	assert_eq(_buffer.path_tile(49).set_piece, &"tunnel", "the run has begun")
+	assert_eq(pieces.get_child_count(), 0, "but the buffer hasn't made all of it")
+	_buffer.on_car_path_index(Tuning.BUFFER_AHEAD - Tuning.BUFFER_REFILL_AT + 1)
+	assert_eq(pieces.get_child_count(), 1, "now it has")
+	var tunnel := pieces.get_child(0) as Tunnel
+	var cells := Rect2(_buffer.path_tile(49).cell, Vector2.ONE)
+	assert_eq(tunnel.rect, cells.merge(Rect2(_buffer.path_tile(52).cell, Vector2.ONE)))
+	assert_eq(_buffer.path_tile(53).set_piece, &"", "the run ends at 52")
+	_buffer.on_car_path_index(52 + Tuning.BUFFER_BEHIND)
+	assert_eq(_buffer.first_index(), 52, "its first tiles are gone")
+	assert_eq(pieces.get_child_count(), 1, "but not its last")
+	_buffer.on_car_path_index(53 + Tuning.BUFFER_BEHIND)
+	assert_eq(pieces.get_child_count(), 0, "it goes with its last tile")
+
+
+func test_a_new_buffer_drops_the_last_runs_set_pieces_and_car() -> void:
+	var schedule := Fixtures.set_piece_schedule(1, &"bridge", 5)
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.build(schedule)
+	_world.bind(_buffer)
+	_buffer.start()
+	var car: Node2D = add_child_autofree(Node2D.new())
+	_world.car = car
+	var pieces: Node2D = _world.get_node("%SetPieces")
+	assert_eq(pieces.get_child_count(), 1)
+	assert_eq((pieces.get_child(0) as SetPiece).car, car, "the set piece follows the car")
+	var next := RoadBuffer.new(RoadGenerator.new(4, schedule))
+	_world.bind(next)
+	assert_eq(pieces.get_child_count(), 0, "the last run's set pieces are gone")
+	assert_null(_world.car, "and its car")
+	next.start()
+	assert_eq(pieces.get_child_count(), 1, "the new run's")
+	assert_null((pieces.get_child(0) as SetPiece).car, "no car until main gives it one")
+	_world.car = car
+	assert_eq((pieces.get_child(0) as SetPiece).car, car)
+
+
+func test_a_new_buffer_drops_the_last_runs_unfinished_set_piece() -> void:
+	var schedule := Fixtures.set_piece_schedule(12, &"tunnel", 4)
+	var last := RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.build(schedule)
+	_world.bind(last)
+	last.start()
+	assert_eq(last.path_tile(Tuning.BUFFER_AHEAD).set_piece, &"tunnel", "a run is unfinished")
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, Fixtures.dense_schedule()))
+	_world.bind(_buffer)
+	_buffer.start()
+	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "no tunnel on the new road")
+
+
+func test_a_set_piece_without_a_scene_is_an_error() -> void:
+	var schedule := Fixtures.set_piece_schedule(1, &"ferris_wheel", 5)
+	_world.build(schedule)
+	assert_push_error("no scene for set piece ferris_wheel")
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.bind(_buffer)
+	_buffer.start()
+	assert_eq(_buffer.path_tile(5).set_piece, &"ferris_wheel")
+	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")

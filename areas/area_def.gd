@@ -1,8 +1,9 @@
 class_name AreaDef
 extends Resource
 ## The rules of one area (plan.md §3.7). M1 added the fields the generator and the grey-box renderer
-## use, M2 the driving fields CarSim reads, M3 the disaster pool; M4 adds the prop and audio fields.
-## The driving defaults are the City's values (IMPLEMENTATION_PLAN.md M4.2).
+## use, M2 the driving fields CarSim reads, M3 the disaster pool. The art, prop and audio fields
+## come with what reads them, in M5 (M4_PLAN.md K5). The driving defaults are the City's values
+## (IMPLEMENTATION_PLAN.md M4.2).
 
 @export var id := &""
 @export var display_name := ""
@@ -30,7 +31,7 @@ extends Resource
 
 @export_group("Disasters")
 ## What a wrong or missed turn here may end in (plan.md §4.3): scenes whose root is a DisasterBase.
-## In M3 every area has the sinkhole, until M4.5 adds the others (M3_PLAN.md Q2).
+## The DisasterDirector picks one with the run's disaster stream.
 @export var disasters: Array[PackedScene] = []
 
 

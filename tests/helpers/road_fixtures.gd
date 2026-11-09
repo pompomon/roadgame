@@ -21,6 +21,42 @@ static func dense_schedule() -> AreaSchedule:
 	return dense
 
 
+## Two areas whose straights are all `straight` tiles, with no crossroads, so that junction k is
+## path tile START_STRAIGHT_TILES + k * (straight + 1) until the second area: it starts at `turn`,
+## after a set piece `length` tiles long.
+static func set_piece_schedule(
+	turn: int, set_piece: StringName, length: int, straight := 3
+) -> AreaSchedule:
+	var schedule := AreaSchedule.new()
+	for id: StringName in [&"before", &"after"]:
+		var area := AreaDef.new()
+		area.id = id
+		area.min_straight = straight
+		area.max_straight = straight
+		area.cross_junction_chance = 0.0
+		var entry := AreaScheduleEntry.new()
+		entry.area = area
+		if id == &"after":
+			entry.turn = turn
+			entry.set_piece = set_piece
+			entry.set_piece_length = length
+		schedule.entries.append(entry)
+	return schedule
+
+
+## dense_schedule()'s area, with a bridge after every junction up to `turns`, 2 to 6 tiles long.
+static func bridge_every_turn(turns: int) -> AreaSchedule:
+	var dense := dense_schedule()
+	for turn: int in range(1, turns + 1):
+		var entry := AreaScheduleEntry.new()
+		entry.turn = turn
+		entry.area = dense.entries[0].area
+		entry.set_piece = &"bridge"
+		entry.set_piece_length = 2 + turn % 5
+		dense.entries.append(entry)
+	return dense
+
+
 ## What a test compares to decide that two tiles are the same: a path tile and its branches.
 static func signature(tile: RoadTile) -> Array:
 	var sig: Array = [
