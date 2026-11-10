@@ -1,11 +1,34 @@
 class_name WorldRenderer
 extends Node2D
-## Draws the tiles of a RoadBuffer on the grey-box layers (IMPLEMENTATION_PLAN.md M1.6): one road
-## cell and 4×4 ground cells per tile, erased when the buffer frees the tile. The ground of the
-## first TRANSITION_TILES path tiles of an area blends with the last area's (M4.3). Each run of
+## Draws the tiles of a RoadBuffer (IMPLEMENTATION_PLAN.md M1.6): one road cell per tile, from its
+## area's road sheet, erased when the buffer frees the tile. The ground isn't drawn per tile: each
+## area the path goes through gets a band of its ground across the screen (M5_PLAN.md §5.5). The
+## path heads only N or W, up the screen, so an area's path tiles lie between two screen rows: its
+## band reaches from its first path tiles up to where the next area's begins. Its edge blends it
+## into the last area's ground over its first TRANSITION_TILES path tiles (M4.3). Each run of
 ## set-piece tiles gets its scene once the buffer has made the whole run, which may take two
-## batches, and loses it with the run's last tile (M4.4). build() makes the tilesets once; bind()
+## batches, and loses it with the run's last tile (M4.4). build() makes the tileset once; bind()
 ## draws a run's buffer, and a retry binds the next run's (M3_PLAN.md J11).
+
+## How far the ground reaches past the buffered tiles, in world pixels: farther than any view can
+## show past them. The camera follows the car, which stays between the buffer's oldest and newest
+## path tiles, and shows about VISIBLE_TILES tiles across the screen's shorter side: some 1,000 px
+## across, or 1,400 px above the car, on the longest screens.
+const GROUND_MARGIN := 2048.0
+
+
+## The ground of one stretch of the path in one area: a sprite whose region repeats the area's
+## ground, and the edge as its child, below its line.
+class Band:
+	extends RefCounted
+	var area_id: StringName
+	var sprite: Sprite2D
+	## Null for the first area of a run, below which there is nothing to blend into.
+	var edge: Sprite2D
+	## The screen y where the edge ends and the solid ground begins: the centre of the area's path
+	## tile TRANSITION_TILES on. The ground's first row is there, and the edge's.
+	var line: float
+
 
 ## Tint dead ends. For debug views only: in a run they must look like real road.
 @export var show_dead_ends := false
@@ -17,39 +40,32 @@ extends Node2D
 var car: Node2D:
 	set = set_car
 
-var _area_columns: Dictionary[StringName, int] = {}
-## Ground columns of the transitions between the schedule's areas, by _transition_key().
-var _transition_columns: Dictionary[String, int] = {}
+## The schedule's areas, and the source of each one's road sheet in the tileset, by id.
+var _areas: Dictionary[StringName, AreaDef] = {}
+var _road_sources: Dictionary[StringName, int] = {}
 ## The buffer it draws, or null before the first bind().
 var _buffer: RoadBuffer
+## The ground bands, oldest first. Each draws over the last.
+var _bands: Array[Band] = []
 ## The tiles so far of a run of set-piece tiles that the buffer hasn't finished.
 var _open_run: Array[RoadTile] = []
 ## The set pieces, by the path index of their run's last tile.
 var _set_pieces_by_end: Dictionary[int, SetPiece] = {}
 
-@onready var _ground: TileMapLayer = %GroundLayer
+@onready var _ground: Node2D = %Ground
 @onready var _road: TileMapLayer = %RoadLayer
 @onready var _set_pieces: Node2D = %SetPieces
 
 
-## Builds the tilesets for the areas of `schedule`. Call it once, when the node is ready.
+## Builds the road tileset for the areas of `schedule`. Call it once, when the node is ready.
 func build(schedule: AreaSchedule) -> void:
-	var colors: Array[Color] = []
+	var sheets: Array[Texture2D] = []
 	for entry: AreaScheduleEntry in schedule.entries:
-		if not _area_columns.has(entry.area.id):
-			_area_columns[entry.area.id] = colors.size()
-			colors.append(entry.area.id_color)
-	var transitions: Array[Vector2i] = []
-	for k: int in range(1, schedule.entries.size()):
-		var from := schedule.entries[k - 1].area.id
-		var to := schedule.entries[k].area.id
-		var key := _transition_key(from, to)
-		if from != to and not _transition_columns.has(key):
-			_transition_columns[key] = colors.size() + transitions.size()
-			transitions.append(Vector2i(_area_columns[from], _area_columns[to]))
-	_ground.tile_set = GreyboxAtlas.build_ground_tileset(colors, transitions)
-	_road.tile_set = GreyboxAtlas.road_tileset()
-	_ground.position = Iso.layer_offset(_ground, Iso.GROUND_PER_TILE)
+		if not _areas.has(entry.area.id):
+			_areas[entry.area.id] = entry.area
+			_road_sources[entry.area.id] = sheets.size()
+			sheets.append(entry.area.road_sheet)
+	_road.tile_set = GreyboxAtlas.road_tileset(sheets)
 	_road.position = Iso.layer_offset(_road, 1)
 	for entry: AreaScheduleEntry in schedule.entries:
 		if entry.set_piece != &"" and set_piece_scenes.get(entry.set_piece) == null:
@@ -62,8 +78,10 @@ func bind(buffer: RoadBuffer) -> void:
 	if _buffer != null:
 		_buffer.tiles_generated.disconnect(_on_tiles_generated)
 		_buffer.tiles_freed.disconnect(_on_tiles_freed)
-	_ground.clear()
 	_road.clear()
+	for band: Band in _bands:
+		band.sprite.free()
+	_bands.clear()
 	for piece: SetPiece in _set_pieces_by_end.values():
 		piece.free()
 	_set_pieces_by_end.clear()
@@ -84,19 +102,19 @@ func set_car(value: Node2D) -> void:
 
 func _on_tiles_generated(tiles: Array[RoadTile]) -> void:
 	for tile: RoadTile in tiles:
-		_road.set_cell(tile.cell, 0, GreyboxAtlas.road_coords(tile, show_dead_ends))
-		var column := _ground_column(tile)
-		for ground: Vector2i in _ground_cells(tile.cell):
-			_ground.set_cell(ground, 0, GreyboxAtlas.ground_coords(column, ground))
+		var source: int = _road_sources.get(tile.area_id, 0)
+		_road.set_cell(tile.cell, source, GreyboxAtlas.road_coords(tile, show_dead_ends))
 		if tile.path_index >= 0:
+			if _bands.is_empty() or _bands[-1].area_id != tile.area_id:
+				_add_band(tile)
 			_follow_set_pieces(tile)
+	if not tiles.is_empty():
+		_fit_bands()
 
 
 func _on_tiles_freed(tiles: Array[RoadTile]) -> void:
 	for tile: RoadTile in tiles:
 		_road.erase_cell(tile.cell)
-		for ground: Vector2i in _ground_cells(tile.cell):
-			_ground.erase_cell(ground)
 		if tile.path_index >= 0 and _set_pieces_by_end.has(tile.path_index):
 			_set_pieces_by_end[tile.path_index].free()
 			_set_pieces_by_end.erase(tile.path_index)
@@ -129,28 +147,65 @@ func _add_set_piece(run: Array[RoadTile]) -> void:
 	_set_pieces_by_end[run[-1].path_index] = piece
 
 
-## The ground column of `tile`: its area's, or the transition's on the first TRANSITION_TILES path
-## tiles of an area. Those are straights, as min_straight is at least 2 (D7), so no dead end needs
-## one. The tiles before them are still in the buffer: it keeps 5 behind the car and makes new tiles
-## 25 ahead.
-func _ground_column(tile: RoadTile) -> int:
-	var column: int = _area_columns.get(tile.area_id, 0)
-	if tile.path_index < 0:
-		return column
-	for k: int in range(1, Tuning.TRANSITION_TILES + 1):
-		var before := _buffer.path_tile(tile.path_index - k)
-		if before != null and before.area_id != tile.area_id:
-			return _transition_columns.get(_transition_key(before.area_id, tile.area_id), column)
-	return column
+## Begins the ground of the area of path tile `tile`, the area's first. An area the schedule hasn't
+## got looks like its first area, as its road does.
+func _add_band(tile: RoadTile) -> void:
+	var area: AreaDef = _areas.get(tile.area_id, _areas.values()[0])
+	var band := Band.new()
+	band.area_id = tile.area_id
+	band.line = _centre_y(tile.cell)
+	var ground := area.ground if area.ground != null else GreyboxAtlas.ground_texture(area.id_color)
+	band.sprite = _band_sprite(ground)
+	_ground.add_child(band.sprite)
+	if not _bands.is_empty():
+		band.line -= GreyboxAtlas.edge_rows()
+		var edge := area.ground_edge
+		if area.ground == null:
+			edge = GreyboxAtlas.edge_texture(area.id_color)
+		if edge != null:
+			band.edge = _band_sprite(edge)
+			band.sprite.add_child(band.edge)
+	_bands.append(band)
 
 
-static func _transition_key(from: StringName, to: StringName) -> String:
-	return "%s>%s" % [from, to]
+## Fits the bands to the buffer: each reaches GROUND_MARGIN past the buffered tiles on either side,
+## from its line up to the next band's, the newest GROUND_MARGIN past the newest path tile and the
+## oldest as far below its line. A band whose next band begins GROUND_MARGIN below the oldest path
+## tile can't show again, and goes. A region keeps the texture's columns where the world's are and
+## its first row at the band's line, so that the ground stays put as its band grows.
+func _fit_bands() -> void:
+	var oldest := _centre_y(_buffer.path_tile(_buffer.first_index()).cell)
+	while _bands.size() > 1 and _bands[1].line >= oldest + GROUND_MARGIN:
+		_bands.pop_front().sprite.free()
+	var left := INF
+	var right := -INF
+	for tile: RoadTile in _buffer.tiles():
+		var x := Iso.tile_to_world(Iso.cell_centre(tile.cell)).x
+		left = minf(left, x)
+		right = maxf(right, x)
+	var top := _centre_y(_buffer.path_tile(_buffer.last_index()).cell) - GROUND_MARGIN
+	for k: int in range(_bands.size() - 1, -1, -1):
+		var band := _bands[k]
+		var bottom := band.line + (GROUND_MARGIN if k == 0 else 0.0)
+		var period := float(band.sprite.texture.get_width())
+		var x0 := floorf((left - GROUND_MARGIN) / period) * period
+		var x1 := ceilf((right + GROUND_MARGIN) / period) * period
+		band.sprite.position = Vector2(x0, top)
+		band.sprite.region_rect = Rect2(x0, top - band.line, x1 - x0, bottom - top)
+		if band.edge != null:
+			band.edge.position = Vector2(0.0, band.line - top)
+			band.edge.region_rect = Rect2(x0, 0.0, x1 - x0, band.edge.texture.get_height())
+		top = band.line
 
 
-static func _ground_cells(cell: Vector2i) -> Array[Vector2i]:
-	var cells: Array[Vector2i] = []
-	for y: int in Iso.GROUND_PER_TILE:
-		for x: int in Iso.GROUND_PER_TILE:
-			cells.append(cell * Iso.GROUND_PER_TILE + Vector2i(x, y))
-	return cells
+static func _band_sprite(texture: Texture2D) -> Sprite2D:
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.centered = false
+	sprite.region_enabled = true
+	sprite.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	return sprite
+
+
+static func _centre_y(cell: Vector2i) -> float:
+	return Iso.tile_to_world(Iso.cell_centre(cell)).y

@@ -1,5 +1,6 @@
 extends GutTest
 
+const Art := preload("res://tests/helpers/art_checks.gd")
 const NS := 0b0101
 const EW := 0b1010
 const CAP_S := 0b0100
@@ -10,7 +11,7 @@ var _image: Image
 
 func before_all() -> void:
 	var start := Time.get_ticks_usec()
-	_road = GreyboxAtlas.road_tileset()
+	_road = GreyboxAtlas.road_tileset([null])
 	gut.p("road atlas built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	var source: TileSetAtlasSource = _road.get_source(0)
 	_image = source.texture.get_image()
@@ -46,8 +47,6 @@ func test_road_coords() -> void:
 	assert_eq(GreyboxAtlas.road_coords(tile, true), Vector2i(4, GreyboxAtlas.Row.TUNNEL))
 	tile.set_piece = &"bridge"
 	assert_eq(GreyboxAtlas.road_coords(tile, false), Vector2i(4, GreyboxAtlas.Row.BRIDGE))
-	assert_eq(GreyboxAtlas.ground_coords(2, Vector2i(3, 4)), Vector2i(2, 1))
-	assert_eq(GreyboxAtlas.ground_coords(2, Vector2i(-3, 5)), Vector2i(2, 0))
 
 
 func test_every_tile_has_road_in_the_centre_and_none_in_the_corners() -> void:
@@ -76,39 +75,33 @@ func test_road_pixels_follow_the_road_geometry() -> void:
 	assert_eq(_pixel(CAP_S, 0, Vector2(0.5, 0.1)).a, 0.0, "cap: nothing past the end")
 
 
-func test_ground_tileset() -> void:
-	var colors: Array[Color] = [Color.RED, Color.BLUE]
-	var ground := GreyboxAtlas.build_ground_tileset(colors)
-	var size := Vector2i(Iso.TILE_W, Iso.TILE_H) / Iso.GROUND_PER_TILE
-	assert_eq(ground.tile_size, size)
-	var source: TileSetAtlasSource = ground.get_source(0)
-	var image := source.texture.get_image()
-	assert_true(_near(image.get_pixelv(Vector2i(1, 0) * size + size / 2), Color.BLUE))
-	var dark := Color.BLUE.darkened(GreyboxAtlas.GROUND_SHADE)
-	assert_true(_near(image.get_pixelv(Vector2i(1, 1) * size + size / 2), dark))
-	assert_eq(image.get_pixel(0, 0).a, 0.0, "outside the diamond")
+func test_a_road_tileset_has_a_source_for_each_sheet() -> void:
+	# Each area's road sheet, or the grey box's for an area that has none (M5_PLAN.md §5.5).
+	var sheet := ImageTexture.create_from_image(GreyboxAtlas.road_image())
+	var road := GreyboxAtlas.road_tileset([null, sheet])
+	assert_eq(road.get_source_count(), 2)
+	var grey: TileSetAtlasSource = road.get_source(0)
+	var art: TileSetAtlasSource = road.get_source(1)
+	assert_eq(grey.texture, GreyboxAtlas.road_texture())
+	assert_eq(art.texture, sheet)
+	assert_eq(art.get_tiles_count(), 15 * GreyboxAtlas.Row.size())
 
 
-func test_ground_tileset_has_a_column_for_each_transition() -> void:
-	# The transition's two areas, one per checker row (IMPLEMENTATION_PLAN.md M4.3).
-	var colors: Array[Color] = [Color.RED, Color.BLUE, Color.GREEN]
-	var transitions: Array[Vector2i] = [Vector2i(0, 1), Vector2i(1, 2)]
-	var ground := GreyboxAtlas.build_ground_tileset(colors, transitions)
-	var size := ground.tile_size
-	var source: TileSetAtlasSource = ground.get_source(0)
-	assert_eq(source.get_atlas_grid_size(), Vector2i(5, 2))
-	assert_eq(source.get_tiles_count(), 10)
-	var image := source.texture.get_image()
-	@warning_ignore("integer_division")
-	var middle := size / 2
-	var expected: Dictionary[Vector2i, Color] = {
-		Vector2i(3, 0): Color.RED,
-		Vector2i(3, 1): Color.BLUE,
-		Vector2i(4, 0): Color.BLUE,
-		Vector2i(4, 1): Color.GREEN,
-	}
-	for at: Vector2i in expected:
-		var pixel := image.get_pixelv(at * size + middle)
-		assert_true(_near(pixel, expected[at]), "%s: %s, not %s" % [at, pixel, expected[at]])
-	var dark := Color.GREEN.darkened(GreyboxAtlas.GROUND_SHADE)
-	assert_true(_near(image.get_pixelv(Vector2i(2, 1) * size + middle), dark), "areas first")
+func test_the_grey_box_ground_repeats_a_checker_of_ground_cells() -> void:
+	# Wherever the texture repeats from, the centre of each ground cell shows its shade.
+	var image := GreyboxAtlas.ground_texture(Color.RED).get_image()
+	var size := image.get_size()
+	assert_eq(size % GreyboxAtlas.ground_period(), Vector2i.ZERO)
+	for y: int in range(-6, 6):
+		for x: int in range(-6, 6):
+			var at := Iso.tile_to_world((Vector2(x, y) + Vector2(0.5, 0.5)) / Iso.GROUND_PER_TILE)
+			var pixel := Vector2i(at.floor())
+			var got := image.get_pixel(posmod(pixel.x, size.x), posmod(pixel.y, size.y))
+			var want := Color.RED.darkened(GreyboxAtlas.GROUND_SHADE * posmod(x + y, 2))
+			assert_true(_near(got, want), "ground cell (%d, %d): %s, not %s" % [x, y, got, want])
+
+
+func test_the_grey_box_edge_is_its_grounds_first_rows_thinning_out() -> void:
+	var ground := GreyboxAtlas.ground_texture(Color.RED).get_image()
+	var edge := GreyboxAtlas.edge_texture(Color.RED).get_image()
+	assert_eq(Art.edge_problem(ground, edge), "")

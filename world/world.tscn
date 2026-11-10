@@ -11,7 +11,7 @@ set_piece_scenes = Dictionary[StringName, PackedScene]({
 &"tunnel": ExtResource("2_tunnel")
 })
 
-[node name="GroundLayer" type="TileMapLayer" parent="."]
+[node name="Ground" type="Node2D" parent="."]
 unique_name_in_owner = true
 
 [node name="SetPieces" type="Node2D" parent="."]

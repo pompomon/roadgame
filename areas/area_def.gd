@@ -7,13 +7,24 @@ extends Resource
 
 @export var id := &""
 @export var display_name := ""
-## Grey-box colour of the area's ground (IMPLEMENTATION_PLAN.md M4.1).
+## The colour of the area's ground: the main colour of its art, and the grey box's for an area that
+## has none (IMPLEMENTATION_PLAN.md M4.1). The Atlas shows it too.
 @export var id_color := Color.GRAY
 ## Straight tiles between two junctions. Both are at least 2 (D7).
 @export_range(2, 20) var min_straight := 2
 @export_range(2, 20) var max_straight := 5
 ## Chance that a junction also offers "straight on" as a wrong exit (a crossroads).
 @export_range(0.0, 1.0) var cross_junction_chance := 0.3
+
+@export_group("Art")
+## The road sheet (M5_PLAN.md §5.5): GreyboxAtlas's layout, opaque exactly where its road is. With
+## none, the grey box's.
+@export var road_sheet: Texture2D
+## A seamless ground, which repeats across the screen, and its edge, which blends it into the last
+## area's ground over the area's first TRANSITION_TILES path tiles. With no ground, a checker in
+## id_color; with no edge, the ground begins at a straight line.
+@export var ground: Texture2D
+@export var ground_edge: Texture2D
 
 @export_group("Driving")
 ## Target-speed gain per tile driven since the last junction, in tiles/s (plan.md §2.3).

@@ -35,6 +35,13 @@ window/handheld/orientation=6
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
+[importer_defaults]
+
+texture={
+"compress/mode": 0,
+"mipmaps/generate": false
+}
+
 [input]
 
 steer_left={
