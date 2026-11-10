@@ -35,6 +35,8 @@ func _ready() -> void:
 	EventBus.disaster_started.connect(_on_disaster_started)
 	if OS.get_cmdline_user_args().has("--autopilot"):
 		use_memory()
+		# smoke.sh checks it: until a run reads a setting, nothing else shows it (M5_PLAN.md L1).
+		print("autopilot: the save is in %s" % ("memory" if path == "" else path))
 
 
 func _process(delta: float) -> void:

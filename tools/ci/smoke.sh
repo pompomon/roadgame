@@ -14,8 +14,9 @@ echo "not a save" > "$save_dir/save.json"
 export XDG_DATA_HOME="$data_home"
 run_godot 300 "$log" --headless --path . --fixed-fps 60 --quit-after 3600 -- --autopilot --seed=12345
 fail_on "$ANY_ERROR_RE" "$log" "Errors during smoke run"
-if [ "$(cat "$save_dir/save.json")" != "not a save" ] || [ -e "$save_dir/save.json.bak" ]; then
-  echo "::error::The autopilot read or wrote the save file (see $log)"
+if ! grep -qx 'autopilot: the save is in memory' "$log" \
+  || [ "$(cat "$save_dir/save.json")" != "not a save" ] || [ -e "$save_dir/save.json.bak" ]; then
+  echo "::error::The autopilot read or wrote the save file, or might have (see $log)"
   exit 1
 fi
 rm -rf "$data_home"
