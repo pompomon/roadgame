@@ -364,6 +364,28 @@ func test_a_deck_stops_once_it_has_faded_out() -> void:
 	await wait_seconds(0.25)
 
 
+## Copilot's review of #41: an area with no sound, mid-fade, cut the quieter area's at once.
+func test_an_area_with_no_sound_mid_fade_fades_both_areas_out() -> void:
+	var quiet := RURAL.duplicate() as AreaDef
+	quiet.music = null
+	quiet.ambient_loop = null
+	_audio.can_play = true
+	EventBus.area_changed.emit(CITY)
+	_audio.advance(FADE)
+	EventBus.area_changed.emit(RURAL)
+	_audio.advance(FADE / 4.0)
+	EventBus.area_changed.emit(quiet)
+	assert_eq(_audio.tracks(), [null, null] as Array[AudioStream], "nothing fades in")
+	_audio.advance(DELTA)
+	assert_eq(_playing().size(), 4, "both areas' fade out")
+	_audio.advance(FADE / 4.0)
+	assert_eq(_playing().size(), 2, "the City's, which was louder, only")
+	_audio.advance(FADE / 2.0)
+	assert_eq(_playing().size(), 0)
+	# The audio server must let go of each sound before the tests end, or it leaks (L15).
+	await wait_seconds(0.25)
+
+
 func test_nothing_plays_unless_it_can() -> void:
 	_audio.can_play = false
 	EventBus.run_started.emit(1)
