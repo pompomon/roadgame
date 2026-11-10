@@ -1,9 +1,10 @@
 class_name SkidMarks
 extends RefCounted
 ## Skid marks (plan.md §5.3, M5_PLAN.md §5.7). While the car brakes for a junction, its rear wheels
-## leave a mark on the road every SKID_SPACING tiles. A mark is a Sprite2D on World's Skids layer,
-## placed once where it lands, so nothing redraws (M2_PLAN.md §5.7). Marks come from a pool, and go
-## back to it when the buffer frees their tile, or the oldest first once `limit` show.
+## leave a mark on the road every SKID_SPACING tiles. A wheel over the road's edge leaves none, also
+## while the car's centre is on the road (M5_PLAN.md R12). A mark is a Sprite2D on World's Skids
+## layer, placed once where it lands, so nothing redraws (M2_PLAN.md §5.7). Marks come from a pool,
+## and go back to it when the buffer frees their tile, or the oldest first once `limit` show.
 ## WorldRenderer makes it, binds it with itself and updates it every physics frame.
 
 const TEXTURE := preload("res://assets/car/skid.png")
@@ -39,7 +40,7 @@ func bind(buffer: RoadBuffer) -> void:
 
 
 ## Lays a pair of marks while `sim`'s car brakes for a junction, SKID_SPACING tiles or more after
-## the last pair.
+## the last pair: one under each rear wheel that is on the road.
 func update(sim: CarSim) -> void:
 	if sim.state != CarSim.State.BRAKING or sim.speed <= sim.target_speed():
 		_last = Vector2.INF
@@ -66,7 +67,7 @@ func cell_of(mark: Sprite2D) -> Vector2i:
 
 func _lay(at: Vector2, forward: Vector2) -> void:
 	var cell := Vector2i(at.floor())
-	if _buffer.tile_at(cell) == null:
+	if not RoadGeometry.is_on_road(_buffer.tile_at(cell), at - Vector2(cell)):
 		return
 	var mark: Sprite2D
 	if not _pool.is_empty():

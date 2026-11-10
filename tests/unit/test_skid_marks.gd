@@ -1,6 +1,6 @@
 extends GutTest
-## SkidMarks (M5_PLAN.md §5.7): the rear wheels mark the road while the car brakes for a
-## junction, and the marks go with their tiles, past the limit and with the run.
+## SkidMarks (M5_PLAN.md §5.7): the rear wheels mark the road, and not beside it, while the car
+## brakes for a junction, and the marks go with their tiles, past the limit and with the run.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
@@ -30,6 +30,16 @@ func _drive(limit := Tuning.SKID_MARKS, run_seed := 1) -> Drive:
 	return Drive.new(add_child_autofree(Node2D.new()), limit, run_seed)
 
 
+## A tile of the buffer that runs straight north to south or east to west, or null.
+static func _straight(buffer: RoadBuffer) -> RoadTile:
+	var north_south := Heading.bit(Heading.N) | Heading.bit(Heading.S)
+	var east_west := Heading.bit(Heading.E) | Heading.bit(Heading.W)
+	for tile: RoadTile in buffer.tiles():
+		if tile.exits == north_south or tile.exits == east_west:
+			return tile
+	return null
+
+
 func test_the_rear_wheels_mark_the_road_only_while_the_car_brakes_for_a_junction() -> void:
 	var drive := _drive()
 	var laid := 0
@@ -53,6 +63,36 @@ func test_the_rear_wheels_mark_the_road_only_while_the_car_brakes_for_a_junction
 	assert_gt(laid, 20, "marks")
 	assert_eq(stray, 0, "marks laid while not braking")
 	assert_eq(off_road, 0, "marks on cells the buffer doesn't have")
+
+
+func test_a_wheel_over_the_roads_edge_leaves_no_mark() -> void:
+	# R12: braking on a straight 0.3 tiles right of its centreline, the car is on the road, which
+	# is ROAD_HALF_WIDTH (0.32) wide on each side, and its right rear wheel 0.09 further is not.
+	var drive := _drive()
+	var tile := _straight(drive.sim.buffer)
+	assert_not_null(tile, "a straight")
+	if tile == null:
+		return
+	var heading := Heading.N if tile.exits & Heading.bit(Heading.N) != 0 else Heading.E
+	var forward := Vector2(Heading.VEC[heading])
+	var right := Vector2(-forward.y, forward.x)
+	var local := RoadGeometry.CENTRE + right * 0.3 + forward * 0.1
+	var rear := local - forward * Tuning.SKID_REAR
+	var wheel := right * Tuning.SKID_TRACK / 2.0
+	assert_true(RoadGeometry.is_on_road(tile, local), "the car on the road")
+	assert_true(RoadGeometry.is_on_road(tile, rear - wheel), "the left rear wheel on it")
+	assert_false(RoadGeometry.is_on_road(tile, rear + wheel), "the right rear wheel over its edge")
+	var origin := Vector2(tile.cell)
+	drive.sim.pos = origin + local
+	drive.sim.angle = atan2(forward.x, -forward.y)
+	drive.sim.state = CarSim.State.BRAKING
+	drive.sim.speed = drive.sim.target_speed() + 1.0
+	drive.skids.update(drive.sim)
+	var marks := drive.skids.marks()
+	assert_eq(marks.size(), 1, "one mark")
+	if marks.size() == 1:
+		var at := Iso.tile_to_world(origin + rear - wheel)
+		assert_almost_eq(marks[0].position, at, Vector2.ONE * 0.001, "the left wheel's")
 
 
 func test_past_the_limit_the_oldest_marks_go_first() -> void:
