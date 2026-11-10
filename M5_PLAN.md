@@ -267,14 +267,14 @@ Steps after the cherry-pick:
      - The title shows the four buttons, silent (Q4). The arrow keys, Enter, Esc and the mouse move between the screens, and each screen fits the window.
      - Settings: lower the music and change the screen's orientation, then reload: both stay (L11).
      - Play: the City's music and ambience start, and the engine rises with the speed. Props stand beside the road, and none touches it. Braking for a junction leaves skid marks. After the 34th turn, the tunnel, then Rural: the music and ambience cross-fade, and Rural's ground blends in over the City's.
-     - Take a wrong turn: the sinkhole sounds, then game over. Title, then Atlas: the City with the run's distance and turns. Disasters: the Sinkhole, seen once. Reload: both stay.
+     - Take a wrong turn in Rural: the tornado, Rural's only disaster, sounds, then game over. Title, then Atlas: the City and Rural, each with the distance and the turns driven in it (L8). Disasters: the Tornado, seen once, first in Rural. Reload: they stay.
      - Listen for the gaps where the loops restart (L20): about once a second in the engine, and at each loop of the music and the ambience. Note how they sound (Q11).
      - The console shows no errors. Chrome's `GPU stall due to ReadPixels` notes and an early `CONTEXT_LOST_WEBGL` are the environment's (§6.5).
    - **Android**, on the Galaxy Z Fold4, folded and unfolded: `adb install -r "/tmp/roadgame-builds/android-Android APK/roadgame-debug.apk"`.
      - The title and its screens fit both screens, and the text is crisp.
      - The back button: a screen of the title goes back to it; the title quits; a run pauses; game over goes to the title (L13).
      - A run's sound: music, ambience, the engine, and the reverb in the tunnel (L19).
-     - Change a setting and leave the app at once with the home button; close it from the recent apps; open it: the setting stays (L10). Take a wrong turn and close the app during the sinkhole: the collection keeps it (L7).
+     - Change a setting and leave the app at once with the home button; close it from the recent apps; open it: the setting stays (L10). Take a wrong turn in the City and close the app during the sinkhole: the collection keeps it (L7).
      - `adb logcat -s godot` shows no errors.
 3. After the merge, https://pompomon.github.io/roadgame/ runs the game with M5.
 
@@ -291,7 +291,7 @@ If PR k's branch is already deleted, merge its last state from `git fetch origin
 
 ### 4.6 Review fixes
 
-The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add their fixes here, each with its tests and negative case. The plan's review, by gpt-6.1-sol as `rubber-duck`, found three bugs in the prototype and a fourth on the Web, two findings without a negative case, and a wrong citation. All six were real, and so was a later review's finding, in the last row. Their fixes are in the PRs' commits (§4), so each PR starts with them:
+The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add their fixes here, each with its tests and negative case. The plan's review, by gpt-6.1-sol as `rubber-duck`, found three bugs in the prototype and a fourth on the Web, two findings without a negative case, and a wrong citation. All six were real, and so were two later reviews' findings, in the last two rows. Their fixes are in the PRs' commits (§4), so each PR starts with them:
 
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
@@ -302,8 +302,9 @@ The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add thei
 | 3 | L27: on the Web, each restart of the engine's loop played at the WAV's pitch while the speed stayed the same. The pitch is set every physics frame | `test_audio_director.gd`: `test_the_engines_pitch_is_set_every_frame`, with `tests/helpers/pitch_spy.gd` | N45 |
 | 3 | §5.4 named `test_audio.gd` as the test that lets sounds play; it is `test_audio_director.gd`'s | — | — |
 | 3 | L28: CI imports before the tests (`.github/actions/godot-env`), and a slow runner's first import writes the uid back, so the test passes without the fix. The `test` job's last step, "Tree unchanged by the checks (git status)", fails if `git status --porcelain` prints anything | That step | N48, N49 |
+| 6 | E14's Web steps expected the sinkhole after the car reached Rural, whose only disaster is the tornado (`areas/rural.tres:18`), and the whole run under the City in the Atlas. They now expect the tornado, and the City and Rural each with its part of the run. The Android steps' wrong turn is in the City | `test_disaster_pools.gd` (M4): `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`; PR 1's `test_area_start.gd`: `test_each_area_counts_from_its_first_tile` | — |
 
-The same model then reviewed these fixes as `code-review`, and found no issues. L28 came after both reviews, from §6.3's run of the editor; its fix is in PR 3's commit too. A third review, of that fix, by the same model as `code-review`, found the table's last row: P11 then said that a new checkout's first import writes the uid, and CI imports before the tests. Measured again, a first import writes it only under load, and the test then passes (P11, N48).
+The same model then reviewed these fixes as `code-review`, and found no issues. L28 came after both reviews, from §6.3's run of the editor; its fix is in PR 3's commit too. A third review, of that fix, by the same model as `code-review`, found the row before the last: P11 then said that a new checkout's first import writes the uid, and CI imports before the tests. Measured again, a first import writes it only under load, and the test then passes (P11, N48). Copilot's review of this plan's PR found the last row.
 
 ---
 
