@@ -189,12 +189,16 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	var good := _prop(&"good", 1, 0.0, 0.6)
 	var blank := _prop(&"blank", 1, 0.0, 0.1)
 	blank.texture = null
+	# Copilot's review of #43: no frames fitted in any texture, and gave its sprites hframes = 0.
+	var frameless := _prop(&"frameless", 1, 0.0, 0.1)
+	frameless.frames = 0
 	var crowding := _prop(&"crowding", 1, 0.0, 0.5)
-	var props: Array[PropDef] = [good, null, blank, crowding]
+	var props: Array[PropDef] = [good, null, blank, frameless, crowding]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
 	assert_push_error("PropScatter: dense: a prop is null")
 	assert_push_error("PropScatter: dense: prop blank has no texture")
+	assert_push_error("PropScatter: dense: prop frameless has 0 frames")
 	assert_push_error("PropScatter: dense: prop crowding takes the densities past 1")
 	var buffer := _buffer(1, schedule)
 	scatter.bind(buffer)
