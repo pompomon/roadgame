@@ -208,6 +208,25 @@ func test_leaving_the_road_screeches_and_rumbles_until_the_car_is_back() -> void
 	assert_signal_emit_count(_audio, "effect_played", 1, "no screech back on the road")
 
 
+func test_a_sound_never_plays_twice_at_once() -> void:
+	# Its copies would add up past full scale (M5_PLAN.md L29): when the car crosses the road's
+	# edge again and again, the screech starts over.
+	_audio.can_play = true
+	EventBus.run_started.emit(1)
+	for k: int in AudioDirectorScript.EFFECT_PLAYERS + 1:
+		EventBus.car_offroad_changed.emit(true)
+		EventBus.car_offroad_changed.emit(false)
+	EventBus.turn_completed.emit(0)
+	var streams: Array[AudioStream] = []
+	for player: AudioStreamPlayer in _playing():
+		streams.append(player.stream)
+	assert_eq(streams.count(AudioDirectorScript.EFFECTS[&"screech"]), 1, "one screech")
+	assert_eq(streams.count(AudioDirectorScript.EFFECTS[&"junction"]), 1, "beside another sound")
+	_audio.stop_all()
+	# The audio server must let go of each sound before the tests end, or it leaks (L15).
+	await wait_seconds(0.25)
+
+
 func test_when_the_car_is_gone_its_sounds_stop() -> void:
 	_audio.follow(_sim())
 	EventBus.run_started.emit(1)

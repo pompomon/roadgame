@@ -17,7 +17,7 @@ const VOLUME_BUSES: Dictionary[String, StringName] = {
 }
 ## The SFX bus's effect that is on in a tunnel (default_bus_layout.tres).
 const TUNNEL_REVERB := 0
-## One-shot sounds play on this many players, so that a few can overlap.
+## One-shot sounds play on this many players, so that a few different ones can overlap.
 const EFFECT_PLAYERS := 4
 ## Loops on the SFX bus, which play while their condition holds.
 const LOOPS: Dictionary[StringName, AudioStream] = {
@@ -129,15 +129,17 @@ func is_loop_on(id: StringName) -> bool:
 	return _loops_on.get(id, false)
 
 
-## Plays the one-shot sound `id` (EFFECTS) on the next of EFFECT_PLAYERS players, which stops
-## whatever that one still played.
+## Plays the one-shot sound `id` (EFFECTS). A sound plays on one player at a time: copies of it
+## would add up past full scale (M5_PLAN.md L29), as when the car crosses the road's edge again
+## and again. So it starts over on the player that last played it, if no other sound has taken
+## that one since; if not, it goes on the next of EFFECT_PLAYERS players, which stops whatever that
+## one still played.
 func play_effect(id: StringName) -> void:
 	var stream: AudioStream = EFFECTS.get(id)
 	if stream == null:
 		push_error("AudioDirector: no sound for %s" % id)
 		return
-	var player := _effects[_next_effect]
-	_next_effect = (_next_effect + 1) % _effects.size()
+	var player := _effect_player(stream)
 	player.stream = stream
 	_start(player)
 	effect_played.emit(id)
@@ -174,6 +176,16 @@ func _players() -> Array[AudioStreamPlayer]:
 	all.append_array(_loop_players.values())
 	all.append_array(_effects)
 	return all
+
+
+## The effect player that last played `stream`, or else the next one.
+func _effect_player(stream: AudioStream) -> AudioStreamPlayer:
+	for player: AudioStreamPlayer in _effects:
+		if player.stream == stream:
+			return player
+	var next := _effects[_next_effect]
+	_next_effect = (_next_effect + 1) % _effects.size()
+	return next
 
 
 func _start(player: AudioStreamPlayer) -> void:
