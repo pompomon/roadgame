@@ -147,14 +147,13 @@ func play_effect(id: StringName) -> void:
 
 ## The track each cross-fade plays or fades in: [music, ambient].
 func tracks() -> Array[AudioStream]:
-	return [_music.tracks[_music.current], _ambient.tracks[_ambient.current]]
+	return [_music.current_track(), _ambient.current_track()]
 
 
 ## Stops every sound at once, and forgets the area's tracks.
 func stop_all() -> void:
 	for fade: CrossFade in [_music, _ambient]:
-		fade.tracks = [null, null]
-		fade.weights = [0.0, 0.0]
+		fade.stop()
 	for player: AudioStreamPlayer in _players():
 		player.stop()
 	for id: StringName in LOOPS:

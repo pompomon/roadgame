@@ -69,9 +69,15 @@ static func migrate(
 	return out
 
 
-## Reads `text`, which may be anything. On CORRUPT the data stays at its defaults. NEWER (a file
-## written by a later version) is read as far as this version knows it.
+## Reads `text`, which may be anything, over the defaults: nothing an earlier load read stays, nor
+## its problems. On CORRUPT the data stays at its defaults. NEWER (a file written by a later
+## version) is read as far as this version knows it.
 func load_json(text: String) -> Status:
+	atlas = {}
+	best = BEST.duplicate()
+	disasters = {}
+	settings = DEFAULT_SETTINGS.duplicate()
+	problems = PackedStringArray()
 	var json := JSON.new()
 	# Not JSON.parse_string(), which logs an error for bad text (M5_PLAN.md L6).
 	if json.parse(text) != OK:

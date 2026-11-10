@@ -4,6 +4,7 @@ extends GutTest
 
 const Art := preload("res://tests/helpers/art_checks.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+const MakeArt := preload("res://tools/art/make_art.gd")
 
 
 func _areas() -> Array[AreaDef]:
@@ -50,6 +51,32 @@ func test_a_ground_repeats_with_the_ground_cells_and_covers_everything() -> void
 		assert_eq(size % period, Vector2i.ZERO, "%s: %s repeats every %s" % [area.id, size, period])
 		assert_gte(size.y, GreyboxAtlas.edge_rows(), "%s: tall enough for its edge" % area.id)
 		assert_eq(ground.detect_alpha(), Image.ALPHA_NONE, "%s: opaque" % area.id)
+
+
+## Copilot's review of #42: the desert's ripples jumped where its ground repeats.
+func test_a_placeholder_grounds_pattern_goes_on_where_it_repeats() -> void:
+	# What the pattern would draw just past each edge is what the opposite edge shows.
+	var size := MakeArt.GROUND_SIZE
+	var local := Vector2(0.5, 0.5)
+	for style: Array in MakeArt.AREAS.values():
+		var kind: String = style[4]
+		var seams: Array[Vector2i] = []
+		for k: int in 2:
+			for y: int in size.y:
+				var at := Vector2i(k, y)
+				if (
+					MakeArt._pattern(kind, 0, local, at + Vector2i(size.x, 0))
+					!= MakeArt._pattern(kind, 0, local, at)
+				):
+					seams.append(at)
+			for x: int in size.x:
+				var at := Vector2i(x, k)
+				if (
+					MakeArt._pattern(kind, 0, local, at + Vector2i(0, size.y))
+					!= MakeArt._pattern(kind, 0, local, at)
+				):
+					seams.append(at)
+		assert_eq(seams, [] as Array[Vector2i], "%s: no seam" % kind)
 
 
 func test_an_edge_is_its_grounds_first_rows_thinning_out() -> void:
