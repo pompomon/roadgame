@@ -1,5 +1,12 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
+[ext_resource type="Script" path="res://areas/prop_def.gd" id="props_script"]
+[ext_resource type="Resource" path="res://areas/props/village/house.tres" id="prop_house"]
+[ext_resource type="Resource" path="res://areas/props/village/cottage.tres" id="prop_cottage"]
+[ext_resource type="Resource" path="res://areas/props/village/tree.tres" id="prop_tree"]
+[ext_resource type="Resource" path="res://areas/props/village/well.tres" id="prop_well"]
+[ext_resource type="Resource" path="res://areas/props/village/fence.tres" id="prop_fence"]
+[ext_resource type="Resource" path="res://areas/props/village/smoky_house.tres" id="prop_smoky_house"]
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_o7rpv"]
 [ext_resource type="Texture2D" uid="uid://dehsonvin5we6" path="res://assets/village/road.png" id="art_road"]
 [ext_resource type="Texture2D" uid="uid://bwqoctha7qcwi" path="res://assets/village/ground.png" id="art_ground"]
@@ -13,6 +20,7 @@
 script = ExtResource("1_o7rpv")
 id = &"village"
 display_name = "Village"
+props = Array[ExtResource("props_script")]([ExtResource("prop_house"), ExtResource("prop_cottage"), ExtResource("prop_tree"), ExtResource("prop_well"), ExtResource("prop_fence"), ExtResource("prop_smoky_house")])
 id_color = Color(0.76, 0.52, 0.4, 1)
 road_sheet = ExtResource("art_road")
 ground = ExtResource("art_ground")

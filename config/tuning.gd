@@ -4,11 +4,16 @@ class_name Tuning
 ## Half-width of the road capsules, in tiles (D4).
 const ROAD_HALF_WIDTH := 0.32
 ## Correct-path tiles kept generated ahead of the car's tile after start() and every refill.
-const BUFFER_AHEAD := 50
-## Refill when fewer correct-path tiles than this are left ahead of the car's tile.
-const BUFFER_REFILL_AT := 25
-## Correct-path tiles kept behind the car's tile. Older tiles are freed with their branches.
-const BUFFER_BEHIND := 5
+const BUFFER_AHEAD := 55
+## Refill when fewer correct-path tiles than this are left ahead of the car's tile. At least
+## PROP_AHEAD + PropLayout.rows_needed(), so that each row of props has the road it must avoid.
+const BUFFER_REFILL_AT := 30
+## Correct-path tiles kept behind the car's tile. Older tiles are freed with their branches, and a
+## set piece with its last tile. With BUFFER_REFILL_AT and PROP_AHEAD, enough that no reference
+## screen sees a tile, a set piece or a prop come or go (M5_PLAN.md L2). What reaches highest above
+## a freed path tile is a cross junction's straight dead end, 3 rows above it: 13 would leave it
+## 12 px below the tallest view at top speed, 14 leaves 44.
+const BUFFER_BEHIND := 14
 ## Straight tiles before the first junction: path indices 0 to START_STRAIGHT_TILES - 1.
 const START_STRAIGHT_TILES := 4
 ## Length range of a dead-end branch, in tiles (plan.md §3.3).
@@ -29,6 +34,14 @@ const TUNNEL_FADE_FAR := 2.5
 const BRIDGE_BANK := 0.5
 const RIVER_REACH := 2.0
 const WAVE_SPEED := 0.6
+## Props (M5_PLAN.md §5.6). The screen row of each path tile gets its props once the car is
+## PROP_AHEAD path tiles before it, on the ground of PROP_SPREAD road tiles either side of the path
+## tile. A prop's frame reaches at most PROP_MAX_SIZE.y pixels above its foot, PROP_MAX_SIZE.x / 2
+## either side of it and PROP_BELOW below it.
+const PROP_AHEAD := 24
+const PROP_SPREAD := 9
+const PROP_MAX_SIZE := Vector2i(64, 72)
+const PROP_BELOW := 8
 
 ## Car (IMPLEMENTATION_PLAN.md M4.2). Speeds are in tiles/s, accelerations in tiles/s².
 const BASE_TOP_SPEED := 4.0

@@ -1,8 +1,9 @@
 class_name RoadBuffer
 extends RefCounted
-## Keeps 25 to 50 correct-path tiles generated ahead of the car's tile and 5 behind it
-## (plan.md §3.4, IMPLEMENTATION_PLAN.md M1.5). Lookahead = last generated path index minus the
-## car's path index. Dead ends come and go with their junction.
+## Keeps Tuning.BUFFER_REFILL_AT to BUFFER_AHEAD correct-path tiles generated ahead of the car's
+## tile and BUFFER_BEHIND behind it (plan.md §3.4, IMPLEMENTATION_PLAN.md M1.5, M5_PLAN.md L2).
+## Lookahead = last generated path index minus the car's path index. Dead ends come and go with
+## their junction.
 
 ## New tiles: each correct-path tile, followed by its dead-end tiles.
 signal tiles_generated(tiles: Array[RoadTile])

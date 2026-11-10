@@ -237,10 +237,12 @@ static func _least_margin(schedule: AreaSchedule, turns: int) -> int:
 
 func test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer() -> void:
 	# H31: the set piece, the longest straight after it and the next junction's own tile. Straights
-	# of 20 tiles and a 4-tile tunnel put the next junction 25 tiles on, the most allowed.
+	# of BUFFER_REFILL_AT - 5 tiles and a 4-tile tunnel put the next junction BUFFER_REFILL_AT tiles
+	# on, the most allowed.
+	var straight := Tuning.BUFFER_REFILL_AT - 5
 	for piece: int in [2, 3, 4, 5, 6]:
-		var gap := piece + 20 + 1
-		var schedule := _gap_schedule(piece, 20, 60)
+		var gap := piece + straight + 1
+		var schedule := _gap_schedule(piece, straight, 60)
 		var problems := " | ".join(schedule.validate())
 		if gap > Tuning.BUFFER_REFILL_AT:
 			assert_string_contains(problems, "can be %d tiles away" % gap)
@@ -248,9 +250,9 @@ func test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer() 
 		assert_eq(problems, "", "gap %d" % gap)
 		assert_gte(_least_margin(schedule, 60), 0, "gap %d: the trigger found every junction" % gap)
 	# The limit leaves one tile spare: the next junction is sometimes the buffer's last but one (K1).
-	assert_eq(_least_margin(_gap_schedule(4, 20, 60), 60), 1)
+	assert_eq(_least_margin(_gap_schedule(4, straight, 60), 60), 1)
 	var long := _area(&"long", 2, Tuning.BUFFER_REFILL_AT - 1)
-	assert_eq(_problems([_entry(0, long)]), "", "a straight of 24 and the junction")
+	assert_eq(_problems([_entry(0, long)]), "", "the longest straight and the junction")
 	long.max_straight += 1
 	assert_string_contains(_problems([_entry(0, long)]), "above BUFFER_REFILL_AT")
 

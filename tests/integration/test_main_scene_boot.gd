@@ -92,7 +92,7 @@ func test_with_the_autopilot_it_drives_600_frames_without_errors() -> void:
 func test_the_distance_is_the_farthest_point_reached() -> void:
 	var main := _main(["--seed=1", "--autopilot"])
 	_drive(main, 60)
-	var car: CarController = main.get_node("%World/%Props").get_child(0)
+	var car := (main.get_node("%World") as WorldRenderer).car as CarController
 	var farthest := car.sim.progress
 	assert_gt(farthest, 0.5, "it drove")
 	_router(main).autopilot = null
@@ -109,7 +109,7 @@ func test_a_rejoin_that_ends_the_run_counts_its_last_step() -> void:
 	# to add a metre to the HUD.
 	watch_signals(EventBus)
 	var main := _main(["--seed=1"])
-	var car: CarController = main.get_node("%World/%Props").get_child(0)
+	var car := (main.get_node("%World") as WorldRenderer).car as CarController
 	var sim := car.sim
 	var junction := sim.trigger.next_junction
 	var exit := Heading.right(junction.heading)
