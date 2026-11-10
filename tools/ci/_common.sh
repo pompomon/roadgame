@@ -56,3 +56,33 @@ fail_on() {
   echo "::error::$3 (see $2)"
   return 1
 }
+
+# scratch_save: gives the Godot runs that follow a scratch user:// whose save.json isn't JSON, which
+# reading it would rename to .bak (M5_PLAN.md L1). Godot keeps user:// under XDG_DATA_HOME on Linux,
+# and under HOME on macOS, which ignores XDG_DATA_HOME (Godot 4.7.2's os_macos.mm, get_data_path()).
+scratch_save() {
+  SCRATCH_DIR=$(mktemp -d)
+  if [ "$(uname -s)" = Darwin ]; then
+    export HOME="$SCRATCH_DIR"
+    SAVE_DIR="$SCRATCH_DIR/Library/Application Support/Godot/app_userdata/Road Roguelike"
+  else
+    export XDG_DATA_HOME="$SCRATCH_DIR"
+    SAVE_DIR="$SCRATCH_DIR/godot/app_userdata/Road Roguelike"
+  fi
+  mkdir -p "$SAVE_DIR"
+  echo "not a save" > "$SAVE_DIR/save.json"
+}
+
+# check_scratch_save <who> <log>: fails if <who> read or wrote the scratch save, or if Godot kept
+# user:// elsewhere, as its log there shows, where the scratch save proves nothing. Then removes it.
+check_scratch_save() {
+  if [ ! -s "$SAVE_DIR/logs/godot.log" ]; then
+    echo "::error::Godot kept user:// outside $SAVE_DIR, so the save there proves nothing (see $2)"
+    return 1
+  fi
+  if [ "$(cat "$SAVE_DIR/save.json")" != "not a save" ] || [ -e "$SAVE_DIR/save.json.bak" ]; then
+    echo "::error::$1 read or wrote the save file (see $2)"
+    return 1
+  fi
+  rm -rf "$SCRATCH_DIR"
+}
