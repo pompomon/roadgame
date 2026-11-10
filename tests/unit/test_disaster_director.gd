@@ -140,6 +140,18 @@ func test_the_sequence_ends_once_when_the_disaster_finishes() -> void:
 		assert_eq(disaster.get_parent(), _layer, why)
 
 
+func test_disaster_started_comes_once_when_the_disaster_plays() -> void:
+	var area := _timed()
+	watch_signals(_director)
+	_new_car(CarSim.State.DISASTER, 2.0)
+	_director.play_disaster(area, _car, _camera)
+	simulate(_root, 1, DELTA)
+	assert_signal_not_emitted(_director, "disaster_started", "not before the car stops")
+	_run(600)
+	assert_signal_emit_count(_director, "disaster_started", 1)
+	assert_signal_emitted_with_parameters(_director, "disaster_started", [_director.disaster, area])
+
+
 func test_a_crash_shakes_the_camera_and_ends_after_crash_seconds() -> void:
 	_new_car(CarSim.State.CRASHED, 5.0)
 	watch_signals(_director)
@@ -151,6 +163,7 @@ func test_a_crash_shakes_the_camera_and_ends_after_crash_seconds() -> void:
 	assert_almost_eq(frames * DELTA, Tuning.CRASH_SECONDS, DELTA * 1.01)
 	simulate(_root, 60, DELTA)
 	assert_signal_emit_count(_director, "sequence_finished", 1)
+	assert_signal_not_emitted(_director, "disaster_started")
 	assert_eq(_layer.get_child_count(), 0, "no disaster")
 	assert_eq(_car.sim.speed, 0.0, "the car stopped")
 

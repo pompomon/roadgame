@@ -25,6 +25,10 @@ var area_id := &""
 ## Why the run ended, or empty while it goes on.
 var end_cause := &""
 
+## Where each area the run entered begins, in order: [area id, distance, turns], the path distance
+## to the area's first tile and the turns at the junctions before it (M5_PLAN.md L8).
+var _entries: Array[Array] = []
+
 
 ## Starts a run from TITLE or GAME_OVER. A paused run must be resumed or quit first.
 func start_run(p_run_seed: int) -> void:
@@ -38,7 +42,17 @@ func start_run(p_run_seed: int) -> void:
 	distance = 0.0
 	area_id = &""
 	end_cause = &""
+	_entries = []
 	EventBus.run_started.emit(run_seed)
+
+
+## The car reached the area `id`, whose first tile begins `start_distance` tiles along the path,
+## after `start_turns` junctions: the distance and turns from there on count for it, in
+## stats()["areas"]. The car may get there before its turn at the junction behind is judged, or
+## before `distance` passes `start_distance`: until then, those still count for the area before.
+func enter_area(id: StringName, start_distance: float, start_turns: int) -> void:
+	area_id = id
+	_entries.append([id, start_distance, start_turns])
 
 
 func pause() -> void:
@@ -83,6 +97,8 @@ func quit_to_title() -> void:
 		EventBus.paused_changed.emit(false)
 
 
+## The run's stats. "areas" has the distance and the turns the run made in each area it entered:
+## {id: {"distance": float, "turns": int}}.
 func stats() -> Dictionary:
 	return {
 		"run_seed": run_seed,
@@ -90,7 +106,24 @@ func stats() -> Dictionary:
 		"distance": distance,
 		"area_id": area_id,
 		"cause": end_cause,
+		"areas": _area_stats(),
 	}
+
+
+func _area_stats() -> Dictionary[StringName, Dictionary]:
+	var areas: Dictionary[StringName, Dictionary] = {}
+	for i: int in _entries.size():
+		var entry: Array = _entries[i]
+		var to_distance := distance
+		var to_turns := turn_index
+		if i + 1 < _entries.size():
+			to_distance = minf(to_distance, _entries[i + 1][1])
+			to_turns = mini(to_turns, _entries[i + 1][2])
+		var made: Dictionary = areas.get(entry[0], {"distance": 0.0, "turns": 0})
+		made["distance"] += maxf(to_distance - entry[1], 0.0)
+		made["turns"] += maxi(to_turns - entry[2], 0)
+		areas[entry[0]] = made
+	return areas
 
 
 func _change_to(next: State) -> bool:

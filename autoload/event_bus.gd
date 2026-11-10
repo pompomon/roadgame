@@ -13,6 +13,8 @@ signal tiles_freed(tiles: Array[RoadTile])
 signal health_changed(value: float)
 ## A wrong exit or a missed turn at `junction`.
 signal disaster_triggered(area: AreaDef, junction: RoadTile)
+## The disaster `id` started to play in `area`, after the car stopped (M5_PLAN.md L7).
+signal disaster_started(id: StringName, area: AreaDef)
 ## `cause` is one of CarSim's causes; `stats` comes from GameState.stats().
 signal run_ended(cause: StringName, stats: Dictionary)
 signal car_offroad_changed(is_offroad: bool)

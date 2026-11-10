@@ -8,6 +8,8 @@ extends Node
 ## _physics_process, as a disaster's must (M3_PLAN.md J2).
 
 signal sequence_finished
+## The disaster from `area`'s pool started to play.
+signal disaster_started(disaster: DisasterBase, area: AreaDef)
 
 enum Sequence { NONE, STOPPING, PLAYING, CRASH, FINISHED }
 
@@ -19,7 +21,7 @@ var disaster: DisasterBase
 var params: DisasterParams
 
 var _rng := RandomNumberGenerator.new()
-var _pool: Array[PackedScene] = []
+var _area: AreaDef
 var _car: CarController
 var _camera: CameraRig
 ## Seconds since the run ended.
@@ -43,7 +45,7 @@ static func stream(run_seed: int) -> RandomNumberGenerator:
 ## After a wrong or missed turn: a disaster from `area`'s pool, once `car` has stopped.
 func play_disaster(area: AreaDef, car: CarController, camera: CameraRig) -> void:
 	if _begin(car, camera):
-		_pool = area.disasters
+		_area = area
 		sequence = Sequence.STOPPING
 
 
@@ -62,7 +64,7 @@ func clear() -> void:
 	disaster = null
 	params = null
 	sequence = Sequence.NONE
-	_pool = []
+	_area = null
 	_car = null
 	_camera = null
 	_time = 0.0
@@ -99,7 +101,7 @@ func _begin(car: CarController, camera: CameraRig) -> bool:
 
 
 func _start_disaster() -> void:
-	var scene := pick(_pool, _rng)
+	var scene := pick(_area.disasters, _rng)
 	var node: Node = scene.instantiate() if scene != null else null
 	disaster = node as DisasterBase
 	if disaster == null:
@@ -115,6 +117,7 @@ func _start_disaster() -> void:
 	sequence = Sequence.PLAYING
 	params = DisasterParams.roll(_rng, _car.position)
 	disaster.play(params)
+	disaster_started.emit(disaster, _area)
 
 
 func _on_disaster_finished() -> void:

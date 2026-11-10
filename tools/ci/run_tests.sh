@@ -8,6 +8,10 @@ source "$(dirname "$0")/_common.sh"
 log="$REPORTS/gut.log"
 junit="$REPORTS/gut-junit.xml"
 rm -f "$junit"
+# The tests keep the save in memory (M5_PLAN.md L1), from tests/gut_pre_run.gd on, which no test
+# can check once another has called SaveService.use_memory(). As smoke.sh's autopilot does, they
+# must leave a scratch save be.
+scratch_save
 rc=0
 run_godot 900 "$log" --headless --path . -s res://addons/gut/gut_cmdln.gd \
   -gconfig=res://.gutconfig.json -gjunit_xml_file="$junit" -gexit || rc=$?
@@ -19,4 +23,5 @@ total=$(sed -n 's/.*<testsuites[^>]* tests="\([0-9][0-9]*\)".*/\1/p' "$junit" | 
 [ "${total:-0}" -gt 0 ] || { echo "::error::GUT ran 0 tests"; exit 1; }
 fail_on "ObjectDB instances? (was|were) leaked|resources? still in use at exit" "$log" \
   "Objects leaked at exit: a cycle of RefCounted references, or a node that is never freed"
+check_scratch_save "The tests" "$log"
 echo "GUT: $total tests passed"
