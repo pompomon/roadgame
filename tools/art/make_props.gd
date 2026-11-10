@@ -369,13 +369,15 @@ func _paint_hydrant(image: Image, c: Array[Color], _frame: int) -> float:
 	return 4.0
 
 
-## Red, yellow and green, a frame each.
+## Red on top, then yellow and green. The frames light green, yellow and red, the order in which a
+## real light changes, so the loop never goes from yellow to green.
 func _paint_traffic_light(image: Image, c: Array[Color], frame: int) -> float:
 	_rect(image, Rect2i(-1, -28, 2, 28), c[0])
 	_rect(image, Rect2i(-3, -42, 6, 15), c[1])
+	var lit := 2 - frame
 	for k: int in 3:
 		_ellipse(
-			image, Vector2(0, -38.5 + 4 * k), Vector2(1.6, 1.6), c[3 + k] if k == frame else c[2]
+			image, Vector2(0, -38.5 + 4 * k), Vector2(1.6, 1.6), c[3 + k] if k == lit else c[2]
 		)
 	return 3.0
 

@@ -4,6 +4,7 @@ extends GutTest
 ## their pixels and kept apart from the other props' frames. test_area_art checks the sheets'
 ## colours and import settings.
 
+const Art := preload("res://tests/helpers/art_checks.gd")
 const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert"]
 
 
@@ -45,3 +46,28 @@ func test_each_frame_is_cropped_to_its_props_pixels_apart_from_the_others() -> v
 			for other: Rect2i in strips:
 				assert_false(strip.intersects(other), "%s: %s overlaps" % [area, def.id])
 			strips.append(strip)
+
+
+func test_the_traffic_light_changes_as_a_real_one_does() -> void:
+	# E14's Web check saw it go from yellow to green, and from green straight to red.
+	var palette := Art.MakeArt.palette()
+	var lamps: Array[String] = ["meadows light", "yellow", "red"]
+	var def := load("res://areas/props/city/traffic_light.tres") as PropDef
+	var image := def.texture.get_image()
+	assert_eq(def.frames, lamps.size(), "a frame for each lamp")
+	var tops: Array[int] = []
+	for frame: int in mini(def.frames, lamps.size()):
+		var at := def.region.position + Vector2i(def.region.size.x * frame, 0)
+		var pixels := Art.pixels(image.get_region(Rect2i(at, def.region.size)))
+		var lit: Array[String] = []
+		for lamp: String in lamps:
+			var first := pixels.find(Art.pixel(palette[lamp]))
+			if first >= 0:
+				lit.append(lamp)
+				@warning_ignore("integer_division")
+				tops.append(first / def.region.size.x)
+		assert_eq(lit, [lamps[frame]] as Array[String], "frame %d lights one lamp" % frame)
+	# Green at the bottom, red on top: each frame's lamp is above the last one's.
+	assert_eq(tops.size(), lamps.size())
+	for k: int in range(1, tops.size()):
+		assert_lt(tops[k], tops[k - 1], "frame %d's lamp is above frame %d's" % [k, k - 1])
