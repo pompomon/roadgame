@@ -1,6 +1,9 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_udu24"]
+[ext_resource type="Texture2D" uid="uid://drpxodkfoc807" path="res://assets/rural/road.png" id="art_road"]
+[ext_resource type="Texture2D" uid="uid://bti1lcr05df8p" path="res://assets/rural/ground.png" id="art_ground"]
+[ext_resource type="Texture2D" uid="uid://di5ews7fnr03s" path="res://assets/rural/edge.png" id="art_edge"]
 [ext_resource type="PackedScene" path="res://disasters/tornado.tscn" id="2_tornado"]
 [ext_resource type="AudioStreamWAV" uid="uid://c1ivx6rmmsvlp" path="res://assets/audio/music/rural.wav" id="audio_music"]
 [ext_resource type="AudioStreamWAV" uid="uid://b0leimt54m4jv" path="res://assets/audio/ambient/rural.wav" id="audio_ambient"]
@@ -10,6 +13,9 @@ script = ExtResource("1_udu24")
 id = &"rural"
 display_name = "Rural"
 id_color = Color(0.78, 0.66, 0.38, 1)
+road_sheet = ExtResource("art_road")
+ground = ExtResource("art_ground")
+ground_edge = ExtResource("art_edge")
 min_straight = 3
 max_straight = 7
 cross_junction_chance = 0.25

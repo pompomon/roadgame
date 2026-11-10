@@ -1,0 +1,39 @@
+GIMP Palette
+Name: Road Roguelike
+Columns: 4
+# The master palette (plan.md §5.3, IMPLEMENTATION_PLAN.md M5.1): 32 colours. Every opaque pixel of
+# every PNG under assets/ is one of them (tests/unit/test_area_art.gd). Shared colours first, then
+# each area's sub-palette: its ground, which is its id_color, a dark and a light shade, and an
+# accent. Last, the effects' and the UI's.
+ 20  18  24	ink
+ 52  48  60	shadow
+ 84  87  97	asphalt
+110 113 124	asphalt light
+219 219 204	line
+ 41  41  51	tunnel road
+128  92  56	plank
+240 240 232	white
+140 148 161	city ground
+118 125 138	city dark
+163 170 181	city light
+150  80  70	city brick
+199 168  97	rural ground
+170 140  78	rural dark
+220 193 128	rural light
+139 110  72	rural dirt
+107 173  84	meadows ground
+ 82 140  64	meadows dark
+140 200 108	meadows light
+ 51 107 179	meadows water
+194 133 102	village ground
+160 105  80	village dark
+214 160 128	village light
+170  60  50	village roof
+230 201 138	desert ground
+200 170 108	desert dark
+244 224 170	desert light
+ 90 130  70	desert cactus
+230 120  40	fire
+158 199 240	foam
+200  50  50	red
+236 196  64	yellow
