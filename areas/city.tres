@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_dlkcf"]
 [ext_resource type="PackedScene" path="res://disasters/sinkhole.tscn" id="2_sinkhole"]
+[ext_resource type="AudioStreamWAV" uid="uid://cireddqta4srv" path="res://assets/audio/music/city.wav" id="audio_music"]
+[ext_resource type="AudioStreamWAV" uid="uid://bp2fswyn3t23o" path="res://assets/audio/ambient/city.wav" id="audio_ambient"]
 
 [resource]
 script = ExtResource("1_dlkcf")
@@ -10,3 +12,5 @@ display_name = "City"
 id_color = Color(0.55, 0.58, 0.63, 1)
 cross_junction_chance = 0.4
 disasters = Array[PackedScene]([ExtResource("2_sinkhole")])
+music = ExtResource("audio_music")
+ambient_loop = ExtResource("audio_ambient")

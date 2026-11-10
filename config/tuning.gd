@@ -57,6 +57,23 @@ const PORTRAIT_BIAS := 0.2
 ## 1 / CAMERA_SMOOTHING seconds.
 const CAMERA_SMOOTHING := 6.0
 
+## Audio (IMPLEMENTATION_PLAN.md M5.3): the cross-fade between two areas' music and ambient loops,
+## in seconds; the engine's pitch scale from a standing car to GLOBAL_SPEED_CAP; and the damage
+## sound, which plays each time the health falls past a multiple of DAMAGE_SOUND_STEP.
+const CROSS_FADE_SECONDS := 1.5
+const ENGINE_PITCH_MIN := 0.8
+const ENGINE_PITCH_MAX := 1.6
+const DAMAGE_SOUND_STEP := 10.0
+## The loudest sample, from 0 to 1, of each kind of sound: an area's music, its ambient loop, the
+## car's loops (AudioDirector.LOOPS) and the one-shot sounds (AudioDirector.EFFECTS). Godot clamps
+## the mix at full scale, so the sounds that play together must leave each other room: at the
+## default volumes, the music, the ambience, the engine and one effect add up to 1 (M5_PLAN.md L29,
+## P12). Measure the mix again before raising one.
+const MUSIC_PEAK := 0.5
+const AMBIENT_PEAK := 0.25
+const LOOP_PEAK := 0.15
+const EFFECT_PEAK := 0.25
+
 ## HUD distance: metres shown per road tile (IMPLEMENTATION_PLAN.md M2.6).
 const METRES_PER_TILE := 10
 ## How long the HUD shows the name of the area the car enters, in seconds of the run: the time

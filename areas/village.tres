@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_o7rpv"]
 [ext_resource type="PackedScene" path="res://disasters/flood.tscn" id="2_flood"]
 [ext_resource type="PackedScene" path="res://disasters/tornado.tscn" id="3_tornado"]
+[ext_resource type="AudioStreamWAV" uid="uid://dgvh1juynu3dm" path="res://assets/audio/music/village.wav" id="audio_music"]
+[ext_resource type="AudioStreamWAV" uid="uid://c3gcwi0tw1le7" path="res://assets/audio/ambient/village.wav" id="audio_ambient"]
 
 [resource]
 script = ExtResource("1_o7rpv")
@@ -13,3 +15,5 @@ cross_junction_chance = 0.35
 straight_accel = 0.55
 offroad_speed_mult = 0.55
 disasters = Array[PackedScene]([ExtResource("2_flood"), ExtResource("3_tornado")])
+music = ExtResource("audio_music")
+ambient_loop = ExtResource("audio_ambient")

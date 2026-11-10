@@ -53,6 +53,17 @@ jobs:
         run: tools/ci/run_tests.sh
       - name: Smoke run (main scene, 60 s simulated)
         run: tools/ci/smoke.sh
+      # The checks must leave the tree as committed (AGENTS.md §4). On a slow runner, the import's
+      # editor saves a file that wasn't committed as it writes it, and the tests then read the
+      # editor's file (M5_PLAN.md L28). The container's root doesn't own the checkout.
+      - name: Tree unchanged by the checks (git status)
+        run: |
+          changes="$(git -c safe.directory="$PWD" status --porcelain)"
+          if [ -n "$changes" ]; then
+            printf '%s\n' "$changes"
+            echo "::error::The checks changed the tree: commit files as Godot writes them (AGENTS.md §3)"
+            exit 1
+          fi
 
   export-web:
     needs: [lint, test]
