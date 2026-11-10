@@ -29,6 +29,8 @@ const ROWS := {
 ## 4 variants: plain, a dark tuft, a light tuft, or the accent. Their weights:
 const GROUND_SIZE := Vector2i(512, 256)
 const VARIANT_WEIGHTS: Array[float] = [0.55, 0.2, 0.2, 0.05]
+## The desert's ripples: whole waves across the ground, so that they go on where it repeats.
+const RIPPLE_WAVES := 7
 
 var _rng := RandomNumberGenerator.new()
 var _palette: Dictionary[String, Color] = {}
@@ -139,7 +141,8 @@ static func _pattern(kind: String, variant: int, local: Vector2, pixel: Vector2i
 			if posmod(pixel.y - (pixel.x >> 1), 8) == 0:
 				return 1
 		"ripples":
-			if posmod(pixel.y * 3 + int(8.0 * sin(pixel.x * 0.09)), 24) == 0:
+			var wave := sin(TAU * RIPPLE_WAVES * pixel.x / GROUND_SIZE.x)
+			if posmod(pixel.y * 3 + int(8.0 * wave), 24) == 0:
 				return 2
 	return -1
 

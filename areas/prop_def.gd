@@ -24,11 +24,15 @@ func validate() -> PackedStringArray:
 	if texture == null:
 		problems.append("prop %s has no texture" % id)
 		return problems
-	var strip := Rect2i(region.position, region.size * Vector2i(frames, 1))
-	if region.size.x <= 0 or region.size.y <= 0:
+	# @export_range keeps only the inspector from fewer frames: a hand-written .tres may have them.
+	if frames < 1:
+		problems.append("prop %s has %d frames" % [id, frames])
+	elif region.size.x <= 0 or region.size.y <= 0:
 		problems.append("prop %s: its region is empty" % id)
-	elif not Rect2i(Vector2i.ZERO, texture.get_size()).encloses(strip):
-		problems.append("prop %s: its %d frames reach out of its texture" % [id, frames])
+	else:
+		var strip := Rect2i(region.position, region.size * Vector2i(frames, 1))
+		if not Rect2i(Vector2i.ZERO, texture.get_size()).encloses(strip):
+			problems.append("prop %s: its %d frames reach out of its texture" % [id, frames])
 	if (frames > 1) != (fps > 0.0):
 		problems.append("prop %s: %d frames at %.1f fps" % [id, frames, fps])
 	if not Rect2i(Vector2i.ZERO, region.size + Vector2i.ONE).has_point(foot):
