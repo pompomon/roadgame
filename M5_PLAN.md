@@ -1,8 +1,8 @@
 # M5 Content — Detailed Plan
 
-Status: draft, for review; Q1–Q11 have proposed defaults · 2026-11-10 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M5 row, §4 M5.1–M5.5 and "M5 tests", §9's line on the atlas, the collection and the settings, and M4_PLAN.md §9's notes for M5
+Status: approved, with the Q1–Q11 defaults; implemented in #39–#44, with the review fixes in §4.6 · 2026-11-10 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M5 row, §4 M5.1–M5.5 and "M5 tests", §9's line on the atlas, the collection and the settings, and M4_PLAN.md §9's notes for M5
 
-**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m5/prototype`, which has one commit per PR (§4.1): 791190d, 1fe7021, f30beb5, 89a3732, 40a77c4 and 132d464, on top of `main` (18fd716). Each commit's state passed the five local checks (§6.1), and the stacked landing was simulated (§4.5). Each of the 50 negative cases in §6.2 failed its checks: 49 on the prototype's last commit, and N36 by hand. CI on the prototype passed all five jobs (§6.4), and its Web build ran in Chrome and Firefox: the title and its screens, a run through the City, the tunnel and Rural with the new art and props, a disaster, and a save that survives a reload, with no errors, and its sound no longer clips (§6.5, L29). The editor reports no warnings that `main` doesn't (§6.3), and leaves the tree as it found it (L28). A model of another family, gpt-6.1-sol, reviewed the plan, the prototype and each later fix (`AGENTS.md` §7). The fixes of its findings are in the PRs' commits, with their tests and negative cases (§4.6).
+**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m5/prototype`, which has one commit per PR (§4.1): 791190d, 1fe7021, f30beb5, 89a3732, 40a77c4 and 132d464, on top of `main` (18fd716). Each commit's state passed the five local checks (§6.1), and the stacked landing was simulated (§4.5). Each of the 50 negative cases in §6.2 failed its checks: 49 on the prototype's last commit, and N36 by hand. CI on the prototype passed all five jobs (§6.4), and its Web build ran in Chrome and Firefox: the title and its screens, a run through the City, the tunnel and Rural with the new art and props, a disaster, and a save that survives a reload, with no errors, and its sound no longer clips (§6.5, L29). The editor reports no warnings that `main` doesn't (§6.3), and leaves the tree as it found it (L28). A model of another family, gpt-6.1-sol, reviewed the plan, the prototype and each later fix (`AGENTS.md` §7). The fixes of its findings are in the PRs' commits, with their tests and negative cases (§4.6). Its reviews of the PRs brought six more fixes, which the PRs add as later commits, with N51–N56, and running the negative cases on the PRs changed N16 (§4.6). On the PRs' final heads, all 56 negative cases fail their checks, and the landing simulates cleanly again (§6.6).
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -159,7 +159,7 @@ Each PR's changes are one commit of `m5/prototype`, so every PR follows the same
 4. Run §6.1 and compare the counts with the PR's "Expect" line.
 5. Have a model of another family review it (`AGENTS.md` §7). Then commit, push and open the PR.
 
-The prototype's commits sit on `main` (18fd716) in order, so the six cherry-picks give exactly the PR states of §6.1. The PRs' diffs have 22, 43, 66, 50, 75 and 34 files.
+The prototype's commits sit on `main` (18fd716) in order, so the six cherry-picks give exactly the PR states of §6.1. The PRs' diffs have 22, 43, 66, 50, 75 and 34 files. With the review fixes (§4.6), PR 1's has 24, and PR 6's 35, with this plan's sync. Each section below gives the cherry-picked commit's files and numbers; §6.6 has the final heads'.
 
 ### PR 1: Save: the save file, the runs and the disasters it records (M5.4) **Δ L1, L5–L11, L18, Q8**
 
@@ -309,6 +309,18 @@ The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add thei
 
 The same model then reviewed these fixes as `code-review`, and found no issues. L28 came after both reviews, from §6.3's run of the editor; its fix is in PR 3's commit too. A third review, of that fix, by the same model as `code-review`, found L28's row: P11 then said that a new checkout's first import writes the uid, and CI imports before the tests. Measured again, a first import writes it only under load, and the test then passes (P11, N48). Copilot's first review of this plan's PR found the last row. Its second called the sound unverified: P12 measured its level on the Web and found L29. The same model reviewed that fix and found no issues. Copilot's third review asked for the Fold4's checks of pausing, losing focus, closing and navigating, which are E14's (§7). P13 ran them on the Web, and found L10's limit there. The same model, as `rubber-duck`, then found that E14's Web step reloaded too soon after the settings changed; it now closes Settings and waits (P13).
 
+The PRs' internal reviews, by the same model as `code-review`, found R1–R4 and R6 below; on PR 1's state, N2 also showed R3. Running the negative cases on each PR's state found R5. A review of those fixes found R7, and claimed that R1's read-back prints an error line when the `.tmp` can't be opened: in 4.7.2 the script binding of `FileAccess.get_file_as_string()` passes an error pointer (`core/io/file_access.h:281`), so it returns `""` without one, and a test whose `_store()` deleted the `.tmp` passed with warnings only. The fixes are later commits on the PRs' branches, so the cherry-picks of §4 don't have them:
+
+| PR, commit | Change | Tests | Negative case |
+|---|---|---|---|
+| PR 1, 9cd7213 | R1: Godot 4.7.2 ignores what `fclose()` and `fflush()` return (`drivers/unix/file_access_unix.cpp`), so a write that failed as the file closed, as on a full disk, went unreported, and its truncated `.tmp` replaced the last good save. `_write()` reads the `.tmp` back, and keeps the last save unless the two match. `_store()` is the tests' seam | `test_save_service.gd`: `test_a_write_that_fails_as_the_file_closes_keeps_the_last_save` | N51 |
+| PR 1, 0d548d6 | R2: GUT runs `tests/integration` before `tests/unit`, and `test_wrong_turn_disaster.gd` calls `use_memory()`. In the full suite, `test_the_tests_never_touch_the_players_save` passed without the pre-run hook, while the integration tests before it used the player's save. `run_tests.sh` runs GUT with a scratch save, as `smoke.sh` runs the autopilot, and fails if the tests read or wrote it | `run_tests.sh` | N1 |
+| PR 1, 0d548d6 | R3: before PR 3, nothing reads the save in `smoke.sh`'s 60 s, so N2 passed on PR 1's state. The autopilot prints `autopilot: the save is in memory`, and `smoke.sh` fails without that line | `smoke.sh` | N2 |
+| PR 1, 0f76e42 | R7: Godot 4.7.2 on macOS ignores `XDG_DATA_HOME`. `user://` is under `$HOME/Library/Application Support/Godot/app_userdata/` (`platform/macos/os_macos.mm`, `get_data_path()`), so on a Mac the scratch save of L1 and R2 was never opened, and both scripts passed whatever the game did. `_common.sh` moves `HOME` into the scratch directory on macOS, and `XDG_DATA_HOME` elsewhere, and fails unless Godot wrote its log, `user://logs/godot.log`, in the scratch `user://` | `run_tests.sh`, `smoke.sh` | N56 |
+| PR 3, 7a3af97 | R6: each sound took the next of the four effect players, so a sound that came again before it ended played twice or more at once, as the screech can a few frames apart along the road's edge. Four screeches raise the peak beside the music, the ambience and the rumble from 0.53 to 0.97 (L29). A sound now starts over on the player that last played it, unless another sound has taken that player since | `test_audio_director.gd`: `test_a_sound_never_plays_twice_at_once` | N55 |
+| PR 4, 6596cba | R4: `test_world_renderer.gd` read a band's pixels from its texture as if the sprite drew it whole, from its position and repeated, so a band without `region_enabled`, `centered = false` or `texture_repeat` passed. Its helpers now find each pixel as `Sprite2D` draws it: through `get_rect()` and the global transform, from the region only if it is enabled, and repeated only if `texture_repeat` is on | `test_world_renderer.gd`'s band tests | N52–N54 |
+| PR 4 | R5: N16 changed "ink", which no art of PR 4 uses, so on PR 4's state it failed nothing; PR 5's props and PR 6's car use it. N16 changes "asphalt" now (§6.2) | — | N16 |
+
 ---
 
 ## 5. Design
@@ -412,14 +424,16 @@ M5 adds 42 scripts and 140 tests, in +9,403 −353 lines. PR 6's state is the pr
 - `lint.sh` reports `Godot 4.7.2 is pinned consistently` and `Actions storage: no caches, artifacts kept 1 day (5 files checked)`;
 - `git status` is clean after the checks: `import.sh` creates no files, and the generators of PRs 3–6 make the committed assets byte for byte (§4.1 step 3). From PR 3 on, CI's `test` job checks it too (L28).
 
+§6.6 has the same checks on the PRs' final heads, with the review fixes (§4.6).
+
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR's state, run the check under "Fails", then revert it. A script made each change on PR 6's state (132d464), ran the check and restored the files, and every case failed its check, in 2 min 12 s. N48 and N49 commit their change in a new worktree, run `import.sh`, `check_scripts.sh` and `test_audio_director.gd` there, then the step's script from `ci.yml`. N36 ran by hand, on 84e261b (§6.5), because it must make the car's sheet again. The script isn't committed (§9). Each PR runs its cases again on its final head (`AGENTS.md` §2). "Fails" names the GUT tests that fail, which fail `run_tests.sh`, or the script that fails and its message.
+For each case, make the temporary change in the PR's state, run the check under "Fails", then revert it. A script made each change on PR 6's state (132d464), ran the check and restored the files, and every case failed its check, in 2 min 12 s. N48 and N49 commit their change in a new worktree, run `import.sh`, `check_scripts.sh` and `test_audio_director.gd` there, then the step's script from `ci.yml`. N36 ran by hand, on 84e261b (§6.5), because it must make the car's sheet again. The script isn't committed (§9). Each PR runs its cases again on its final head (`AGENTS.md` §2). The PRs' reviews added N51–N56 and changed N1, N2 and N16 (§4.6), and all 56 failed their checks on the PRs' final heads (§6.6). "Fails" names the GUT tests that fail, which fail `run_tests.sh`, or the script that fails and its message.
 
 | N# | PR | Ref | Change | Fails |
 |---|---|---|---|---|
-| N1 | 1 | L1 | `tests/gut_pre_run.gd` doesn't call `SaveService.use_memory()` | `test_save_service.gd`: `test_the_tests_never_touch_the_players_save` |
-| N2 | 1 | L1 | `--autopilot` doesn't call `use_memory()` | `smoke.sh`: "The autopilot read or wrote the save file" |
+| N1 | 1 | L1 | `tests/gut_pre_run.gd` doesn't call `SaveService.use_memory()` | `run_tests.sh`: "The tests read or wrote the save file" (R2). `test_save_service.gd`: `test_the_tests_never_touch_the_players_save`, when its file runs alone |
+| N2 | 1 | L1 | `--autopilot` doesn't call `use_memory()` | `smoke.sh`: "The autopilot read or wrote the save file, or might have", from PR 1 on (R3) |
 | N3 | 1 | L6 | `SaveData` reads the text with `JSON.parse_string()` | 6 tests of `test_save_data.gd`, from `test_json_round_trip` to `test_a_later_version_is_read_as_far_as_it_is_known` |
 | N4 | 1 | L5 | `_is_count()` takes a number with a fraction | `test_values_of_the_wrong_type_get_their_defaults` |
 | N5 | 1 | L7 | The director doesn't emit `disaster_started` | `test_disaster_director.gd`: `test_disaster_started_comes_once_when_the_disaster_plays`; `test_wrong_turn_disaster.gd`: `test_the_run_and_the_sinkhole_are_saved` |
@@ -433,7 +447,7 @@ For each case, make the temporary change in the PR's state, run the check under 
 | N13 | 3 | L16 | A misformatted line in `audio/cross_fade.gd` | `lint.sh`: "would reformat audio/cross_fade.gd" |
 | N14 | 3 | §5.4 | A new track takes the louder deck | `test_cross_fade.gd`: `test_a_new_track_fades_in_as_the_old_fades_out_at_equal_power`, `test_back_to_the_old_track_mid_fade_fades_it_back_in_from_where_it_is`, `test_a_third_track_mid_fade_takes_the_quieter_deck` |
 | N15 | 4 | §5.5 | The edge's dither inverted: `bayer(x, y) < cover` | `test_greybox_atlas.gd`: `test_the_grey_box_edge_is_its_grounds_first_rows_thinning_out` |
-| N16 | 4 | L25 | The palette's "ink" one step off: `21 18 24` | `test_area_art.gd`: `test_art_is_in_the_palettes_colours` |
+| N16 | 4 | L25 | The palette's "asphalt" one step off: `85 87 97`. Not "ink", which PR 4's art doesn't use (R5) | `test_area_art.gd`: `test_art_is_in_the_palettes_colours` |
 | N17 | 4 | §5.5 | A band's ground starts at its top, which rises with the road, not at its line | `test_world_renderer.gd`: `test_each_area_shows_its_ground_and_blends_it_into_the_last_ones`, `test_the_ground_stays_put` |
 | N18 | 5 | L2 | `BUFFER_BEHIND` 13 | `test_props_in_view.gd`: `test_nothing_comes_or_goes_in_the_tallest_view` |
 | N19 | 5 | L2 | `PROP_AHEAD` 20 | The same |
@@ -468,6 +482,12 @@ For each case, make the temporary change in the PR's state, run the check under 
 | N48 | 3 | L28 | N46 as CI would meet it on a slow runner: committed, then a new worktree's first `import.sh` with four CPU-bound processes running. The import writes the uid back, and `test_audio_director.gd` passes | `ci.yml`'s last `test` step, "Tree unchanged by the checks": ` M default_bus_layout.tres` |
 | N49 | 3 | L28 | A script's `.uid` isn't committed: `car/car_sim.gd.uid`, which the import writes again | The same step: `?? car/car_sim.gd.uid`. On GitHub too (§6.5) |
 | N50 | 3 | L29 | `damage.wav` three times as loud, peaking at 0.75 | `test_audio_director.gd`: `test_no_sound_peaks_above_its_kinds_budget` |
+| N51 | 1 | L11 | No read-back: `_write()` renames the `.tmp` whatever it holds (R1) | `test_save_service.gd`: `test_a_write_that_fails_as_the_file_closes_keeps_the_last_save` |
+| N52 | 4 | §5.5 | A band's sprite without `region_enabled`, so it draws its whole texture once (R4) | `test_world_renderer.gd`: `test_each_area_shows_its_ground_and_blends_it_into_the_last_ones`, `test_the_ground_covers_every_view_on_a_long_drive`, `test_an_area_without_art_gets_a_checker_of_its_colour` |
+| N53 | 4 | §5.5 | A band's sprite without `centered = false` (R4) | The same, and `test_the_ground_stays_put` |
+| N54 | 4 | §5.5 | A band's texture without `texture_repeat` (R4) | `test_an_area_without_art_gets_a_checker_of_its_colour` |
+| N55 | 3 | L29 | A sound that comes again takes the next player, and plays over itself (R6) | `test_audio_director.gd`: `test_a_sound_never_plays_twice_at_once` |
+| N56 | 1 | L1 | `_common.sh` doesn't export `XDG_DATA_HOME`, as Godot on macOS ignores it (R7) | `run_tests.sh` and `smoke.sh`: "Godot kept user:// outside …, so the save there proves nothing" |
 
 Only N50 breaks a sound itself: headless runs play nothing (L15), so the tests check the players, the fades, the pitch and the files' peaks, and E14 listens. N15–N17, N28–N31, N35 and N36 break the art's contracts, which final art must also pass (Q1).
 
@@ -475,7 +495,7 @@ Only N50 breaks a sound itself: headless runs play nothing (L15), so the tests c
 
 None of the five checks reports GDScript warnings, so, as in M2–M4 (M2_PLAN.md §6.3), a probe asked the editor's language server for them. `main` reports 8, in 83 scripts: those that M4 left (M4_PLAN.md §6.3). PRs 1–3 report the same 8, in 88, 99 and 106 scripts; from PR 2 on, `ui/main.gd`'s INTEGER_DIVISION, the `grey box:` line, is on line 44, not 37. PRs 4–6 report 5 of them, in 109, 119 and 125 scripts: PR 4 replaces the ground tileset's tests (L3), which had 3 of `test_greybox_atlas.gd`'s 4, and `world/greybox_atlas.gd`'s moves from line 71 to 135. In PRs 3–6 the editor also saved `default_bus_layout.tres` with a uid in its header, until PR 3 committed it so (L28): now `git status` stays clean after the probe.
 
-Before the prototype's last rewrite it reported 6 more, all INTEGER_DIVISIONs that are meant: in `tools/audio/make_audio.gd`, `tools/art/make_art.gd` and `tests/unit/test_prop_layout.gd` (4). Each now has `@warning_ignore("integer_division")`. `MenuScreen.back_requested`, which only the screens emit, has `@warning_ignore("unused_signal")`, as `DisasterBase.finished` has (M3 J25). The probe isn't committed (§9).
+Before the prototype's last rewrite it reported 6 more, all INTEGER_DIVISIONs that are meant: in `tools/audio/make_audio.gd`, `tools/art/make_art.gd` and `tests/unit/test_prop_layout.gd` (4). Each now has `@warning_ignore("integer_division")`. `MenuScreen.back_requested`, which only the screens emit, has `@warning_ignore("unused_signal")`, as `DisasterBase.finished` has (M3 J25). The probe isn't committed (§9). §6.6 has its results on the PRs' final heads.
 
 ### 6.4 Verified only in CI or on devices
 
@@ -513,6 +533,29 @@ The probes ran on Godot 4.7.2, headless unless they say otherwise, in scratch sc
   - The save, in Chrome: `--play --seed=12345` with no input ends in a sinkhole at the first junction. IndexedDB then holds `/userfs/godot/app_userdata/Road Roguelike/save.json`, with the best distance of 4.0 tiles and the sinkhole first seen in the City, and no `.tmp` (L11). After a reload, the title shows "Best: 40 m, 0 turns". The Atlas shows the City with "Best distance: 40 m" and "Best turns: 0", and four areas "???", "Not reached yet". The collection shows the sinkhole "Seen once", first in the City at 40 m and 0 turns, and three unseen. The arrow keys, Enter and Esc move between the screens. In one earlier session an Enter on the title did nothing; that didn't happen again, and E14 watches for it.
   - The `.pck` grows from 120 KB to 1.07 MB: 0.70 MB of sounds, 233 KB of textures and 27 KB of font. The Web export is 11.1 MB in all.
 - **CI.** Six runs on the prototype, started by hand, passed all five jobs: 42760715735, 42761898836 and 42762952606 on earlier states of PR 6, 42773869986 on 84e261b, 42778138424 on c571409, before L29, and 42789644289 on 132d464; the third and the fourth had `upload-builds`. They took 13–26 s for `lint`, 106–118 s for `test`, 57–82 s for `export-web`, 72–88 s for the APK, and 165–191 s for the AAB, once 607 s. Run 42777729455, on a commit that deleted `car/car_sim.gd.uid` from c571409 (N49), failed at the `test` job's last step, which printed `?? car/car_sim.gd.uid`. Run 42778916449 showed why that step passes `safe.directory` to git: the job's container runs its steps as root, uid 1001 owns the checkout, and a plain `git status` stops with "detected dubious ownership". The APK is 58.1 MB and the AAB 58.0 MB.
+
+
+### 6.6 Measurements (PRs)
+
+The PRs' final heads, after the review fixes (§4.6), are 0f76e42, d7e0f81, 7a3af97, 6596cba, c56e72d and 1d007c5. PR 6's later commits change only this plan. The local numbers are from those heads.
+
+- **Local checks** (§6.1). All five pass on each head, and `git status` is clean after them. The generators of PRs 3–6 make the committed assets byte for byte:
+
+  | Head | `check_scripts` | GUT tests | Asserts | GUT time | The PR's diff |
+  |---|---|---|---|---|---|
+  | PR 1, 0f76e42 | 88 | 301 | 146,306 | 20.4–20.6 s | 24 files, +1,037 −8 |
+  | PR 2, d7e0f81 | 99 | 335 | 146,582 | 21.0–21.2 s | 43 files, +1,506 −26 |
+  | PR 3, 7a3af97 | 106 | 371 | 146,798 | 21.5–21.9 s | 66 files, +1,822 −1 |
+  | PR 4, 6596cba | 109 | 381 | 147,097 | 23.5–23.9 s | 50 files, +1,598 −219 |
+  | PR 5, c56e72d | 119 | 401 | 147,518 | 42.5–43.8 s | 75 files, +2,570 −31 |
+  | PR 6, 1d007c5 | 125 | 411 | 147,672 | 44.3–44.4 s | 34 files, +978 −68 |
+
+  The review fixes add to §6.1's counts: R1's test and its 6 asserts from PR 1 on, and R6's test and its 2 asserts from PR 3 on. R2, R3 and R7 change the scripts, and R4 the tests' helpers. Each GUT time is the range of two runs: on the head, and on its state before R7, which changes only the CI scripts. On each head, `smoke.sh` prints `autopilot: the save is in memory` and M4's `autopilot: tile 165, turns 35, area rural` (E13).
+- **The stack.** `git diff --stat origin/m5/prototype -- . ':!M5_PLAN.md'` on PR 6's head lists only §4.6's 8 files (§4 PR 6 step 1): `autoload/save_service.gd` (R1, R3), `autoload/audio_director.gd` (R6), `tools/ci/_common.sh`, `run_tests.sh` and `smoke.sh` (R2, R3, R7), and three tests. The landing, simulated again on the final heads as in §4.5, has no conflicts: after its merges, each PR's diff from `main` lists only its own files, and the last squash gives PR 6's tree.
+- **Editor warnings** (§6.3). The probe reported §6.3's warnings on each head, and no others: main's 8 on PRs 1–3, in 88, 99 and 106 scripts, and 5 of them on PRs 4–6, in 109, 119 and 125. The review fixes add none, and `git status` stayed clean after each run.
+- **Negative cases** (§6.2). The script ran all 55 of its cases again, each on its PR's final head, in 2 min 47 s, and N36 ran by hand on PR 6's. Each failed the checks that §6.2 gives it. N36's two tests measured contrasts of 0.059 and 0.047, below 0.1.
+- **CI.** To do: the runs on the PR branches, and a run by hand on PR 6's head for E14.
+- **Web (E14).** To do, with that run's Web build (§4 PR 6 step 2).
 
 ---
 
@@ -563,4 +606,8 @@ These need the repository owner. The current state was read with `gh api` on 202
 - **`AGENTS.md` §3:** a file that the editor saves by itself, as it does the bus layout, is committed just as the editor writes it, uid included (L28). Change the buses in the editor's Audio panel.
 - **`AGENTS.md` §4 and §10:** since PR 3, CI's `test` job runs §4's last check, `git status --porcelain`, after the others (L28).
 - **IP and `plan.md`:** fold this plan's Δs into them once it is approved (Q10).
+- **Tests and CI scripts** (§4.6):
+  - GUT runs `tests/integration/` before `tests/unit/`, so a unit test can't vouch for the tests that ran before it. A check on the whole suite belongs in `run_tests.sh`, as the scratch save's does (R2).
+  - Godot 4.7.2 ignores what `fclose()` returns, so a write that matters reads its file back, as `SaveService._write()` does (R1).
+  - On macOS, `user://` follows `HOME`, not `XDG_DATA_HOME`. `_common.sh`'s `scratch_save` moves the one each system reads, and checks that Godot's log landed there (R7).
 - **Optional:** a CI check for editor warnings, built on §6.3's language-server probe (M2–M4 §9). M5's code had 6 that only the probe found (§6.3). The negative-case script and P12's audio tap could be committed too, under `tools/agent/`.
