@@ -10,6 +10,17 @@ const DELTA := 1.0 / 60.0
 var _service: SaveServiceScript
 
 
+## Loses all but the start of each write as the file closes, as a full disk does to a buffered
+## write, and Godot reports nothing (M5_PLAN.md L11).
+class LossySave:
+	extends "res://autoload/save_service.gd"
+
+	func _store(file: FileAccess, text: String) -> bool:
+		var stored := file.store_string(text.left(8))
+		file.close()
+		return stored
+
+
 func before_each() -> void:
 	DirAccess.make_dir_recursive_absolute(DIR)
 	_clean()
@@ -169,6 +180,22 @@ func test_a_file_that_cant_be_written_is_a_warning() -> void:
 	assert_ne(_service.flush(), OK)
 	assert_push_warning("can't write")
 	assert_eq(_service.setting("haptics"), false, "kept in memory")
+
+
+func test_a_write_that_fails_as_the_file_closes_keeps_the_last_save() -> void:
+	_service.set_setting("music", 0.5)
+	assert_eq(_service.flush(), OK)
+	var last := FileAccess.get_file_as_string(FILE)
+	var lossy := LossySave.new()
+	add_child_autofree(lossy)
+	lossy.use_file(FILE)
+	lossy.set_setting("music", 0.25)
+	assert_eq(lossy.flush(), ERR_FILE_CANT_WRITE)
+	assert_eq(FileAccess.get_file_as_string(FILE), last, "the last save stays whole")
+	assert_false(FileAccess.file_exists(FILE + ".tmp"))
+	assert_eq(lossy.flush(), ERR_FILE_CANT_WRITE, "the change waits for the next write")
+	assert_push_warning_count(2)
+	lossy.use_memory()
 
 
 func test_memory_writes_nothing() -> void:

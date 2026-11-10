@@ -6,10 +6,10 @@ extends Node
 ## setting is written SETTINGS_SAVE_DELAY after the last change, or at once on flush(), which also
 ## comes when the app is closed, paused or loses focus.
 ##
-## A write goes to a .tmp file that then replaces the file (M5.4), in one frame, so that the Web
-## build's IndexedDB sync sees both (M5_PLAN.md L11). A file that can't be read is kept as .bak and
-## replaced with the defaults at once, or, if it can't be kept, never written over. A file from a
-## later version is read but never written over.
+## A write goes to a .tmp file which, once it reads back whole, replaces the file (M5.4), in one
+## frame, so that the Web build's IndexedDB sync sees both (M5_PLAN.md L11). A file that can't be
+## read is kept as .bak and replaced with the defaults at once, or, if it can't be kept, never
+## written over. A file from a later version is read but never written over.
 
 ## A setting changed, or the save was read: `key` is the setting, or "" for all of them.
 signal settings_changed(key: String)
@@ -155,9 +155,9 @@ func _write(text: String) -> Error:
 	if file == null:
 		push_warning("SaveService: can't write %s" % tmp)
 		return FileAccess.get_open_error()
-	var stored := file.store_string(text)
-	file.close()
-	if not stored:
+	# A buffered write that fails as the file closes, on a full disk, is never reported: Godot
+	# ignores what fclose() returns. So the file must read back whole before it replaces the save.
+	if not _store(file, text) or FileAccess.get_file_as_string(tmp) != text:
 		push_warning("SaveService: writing %s failed" % tmp)
 		DirAccess.remove_absolute(tmp)
 		return ERR_FILE_CANT_WRITE
@@ -165,6 +165,13 @@ func _write(text: String) -> Error:
 	if error != OK:
 		push_warning("SaveService: can't replace %s" % path)
 	return error
+
+
+## Writes `text` to `file` and closes it. Returns false if Godot reports that the write failed.
+func _store(file: FileAccess, text: String) -> bool:
+	var stored := file.store_string(text)
+	file.close()
+	return stored
 
 
 func _on_run_ended(_cause: StringName, stats: Dictionary) -> void:
