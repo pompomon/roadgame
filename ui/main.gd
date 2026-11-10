@@ -1,11 +1,15 @@
 extends Node
 ## The game, the main scene (IMPLEMENTATION_PLAN.md M2, M3): drive along the generated road and take
-## the right exit at every junction. It builds each run from its seed and relays the road's and the
-## car's signals to EventBus and GameState. When the run ends, the DisasterDirector plays its end,
-## and then the game-over screen shows; Retry builds the next run in place, without reloading the
-## scene (M3.3). User arguments (after "--"): --seed=<int> picks the road (D8); --autopilot drives
-## by itself (the CI smoke run); --area=<id> starts every run in that area, for tests and manual
-## checks (M4_PLAN.md K10).
+## the right exit at every junction. It starts on the title screen (M5.5), and Play builds a run
+## from its seed and relays the road's and the car's signals to EventBus and GameState. When the run
+## ends, the DisasterDirector plays its end, and then the game-over screen shows; Retry builds the
+## next run in place, without reloading the scene (M3.3), and Title goes back to the title screen.
+## User arguments (after "--"): --play starts a run at once, without the title screen;
+## --seed=<int> picks the road (D8); --autopilot drives by itself (the CI smoke run), and implies
+## --play; --area=<id> starts every run in that area, for tests and manual checks (M4_PLAN.md K10).
+
+## Android's back button on the title screen. _ready() connects it to quitting the game.
+signal quit_requested
 
 const CAR_SCENE := preload("res://car/car.tscn")
 
@@ -23,14 +27,17 @@ var _car: CarController
 @onready var _camera: CameraRig = %Camera
 @onready var _director: DisasterDirector = %Director
 @onready var _game_over: GameOver = %GameOver
+@onready var _hud: Hud = %HUD
+@onready var _title: TitleScreen = %Title
 
 
 func _ready() -> void:
 	_autopilot = args.has("--autopilot")
-	_schedule = load("res://areas/schedule.tres")
+	var schedule: AreaSchedule = load("res://areas/schedule.tres")
+	_schedule = schedule
 	var area := _parse_area(args)
 	if area != &"":
-		_schedule = _schedule.starting_at(area)
+		_schedule = schedule.starting_at(area)
 	var start := Time.get_ticks_usec()
 	_world.build(_schedule)
 	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
@@ -39,7 +46,15 @@ func _ready() -> void:
 	_director.sequence_finished.connect(_on_sequence_finished)
 	_director.disaster_started.connect(_on_disaster_started)
 	_game_over.retry_requested.connect(_retry)
-	_start_run(_parse_seed(args))
+	_game_over.title_requested.connect(_to_title)
+	# The Atlas and the collection show the whole schedule, also with --area.
+	_title.schedule = schedule
+	_title.play_requested.connect(_play)
+	quit_requested.connect(get_tree().quit)
+	if _autopilot or args.has("--play"):
+		_start_run(_parse_seed(args))
+	else:
+		_show_title()
 
 
 func _exit_tree() -> void:
@@ -65,6 +80,23 @@ func _notification(what: int) -> void:
 	var focus_out := what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT]
 	if focus_out and GameState.state == GameState.State.RUNNING:
 		GameState.pause()
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		go_back()
+
+
+## Android's back button (M5_PLAN.md L13): it leaves a screen of the title for the title, and
+## quits from the title itself. It pauses a running game, and leaves game over for the title. While
+## the game is paused, and while the disaster or the crash plays, it does nothing. project.godot
+## turns off quit_on_go_back, which would quit from every screen.
+func go_back() -> void:
+	match GameState.state:
+		GameState.State.TITLE:
+			if not _title.go_back():
+				quit_requested.emit()
+		GameState.State.RUNNING:
+			GameState.pause()
+		GameState.State.GAME_OVER:
+			_to_title()
 
 
 ## Builds a run: a road from `run_seed`, a car on it, and a fresh start for the world, the input,
@@ -84,6 +116,7 @@ func _start_run(run_seed: int) -> void:
 	_sim.area_changed.connect(_on_area_changed)
 	_input.autopilot = Autopilot.new(_sim) if _autopilot else null
 	_input.enabled = true
+	_hud.show()
 	_car = CAR_SCENE.instantiate() as CarController
 	_car.sim = _sim
 	_car.input = _input
@@ -97,18 +130,52 @@ func _start_run(run_seed: int) -> void:
 	_on_area_changed(_sim.area)
 
 
-## Retry on the game-over screen: the next run, on the same nodes. The last run's car and disaster
-## are freed at once, not queued, so that no frame shows two cars (M3_PLAN.md J13). A forced --seed
-## stays; otherwise the run gets a new random seed (M2_PLAN.md H28).
+## Retry on the game-over screen: the next run, on the same nodes. A forced --seed stays; otherwise
+## the run gets a new random seed (M2_PLAN.md H28).
 func _retry() -> void:
 	if GameState.state != GameState.State.GAME_OVER:
 		push_error("main: a retry is only allowed after game over")
 		return
+	_clear_run()
+	_start_run(_parse_seed(args))
+
+
+## Title on the game-over screen. The last run's road stays behind the title screen until the next
+## run replaces it.
+func _to_title() -> void:
+	if GameState.state != GameState.State.GAME_OVER:
+		push_error("main: the title screen is only reachable from game over")
+		return
+	_clear_run()
+	GameState.quit_to_title()
+	_show_title()
+
+
+## Play on the title screen: a run, as with --play.
+func _play() -> void:
+	if GameState.state != GameState.State.TITLE:
+		push_error("main: Play is only allowed on the title screen")
+		return
+	_title.close()
+	_start_run(_parse_seed(args))
+
+
+func _show_title() -> void:
+	_hud.hide()
+	_input.enabled = false
+	_title.open()
+
+
+## Frees the last run's car and disaster at once, not queued, so that no frame shows two cars
+## (M3_PLAN.md J13).
+func _clear_run() -> void:
 	_game_over.close()
 	_director.clear()
 	_camera.stop_shake()
+	_camera.car = null
+	_world.car = null
 	_car.free()
-	_start_run(_parse_seed(args))
+	_car = null
 
 
 func _on_turn_completed(turn_index: int) -> void:

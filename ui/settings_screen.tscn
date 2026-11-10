@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/settings_screen.gd" id="1_settings"]
+
+[node name="SettingsScreen" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Box" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Heading" type="Label" parent="Margin/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="List" type="VBoxContainer" parent="Margin/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="MusicLabel" type="Label" parent="Margin/Box/List"]
+layout_mode = 2
+text = "Music"
+
+[node name="Music" type="HSlider" parent="Margin/Box/List"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="SfxLabel" type="Label" parent="Margin/Box/List"]
+layout_mode = 2
+text = "Sound effects"
+
+[node name="Sfx" type="HSlider" parent="Margin/Box/List"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="AmbientLabel" type="Label" parent="Margin/Box/List"]
+layout_mode = 2
+text = "Ambient"
+
+[node name="Ambient" type="HSlider" parent="Margin/Box/List"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="HapticsLabel" type="Label" parent="Margin/Box/List"]
+layout_mode = 2
+text = "Vibration"
+
+[node name="Haptics" type="CheckButton" parent="Margin/Box/List"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="OrientationLabel" type="Label" parent="Margin/Box/List"]
+layout_mode = 2
+text = "Screen"
+
+[node name="Orientation" type="OptionButton" parent="Margin/Box/List"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Back" type="Button" parent="Margin/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Back"

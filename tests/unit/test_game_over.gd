@@ -1,6 +1,7 @@
 extends GutTest
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3) on its own: why the run ended,
-## its stats, the seed, and Retry. It runs in a SubViewport, so that Retry can take the focus.
+## its stats, the seed, Retry, and Title (M5.5). It runs in a SubViewport, so that Retry can take
+## the focus.
 
 const GAME_OVER_SCENE := preload("res://ui/game_over.tscn")
 
@@ -103,4 +104,16 @@ func test_close_drops_the_focus_and_retry_does_nothing_while_closed() -> void:
 	assert_false(game_over.visible)
 	assert_false(retry.has_focus(), "the arrow keys go back to the game")
 	retry.pressed.emit()
+	assert_signal_not_emitted(game_over, "retry_requested")
+
+
+func test_title_asks_for_the_title_screen_only_while_open() -> void:
+	var game_over := _game_over()
+	var title: Button = game_over.get_node("%Title")
+	watch_signals(game_over)
+	title.pressed.emit()
+	assert_signal_not_emitted(game_over, "title_requested", "closed")
+	game_over.open(_stats(CarSim.WRONG_TURN), _rural())
+	title.pressed.emit()
+	assert_signal_emit_count(game_over, "title_requested", 1)
 	assert_signal_not_emitted(game_over, "retry_requested")

@@ -6,13 +6,14 @@ const MAIN_SCENE := preload("res://ui/main.tscn")
 const DELTA := 1.0 / 60.0
 
 
-## The main scene with user arguments `args`, in a portrait SubViewport that `test` frees.
-static func open(test: GutTest, args: Array[String]) -> Node:
+## The main scene with user arguments `args`, in a portrait SubViewport that `test` frees. With
+## `play`, it starts a run at once (--play), without the title screen (M5.5).
+static func open(test: GutTest, args: Array[String], play := true) -> Node:
 	var view := SubViewport.new()
 	view.size = Vector2i(360, 640)
 	test.add_child_autofree(view)
 	var main: Node = MAIN_SCENE.instantiate()
-	main.args = PackedStringArray(args)
+	main.args = PackedStringArray(args + (["--play"] as Array[String] if play else []))
 	view.add_child(main)
 	return main
 

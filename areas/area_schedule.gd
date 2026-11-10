@@ -43,6 +43,16 @@ func validate() -> PackedStringArray:
 	return problems
 
 
+## Each area of the schedule once, in the order a run reaches them: the Atlas's cards and the
+## disaster collection's order (IMPLEMENTATION_PLAN.md M5.5).
+func areas() -> Array[AreaDef]:
+	var found: Array[AreaDef] = []
+	for entry: AreaScheduleEntry in entries:
+		if entry != null and entry.area != null and not found.has(entry.area):
+			found.append(entry.area)
+	return found
+
+
 ## The most path tiles from a junction to the next in `entry`'s area, counting the next: the set
 ## piece that leads into the area, the area's longest straight, and the junction's own tile. The
 ## JunctionTrigger looks for the next junction as the car enters the tile after a junction, when

@@ -5,6 +5,7 @@
 [node name="Tornado" type="Node2D"]
 script = ExtResource("1_tornado")
 id = &"tornado"
+display_name = "Tornado"
 
 [node name="Funnel" type="Node2D" parent="."]
 unique_name_in_owner = true
