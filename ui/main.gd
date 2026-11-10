@@ -37,6 +37,7 @@ func _ready() -> void:
 	print("grey box: tilesets built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	_director.layer = _world.get_node("%DisasterLayer")
 	_director.sequence_finished.connect(_on_sequence_finished)
+	_director.disaster_started.connect(_on_disaster_started)
 	_game_over.retry_requested.connect(_retry)
 	_start_run(_parse_seed(args))
 
@@ -127,9 +128,32 @@ func _on_crashed(cause: StringName) -> void:
 	_director.play_crash(_car, _camera)
 
 
+## The car reached `area`. GameState counts the area's distance and turns from its first tile, which
+## the car may have passed, off the road. In the step that reaches it, CarSim reports the area
+## before the trigger judges the turn behind it (M5_PLAN.md L8).
 func _on_area_changed(area: AreaDef) -> void:
-	GameState.area_id = area.id
+	var first := _buffer.car_index()
+	while first > _buffer.first_index() and _buffer.path_tile(first - 1).area_id == area.id:
+		first -= 1
+	# A run starts at the centre of its first tile, at distance 0.
+	GameState.enter_area(area.id, maxf(first - 0.5, 0.0), _turns_before(first))
 	EventBus.area_changed.emit(area)
+
+
+## The turns before path index `index`: the turn number of the first junction from there on, as a
+## junction's turn number counts the junctions before it.
+func _turns_before(index: int) -> int:
+	for i: int in range(index, _buffer.last_index() + 1):
+		var tile := _buffer.path_tile(i)
+		if tile.is_junction():
+			return tile.turn_number
+	# The buffer always holds the next junction (JunctionTrigger._junction_after()).
+	push_error("main: no junction after path index %d" % index)
+	return GameState.turn_index
+
+
+func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
+	EventBus.disaster_started.emit(disaster.id, area)
 
 
 ## The run is over the moment it ends (M3_PLAN.md J1): the input stops, and GameState reports the

@@ -16,6 +16,16 @@ static func _banner(main: Node) -> Label:
 	return main.get_node("%HUD/%AreaBanner")
 
 
+## The path distance to the far edge of the junction with turn number `turn_number`, or -1 if
+## `buffer` doesn't hold it.
+static func _far_edge_of_junction(buffer: RoadBuffer, turn_number: int) -> float:
+	for i: int in range(buffer.first_index(), buffer.last_index() + 1):
+		var tile := buffer.path_tile(i)
+		if tile.is_junction() and tile.turn_number == turn_number:
+			return tile.path_index + 0.5
+	return -1.0
+
+
 ## With no input, the first junction ends the run. Then Retry starts the next.
 func _retry_after_the_first_junction(main: Node) -> void:
 	MainScene.run_while(self, main, RUNNING, 3600)
@@ -74,3 +84,28 @@ func test_an_empty_area_argument_starts_in_the_first_area() -> void:
 	var main := MainScene.open(self, ["--seed=1", "--area="])
 	assert_push_error("--area= needs the id of an area")
 	assert_eq(MainScene.car(main).sim.area.id, &"city")
+
+
+## With no set piece between them, an area's first tile follows the junction that ends the area
+## before, and the step that reaches it reports the area before it judges the turn there: that turn
+## still counts for the area before, and the distance from the junction's far edge on for the next
+## (M5_PLAN.md L8). Seed 1's Village meets the Desert after turn 20.
+func test_each_area_counts_from_its_first_tile() -> void:
+	var main := MainScene.open(self, ["--seed=1", "--area=village", "--autopilot"])
+	var buffer := MainScene.car(main).sim.buffer
+	var boundary := -1.0
+	for frame: int in 60 * 60:
+		if boundary < 0.0:
+			boundary = _far_edge_of_junction(buffer, 19)
+		if GameState.turn_index > 20 or GameState.state != RUNNING:
+			break
+		simulate(main, 1, MainScene.DELTA)
+	assert_eq(GameState.state, RUNNING)
+	assert_eq(GameState.turn_index, 21)
+	assert_gt(boundary, 0.0)
+	var desert := {"distance": GameState.distance - boundary, "turns": 1}
+	assert_gt(desert["distance"], 0.0)
+	assert_eq(
+		GameState.stats()["areas"],
+		{&"village": {"distance": boundary, "turns": 20}, &"desert": desert}
+	)

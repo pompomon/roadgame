@@ -13,6 +13,7 @@ config/icon="res://icon.svg"
 
 EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
+SaveService="*res://autoload/save_service.gd"
 
 [debug]
 

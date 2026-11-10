@@ -63,6 +63,10 @@ const METRES_PER_TILE := 10
 ## while the game is paused doesn't count (IMPLEMENTATION_PLAN.md M4.3).
 const AREA_BANNER_SECONDS := 2.0
 
+## The save file (IMPLEMENTATION_PLAN.md M5.4): a changed setting is written this many seconds
+## after the last change.
+const SETTINGS_SAVE_DELAY := 0.5
+
 ## The end of a run (IMPLEMENTATION_PLAN.md M3). After a disaster or a crash, the car brakes at
 ## BRAKE, or harder if it must, so that it stops within STOP_SECONDS.
 const STOP_SECONDS := 0.6

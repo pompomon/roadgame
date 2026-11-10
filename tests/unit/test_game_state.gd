@@ -28,7 +28,14 @@ func test_start_run_resets_the_stats() -> void:
 	assert_eq(_state.state, GameStateScript.State.RUNNING)
 	assert_eq(
 		_state.stats(),
-		{"run_seed": 42, "turn_index": 0, "distance": 0.0, "area_id": &"", "cause": &""}
+		{
+			"run_seed": 42,
+			"turn_index": 0,
+			"distance": 0.0,
+			"area_id": &"",
+			"cause": &"",
+			"areas": {},
+		}
 	)
 	assert_signal_emitted_with_parameters(EventBus, "run_started", [42])
 
@@ -65,7 +72,7 @@ func test_end_run_emits_the_cause_and_stats() -> void:
 	_state.start_run(7)
 	_state.turn_index = 2
 	_state.distance = 30.5
-	_state.area_id = &"rural"
+	_state.enter_area(&"rural", 30.5, 2)
 	_state.end_run(CarSim.WRONG_TURN)
 	var stats := {
 		"run_seed": 7,
@@ -73,6 +80,7 @@ func test_end_run_emits_the_cause_and_stats() -> void:
 		"distance": 30.5,
 		"area_id": &"rural",
 		"cause": CarSim.WRONG_TURN,
+		"areas": {&"rural": {"distance": 0.0, "turns": 0}},
 	}
 	assert_signal_emitted_with_parameters(EventBus, "run_ended", [CarSim.WRONG_TURN, stats])
 
@@ -172,3 +180,44 @@ func test_every_state_can_quit_to_title() -> void:
 		_state.quit_to_title()
 		assert_eq(_state.state, GameStateScript.State.TITLE, "from %s" % state_name)
 	assert_false(get_tree().paused)
+
+
+func test_stats_have_the_distance_and_turns_made_in_each_area() -> void:
+	_state.start_run(1)
+	_state.enter_area(&"city", 0.0, 0)
+	_state.distance = 40.0
+	_state.turn_index = 34
+	_state.enter_area(&"rural", 40.0, 34)
+	assert_eq(_state.area_id, &"rural")
+	_state.distance = 52.5
+	_state.turn_index = 37
+	var areas: Dictionary = _state.stats()["areas"]
+	assert_eq(
+		areas, {&"city": {"distance": 40.0, "turns": 34}, &"rural": {"distance": 12.5, "turns": 3}}
+	)
+	_state.end_run(CarSim.HEALTH)
+	_state.show_game_over()
+	_state.start_run(2)
+	assert_eq(_state.stats()["areas"], {}, "a new run starts afresh")
+
+
+## The car can reach an area's first tile before its turn at the junction behind is judged, and,
+## off the road, before its distance gets there: those still count for the area before (L8).
+func test_an_area_counts_from_its_first_tile_and_the_turns_after_it() -> void:
+	_state.start_run(1)
+	_state.enter_area(&"meadows", 0.0, 0)
+	_state.distance = 39.9
+	_state.turn_index = 33
+	_state.enter_area(&"village", 40.5, 34)
+	assert_eq(
+		_state.stats()["areas"],
+		{&"meadows": {"distance": 39.9, "turns": 33}, &"village": {"distance": 0.0, "turns": 0}},
+		"before the turn is judged"
+	)
+	_state.distance = 41.0
+	_state.turn_index = 34
+	assert_eq(
+		_state.stats()["areas"],
+		{&"meadows": {"distance": 40.5, "turns": 34}, &"village": {"distance": 0.5, "turns": 0}},
+		"after it"
+	)
