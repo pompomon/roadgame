@@ -1,5 +1,12 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
+[ext_resource type="Script" path="res://areas/prop_def.gd" id="props_script"]
+[ext_resource type="Resource" path="res://areas/props/desert/cactus.tres" id="prop_cactus"]
+[ext_resource type="Resource" path="res://areas/props/desert/barrel.tres" id="prop_barrel"]
+[ext_resource type="Resource" path="res://areas/props/desert/rock.tres" id="prop_rock"]
+[ext_resource type="Resource" path="res://areas/props/desert/bones.tres" id="prop_bones"]
+[ext_resource type="Resource" path="res://areas/props/desert/dry_bush.tres" id="prop_dry_bush"]
+[ext_resource type="Resource" path="res://areas/props/desert/tumbleweed.tres" id="prop_tumbleweed"]
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_xlbr5"]
 [ext_resource type="Texture2D" uid="uid://8y5ljkb26gyp" path="res://assets/desert/road.png" id="art_road"]
 [ext_resource type="Texture2D" uid="uid://dd7vc8a0lhobs" path="res://assets/desert/ground.png" id="art_ground"]
@@ -12,6 +19,7 @@
 script = ExtResource("1_xlbr5")
 id = &"desert"
 display_name = "Desert"
+props = Array[ExtResource("props_script")]([ExtResource("prop_cactus"), ExtResource("prop_barrel"), ExtResource("prop_rock"), ExtResource("prop_bones"), ExtResource("prop_dry_bush"), ExtResource("prop_tumbleweed")])
 id_color = Color(0.9, 0.79, 0.54, 1)
 road_sheet = ExtResource("art_road")
 ground = ExtResource("art_ground")

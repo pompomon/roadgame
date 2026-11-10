@@ -40,6 +40,11 @@ extends Resource
 ## The farthest the car may drive off the road, in tiles: 2.0 in the MVP.
 @export_range(0.5, 5.0, 0.1) var offroad_limit_tiles := 2.0
 
+@export_group("Props")
+## What PropScatter scatters beside the road here (M5_PLAN.md §5.6). Their densities add up to 1 at
+## most: the chance that a ground cell shows a prop.
+@export var props: Array[PropDef] = []
+
 @export_group("Disasters")
 ## What a wrong or missed turn here may end in (plan.md §4.3): scenes whose root is a DisasterBase.
 ## The DisasterDirector picks one with the run's disaster stream.

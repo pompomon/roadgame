@@ -51,6 +51,8 @@ var _bands: Array[Band] = []
 var _open_run: Array[RoadTile] = []
 ## The set pieces, by the path index of their run's last tile.
 var _set_pieces_by_end: Dictionary[int, SetPiece] = {}
+## The props beside the road (M5_PLAN.md §5.6), on the Props layer. build() makes it.
+var _scatter: PropScatter
 
 @onready var _ground: Node2D = %Ground
 @onready var _road: TileMapLayer = %RoadLayer
@@ -70,6 +72,7 @@ func build(schedule: AreaSchedule) -> void:
 	for entry: AreaScheduleEntry in schedule.entries:
 		if entry.set_piece != &"" and set_piece_scenes.get(entry.set_piece) == null:
 			push_error("WorldRenderer: no scene for set piece %s" % entry.set_piece)
+	_scatter = PropScatter.new(%Props as Node2D, schedule)
 
 
 ## Draws the tiles `buffer` has now and every later change, instead of the last buffer's, which it
@@ -91,6 +94,7 @@ func bind(buffer: RoadBuffer) -> void:
 	buffer.tiles_generated.connect(_on_tiles_generated)
 	buffer.tiles_freed.connect(_on_tiles_freed)
 	_on_tiles_generated(buffer.tiles())
+	_scatter.bind(buffer)
 
 
 ## Sets the car and gives it to the set pieces.
@@ -98,6 +102,16 @@ func set_car(value: Node2D) -> void:
 	car = value
 	for piece: SetPiece in _set_pieces_by_end.values():
 		piece.car = value
+
+
+func _process(delta: float) -> void:
+	if _scatter != null:
+		_scatter.update(delta)
+
+
+## The props beside the road, or null before build().
+func prop_scatter() -> PropScatter:
+	return _scatter
 
 
 func _on_tiles_generated(tiles: Array[RoadTile]) -> void:
