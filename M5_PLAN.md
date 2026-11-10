@@ -2,7 +2,7 @@
 
 Status: draft, for review; Q1–Q11 have proposed defaults · 2026-11-10 · Scope: `IMPLEMENTATION_PLAN.md` (below: **IP**) §3 M5 row, §4 M5.1–M5.5 and "M5 tests", §9's line on the atlas, the collection and the settings, and M4_PLAN.md §9's notes for M5
 
-**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m5/prototype`, which has one commit per PR (§4.1): 791190d, 1fe7021, b789eb1, 925878a, 3a9fa60 and c571409, on top of `main` (18fd716). Each commit's state passed the five local checks (§6.1), and the stacked landing was simulated (§4.5). Each of the 49 negative cases in §6.2 failed its checks on the prototype's last commit. CI on the prototype passed all five jobs (§6.4), and its Web build ran in Chrome and Firefox: the title and its screens, a run through the City, the tunnel and Rural with the new art and props, a disaster, and a save that survives a reload, with no errors (§6.5). The editor reports no warnings that `main` doesn't (§6.3), and leaves the tree as it found it (L28). A model of another family, gpt-6.1-sol, reviewed the plan and the prototype (`AGENTS.md` §7): its six findings are fixed in the PRs' commits, with their tests and negative cases, its review of those fixes found nothing more, and its review of L28's fix found a gap in CI, now closed too (§4.6).
+**Verified, not just reviewed.** Every file this plan adds or changes exists on branch `m5/prototype`, which has one commit per PR (§4.1): 791190d, 1fe7021, f30beb5, 89a3732, 40a77c4 and 132d464, on top of `main` (18fd716). Each commit's state passed the five local checks (§6.1), and the stacked landing was simulated (§4.5). Each of the 50 negative cases in §6.2 failed its checks: 49 on the prototype's last commit, and N36 by hand. CI on the prototype passed all five jobs (§6.4), and its Web build ran in Chrome and Firefox: the title and its screens, a run through the City, the tunnel and Rural with the new art and props, a disaster, and a save that survives a reload, with no errors, and its sound no longer clips (§6.5, L29). The editor reports no warnings that `main` doesn't (§6.3), and leaves the tree as it found it (L28). A model of another family, gpt-6.1-sol, reviewed the plan, the prototype and each later fix (`AGENTS.md` §7). The fixes of its findings are in the PRs' commits, with their tests and negative cases (§4.6).
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -11,7 +11,7 @@ Status: draft, for review; Q1–Q11 have proposed defaults · 2026-11-10 · Scop
 - actionlint 1.7.12
 - Chrome 157, headless and headed, and Firefox 159, headed under Xvfb, driven by Playwright
 
-The Galaxy Z Fold4 couldn't be used here, and nobody has listened to the sound yet. Both are E14's checks in PR 6 (§6.4).
+The Galaxy Z Fold4 couldn't be used here, and nobody has listened to the sound yet, though P12 measured its level on the Web (L29). Both are E14's checks in PR 6 (§6.4).
 
 **Precedence.** For M5, this document replaces IP §4 M5 wherever they differ. Each difference is marked **Δ** with its finding number (L#, §2). Where it differs from `plan.md`, it says so too (L2, L3, L18, L23). Once this plan is approved, fold the changes back into IP and `plan.md` (Q10).
 
@@ -44,7 +44,7 @@ Goal (IP §3): "Final art and audio, Atlas, disaster collection, settings, save 
 | E4 | The game starts on a title: Play, Atlas, Disasters, Settings and the best run. The Atlas shows the five areas in the order a run reaches them, each a silhouette until a run reaches it, then with its colour and the most distance and turns a run made in it (L8). The collection shows the four disasters, silhouettes until seen, then how often and where each was first seen. Settings has the three volumes, vibration and the screen's orientation (Q3). Each screen fits a 360×640 portrait screen with its longest texts, and what they show survives a restart (IP §9) | `test_title_screen.gd`, `test_atlas_screen.gd`, `test_collection_screen.gd`, `test_settings_screen.gd`, `test_title.gd` |
 | E5 | Play starts one run, which doesn't steer until the player does. Game over offers Title as well as Retry. Android's back button: a screen of the title goes back to it, the title quits, a run pauses, game over goes to the title, and nothing else reacts (L13, Q5). Esc does the same on the title's screens. `--autopilot`, and the new `--play`, start a run at once, as M4's game did | `test_title.gd`, `test_game_over.gd` |
 | E6 | Nothing comes or goes in view: while the autopilot drives, no road tile, set piece or row of props is added or freed within a screen row (32 px) of what the tallest (360×922) or the widest (1639×640) reference view shows, nor of where the camera heads. Those two views hold the other five, and each row's props reach past both sides of them (L2) | `test_props_in_view.gd`, `test_prop_scatter.gd` |
-| E7 | `AudioDirector` plays each area's music and ambient loop, cross-fading them in `CROSS_FADE_SECONDS` (1.5 s) on `area_changed` (L22). The engine runs from a run's start to its end, its pitch from 0.8 standing to 1.6 at the speed cap (L21). Leaving the road screeches and rumbles until the car is back, each turn made chimes, the health thumps each time it falls past a multiple of 10, and a crash and each disaster as it starts have their sounds (L7). The SFX bus's reverb is on only while the car is in a tunnel. Volumes follow the settings as they change. Music and ambience go on while paused; the car's sounds pause | `test_audio_director.gd`, `test_cross_fade.gd`, `test_audio.gd` |
+| E7 | `AudioDirector` plays each area's music and ambient loop, cross-fading them in `CROSS_FADE_SECONDS` (1.5 s) on `area_changed` (L22). The engine runs from a run's start to its end, its pitch from 0.8 standing to 1.6 at the speed cap (L21). Leaving the road screeches and rumbles until the car is back, each turn made chimes, the health thumps each time it falls past a multiple of 10, and a crash and each disaster as it starts have their sounds (L7). The SFX bus's reverb is on only while the car is in a tunnel. Volumes follow the settings as they change. Music and ambience go on while paused; the car's sounds pause. No sound peaks above its kind's budget (L29) | `test_audio_director.gd`, `test_cross_fade.gd`, `test_audio.gd` |
 | E8 | Headless runs play no sound, so neither the tests nor `smoke.sh` leak at exit (L15). `lint.sh` lints `audio/`, and fails on a script in a directory it doesn't list (L16) | `smoke.sh`, `run_tests.sh`, `lint.sh` |
 | E9 | Each area has a road sheet in the grey box's layout, opaque exactly where its road is; a seamless ground that covers the screen and stays put in the world; and an edge that blends it into the last area's ground over `TRANSITION_TILES` (2) path tiles (L3, L4). An area without art draws a checker of its colour. Every PNG under `assets/` uses only the palette's 32 colours and imports lossless, without mipmaps (L25). A crash's smoke shows over everything the world draws | `test_area_art.gd`, `test_greybox_atlas.gd`, `test_world_renderer.gd`, `test_car_controller.gd` |
 | E10 | Each area has 6–10 props, some animated, beside the road, placed from the run's props seed: a seed places the same props on every run, and they take nothing from the road's stream. No prop's frame touches a road tile, whether made before or after its row, and none stands near a set piece. Over 1,000 rows, `PropPool` makes no more sprites than a row shows (L14, L24) | `test_prop_layout.gd`, `test_prop_pool.gd`, `test_prop_scatter.gd`, `test_prop_art.gd` |
@@ -64,7 +64,7 @@ IP's M5 design holds up in its parts: a versioned save with migrations and atomi
 - **Medium:** fragile, missing from the code it depends on, or broken in some order of events.
 - **Low:** clarity, naming or polish.
 
-"Prototype" means the problem was reproduced with Godot 4.7.2 on `m5/prototype`, with the probes P1–P11 (§6.5) or the negative cases N# (§6.2). Line numbers are `main`'s (18fd716) in the repository's files, and the 4.7.2-stable tag's in Godot's.
+"Prototype" means the problem was reproduced with Godot 4.7.2 on `m5/prototype`, with the probes P1–P12 (§6.5) or the negative cases N# (§6.2). Line numbers are `main`'s (18fd716) in the repository's files, and the 4.7.2-stable tag's in Godot's.
 
 ### High
 
@@ -97,6 +97,7 @@ IP's M5 design holds up in its parts: a versioned save with migrations and atomi
 | L26 | M4 left the tunnel's darkening `CanvasModulate` and the bridge's water shader to M5, and expected M5's art to replace the grey box of the set pieces and the disasters (M4_PLAN.md K18, Q4, §9). IP M5.1 and `plan.md` §5.3 list neither. | P7: 25 of the 27 colours in `setpieces/`, `disasters/`, `car.tscn` and `tuning.gd` aren't in M5's palette | Q2: M5 leaves them as they are. §9 lists them for later |
 | L27 | On the Web, each restart of a sample loop (L20) starts the new source at the sound's own rate, and so does unpausing it. An engine whose pitch is set only when the speed changes plays at the WAV's pitch after its first second at a steady speed. | `library_godot_audio.js`: `_restart()` (`:719`), which `_unpause()` calls too, makes the source without `_syncPlaybackRate()` (`:710`); `setPitchScale()` (`:507–512`) syncs it. `AudioStreamPlayerInternal::set_pitch_scale()` (`audio_stream_player_internal.cpp:316–323`) passes every assignment on, unchanged or not (`audio_server.cpp:1391–1399`). P10 | `AudioDirector` assigns the engine's pitch every physics frame (§5.4; N45). In P10, each restarted source had its rate before the audio clock moved on, where before the fix 14 of 63 played at the WAV's rate for up to 0.4 s. E14 listens for it |
 | L28 | Opening the editor saves `default_bus_layout.tres`, and so does a new checkout's first `import.sh` on a slow machine. Each writes a uid into its header, which leaves `git status` dirty (`AGENTS.md` §3). A later PR that commits that line changes a file that PR 3 adds (§4.5). CI doesn't check the tree, and it imports before the tests, which then read the file as the editor wrote it. | The editor's bus panel saves the layout 0.8 s after a bus effect `is_edited()` (`editor/audio/editor_audio_buses.cpp:1300–1316`, `:1594–1598`). Loading the reverb sets that flag, as `Object::set()` does in the editor's build (`core/object/object.cpp:233–237`). `_server_save()` (`:1430–1443`) then writes the uid that `ResourceUID::create_id_for_path()` seeds with the project's name, the path and the file's MD5 (`core/io/resource_uid.cpp:134–142`), so always `uid://bkp2lspkw8gej`. The panel processes from the start (`:1615`), and `--import` quits at the first frame after its first scan (`main/main.cpp:1683–1687`, `:5157–5167`): the import saves only if it outlasts the timer. P11 | PR 3's layout has that uid and is just as Godot writes it, so the saves don't change a byte (P11). `test_audio_director.gd` checks both. It reads the uid from the header, as `ResourceLoader.get_resource_uid()` also answers from the import's `.godot/uid_cache.bin` (N46, N47). CI's `test` job ends by failing if `git status --porcelain` prints anything, as it does after an import that writes the file (N48, N49) |
+| L29 | Sounds that play together went past full scale, where Godot's mixer clamps each channel and the browser's output clips. Nothing set how loud each may be: the placeholders peaked at 0.5–1.0, and `damage.wav` was clipped. On the Web, samples skip the bus effects (L19), so a limiter wouldn't help there. | `servers/audio/audio_server.cpp:317`, `:323`. P12: at the default volumes the mix peaked at up to +5.7 dBFS, the autopilot's nearly always with a chime over the engine, the music and the ambience | Each kind of sound has a peak budget in `Tuning`: `MUSIC_PEAK` 0.5, `AMBIENT_PEAK` 0.25, `LOOP_PEAK` 0.15 (the engine, the rumble) and `EFFECT_PEAK` 0.25, so that at the default volumes the music, the ambience, the engine and one effect add up to 1. `make_audio.gd` scales each sound to its budget, and `test_audio_director.gd` reads each WAV's peak, which final files must keep too (Q1; N50). Cross-fades and overlapping effects can add up to more, but P12 measured nothing past full scale, and at most −1.3 dBFS (§8) |
 
 ### Low
 
@@ -117,7 +118,7 @@ The prototype follows the defaults. Each alternative changes the PRs named.
 
 | # | Question | Default | Alternative |
 |---|---|---|---|
-| Q1 | Who makes the art and the audio? | Placeholders, made by `tools/art/make_art.gd`, `make_props.gd`, `make_car.gd`, `make_font.gd` and `tools/audio/make_audio.gd`, which run headless with a fixed seed. The tests hold any art to the same contracts (L4), so final files replace them without code changes | Final art and audio before M5 lands: PRs 3–6 wait for them |
+| Q1 | Who makes the art and the audio? | Placeholders, made by `tools/art/make_art.gd`, `make_props.gd`, `make_car.gd`, `make_font.gd` and `tools/audio/make_audio.gd`, which run headless with a fixed seed. The tests hold any art to the same contracts (L4), and any sound to its kind's peak (L29), so final files replace them without code changes | Final art and audio before M5 lands: PRs 3–6 wait for them |
 | Q2 | The set pieces, the disasters, the dust and the smoke; the tunnel's darkening and the water shader (L26) | As M2–M4 made them. Their colours are flat polygons and particles, and E14 judges how they sit with the new art | PR 4 recolours them from the palette and adds the darkening and the shader, with a test for each |
 | Q3 | Orientation and vibration | Saved, and shown in Settings, but applied by M6.1 and M6.2, with the rest of the device work (IP M6) | PR 2 applies the orientation now |
 | Q4 | Music on the title | Silence at launch. After a run, the title keeps that run's music and ambience, and the next run cross-fades from them | A title theme |
@@ -158,7 +159,7 @@ Each PR's changes are one commit of `m5/prototype`, so every PR follows the same
 4. Run §6.1 and compare the counts with the PR's "Expect" line.
 5. Have a model of another family review it (`AGENTS.md` §7). Then commit, push and open the PR.
 
-The prototype's commits sit on `main` (18fd716) in order, so the six cherry-picks give exactly the PR states of §6.1. The PRs' diffs have 22, 43, 65, 50, 75 and 34 files.
+The prototype's commits sit on `main` (18fd716) in order, so the six cherry-picks give exactly the PR states of §6.1. The PRs' diffs have 22, 43, 66, 50, 75 and 34 files.
 
 ### PR 1: Save: the save file, the runs and the disasters it records (M5.4) **Δ L1, L5–L11, L18, Q8**
 
@@ -191,26 +192,26 @@ Expect: `check_scripts: loaded 99 scripts`; `GUT: 334 tests passed` (146,576 ass
 
 **Acceptance:** E4, E5, E13 and E15.
 
-### PR 3: Audio: music, ambience and sounds (M5.3) **Δ L15, L16, L19–L23, L27, L28, Q4**
+### PR 3: Audio: music, ambience and sounds (M5.3) **Δ L15, L16, L19–L23, L27–L29, Q4**
 
-Branch `m5/3-audio`, from `m5/2-menus`. `git cherry-pick --no-commit b789eb1`.
+Branch `m5/3-audio`, from `m5/2-menus`. `git cherry-pick --no-commit f30beb5`.
 
 | Area | Files |
 |---|---|
 | Audio | `autoload/audio_director.gd`, with the engine's pitch set every frame (L27); `audio/cross_fade.gd`; `default_bus_layout.tres`: Music, SFX with its reverb, Ambient (§5.4), with the uid that the editor would write in (L28) |
-| Assets | `assets/audio/music/<area>.wav`, `assets/audio/ambient/<area>.wav` (5 each) and `assets/audio/sfx/*.wav` (10), each with its `.import`; `tools/audio/make_audio.gd`, which makes them (Q1, L23) |
+| Assets | `assets/audio/music/<area>.wav`, `assets/audio/ambient/<area>.wav` (5 each) and `assets/audio/sfx/*.wav` (10), each with its `.import`; `tools/audio/make_audio.gd`, which makes them, each at its kind's peak (Q1, L23, L29) |
 | Areas | `areas/area_def.gd`: the Audio group, `music` and `ambient_loop`; the five areas' `.tres` |
-| Game | `ui/main.gd`: the director follows each run's car; `project.godot`: the `AudioDirector` autoload; `config/tuning.gd`: `CROSS_FADE_SECONDS`, `ENGINE_PITCH_MIN`, `ENGINE_PITCH_MAX`, `DAMAGE_SOUND_STEP` |
+| Game | `ui/main.gd`: the director follows each run's car; `project.godot`: the `AudioDirector` autoload; `config/tuning.gd`: `CROSS_FADE_SECONDS`, `ENGINE_PITCH_MIN`, `ENGINE_PITCH_MAX`, `DAMAGE_SOUND_STEP`, and the peaks `MUSIC_PEAK`, `AMBIENT_PEAK`, `LOOP_PEAK`, `EFFECT_PEAK` (L29) |
 | CI | `tools/ci/lint.sh`: `audio/`, and the check for scripts outside the linted directories (L16); `.github/workflows/ci.yml`: the `test` job's last step, which fails if the checks changed the tree (L28) |
-| Tests | `tests/unit/test_audio_director.gd` (24), `test_cross_fade.gd` (8); `tests/integration/test_audio.gd` (2); `tests/helpers/pitch_spy.gd`, which counts the engine's pitch settings (L27) |
+| Tests | `tests/unit/test_audio_director.gd` (25), `test_cross_fade.gd` (8); `tests/integration/test_audio.gd` (2); `tests/helpers/pitch_spy.gd`, which counts the engine's pitch settings (L27) |
 
-Expect: `check_scripts: loaded 106 scripts`; `GUT: 368 tests passed` (146,769 asserts, 22.0–22.1 s). The smoke line as in PR 1. Negative cases N11–N14 and N45–N49.
+Expect: `check_scripts: loaded 106 scripts`; `GUT: 369 tests passed` (146,790 asserts, 23.1–23.2 s). The smoke line as in PR 1. Negative cases N11–N14 and N45–N50.
 
 **Acceptance:** E7, E8, E13 and E15.
 
 ### PR 4: World art: the palette, the roads and the ground (M5.1) **Δ L3, L4, L25, Q1, Q2**
 
-Branch `m5/4-world-art`, from `m5/3-audio`. `git cherry-pick --no-commit 925878a`.
+Branch `m5/4-world-art`, from `m5/3-audio`. `git cherry-pick --no-commit 89a3732`.
 
 | Area | Files |
 |---|---|
@@ -220,13 +221,13 @@ Branch `m5/4-world-art`, from `m5/3-audio`. `git cherry-pick --no-commit 925878a
 | Config | `project.godot`: `[importer_defaults]`, lossless and without mipmaps |
 | Tests | `tests/unit/test_area_art.gd` (6) and `tests/helpers/art_checks.gd` (L4, L25); `test_greybox_atlas.gd` (3 tests more, 2 fewer) and `test_world_renderer.gd` (4 more, 1 fewer): the bands; `test_car_controller.gd`: the smoke shows over everything the world draws |
 
-Expect: `check_scripts: loaded 109 scripts`; `GUT: 378 tests passed` (147,068 asserts, 24.4–24.5 s). The smoke line as in PR 1. Negative cases N15–N17.
+Expect: `check_scripts: loaded 109 scripts`; `GUT: 379 tests passed` (147,089 asserts, 24.5–25.3 s). The smoke line as in PR 1. Negative cases N15–N17.
 
 **Acceptance:** E9, E13 and E15.
 
 ### PR 5: Props beside the road (M5.1's props, M5.2) **Δ L2, L12, L14, L24**
 
-Branch `m5/5-props`, from `m5/4-world-art`. `git cherry-pick --no-commit 3a9fa60`.
+Branch `m5/5-props`, from `m5/4-world-art`. `git cherry-pick --no-commit 40a77c4`.
 
 | Area | Files |
 |---|---|
@@ -236,13 +237,13 @@ Branch `m5/5-props`, from `m5/4-world-art`. `git cherry-pick --no-commit 3a9fa60
 | Config | `config/tuning.gd`: the buffer (L2) and `PROP_AHEAD`, `PROP_SPREAD`, `PROP_MAX_SIZE`, `PROP_BELOW` |
 | Tests | `tests/integration/test_props_in_view.gd` (3); `tests/unit/test_prop_art.gd` (2), `test_prop_layout.gd` (5), `test_prop_pool.gd` (3), `test_prop_scatter.gd` (7); `test_retry.gd`, `test_main_scene_boot.gd`, `tests/helpers/main_scene.gd`: the car among the props (L12); `test_area_schedule.gd`, `test_world_renderer.gd`: the new buffer |
 
-Expect: `check_scripts: loaded 119 scripts`; `GUT: 398 tests passed` (147,489 asserts, 44.3–45.5 s, §8). The smoke line as in PR 1. Negative cases N18–N27.
+Expect: `check_scripts: loaded 119 scripts`; `GUT: 399 tests passed` (147,510 asserts, 45.4–46.0 s, §8). The smoke line as in PR 1. Negative cases N18–N27.
 
 **Acceptance:** E6, E10, E11, E13 and E15.
 
 ### PR 6: The car, skid marks, the pixel font and the theme (M5.1) **Δ L17, Q7**
 
-Branch `m5/6-car-font`, from `m5/5-props`. `git cherry-pick --no-commit c571409`.
+Branch `m5/6-car-font`, from `m5/5-props`. `git cherry-pick --no-commit 132d464`.
 
 | Area | Files |
 |---|---|
@@ -251,7 +252,7 @@ Branch `m5/6-car-font`, from `m5/5-props`. `git cherry-pick --no-commit c571409`
 | UI | `assets/fonts/PixelOperator8.ttf`, its `.import` and `PixelOperator8_LICENSE.txt` (CC0); `assets/fonts/pixel_operator_8.tres` and `tools/art/make_font.gd` (L17); `ui/theme.tres`; `ui/hud.tscn`, `ui/game_over.tscn`: sizes on the font's grid (§5.8); `project.godot`: `gui/theme/custom` |
 | Tests | `tests/unit/test_car_art.gd` (3), `test_skid_marks.gd` (3), `test_ui_theme.gd` (4); `test_car_controller.gd`: 2 tests for the sheet replace the tint's; `tests/integration/test_crash.gd`: the wreck's frame; `test_disasters.gd`, `test_sinkhole.gd`: no car polygon left to check; `test_world_renderer.gd`: the skids |
 
-Expect: `check_scripts: loaded 125 scripts`; `GUT: 408 tests passed` (147,643 asserts, 44.4 s). The smoke line as in PR 1. Negative cases N28–N36.
+Expect: `check_scripts: loaded 125 scripts`; `GUT: 409 tests passed` (147,664 asserts, 47.0–48.7 s). The smoke line as in PR 1. Negative cases N28–N36.
 
 Steps after the cherry-pick:
 1. After the review fixes, `git diff --stat origin/m5/prototype -- . ':!M5_PLAN.md'` lists only them.
@@ -268,7 +269,7 @@ Steps after the cherry-pick:
      - Settings: lower the music and change the screen's orientation, then reload: both stay (L11).
      - Play: the City's music and ambience start, and the engine rises with the speed. Props stand beside the road, and none touches it. Braking for a junction leaves skid marks. After the 34th turn, the tunnel, then Rural: the music and ambience cross-fade, and Rural's ground blends in over the City's.
      - Take a wrong turn in Rural: the tornado, Rural's only disaster, sounds, then game over. Title, then Atlas: the City and Rural, each with the distance and the turns driven in it (L8). Disasters: the Tornado, seen once, first in Rural. Reload: they stay.
-     - Listen for the gaps where the loops restart (L20): about once a second in the engine, and at each loop of the music and the ambience. Note how they sound (Q11).
+     - Listen for the gaps where the loops restart (L20): about once a second in the engine, and at each loop of the music and the ambience. Note how they sound (Q11), and whether the mix is balanced and loud enough (L29).
      - The console shows no errors. Chrome's `GPU stall due to ReadPixels` notes and an early `CONTEXT_LOST_WEBGL` are the environment's (§6.5).
    - **Android**, on the Galaxy Z Fold4, folded and unfolded: `adb install -r "/tmp/roadgame-builds/android-Android APK/roadgame-debug.apk"`.
      - The title and its screens fit both screens, and the text is crisp.
@@ -291,7 +292,7 @@ If PR k's branch is already deleted, merge its last state from `git fetch origin
 
 ### 4.6 Review fixes
 
-The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add their fixes here, each with its tests and negative case. The plan's review, by gpt-6.1-sol as `rubber-duck`, found three bugs in the prototype and a fourth on the Web, two findings without a negative case, and a wrong citation. All six were real, and so were two later reviews' findings, in the last two rows. Their fixes are in the PRs' commits (§4), so each PR starts with them:
+The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add their fixes here, each with its tests and negative case. The plan's review, by gpt-6.1-sol as `rubber-duck`, found three bugs in the prototype and a fourth on the Web, two findings without a negative case, and a wrong citation. All six were real, and so were the later findings, in the last three rows. Their fixes are in the PRs' commits (§4), so each PR starts with them:
 
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
@@ -302,9 +303,10 @@ The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add thei
 | 3 | L27: on the Web, each restart of the engine's loop played at the WAV's pitch while the speed stayed the same. The pitch is set every physics frame | `test_audio_director.gd`: `test_the_engines_pitch_is_set_every_frame`, with `tests/helpers/pitch_spy.gd` | N45 |
 | 3 | §5.4 named `test_audio.gd` as the test that lets sounds play; it is `test_audio_director.gd`'s | — | — |
 | 3 | L28: CI imports before the tests (`.github/actions/godot-env`), and a slow runner's first import writes the uid back, so the test passes without the fix. The `test` job's last step, "Tree unchanged by the checks (git status)", fails if `git status --porcelain` prints anything | That step | N48, N49 |
+| 3 | L29: the sounds that play together clipped (P12). Each kind of sound has a peak budget, which `make_audio.gd` keeps and a test checks | `test_audio_director.gd`: `test_no_sound_peaks_above_its_kinds_budget` | N50 |
 | 6 | E14's Web steps expected the sinkhole after the car reached Rural, whose only disaster is the tornado (`areas/rural.tres:18`), and the whole run under the City in the Atlas. They now expect the tornado, and the City and Rural each with its part of the run. The Android steps' wrong turn is in the City | `test_disaster_pools.gd` (M4): `test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool`; PR 1's `test_area_start.gd`: `test_each_area_counts_from_its_first_tile` | — |
 
-The same model then reviewed these fixes as `code-review`, and found no issues. L28 came after both reviews, from §6.3's run of the editor; its fix is in PR 3's commit too. A third review, of that fix, by the same model as `code-review`, found the row before the last: P11 then said that a new checkout's first import writes the uid, and CI imports before the tests. Measured again, a first import writes it only under load, and the test then passes (P11, N48). Copilot's review of this plan's PR found the last row.
+The same model then reviewed these fixes as `code-review`, and found no issues. L28 came after both reviews, from §6.3's run of the editor; its fix is in PR 3's commit too. A third review, of that fix, by the same model as `code-review`, found L28's row: P11 then said that a new checkout's first import writes the uid, and CI imports before the tests. Measured again, a first import writes it only under load, and the test then passes (P11, N48). Copilot's first review of this plan's PR found the last row. Its second called the sound unverified: P12 measured its level on the Web and found L29. The same model reviewed that fix and found no issues.
 
 ---
 
@@ -356,7 +358,7 @@ The code on `m5/prototype` is the reference. This section summarizes it and list
 - **Music** comes from `AreaDef.music` and `ambient_loop`, on `area_changed`. At launch the title is silent; after a run, it keeps that run's music and ambience, and the next run cross-fades from them (Q4).
 - **Volumes** are the settings' linear volumes of the three buses, and 0 mutes a bus. They apply when a run starts and on `settings_changed`, never in `_ready()`, which mustn't read the save (L1).
 - **Headless** (L15): `can_play` is false on the Dummy driver, and nothing plays. Everything else runs, so the tests check the players, their streams, the fades and the pitch. A test that turns `can_play` on, as `test_audio_director.gd`'s `test_a_deck_stops_once_it_has_faded_out` does, calls `stop_all()` and waits 0.25 s before the tests end.
-- **Assets** (Q1, L23): `make_audio.gd` writes mono 16-bit WAV at 22,050 Hz: 3.4 MB for 5 music tracks, 5 ambient loops and 10 car and disaster sounds. A loop carries its loop points in a `smpl` chunk, which the importer's default `edit/loop_mode`, Detect From WAV, reads: the 12 loops import as `LOOP_FORWARD` over the whole file, and the 8 one-shots don't loop (`test_audio_director.gd`). The import compresses them all to QOA. Final files replace them under the same names.
+- **Assets** (Q1, L23): `make_audio.gd` writes mono 16-bit WAV at 22,050 Hz: 3.4 MB for 5 music tracks, 5 ambient loops and 10 car and disaster sounds. A loop carries its loop points in a `smpl` chunk, which the importer's default `edit/loop_mode`, Detect From WAV, reads: the 12 loops import as `LOOP_FORWARD` over the whole file, and the 8 one-shots don't loop (`test_audio_director.gd`). The import compresses them all to QOA. Each peaks at its kind's budget (L29). Final files replace them under the same names, within the same budgets.
 
 ### 5.5 World art (PR 4)
 
@@ -399,19 +401,19 @@ The commands are those of `AGENTS.md` §4: `lint.sh`, `import.sh`, `check_script
 | M4 (`main`, 18fd716) | 83 | 269 | 146,144 | 19.6–21.2 s | |
 | PR 1 (791190d) | 88 | 300 | 146,300 | 21.3–22.9 s | 22 files, +971 −8 |
 | PR 2 (1fe7021) | 99 | 334 | 146,576 | 21.9–22.5 s | 43 files, +1,506 −26 |
-| PR 3 (b789eb1) | 106 | 368 | 146,769 | 22.0–22.1 s | 66 files, +1,747 −1 |
-| PR 4 (925878a) | 109 | 378 | 147,068 | 24.4–26.1 s | 50 files, +1,587 −219 |
-| PR 5 (3a9fa60) | 119 | 398 | 147,489 | 43.7–45.5 s | 75 files, +2,570 −31 |
-| PR 6 (c571409) | 125 | 408 | 147,643 | 44.4–45.0 s | 34 files, +978 −68 |
+| PR 3 (f30beb5) | 106 | 369 | 146,790 | 23.1–23.2 s | 66 files, +1,791 −1 |
+| PR 4 (89a3732) | 109 | 379 | 147,089 | 24.5–25.3 s | 50 files, +1,587 −219 |
+| PR 5 (40a77c4) | 119 | 399 | 147,510 | 45.4–46.0 s | 75 files, +2,570 −31 |
+| PR 6 (132d464) | 125 | 409 | 147,664 | 47.0–48.7 s | 34 files, +978 −68 |
 
-M5 adds 42 scripts and 139 tests, in +9,359 −353 lines. PR 6's state is the prototype's tree. Each GUT time is the range of two runs of its state, and for PRs 3–6 of a third after PR 3 gained the `test` job's last step, in `ci.yml`, which GUT doesn't read. This machine has 2 CPUs, and its load moves the times by up to 5 s. PR 5's tests nearly double GUT's time (P8, §8). In every state:
+M5 adds 42 scripts and 140 tests, in +9,403 −353 lines. PR 6's state is the prototype's tree. Each GUT time is the range of two runs of its state. This machine has 2 CPUs, and its load moves the times by up to 5 s. In the second run of PR 6's state, `import.sh` failed on GUT's update check (`AGENTS.md` §10), with a 401 from GitHub's API, and passed when run again. PR 5's tests nearly double GUT's time (P8, §8). In every state:
 - `smoke.sh` prints M4's line, `autopilot: tile 165, turns 35, area rural`: nothing in M5 changes where the autopilot drives (E13). Its `grey box:` line says the tilesets took 64 ms on `main`, and 0 ms on PR 6's state, where every area loads its art;
 - `lint.sh` reports `Godot 4.7.2 is pinned consistently` and `Actions storage: no caches, artifacts kept 1 day (5 files checked)`;
 - `git status` is clean after the checks: `import.sh` creates no files, and the generators of PRs 3–6 make the committed assets byte for byte (§4.1 step 3). From PR 3 on, CI's `test` job checks it too (L28).
 
 ### 6.2 Negative cases
 
-For each case, make the temporary change in the PR's state, run the check under "Fails", then revert it. A script made each change on PR 6's state (c571409), ran the check and restored the files, and every case failed its check, in 2 min 20 s. N48 and N49 commit their change in a new worktree, run `import.sh`, `check_scripts.sh` and `test_audio_director.gd` there, then the step's script from `ci.yml`. N36 ran by hand, on 84e261b (§6.5), because it must make the car's sheet again. The script isn't committed (§9). Each PR runs its cases again on its final head (`AGENTS.md` §2). "Fails" names the GUT tests that fail, which fail `run_tests.sh`, or the script that fails and its message.
+For each case, make the temporary change in the PR's state, run the check under "Fails", then revert it. A script made each change on PR 6's state (132d464), ran the check and restored the files, and every case failed its check, in 2 min 12 s. N48 and N49 commit their change in a new worktree, run `import.sh`, `check_scripts.sh` and `test_audio_director.gd` there, then the step's script from `ci.yml`. N36 ran by hand, on 84e261b (§6.5), because it must make the car's sheet again. The script isn't committed (§9). Each PR runs its cases again on its final head (`AGENTS.md` §2). "Fails" names the GUT tests that fail, which fail `run_tests.sh`, or the script that fails and its message.
 
 | N# | PR | Ref | Change | Fails |
 |---|---|---|---|---|
@@ -464,8 +466,9 @@ For each case, make the temporary change in the PR's state, run the check under 
 | N47 | 3 | L28 | A value in the layout isn't as Godot writes it: `bus/1/volume_db = 0` | The same |
 | N48 | 3 | L28 | N46 as CI would meet it on a slow runner: committed, then a new worktree's first `import.sh` with four CPU-bound processes running. The import writes the uid back, and `test_audio_director.gd` passes | `ci.yml`'s last `test` step, "Tree unchanged by the checks": ` M default_bus_layout.tres` |
 | N49 | 3 | L28 | A script's `.uid` isn't committed: `car/car_sim.gd.uid`, which the import writes again | The same step: `?? car/car_sim.gd.uid`. On GitHub too (§6.5) |
+| N50 | 3 | L29 | `damage.wav` three times as loud, peaking at 0.75 | `test_audio_director.gd`: `test_no_sound_peaks_above_its_kinds_budget` |
 
-No case breaks what the sounds sound like: headless runs play nothing (L15), so the tests check the players, the fades and the pitch, and E14 listens. N15–N17, N28–N31, N35 and N36 break the art's contracts, which final art must also pass (Q1).
+Only N50 breaks a sound itself: headless runs play nothing (L15), so the tests check the players, the fades, the pitch and the files' peaks, and E14 listens. N15–N17, N28–N31, N35 and N36 break the art's contracts, which final art must also pass (Q1).
 
 ### 6.3 Editor warnings
 
@@ -477,15 +480,15 @@ Before the prototype's last rewrite it reported 6 more, all INTEGER_DIVISIONs th
 
 | Check | PR | Result |
 |---|---|---|
-| The five checks on GitHub, and the `test` job's time | 1–6 | Done on the prototype: five runs passed all five jobs, and `test` took 106–118 s, against 83 and 107 s in `main`'s last two runs (§6.5). To do on each PR |
+| The five checks on GitHub, and the `test` job's time | 1–6 | Done on the prototype: six runs passed all five jobs, and `test` took 106–118 s, against 83 and 107 s in `main`'s last two runs (§6.5). To do on each PR |
 | The Web build in headed Chrome and in Firefox (E14) | 6 | Done on the build of 84e261b, the prototype before the `test` job's last step (§6.5): the title and its screens, a run through the City, the tunnel and Rural, a disaster, and a save that survives a reload, with no errors (P9). To do again on PR 6's final head |
-| Listening: the music, the ambience, the engine, the sounds, the tunnel's reverb on Android, and the gap where a loop restarts on the Web (E7, E14, L19, L20) | 6 | To do (owner, §7). This environment has no sound device, and the tests check the players, not what they sound like |
+| Listening: the music, the ambience, the engine, the sounds, the tunnel's reverb on Android, and the gap where a loop restarts on the Web (E7, E14, L19, L20) | 6 | To do (owner, §7). Nobody can listen here: the tests check the players and the files' peaks, and P12 the Web build's level (L29), not what they sound like |
 | The debug APK on the Galaxy Z Fold4, folded and unfolded: the title, a run, the back button, and a save that survives closing the app (E14, L10, L13) | 6 | To do (owner, §7) |
 | https://pompomon.github.io/roadgame/ runs the game with M5 after the merge | 6 | To do |
 
 ### 6.5 Measurements (prototype, local)
 
-The probes ran on Godot 4.7.2, headless unless they say otherwise, in scratch scripts that aren't committed. The findings cite them. 84e261b, which P9–P11 name, was PR 6's commit before the `test` job's last step: its tree differs from c571409's only in `ci.yml`.
+The probes ran on Godot 4.7.2, headless unless they say otherwise, in scratch scripts that aren't committed. The findings cite them. 84e261b, which P9–P12 name, was PR 6's commit before the `test` job's last step and L29: its tree differs from 132d464's only in `ci.yml` and L29's files.
 
 | # | Probe | Result | Used by |
 |---|---|---|---|
@@ -498,15 +501,16 @@ The probes ran on Godot 4.7.2, headless unless they say otherwise, in scratch sc
 | P7 | The colours of `setpieces/`, `disasters/`, `car/car.tscn` and `config/tuning.gd` | 25 of their 27 `Color` literals aren't in M5's palette, and some are tints by design (`flood.gd:15`, `quicksand.gd:112`, `sinkhole.gd:97`) | L26, Q2 |
 | P8 | GUT's time by suite, from the JUnit reports of PR 4's and PR 5's states | The suites' sum goes from 25.1 to 41.8 s. The new suites take 6.2 s (`test_props_in_view.gd`), 2.7 s (`test_prop_layout.gd`) and 1.3 s (`test_prop_scatter.gd`). The suites that boot the main scene, which now places props too, gain about 6 s: `test_disaster_pools.gd` 2.0, `test_world_renderer.gd` 1.5, `test_retry.gd` 1.4, `test_wrong_turn_disaster.gd` 1.1, `test_title.gd` 0.7 and `test_main_scene_boot.gd` 0.7. M1's `test_autopilot_300_turns` alone takes 9 s | §6.1, §8 |
 | P9 | The Web export of 84e261b from run 42773869986, served locally, with `index.html` patched to pass each `?arg=` as a user argument (M4_PLAN.md P4). Headed Chrome 157 and Firefox 159 under Xvfb, with Playwright | Below | E14, §6.4 |
-| P10 | The gap where a Web sample loops, the engine's pitch, and stream playback. The Web export of ee9bc99, before L27's fix, from run 42762952606, in headed Chrome under Xvfb with the autopilot, for 45 and 60 s; then P9's build for 60 s. A script hooks `createBufferSource()` and times each source's start, playback rate and `ended` event. In the second run, the worklet's commented-out underrun message (`index.audio.worklet.js:187`), restored, reports each 128-frame quantum that it has nothing to play | 144 restarts. The engine's 1 s loop restarted 108 times: the next source started 14 ms after the last ended at the median, 25 ms at the 90th percentile and 144 ms at worst. The ambience's 24 restarts came 20 ms late at the median and 49 ms at worst, and the music's 12 came 18 and 50 ms late. Godot makes a new `AudioBuffer` for each restart. The worklet, which plays what Godot's mixer makes, streams included, ran short 1,631 times in 60 s, throughout the run: streams would crackle, as `ProjectSettings.xml:487` warns. Samples bypass it. Firefox's audio clock stood still without a sound device, so it timed nothing. The audio clock moved in steps of 2.9 ms, mostly 20.3 ms. Before L27's fix, 9 of the first run's 47 engine sources and 14 of the second's 63 played at the WAV's own rate for over 2 frames, up to 0.4 s, while the speed held. On P9's build, each of the 63 had its rate at the same reading of the clock as its start, and the 83 restarts came as late as before: the engine's 62 by 11 ms at the median and 51 ms at worst | L20, L27, Q11 |
-| P11 | The editor and the bus layout (L28). New worktrees of the prototype's last commit before L28's fix, whose layout had no uid: as it was, without its reverb, and with the uid. Each ran one `--import`, then 300 frames of the editor (`--headless --editor --quit-after 300`). Then a new worktree of 84e261b, with `import.sh` and the editor, and §6.3's probe on PRs 3 and 6. Then 13 first imports of 84e261b with the uid taken out, in one new worktree, each after removing its `.godot/` | Without the uid, the editor wrote `uid="uid://bkp2lspkw8gej"` into the header in a worktree already imported. Without the reverb, neither the import nor the editor wrote the file. With the uid, neither changed a byte, and the editor wrote a `bus/1/volume_db = 0` back as `0.0`. `ResourceSaver.save()` of the loaded layout, and of `AudioServer.generate_bus_layout()`, gives the file's text without its uid. With the uid taken out of the header of an imported worktree, `ResourceLoader.get_resource_uid()` still gave it, from `.godot/uid_cache.bin`; without that file, −1. On 84e261b, `git status` stayed clean after each. A first import wrote the uid only under load: in all 4 with four CPU-bound processes running, which took 11.7–14.5 s, and in none of the 9 without, which took 4.1–6.2 s, 3 of them on one CPU. One of the 4 failed on GUT's update check (`AGENTS.md` §10). After such an import, `test_audio_director.gd` passed (N48) | L28; N46–N49 |
+| P10 | The gap where a Web sample loops, the engine's pitch, and stream playback. The Web export of ee9bc99, before L27's fix, from run 42762952606, in headed Chrome under Xvfb with the autopilot, for 45 and 60 s; then P9's build for 60 s. A script hooks `createBufferSource()` and times each source's start, playback rate and `ended` event. In the second run, the worklet's commented-out underrun message (`index.audio.worklet.js:187`), restored, reports each 128-frame quantum that it has nothing to play | 144 restarts. The engine's 1 s loop restarted 108 times: the next source started 14 ms after the last ended at the median, 25 ms at the 90th percentile and 144 ms at worst. The ambience's 24 restarts came 20 ms late at the median and 49 ms at worst, and the music's 12 came 18 and 50 ms late. The worklet, which plays what Godot's mixer makes, streams included, ran short 1,631 times in 60 s, throughout the run: streams would crackle, as `ProjectSettings.xml:487` warns. Samples bypass it. Firefox's audio clock stood still without a sound device, so it timed nothing. Before L27's fix, 9 of the first run's 47 engine sources and 14 of the second's 63 played at the WAV's own rate for over 2 frames, up to 0.4 s, while the speed held. On P9's build, each of the 63 had its rate at the same reading of the clock as its start, and the 83 restarts came as late as before: the engine's 62 by 11 ms at the median and 51 ms at worst | L20, L27, Q11 |
+| P11 | The editor and the bus layout (L28). New worktrees of the prototype's last commit before L28's fix, whose layout had no uid: as it was, without its reverb, and with the uid. Each ran one `--import`, then 300 frames of the editor (`--headless --editor --quit-after 300`). Then a new worktree of 84e261b, with `import.sh` and the editor, and §6.3's probe on PRs 3 and 6. Then 13 first imports of 84e261b with the uid taken out, in one new worktree, each after removing its `.godot/` | Without the uid, the editor wrote `uid="uid://bkp2lspkw8gej"` into the header in a worktree already imported. Without the reverb, neither the import nor the editor wrote the file. With the uid, neither changed a byte, and the editor wrote a `bus/1/volume_db = 0` back as `0.0`. With the uid taken out of the header of an imported worktree, `ResourceLoader.get_resource_uid()` still gave it, from `.godot/uid_cache.bin`; without that file, −1. On 84e261b, `git status` stayed clean after each. A first import wrote the uid only under load: in all 4 with four CPU-bound processes running, which took 11.7–14.5 s, and in none of the 9 without, which took 4.1–6.2 s, 3 of them on one CPU. After such an import, `test_audio_director.gd` passed (N48) | L28; N46–N49 |
+| P12 | The level of what the Web build plays (L29). A script wraps `AudioNode.connect()`, so that what Godot connects to the output passes through a worklet that records each 1,024-frame window's peak and energy. Headed Chrome 157 and Firefox 159 under Xvfb, Firefox with a PulseAudio null sink for its device (P10). A: the autopilot, seed 12345, for 85 s. B: `--play` with no input, for 45 s: off the road, then the sinkhole. Each at the default volumes and at full volume: B's set in Settings, and A's in a scratch build, as the autopilot keeps no settings (L1). First 84e261b's build, then 132d464's | Before, A peaked at +2.6 dBFS in Chrome and +2.4 in Firefox, past full scale in 108 of 3,591 windows and 94 of 3,240, nearly all with a chime over the engine, the music and the ambience; B at +5.2 and +5.7 dBFS. After, no sample went past full scale. A peaked at −3.4 dBFS in both, and at −1.3 and −1.6 at full volume; B at −5.4 and −4.7, and −4.0 and −4.5. The RMS while sounding fell from −10.2 to −19.1 dBFS in A, and from −16.1 and −16.3 to −22.2 in B. The title was silent (Q4) | L29; N50 |
 
 - **Web (P9).** Headless Chrome's `requestAnimationFrame` ran at 1 Hz, so the sessions ran headed.
   - Chrome, `--autopilot --seed=12345`, 133 s: 45–57 frames a second. The City, then the tunnel into Rural at 1,600 m after 34 turns, and 3,965 m after 75, with the props, the skid marks and the pixel font. No errors. Chrome logged its 4 `GPU stall due to ReadPixels` notes, and in the save's session one `CONTEXT_LOST_WEBGL` before Godot started, as with M3's and M4's builds (M4_PLAN.md §6.5): they are the environment's.
   - Firefox, the same, 78 s: 57–59 frames a second, and no errors. One warning that WebAssembly's legacy exceptions are deprecated, from the engine.
   - The save, in Chrome: `--play --seed=12345` with no input ends in a sinkhole at the first junction. IndexedDB then holds `/userfs/godot/app_userdata/Road Roguelike/save.json`, with the best distance of 4.0 tiles and the sinkhole first seen in the City, and no `.tmp` (L11). After a reload, the title shows "Best: 40 m, 0 turns". The Atlas shows the City with "Best distance: 40 m" and "Best turns: 0", and four areas "???", "Not reached yet". The collection shows the sinkhole "Seen once", first in the City at 40 m and 0 turns, and three unseen. The arrow keys, Enter and Esc move between the screens. In one earlier session an Enter on the title did nothing; that didn't happen again, and E14 watches for it.
   - The `.pck` grows from 120 KB to 1.07 MB: 0.70 MB of sounds, 233 KB of textures and 27 KB of font. The Web export is 11.1 MB in all.
-- **CI.** Five runs on the prototype, started by hand, passed all five jobs: 42760715735, 42761898836 and 42762952606 on earlier states of PR 6, 42773869986 on 84e261b, and 42778138424 on c571409; the third and the fourth had `upload-builds`. They took 13–26 s for `lint`, 106–118 s for `test`, 57–80 s for `export-web`, 72–88 s for the APK, and 165–191 s for the AAB, once 607 s. Run 42777729455, on a commit that deleted `car/car_sim.gd.uid` from c571409 (N49), failed at the `test` job's last step, which printed `?? car/car_sim.gd.uid`. Run 42778916449 showed why that step passes `safe.directory` to git: the job's container runs its steps as root, uid 1001 owns the checkout, and a plain `git status` stops with "detected dubious ownership". The APK is 58.1 MB and the AAB 58.0 MB.
+- **CI.** Six runs on the prototype, started by hand, passed all five jobs: 42760715735, 42761898836 and 42762952606 on earlier states of PR 6, 42773869986 on 84e261b, 42778138424 on c571409, before L29, and 42789644289 on 132d464; the third and the fourth had `upload-builds`. They took 13–26 s for `lint`, 106–118 s for `test`, 57–82 s for `export-web`, 72–88 s for the APK, and 165–191 s for the AAB, once 607 s. Run 42777729455, on a commit that deleted `car/car_sim.gd.uid` from c571409 (N49), failed at the `test` job's last step, which printed `?? car/car_sim.gd.uid`. Run 42778916449 showed why that step passes `safe.directory` to git: the job's container runs its steps as root, uid 1001 owns the checkout, and a plain `git status` stops with "detected dubious ownership". The APK is 58.1 MB and the AAB 58.0 MB.
 
 ---
 
@@ -518,7 +522,7 @@ These need the repository owner. The current state was read with `gh api` on 202
 |---|---|---|
 | Now | Answer Q1–Q11, or accept the defaults | A comment on this plan's PR. Without an answer, the PRs follow the defaults. Q1's alternative holds PRs 3–6 until final files come |
 | Now | Merge this plan's PR | Squash-merge it into `main`. PR 1 branches from `main` with this plan, and PR 6's tree check leaves the plan out (§4, PR 6 step 1) |
-| Before PR 6 merges | E14 on the Galaxy Z Fold4, and listening to the sound on the Fold4 and in a browser. An agent does the Web checks in Chrome and Firefox | §4, PR 6 step 2 |
+| Before PR 6 merges | E14 on the Galaxy Z Fold4, and listening to the sound, its balance and loudness too (L29), on the Fold4 and in a browser. An agent does the Web checks in Chrome and Firefox | §4, PR 6 step 2 |
 | To land M5 | Merge PRs 1–6 in order, each once its base is `main` and it is updated as in §4.5 | §4.5 |
 | Optional | Delete each PR's branch after it merges, so GitHub retargets the next PR by itself. Delete `m5/prototype` once PR 6 has merged | The **Delete branch** button on the merged PR (§4.5); `git push origin --delete m5/prototype` |
 
@@ -528,10 +532,11 @@ These need the repository owner. The current state was read with `gh api` on 202
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The art and the audio are placeholders made by scripts (Q1) | The game looks and sounds unfinished until final files replace them | Each asset type has a contract that tests check: the palette, the road sheet's layout, the ground's seams, the props' and the car's frames and feet, the font's grid, and which sounds loop (§5.4–§5.8). A final file that passes needs no code change |
+| The art and the audio are placeholders made by scripts (Q1) | The game looks and sounds unfinished until final files replace them | Each asset type has a contract that tests check: the palette, the road sheet's layout, the ground's seams, the props' and the car's frames and feet, the font's grid, which sounds loop and how loud they peak (§5.4–§5.8). A final file that passes needs no code change |
 | The set pieces, the disasters, the dust and the smoke keep M2–M4's flat colours (Q2, P7) | They look out of place among the new art | E14 judges it. §9 lists them for M6 or a later art pass, and the smoke already has to show over everything the world draws (E9, N36) |
-| GUT takes nearly twice as long from PR 5 on: 44–46 s locally, against M4's 20–21 s (P8) | Slower local checks, and a `test` job of 106–118 s, against `main`'s 83–107 s | Most of it is the props' drives, which keep everything out of view (E6). They drive only the tallest and the widest views, which hold the other five. If the time matters, the drives can share one run |
+| GUT takes over twice as long from PR 5 on: 45–49 s locally, against M4's 20–21 s (P8) | Slower local checks, and a `test` job of 106–118 s, against `main`'s 83–107 s | Most of it is the props' drives, which keep everything out of view (E6). They drive only the tallest and the widest views, which hold the other five. If the time matters, the drives can share one run |
 | No reverb on the Web (L19), and a gap where a loop restarts (L20) | The tunnel sounds dry in browsers. On the Web the engine ticks about once a second, and the music and the ambience at each loop (P10) | Accepted until M6.3 or Godot 4.8 (Q11, §9): streams, which have neither problem, would crackle (P10). E14 listens for both. Q11's alternative, engine and rumble loops of 4 s, makes the ticks a quarter as frequent |
+| The sounds' peak budgets (L29) | The mix is 6–9 dB quieter than before them, and a final sound can't peak above its kind's budget | Nothing clips (P12). E14 listens to the balance and the loudness. A final sound can be louder within its budget if it's compressed. A higher budget needs P12 again |
 | Windows taller than the reference screens (Q9) | Road and props may come and go at the top or the bottom of the screen | `test_props_in_view.gd` holds the seven reference screens. M6.1 handles windows and foldables, and a larger `BUFFER_BEHIND` with a test can follow |
 | The `.pck` grows ninefold, to 1.07 MB (P9) | A longer first load on the Web | It is a tenth of the 11.1 MB Web export, most of which is the engine. The sounds are QOA, 0.70 MB from 3.4 MB of WAV (L23) |
 | The Fold4 hasn't run M5 (§6.4) | Problems only Android shows: the back button, saving when the app is closed, the sound's latency, the font's crispness at the Fold4's scale | E14's Android steps check each, before PR 6 merges (§7). The save's flush on pause and focus loss is tested (L10) |
@@ -555,4 +560,4 @@ These need the repository owner. The current state was read with `gh api` on 202
 - **`AGENTS.md` §3:** a file that the editor saves by itself, as it does the bus layout, is committed just as the editor writes it, uid included (L28). Change the buses in the editor's Audio panel.
 - **`AGENTS.md` §4 and §10:** since PR 3, CI's `test` job runs §4's last check, `git status --porcelain`, after the others (L28).
 - **IP and `plan.md`:** fold this plan's Δs into them once it is approved (Q10).
-- **Optional:** a CI check for editor warnings, built on §6.3's language-server probe (M2–M4 §9). M5's code had 6 that only the probe found (§6.3). The negative-case script could be committed too, under `tools/agent/`.
+- **Optional:** a CI check for editor warnings, built on §6.3's language-server probe (M2–M4 §9). M5's code had 6 that only the probe found (§6.3). The negative-case script and P12's audio tap could be committed too, under `tools/agent/`.
