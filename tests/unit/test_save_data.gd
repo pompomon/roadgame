@@ -56,6 +56,26 @@ func test_a_v0_file_is_migrated_and_keeps_its_values() -> void:
 	assert_eq(data.settings["orientation"], "portrait")
 
 
+## Copilot's review of #39: a load that read less than the last kept the last one's data, and its
+## problems.
+func test_each_load_starts_from_the_defaults() -> void:
+	var data := SaveData.new()
+	var loads := {
+		"{}": SaveData.Status.LOADED,
+		"not json": SaveData.Status.CORRUPT,
+		'{"version": 2}': SaveData.Status.NEWER,
+		'{"settings": {"music": 2}}': SaveData.Status.LOADED,
+	}
+	for text: String in loads:
+		assert_eq(data.load_json(V0), SaveData.Status.LOADED)
+		assert_eq(data.load_json(text), loads[text], text)
+		assert_eq(data.atlas, {} as Dictionary[String, Dictionary], text)
+		assert_eq(data.best, SaveData.BEST, text)
+		assert_eq(data.disasters, {} as Dictionary[String, Dictionary], text)
+		assert_eq(data.settings, SaveData.DEFAULT_SETTINGS, text)
+	assert_eq(data.problems, PackedStringArray(["settings.music"]), "only the last load's")
+
+
 func test_migrate_runs_each_step_in_order_and_sets_the_version() -> void:
 	var table: Dictionary[int, Callable] = {
 		0: func(d: Dictionary) -> Dictionary: return d.merged({"steps": "a"}),
