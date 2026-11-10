@@ -1,5 +1,12 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
+[ext_resource type="Script" path="res://areas/prop_def.gd" id="props_script"]
+[ext_resource type="Resource" path="res://areas/props/city/building.tres" id="prop_building"]
+[ext_resource type="Resource" path="res://areas/props/city/tree.tres" id="prop_tree"]
+[ext_resource type="Resource" path="res://areas/props/city/lamp.tres" id="prop_lamp"]
+[ext_resource type="Resource" path="res://areas/props/city/bin.tres" id="prop_bin"]
+[ext_resource type="Resource" path="res://areas/props/city/hydrant.tres" id="prop_hydrant"]
+[ext_resource type="Resource" path="res://areas/props/city/traffic_light.tres" id="prop_traffic_light"]
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_dlkcf"]
 [ext_resource type="Texture2D" uid="uid://mu22chm5kowr" path="res://assets/city/road.png" id="art_road"]
 [ext_resource type="Texture2D" uid="uid://ckyoh8moyy1jd" path="res://assets/city/ground.png" id="art_ground"]
@@ -12,6 +19,7 @@
 script = ExtResource("1_dlkcf")
 id = &"city"
 display_name = "City"
+props = Array[ExtResource("props_script")]([ExtResource("prop_building"), ExtResource("prop_tree"), ExtResource("prop_lamp"), ExtResource("prop_bin"), ExtResource("prop_hydrant"), ExtResource("prop_traffic_light")])
 id_color = Color(0.55, 0.58, 0.63, 1)
 road_sheet = ExtResource("art_road")
 ground = ExtResource("art_ground")

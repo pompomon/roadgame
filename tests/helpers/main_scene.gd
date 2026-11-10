@@ -27,9 +27,18 @@ static func run_while(test: GutTest, main: Node, state: int, frames: int) -> int
 	return frames
 
 
-## The run's car: the one child of World's Props layer until M5 adds props (M4_PLAN.md K3).
+## The run's car, which World's Props layer holds among the props (M5_PLAN.md L12).
 static func car(main: Node) -> CarController:
-	return main.get_node("%World/%Props").get_child(0)
+	return (main.get_node("%World") as WorldRenderer).car as CarController
+
+
+## The cars on World's Props layer.
+static func cars(main: Node) -> Array[CarController]:
+	var found: Array[CarController] = []
+	for node: Node in main.get_node("%World/%Props").get_children():
+		if node is CarController:
+			found.append(node)
+	return found
 
 
 static func key(keycode: Key, pressed: bool) -> InputEventKey:

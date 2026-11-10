@@ -15,6 +15,9 @@ var turn_count := 0
 ## Dead ends shortened to 1 tile, and wrong exits dropped, because their cells were taken.
 var shortened_count := 0
 var dropped_count := 0
+## The seed of the run's props (M5_PLAN.md §5.6). They hash it with each ground cell and take no
+## number from the road's stream, so they can't change the road (IMPLEMENTATION_PLAN.md §5.3).
+var props_seed := 0
 
 var _schedule: AreaSchedule
 var _schedule_index := 1
@@ -38,6 +41,7 @@ func _init(run_seed: int, schedule: AreaSchedule) -> void:
 	_schedule = schedule if problems.is_empty() else _fallback_schedule()
 	current_area = _schedule.entries[0].area
 	_rng_road.seed = hash("%d:road" % run_seed)
+	props_seed = hash("%d:props" % run_seed)
 
 
 ## Returns the next correct-path tile.

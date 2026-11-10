@@ -1,5 +1,12 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
+[ext_resource type="Script" path="res://areas/prop_def.gd" id="props_script"]
+[ext_resource type="Resource" path="res://areas/props/rural/tree.tres" id="prop_tree"]
+[ext_resource type="Resource" path="res://areas/props/rural/hay_bale.tres" id="prop_hay_bale"]
+[ext_resource type="Resource" path="res://areas/props/rural/fence.tres" id="prop_fence"]
+[ext_resource type="Resource" path="res://areas/props/rural/barn.tres" id="prop_barn"]
+[ext_resource type="Resource" path="res://areas/props/rural/rock.tres" id="prop_rock"]
+[ext_resource type="Resource" path="res://areas/props/rural/windmill.tres" id="prop_windmill"]
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_udu24"]
 [ext_resource type="Texture2D" uid="uid://drpxodkfoc807" path="res://assets/rural/road.png" id="art_road"]
 [ext_resource type="Texture2D" uid="uid://bti1lcr05df8p" path="res://assets/rural/ground.png" id="art_ground"]
@@ -12,6 +19,7 @@
 script = ExtResource("1_udu24")
 id = &"rural"
 display_name = "Rural"
+props = Array[ExtResource("props_script")]([ExtResource("prop_tree"), ExtResource("prop_hay_bale"), ExtResource("prop_fence"), ExtResource("prop_barn"), ExtResource("prop_rock"), ExtResource("prop_windmill")])
 id_color = Color(0.78, 0.66, 0.38, 1)
 road_sheet = ExtResource("art_road")
 ground = ExtResource("art_ground")

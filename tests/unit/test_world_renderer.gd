@@ -379,9 +379,9 @@ func test_set_pieces_draw_above_the_ground_and_below_the_road() -> void:
 
 
 func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -> void:
-	# Junction 11 is path tile 48, so the tunnel's run is tiles 49 to 52, and the buffer's first
-	# batch ends at tile 50 (BUFFER_AHEAD): the run comes in two batches.
-	var schedule := Fixtures.set_piece_schedule(12, &"tunnel", 4)
+	# Junction 12 is path tile 52, so the tunnel's run is tiles 53 to 56, and the buffer's first
+	# batch ends at tile 55 (BUFFER_AHEAD): the run comes in two batches.
+	var schedule := Fixtures.set_piece_schedule(13, &"tunnel", 4)
 	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
 	_world.build(schedule)
 	_world.bind(_buffer)
@@ -390,19 +390,19 @@ func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -
 	_buffer.start()
 	var pieces: Node2D = _world.get_node("%SetPieces")
 	assert_eq(_buffer.last_index(), Tuning.BUFFER_AHEAD)
-	assert_eq(_buffer.path_tile(49).set_piece, &"tunnel", "the run has begun")
+	assert_eq(_buffer.path_tile(53).set_piece, &"tunnel", "the run has begun")
 	assert_eq(pieces.get_child_count(), 0, "but the buffer hasn't made all of it")
 	_buffer.on_car_path_index(Tuning.BUFFER_AHEAD - Tuning.BUFFER_REFILL_AT + 1)
 	assert_eq(pieces.get_child_count(), 1, "now it has")
 	var tunnel := pieces.get_child(0) as Tunnel
 	assert_eq(tunnel.car, car, "it follows the run's car")
-	var cells := Rect2(_buffer.path_tile(49).cell, Vector2.ONE)
-	assert_eq(tunnel.rect, cells.merge(Rect2(_buffer.path_tile(52).cell, Vector2.ONE)))
-	assert_eq(_buffer.path_tile(53).set_piece, &"", "the run ends at 52")
-	_buffer.on_car_path_index(52 + Tuning.BUFFER_BEHIND)
-	assert_eq(_buffer.first_index(), 52, "its first tiles are gone")
+	var cells := Rect2(_buffer.path_tile(53).cell, Vector2.ONE)
+	assert_eq(tunnel.rect, cells.merge(Rect2(_buffer.path_tile(56).cell, Vector2.ONE)))
+	assert_eq(_buffer.path_tile(57).set_piece, &"", "the run ends at 56")
+	_buffer.on_car_path_index(56 + Tuning.BUFFER_BEHIND)
+	assert_eq(_buffer.first_index(), 56, "its first tiles are gone")
 	assert_eq(pieces.get_child_count(), 1, "but not its last")
-	_buffer.on_car_path_index(53 + Tuning.BUFFER_BEHIND)
+	_buffer.on_car_path_index(57 + Tuning.BUFFER_BEHIND)
 	assert_eq(pieces.get_child_count(), 0, "it goes with its last tile")
 
 
@@ -429,7 +429,7 @@ func test_a_new_buffer_drops_the_last_runs_set_pieces_and_car() -> void:
 
 
 func test_a_new_buffer_drops_the_last_runs_unfinished_set_piece() -> void:
-	var schedule := Fixtures.set_piece_schedule(12, &"tunnel", 4)
+	var schedule := Fixtures.set_piece_schedule(13, &"tunnel", 4)
 	var last := RoadBuffer.new(RoadGenerator.new(3, schedule))
 	_world.build(schedule)
 	_world.bind(last)
