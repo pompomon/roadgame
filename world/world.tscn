@@ -20,6 +20,9 @@ unique_name_in_owner = true
 [node name="RoadLayer" type="TileMapLayer" parent="."]
 unique_name_in_owner = true
 
+[node name="Skids" type="Node2D" parent="."]
+unique_name_in_owner = true
+
 [node name="DisasterLayer" type="Node2D" parent="."]
 unique_name_in_owner = true
 

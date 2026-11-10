@@ -47,6 +47,8 @@ var _road_sources: Dictionary[StringName, int] = {}
 var _buffer: RoadBuffer
 ## The ground bands, oldest first. Each draws over the last.
 var _bands: Array[Band] = []
+## The car's skid marks (M5_PLAN.md §5.7), on the Skids layer. build() makes it.
+var _skids: SkidMarks
 ## The tiles so far of a run of set-piece tiles that the buffer hasn't finished.
 var _open_run: Array[RoadTile] = []
 ## The set pieces, by the path index of their run's last tile.
@@ -59,6 +61,12 @@ var _scatter: PropScatter
 @onready var _set_pieces: Node2D = %SetPieces
 
 
+func _physics_process(_delta: float) -> void:
+	var controller := car as CarController
+	if _skids != null and controller != null:
+		_skids.update(controller.sim)
+
+
 ## Builds the road tileset for the areas of `schedule`. Call it once, when the node is ready.
 func build(schedule: AreaSchedule) -> void:
 	var sheets: Array[Texture2D] = []
@@ -69,6 +77,7 @@ func build(schedule: AreaSchedule) -> void:
 			sheets.append(entry.area.road_sheet)
 	_road.tile_set = GreyboxAtlas.road_tileset(sheets)
 	_road.position = Iso.layer_offset(_road, 1)
+	_skids = SkidMarks.new(%Skids as Node2D)
 	for entry: AreaScheduleEntry in schedule.entries:
 		if entry.set_piece != &"" and set_piece_scenes.get(entry.set_piece) == null:
 			push_error("WorldRenderer: no scene for set piece %s" % entry.set_piece)
@@ -82,6 +91,7 @@ func bind(buffer: RoadBuffer) -> void:
 		_buffer.tiles_generated.disconnect(_on_tiles_generated)
 		_buffer.tiles_freed.disconnect(_on_tiles_freed)
 	_road.clear()
+	_skids.bind(buffer)
 	for band: Band in _bands:
 		band.sprite.free()
 	_bands.clear()
