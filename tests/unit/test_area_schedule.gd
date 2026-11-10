@@ -35,6 +35,19 @@ func test_the_game_schedule_is_valid() -> void:
 	assert_eq(turns, [0, 34, 100, 200, 220] as Array[int])
 
 
+func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
+	# The Atlas's cards and the collection's order (M5.5).
+	var ids: Array[StringName] = []
+	for area: AreaDef in Fixtures.schedule().areas():
+		ids.append(area.id)
+	assert_eq(ids, [&"city", &"rural", &"meadows", &"village", &"desert"] as Array[StringName])
+	var city := _area(&"city")
+	var rural := _area(&"rural")
+	var schedule := AreaSchedule.new()
+	schedule.entries = [_entry(0, city), _entry(5, rural), _entry(9, city), _entry(12, null)]
+	assert_eq(schedule.areas(), [city, rural] as Array[AreaDef], "once each, and no null")
+
+
 func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
 	# A wrong turn in any area ends in a disaster (M3_PLAN.md J6).
 	var areas := 0

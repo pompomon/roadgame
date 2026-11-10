@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="5_hud"]
 [ext_resource type="Script" path="res://disasters/disaster_director.gd" id="6_director"]
 [ext_resource type="PackedScene" path="res://ui/game_over.tscn" id="7_game_over"]
+[ext_resource type="PackedScene" path="res://ui/title_screen.tscn" id="8_title"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -33,4 +34,7 @@ script = ExtResource("6_director")
 unique_name_in_owner = true
 
 [node name="GameOver" parent="UI" instance=ExtResource("7_game_over")]
+unique_name_in_owner = true
+
+[node name="Title" parent="UI" instance=ExtResource("8_title")]
 unique_name_in_owner = true

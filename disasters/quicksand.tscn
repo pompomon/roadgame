@@ -5,6 +5,7 @@
 [node name="Quicksand" type="Node2D"]
 script = ExtResource("1_quicksand")
 id = &"quicksand"
+display_name = "Quicksand"
 
 [node name="Pit" type="Polygon2D" parent="."]
 unique_name_in_owner = true
