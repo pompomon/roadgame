@@ -1,6 +1,9 @@
 [gd_resource type="Resource" script_class="AreaDef" format=3]
 
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_rc7gr"]
+[ext_resource type="Texture2D" uid="uid://jblxwof624dg" path="res://assets/meadows/road.png" id="art_road"]
+[ext_resource type="Texture2D" uid="uid://ilv1nx2bnxoa" path="res://assets/meadows/ground.png" id="art_ground"]
+[ext_resource type="Texture2D" uid="uid://c8hn3mififm8g" path="res://assets/meadows/edge.png" id="art_edge"]
 [ext_resource type="PackedScene" path="res://disasters/flood.tscn" id="2_flood"]
 [ext_resource type="AudioStreamWAV" uid="uid://d30nrf0ncscml" path="res://assets/audio/music/meadows.wav" id="audio_music"]
 [ext_resource type="AudioStreamWAV" uid="uid://bgsw1uyktq52u" path="res://assets/audio/ambient/meadows.wav" id="audio_ambient"]
@@ -10,6 +13,9 @@ script = ExtResource("1_rc7gr")
 id = &"meadows"
 display_name = "Meadows"
 id_color = Color(0.42, 0.68, 0.33, 1)
+road_sheet = ExtResource("art_road")
+ground = ExtResource("art_ground")
+ground_edge = ExtResource("art_edge")
 min_straight = 3
 max_straight = 7
 straight_accel = 0.6

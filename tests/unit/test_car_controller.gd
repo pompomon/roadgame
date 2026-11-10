@@ -4,9 +4,13 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
+const Art := preload("res://tests/helpers/art_checks.gd")
 ## The least change of luminance that a puff of smoke must make to what it covers, so that it
 ## shows. Measured on the sRGB values, as the 2D renderer blends them.
 const SMOKE_CONTRAST := 0.1
+## The least share of a road sheet, ground or edge that one of its colours must have for a puff to
+## count as being over it: a puff covers a few hundred pixels, more than any speck of the rest.
+const MAIN_SHARE := 0.05
 
 
 func _car() -> CarController:
@@ -122,7 +126,7 @@ func test_every_car_smokes_alike() -> void:
 	assert_eq(smokes[0].seed, smokes[1].seed, "the same in every car")
 
 
-func test_the_smoke_shows_over_everything_the_grey_box_draws() -> void:
+func test_the_smoke_shows_over_everything_the_world_draws() -> void:
 	var smoke: CPUParticles2D = _car().get_node("%Smoke")
 	for background: Color in _backgrounds():
 		var puff := background.blend(smoke.color)
@@ -151,22 +155,23 @@ func test_the_smoke_shows_through_a_tunnel() -> void:
 			)
 
 
-## What the grey box can draw under a puff of smoke. The smoke covers the grey arrow, and around it
-## the road, its edge lines, or the ground under a road tile, in the area's two shades
-## (GreyboxAtlas.build_ground_tileset()), or their transitions. Further from the road the grey box
-## draws nothing, so the clear colour shows: a car lost off the road ends there. On a bridge, it
-## draws the river, its waves, the deck and the far railing (M4.4); the near railing and a tunnel
-## draw over the car.
+## What the world can draw under a puff of smoke. The smoke covers the grey arrow, and around it
+## an area's road sheet, its ground, or the edge that blends it into the last area's ground: the
+## colours that make up at least MAIN_SHARE of one of them (M5_PLAN.md §5.5). The grey box's road,
+## for an area without art, stays. The ground covers every view (WorldRenderer), so the clear colour
+## no longer shows. On a bridge, it draws the river, its waves, the deck and the far railing
+## (M4.4); the near railing and a tunnel draw over the car.
 func _backgrounds() -> Array[Color]:
 	var backgrounds: Array[Color] = [Tuning.CRASH_TINT, GreyboxAtlas.EDGE_COLOR]
 	backgrounds.append_array(GreyboxAtlas.ROAD_COLORS)
-	backgrounds.append(
-		ProjectSettings.get_setting("rendering/environment/defaults/default_clear_color")
-	)
 	var schedule: AreaSchedule = load("res://areas/schedule.tres")
 	for entry: AreaScheduleEntry in schedule.entries:
-		for shade: int in 2:
-			backgrounds.append(entry.area.id_color.darkened(GreyboxAtlas.GROUND_SHADE * shade))
+		var area := entry.area
+		for texture: Texture2D in [area.road_sheet, area.ground, area.ground_edge]:
+			var shares := Art.shares(texture.get_image())
+			for color: Color in shares:
+				if shares[color] >= MAIN_SHARE and color not in backgrounds:
+					backgrounds.append(color)
 	var under := 0
 	for polygon: Polygon2D in _polygons(load("res://setpieces/bridge.tscn")):
 		if polygon.z_index <= 0:
