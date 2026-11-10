@@ -5,6 +5,7 @@ extends GutTest
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
+const CITY := preload("res://areas/city.tres")
 const RUNNING := GameState.State.RUNNING
 const DISASTER := GameState.State.DISASTER
 
@@ -62,7 +63,7 @@ func test_the_citys_sinkhole_swallows_the_car_and_then_the_game_is_over() -> voi
 	assert_between(frames * MainScene.DELTA, 2.0, 4.0, "2 to 4 s after the turn")
 	assert_false(shown_early, "the game-over screen waits for the disaster")
 	assert_not_null(disaster, "a disaster played")
-	var city: AreaDef = load("res://areas/city.tres")
+	var city: AreaDef = CITY
 	var pool := city.disasters.map(func(scene: PackedScene) -> String: return scene.resource_path)
 	assert_has(pool, disaster.scene_file_path, "from the City's pool")
 	assert_eq(disaster.get_parent(), main.get_node("%World/%DisasterLayer"))
@@ -86,3 +87,22 @@ func test_the_same_seed_plays_the_same_disaster() -> void:
 		rolls.append([params.direction, params.intensity, params.delay, params.origin_world])
 		GameState.quit_to_title()
 	assert_eq(rolls[0], rolls[1])
+
+
+func test_the_run_and_the_sinkhole_are_saved() -> void:
+	SaveService.use_memory()
+	watch_signals(EventBus)
+	var main := _wrong_turn()
+	var save := SaveService.data()
+	var city: Dictionary = save.atlas["city"]
+	assert_true(city["discovered"])
+	assert_eq(city["best_turns"], 2)
+	assert_almost_eq(city["best_distance"], GameState.distance, 1e-6, "all of it in the City")
+	assert_eq(save.best, {"distance": GameState.distance, "turns": 2}, "when it ended")
+	assert_eq(save.disasters, {} as Dictionary[String, Dictionary], "not before it shows")
+	MainScene.run_while(self, main, DISASTER, 600)
+	assert_signal_emitted_with_parameters(EventBus, "disaster_started", [&"sinkhole", CITY])
+	var expected := {
+		"seen": 1, "first_area": "city", "first_distance": GameState.distance, "first_turns": 2
+	}
+	assert_eq(save.disasters["sinkhole"], expected)
