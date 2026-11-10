@@ -34,6 +34,12 @@ extends Resource
 ## The DisasterDirector picks one with the run's disaster stream.
 @export var disasters: Array[PackedScene] = []
 
+@export_group("Audio")
+## Loops that AudioDirector cross-fades to when the car enters the area (plan.md §6). With none, the
+## last area's fade out.
+@export var music: AudioStream
+@export var ambient_loop: AudioStream
+
 
 ## Returns what breaks the generator's rules, or nothing.
 func validate() -> PackedStringArray:

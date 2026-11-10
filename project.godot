@@ -13,6 +13,7 @@ config/quit_on_go_back=false
 [autoload]
 
 EventBus="*res://autoload/event_bus.gd"
+AudioDirector="*res://autoload/audio_director.gd"
 GameState="*res://autoload/game_state.gd"
 SaveService="*res://autoload/save_service.gd"
 

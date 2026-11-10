@@ -6,11 +6,16 @@
 source "$(dirname "$0")/_common.sh"
 
 # Only pass directories that exist: gdlint fails on missing paths, and grep exits 2 on them.
+gd_list=(autoload road world car disasters areas setpieces ui config tests tools audio)
 gd_dirs=()
-for d in autoload road world car disasters areas setpieces ui config tests tools; do
+for d in "${gd_list[@]}"; do
   if [ -d "$d" ]; then gd_dirs+=("$d"); fi
 done
 [ "${#gd_dirs[@]}" -gt 0 ] || { echo "::error::No GDScript directories found"; exit 1; }
+# A script anywhere else would skip every check here (M5_PLAN.md L16): list its directory above.
+stray=$(find . -name '*.gd' -not -path './addons/*' -not -path './.godot/*' \
+  | grep -vE "^\./($(IFS='|'; echo "${gd_list[*]}"))/" || true)
+[ -z "$stray" ] || { echo "::error::GDScript outside the linted directories:"; echo "$stray"; exit 1; }
 gdlint "${gd_dirs[@]}"
 gdformat --check "${gd_dirs[@]}"
 
