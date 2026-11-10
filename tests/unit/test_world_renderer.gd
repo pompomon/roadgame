@@ -228,18 +228,29 @@ func _ground_sprites() -> Array[Sprite2D]:
 	return sprites
 
 
-## The pixel of `sprite` at world point `at`, as its region repeats its texture: clear outside its
-## rect, unless `anywhere`.
+## The pixel of `sprite` at world point `at`, as Sprite2D draws it: over its get_rect(), its region
+## of its texture or the whole texture, repeated if its own texture_repeat is ENABLED and clamped
+## otherwise. Clear outside its rect, unless `anywhere`.
 func _texel(sprite: Sprite2D, at: Vector2, anywhere := false) -> Color:
-	var local := at - sprite.global_position
-	if not anywhere and not Rect2(Vector2.ZERO, sprite.region_rect.size).has_point(local):
+	var rect := sprite.get_rect()
+	var local := sprite.get_global_transform().affine_inverse() * at
+	if not anywhere and not rect.has_point(local):
 		return Color(0, 0, 0, 0)
 	if not _images.has(sprite.texture):
 		_images[sprite.texture] = sprite.texture.get_image()
 	var image := _images[sprite.texture]
-	var texel := Vector2i((sprite.region_rect.position + local).floor())
+	var origin := sprite.region_rect.position if sprite.region_enabled else Vector2.ZERO
+	var texel := Vector2i((origin + local - rect.position).floor())
 	var size := image.get_size()
-	return image.get_pixel(posmod(texel.x, size.x), posmod(texel.y, size.y))
+	if sprite.texture_repeat == CanvasItem.TEXTURE_REPEAT_ENABLED:
+		return image.get_pixel(posmod(texel.x, size.x), posmod(texel.y, size.y))
+	texel = texel.clamp(Vector2i.ZERO, size - Vector2i.ONE)
+	return image.get_pixel(texel.x, texel.y)
+
+
+## The part of the world that `sprite` draws over.
+static func _drawn(sprite: Sprite2D) -> Rect2:
+	return sprite.get_global_transform() * sprite.get_rect()
 
 
 ## The ground's sprite whose pixel shows at world point `at`, or null.
@@ -271,9 +282,9 @@ func _shown_across(at: Vector2) -> Dictionary[Texture2D, int]:
 func _edge_problem(line: float) -> String:
 	for band: Sprite2D in _world.get_node("%Ground").get_children():
 		for edge: Sprite2D in band.get_children():
-			if edge.global_position.y != line:
+			if _drawn(edge).position.y != line:
 				continue
-			var x0 := band.global_position.x + band.region_rect.size.x / 2.0
+			var x0 := _drawn(band).get_center().x
 			for y: int in GreyboxAtlas.edge_rows():
 				for x: int in 128:
 					var at := Vector2(x0 + x + 0.5, line + y + 0.5)
@@ -290,7 +301,7 @@ func _edge_problem(line: float) -> String:
 func _gap(view: Rect2) -> String:
 	var rects: Array[Rect2] = []
 	for band: Sprite2D in _world.get_node("%Ground").get_children():
-		rects.append(Rect2(band.global_position, band.region_rect.size))
+		rects.append(_drawn(band))
 	rects.sort_custom(func(a: Rect2, b: Rect2) -> bool: return a.position.y < b.position.y)
 	var y := view.position.y
 	for rect: Rect2 in rects:
