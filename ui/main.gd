@@ -67,6 +67,7 @@ func _exit_tree() -> void:
 				% [tile.path_index, GameState.turn_index, tile.area_id]
 			)
 		)
+	AudioDirector.follow(null)
 	GameState.quit_to_title()
 
 
@@ -124,6 +125,7 @@ func _start_run(run_seed: int) -> void:
 	_camera.car = _car
 	_camera.snap_to_target()
 	_world.car = _car
+	AudioDirector.follow(_sim)
 	_director.start_run(run_seed)
 	GameState.start_run(run_seed)
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
