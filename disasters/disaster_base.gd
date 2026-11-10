@@ -18,6 +18,8 @@ const OUTLINE_POINTS := 32
 
 ## What the disaster collection will record it as (plan.md §9), such as &"sinkhole".
 @export var id := &""
+## What the disaster collection calls it, such as "Sinkhole" (M5.5).
+@export var display_name := ""
 
 ## The stopped car. A disaster may change its scale, modulate and rotation, but not its position,
 ## which CarController sets every physics frame (J3, M4_PLAN.md K19).

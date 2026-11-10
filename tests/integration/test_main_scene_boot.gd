@@ -12,13 +12,13 @@ func after_each() -> void:
 	GameState.quit_to_title()
 
 
-## The main scene with user arguments `args`, in a portrait SubViewport.
+## The main scene with user arguments `args`, in a portrait SubViewport, with no title screen.
 func _main(args: Array[String]) -> Node:
 	var view := SubViewport.new()
 	view.size = Vector2i(360, 640)
 	add_child_autofree(view)
 	var main: Node = MAIN_SCENE.instantiate()
-	main.args = PackedStringArray(args)
+	main.args = PackedStringArray(args + ["--play"])
 	view.add_child(main)
 	return main
 

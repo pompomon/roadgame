@@ -17,8 +17,8 @@ func test_main_scene_shows_the_version_and_the_seed() -> void:
 
 func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# The Web build has no system fonts to fall back on: a glyph missing from the default
-	# font shows as a box. The HUD and the game-over screen also show numbers, the areas' names,
-	# and messages they keep in constants.
+	# font shows as a box. The HUD, the game-over screen and the title's screens (M5.5) also show
+	# numbers, the areas' and the disasters' names, and messages they keep in constants.
 	var main := _main()
 	var shown: Array[Control] = []
 	shown.append_array(main.find_children("*", "Label", true, false))
@@ -26,10 +26,19 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	assert_gt(shown.size(), 8, "labels and buttons")
 	var texts: Array[String] = ["-0123456789", Hud.PAUSED_MESSAGE, GameOver.FALLBACK_MESSAGE]
 	texts.append_array(GameOver.END_MESSAGES.values())
+	texts.append_array([AtlasScreen.UNKNOWN, AtlasScreen.NOT_REACHED, CollectionScreen.NOT_SEEN])
+	texts.append_array(SettingsScreen.ORIENTATION_NAMES)
+	texts.append(AtlasScreen.best_text({"distance": 1.0, "turns": 1}))
+	texts.append(AtlasScreen.area_text(SaveData.ATLAS_ENTRY))
 	var schedule: AreaSchedule = load("res://areas/schedule.tres")
 	for entry: AreaScheduleEntry in schedule.entries:
 		var stats := {"distance": 1.0, "turn_index": 1, "run_seed": 1}
 		texts.append(GameOver.stats_text(stats, entry.area))
+		for seen: int in [1, 2]:
+			var first := {"seen": seen, "first_distance": 1.0, "first_turns": 1}
+			texts.append(CollectionScreen.seen_text(first, entry.area))
+	for disaster: Dictionary in CollectionScreen.disasters(schedule):
+		texts.append(disaster["name"])
 	var missing := ""
 	for control: Control in shown:
 		var font := control.get_theme_font("font")
@@ -43,6 +52,6 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 func _main() -> Node:
 	var scene: PackedScene = load("res://ui/main.tscn")
 	var main: Node = scene.instantiate()
-	main.args = PackedStringArray(["--seed=1"])
+	main.args = PackedStringArray(["--seed=1", "--play"])
 	add_child_autofree(main)
 	return main

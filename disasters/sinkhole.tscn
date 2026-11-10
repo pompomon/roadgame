@@ -5,6 +5,7 @@
 [node name="Sinkhole" type="Node2D"]
 script = ExtResource("1_sinkhole")
 id = &"sinkhole"
+display_name = "Sinkhole"
 
 [node name="Rim" type="Polygon2D" parent="."]
 unique_name_in_owner = true
