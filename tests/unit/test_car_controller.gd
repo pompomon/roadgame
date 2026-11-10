@@ -41,31 +41,20 @@ func test_it_steps_its_sim_with_the_input_and_moves_with_it() -> void:
 	simulate(car, 60, 1.0 / 60.0)
 	assert_gt(car.sim.pos.distance_to(start), 0.5, "a second of driving")
 	assert_eq(car.position, Iso.tile_to_world(car.sim.pos))
-	var frame := CarController.frame(car.sim.forward())
-	var arrow: Polygon2D = car.get_node("%Arrow")
-	assert_almost_eq(arrow.rotation, frame * TAU / CarController.FRAMES, 1e-6)
+	var body: Sprite2D = car.get_node("%Body")
+	assert_eq(body.frame, CarController.frame(car.sim.forward()))
 
 
-func test_the_arrow_turns_and_changes_hue_without_being_redrawn() -> void:
-	# On the Web, every redraw of a Polygon2D after the first raises WebGL errors
-	# (godotengine/godot#124726), so the car must not redraw it as it turns.
+func test_the_body_shows_the_frame_of_each_heading() -> void:
 	var car := _car()
-	var arrow: Polygon2D = car.get_node("%Arrow")
+	var body: Sprite2D = car.get_node("%Body")
 	car.input.enabled = false
-	await wait_physics_frames(2)
-	var draws: Array[int] = [0]
-	arrow.draw.connect(func() -> void: draws[0] += 1)
-	var hues: Array[Color] = []
+	var frames: Array[int] = []
 	for heading: int in 4:
 		car.sim.angle = heading * PI / 2.0
 		await wait_physics_frames(2)
-		hues.append(arrow.self_modulate)
-	var expected: Array[Color] = []
-	for frame: int in [3, 5, 11, 13]:
-		expected.append(Color.from_hsv(float(frame) / CarController.FRAMES, 0.6, 1.0))
-	assert_eq(hues, expected, "a hue per frame: N, E, S and W")
-	assert_eq(arrow.color, Color.WHITE, "the polygon itself stays white")
-	assert_eq(draws[0], 0, "no redraws")
+		frames.append(body.frame)
+	assert_eq(frames, [3, 5, 11, 13] as Array[int], "N, E, S and W")
 
 
 func test_dust_flies_only_while_the_car_is_off_the_road() -> void:
@@ -97,21 +86,18 @@ func test_it_leaves_its_scale_and_modulate_to_a_disaster() -> void:
 	assert_eq(car.position, Iso.tile_to_world(car.sim.pos), "the sim's position")
 
 
-func test_a_crashed_car_turns_grey_and_smokes_without_being_redrawn() -> void:
+func test_a_crashed_car_shows_its_wreck_and_smokes() -> void:
 	var car := _car()
-	var arrow: Polygon2D = car.get_node("%Arrow")
+	var body: Sprite2D = car.get_node("%Body")
 	var smoke: CPUParticles2D = car.get_node("%Smoke")
 	car.input.enabled = false
 	await wait_physics_frames(2)
 	assert_false(smoke.emitting, "driving")
-	var draws: Array[int] = [0]
-	arrow.draw.connect(func() -> void: draws[0] += 1)
+	assert_ne(body.frame, CarController.WRECK_FRAME, "driving")
 	car.sim.state = CarSim.State.CRASHED
 	await wait_physics_frames(2)
-	assert_eq(arrow.self_modulate, Tuning.CRASH_TINT, "the crash frame")
+	assert_eq(body.frame, CarController.WRECK_FRAME, "the wreck")
 	assert_true(smoke.emitting, "smokes")
-	assert_eq(arrow.color, Color.WHITE, "the polygon itself stays white")
-	assert_eq(draws[0], 0, "no redraws")
 
 
 func test_every_car_smokes_alike() -> void:
@@ -155,23 +141,32 @@ func test_the_smoke_shows_through_a_tunnel() -> void:
 			)
 
 
-## What the world can draw under a puff of smoke. The smoke covers the grey arrow, and around it
-## an area's road sheet, its ground, or the edge that blends it into the last area's ground: the
-## colours that make up at least MAIN_SHARE of one of them (M5_PLAN.md §5.5). The grey box's road,
-## for an area without art, stays. The ground covers every view (WorldRenderer), so the clear colour
-## no longer shows. On a bridge, it draws the river, its waves, the deck and the far railing
+## What the world can draw under a puff of smoke. The smoke covers the wreck, and around it an
+## area's road sheet, its ground, or the edge that blends it into the last area's ground: the
+## colours that make up at least MAIN_SHARE of one of them (M5_PLAN.md §5.5, §5.7). The grey box's
+## road, for an area without art, stays. The ground covers every view (WorldRenderer), so the clear
+## colour no longer shows. On a bridge, it draws the river, its waves, the deck and the far railing
 ## (M4.4); the near railing and a tunnel draw over the car.
 func _backgrounds() -> Array[Color]:
-	var backgrounds: Array[Color] = [Tuning.CRASH_TINT, GreyboxAtlas.EDGE_COLOR]
+	var backgrounds: Array[Color] = [GreyboxAtlas.EDGE_COLOR]
 	backgrounds.append_array(GreyboxAtlas.ROAD_COLORS)
+	var body: Sprite2D = _car().get_node("%Body")
+	var size := CarController.FRAME_SIZE
+	var images: Array[Image] = [
+		body.texture.get_image().get_region(
+			Rect2i(Vector2i(CarController.WRECK_FRAME * size.x, 0), size)
+		)
+	]
 	var schedule: AreaSchedule = load("res://areas/schedule.tres")
 	for entry: AreaScheduleEntry in schedule.entries:
 		var area := entry.area
 		for texture: Texture2D in [area.road_sheet, area.ground, area.ground_edge]:
-			var shares := Art.shares(texture.get_image())
-			for color: Color in shares:
-				if shares[color] >= MAIN_SHARE and color not in backgrounds:
-					backgrounds.append(color)
+			images.append(texture.get_image())
+	for image: Image in images:
+		var shares := Art.shares(image)
+		for color: Color in shares:
+			if shares[color] >= MAIN_SHARE and color not in backgrounds:
+				backgrounds.append(color)
 	var under := 0
 	for polygon: Polygon2D in _polygons(load("res://setpieces/bridge.tscn")):
 		if polygon.z_index <= 0:
@@ -195,6 +190,6 @@ func test_only_a_crash_smokes() -> void:
 	car.input.enabled = false
 	car.sim.state = CarSim.State.DISASTER
 	simulate(car, 1, 1.0 / 60.0)
-	var arrow: Polygon2D = car.get_node("%Arrow")
+	var body: Sprite2D = car.get_node("%Body")
 	assert_false(car.get_node("%Smoke").emitting, "after a disaster")
-	assert_ne(arrow.self_modulate, Tuning.CRASH_TINT, "not grey")
+	assert_ne(body.frame, CarController.WRECK_FRAME, "not the wreck")

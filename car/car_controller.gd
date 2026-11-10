@@ -1,19 +1,24 @@
 class_name CarController
 extends Node2D
 ## Steps a CarSim every physics frame with the InputRouter's steering, and draws it
-## (IMPLEMENTATION_PLAN.md M2.4). The grey box is an arrow in one of 16 directions, with a hue per
-## direction, and dust while the car is off the road. After a crash the arrow turns grey, its crash
-## frame, and smokes (M3.3). It lives under World/Props, which y-sorts it. It sets its position
-## and its arrow's rotation every frame, so a disaster may change only its scale, modulate and
-## rotation (M3_PLAN.md J3, M4_PLAN.md K19).
+## (IMPLEMENTATION_PLAN.md M2.4). Its body is a frame of the car's sheet (M5_PLAN.md §5.7): the
+## nearest of 16 directions, or after a crash the wreck, which smokes (M3.3). Dust flies while the
+## car is off the road. It lives under World/Props, which y-sorts it. It sets its position and its
+## body's frame every frame, so a disaster may change only its scale, modulate and rotation
+## (M3_PLAN.md J3, M4_PLAN.md K19).
 
 ## Sprite frames: the screen directions the car can face, clockwise from straight up.
 const FRAMES := 16
+## The wreck's frame, after the directions.
+const WRECK_FRAME := FRAMES
+## The size of a frame of the car's sheet, and where in it the car's ground centre is.
+const FRAME_SIZE := Vector2i(36, 28)
+const FOOT := Vector2i(18, 18)
 
 var sim: CarSim
 var input: InputRouter
 
-@onready var _arrow: Polygon2D = %Arrow
+@onready var _body: Sprite2D = %Body
 @onready var _dust: CPUParticles2D = %Dust
 @onready var _smoke: CPUParticles2D = %Smoke
 
@@ -35,13 +40,7 @@ static func frame(forward: Vector2) -> int:
 
 func _update_view() -> void:
 	position = Iso.tile_to_world(sim.pos)
-	var f := frame(sim.forward())
-	_arrow.rotation = f * TAU / FRAMES
 	var crashed := sim.state == CarSim.State.CRASHED
-	# Not the polygon's color: setting that redraws the Polygon2D, and on the Web every redraw after
-	# the first raises WebGL errors (godotengine/godot#124726, fixed in 4.8).
-	_arrow.self_modulate = (
-		Tuning.CRASH_TINT if crashed else Color.from_hsv(float(f) / FRAMES, 0.6, 1.0)
-	)
+	_body.frame = WRECK_FRAME if crashed else frame(sim.forward())
 	_dust.emitting = sim.state == CarSim.State.OFFROAD
 	_smoke.emitting = crashed

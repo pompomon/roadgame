@@ -35,6 +35,10 @@ window/handheld/orientation=6
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
+[gui]
+
+theme/custom="res://ui/theme.tres"
+
 [importer_defaults]
 
 texture={

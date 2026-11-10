@@ -209,9 +209,7 @@ func test_it_grows_and_sinks_the_car_without_redrawing() -> void:
 	var sinkhole := _sinkhole(car, null)
 	await wait_physics_frames(2)
 	var draws: Array[int] = [0]
-	for polygon: Polygon2D in [
-		sinkhole.get_node("%Hole"), sinkhole.get_node("%Rim"), car.get_node("%Arrow")
-	]:
+	for polygon: Polygon2D in [sinkhole.get_node("%Hole"), sinkhole.get_node("%Rim")]:
 		polygon.draw.connect(_count.bind(draws))
 	sinkhole.play(_params())
 	simulate(sinkhole, 300, DELTA)
