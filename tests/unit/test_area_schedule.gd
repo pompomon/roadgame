@@ -1,6 +1,8 @@
 extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+## The least share of an area's junctions that stay T's (ROADGEN_PLAN.md E8, Q2).
+const LEAST_T_SHARE := 0.25
 
 
 func _area(id: StringName, min_straight := 2, max_straight := 5) -> AreaDef:
@@ -33,6 +35,23 @@ func test_the_game_schedule_is_valid() -> void:
 	for entry: AreaScheduleEntry in schedule.entries:
 		turns.append(entry.turn)
 	assert_eq(turns, [0, 34, 100, 200, 220] as Array[int])
+
+
+## The City, where a run learns the pattern, has no side roads or decoys. Every later area has
+## both, and keeps at least LEAST_T_SHARE of its junctions as T's (ROADGEN_PLAN.md E8, §5.5).
+func test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions() -> void:
+	for area: AreaDef in Fixtures.schedule().areas():
+		if area.id == &"city":
+			assert_eq(area.side_road_chance, 0.0, "the City has no side roads")
+			assert_eq(area.decoy_chance, 0.0, "the City has no decoys")
+		else:
+			assert_gt(area.side_road_chance, 0.0, "%s has side roads" % area.id)
+			assert_gt(area.decoy_chance, 0.0, "%s has decoys" % area.id)
+		var t_share := 1.0 - area.cross_junction_chance - area.side_road_chance - area.decoy_chance
+		assert_true(
+			t_share > LEAST_T_SHARE or is_equal_approx(t_share, LEAST_T_SHARE),
+			"%s: %.2f of its junctions are T's" % [area.id, t_share]
+		)
 
 
 func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
