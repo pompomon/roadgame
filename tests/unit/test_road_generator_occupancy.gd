@@ -1,6 +1,6 @@
 extends GutTest
 ## Property tests over many seeds (plan.md §11): no two tiles share a cell, every junction keeps
-## its wrong exits, and dead ends are 1 to 3 tiles long.
+## its wrong exits, dead ends are 1 to 3 tiles long, and a straight-on one is never cut short.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 200
@@ -24,9 +24,12 @@ func _check(gen: RoadGenerator, turns: int, label: String) -> void:
 				fail_test(
 					"%s: branch of junction %d is not linked to it" % [label, tile.turn_number]
 				)
-		for length: int in lengths.values():
+		for exit: int in lengths:
+			var length: int = lengths[exit]
 			if length < 1 or length > Tuning.DEAD_END_MAX_TILES:
 				fail_test("%s: dead end of %d tiles" % [label, length])
+			if exit == tile.heading and length < Tuning.DEAD_END_MIN_TILES:
+				fail_test("%s: straight-on dead end of %d tiles" % [label, length])
 	# Every claim succeeded (a failed claim also fails the test with its push_error).
 	assert_eq(gen.occupancy.size(), tiles, label)
 	assert_eq(gen.dropped_count, 0, "%s: a 1-tile stub always fits" % label)
