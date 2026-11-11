@@ -306,8 +306,9 @@ static func _veil_light(of: DisasterBase) -> float:
 
 
 ## Why the light of `frames` flashes at a point: whether it rises, or falls, by more than
-## FLASH_CHANGE of the point's peak, or of `brightest`, the light of white or of pure red, if that's
-## more, more than `most` times in `window` frames. "" if it doesn't.
+## FLASH_CHANGE of `brightest`, the light of white or of pure red, more than `most` times in
+## `window` frames. "" if it doesn't. Where glows add up past white, the change that counts stays
+## the same, so dimmer pulses after them still flash.
 static func _flashing(
 	frames: Array[Dictionary], most: int, window: int, what: String, brightest: float
 ) -> String:
@@ -315,14 +316,12 @@ static func _flashing(
 	for light: Dictionary in frames:
 		for point: Vector2i in light:
 			points[point] = true
+	var threshold := Tuning.FLASH_CHANGE * brightest
 	for point: Vector2i in points:
 		var values := PackedFloat32Array()
 		for light: Dictionary in frames:
 			values.append(light.get(point, 0.0))
-		var peak := 0.0
-		for value: float in values:
-			peak = maxf(peak, value)
-		var turns := _turns(values, Tuning.FLASH_CHANGE * maxf(peak, brightest))
+		var turns := _turns(values, threshold)
 		for k: int in turns.size():
 			if _too_many(turns[k], most, window):
 				return (

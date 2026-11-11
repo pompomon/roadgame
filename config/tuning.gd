@@ -134,8 +134,8 @@ const VEIL_HALF_SIZE := 4096.0
 const VEIL_DUSK := Color8(170, 130, 190)
 const VEIL_NIGHT := Color8(70, 80, 150)
 ## No flashing (M6_PLAN.md §5.6, E6, after WCAG 2.3.1). Light changes once it rises or falls by
-## more than FLASH_CHANGE of its peak, or of white's light, or pure red's for red light, if that's
-## more: WCAG counts no less, and where a glow glides past a point at its faint edge, the light
+## more than FLASH_CHANGE of white's light, or of pure red's for red light, as WCAG counts, even
+## where glows add up past white. Where a glow glides past a point at its faint edge, the light
 ## there steps by less, as the canvas draws the nearest texel (S19). At no point of the world may it
 ## rise and fall more than FLASH_MAX times in FLASH_SECONDS, nor more than FLASH_RED_MAX times in
 ## all in saturated red, whose share of the colour is at least FLASH_RED_SHARE. No glow may cover

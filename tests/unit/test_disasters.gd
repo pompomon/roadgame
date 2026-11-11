@@ -21,6 +21,14 @@ const GLOW := preload("res://disasters/glow.tres")
 const GLIDE_SCALE := 0.6
 const GLIDE := Vector2(0.4, -0.2)
 const GLIDE_FRAMES := 120
+## A point lit past white by glows that overlap, at OVERLAP times the tint's light, for
+## OVERLAP_FRAMES; then, over a second later, PULSES pulses at PULSE times it, PULSE_FRAMES apart.
+const OVERLAP := 6.0
+const OVERLAP_FRAMES := 10
+const PULSES_START := 80
+const PULSES := 4
+const PULSE := 0.5
+const PULSE_FRAMES := 10
 
 
 func test_each_area_has_its_pool_of_disasters() -> void:
@@ -236,6 +244,26 @@ func test_a_glow_doesnt_flash_where_it_glides_past_points_at_its_faint_edge() ->
 			lights.append(light)
 			reds.append(red)
 		assert_eq(Disasters.flashing(lights, reds), "", "a %s glow" % tint.to_html(false))
+
+
+func test_pulses_flash_after_glows_add_up_past_white() -> void:
+	# WCAG counts a change of a tenth of white's light, or of pure red's, however bright the point
+	# was. Glows that overlap add up past white, and that mustn't raise the change that counts, so
+	# pulses of half that light still flash after them (#45's review of S19, N129).
+	for tint: Color in [Color.WHITE, Color.RED]:
+		var lights: Array[Dictionary] = []
+		for k: int in PULSES_START + PULSES * PULSE_FRAMES:
+			var light: Dictionary[Vector2i, float] = {}
+			if k < OVERLAP_FRAMES:
+				light[Vector2i.ZERO] = OVERLAP * tint.get_luminance()
+			elif k >= PULSES_START and (k - PULSES_START) % PULSE_FRAMES == 0:
+				light[Vector2i.ZERO] = PULSE * tint.get_luminance()
+			lights.append(light)
+		var reds: Array[Dictionary] = []
+		if tint == Color.RED:
+			reds = lights
+		var rises := "the red light rises" if tint == Color.RED else "the light rises"
+		assert_string_contains(Disasters.flashing(lights, reds), rises)
 
 
 func test_none_redraws_a_polygon() -> void:
