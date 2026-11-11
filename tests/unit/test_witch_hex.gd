@@ -396,7 +396,7 @@ func test_a_jack_o_lantern_pops_up_where_the_car_stood() -> void:
 	assert_false(early, "not until the smoke clears")
 	var sizes: Array[float] = []
 	var square := true
-	var dark := true
+	var stays_dark := true
 	var done := false
 	while not done:
 		_step(hex)
@@ -404,12 +404,12 @@ func test_a_jack_o_lantern_pops_up_where_the_car_stood() -> void:
 		sizes.append(pumpkin.scale.x)
 		square = square and pumpkin.scale.x == pumpkin.scale.y
 		# Its grin lights from the pop's end, which the last frame can step past.
-		dark = dark and (done or pumpkin.frame == 0)
+		stays_dark = stays_dark and (done or pumpkin.frame == 0)
 	var peak: int = sizes.find(sizes.max())
 	var growing := sizes.slice(0, peak + 1)
 	var settling := sizes.slice(peak)
 	assert_true(square, "it keeps its shape")
-	assert_true(dark, "dark as it pops up")
+	assert_true(stays_dark, "dark as it pops up")
 	assert_eq(growing, Disasters.sorted(growing), "it grows")
 	assert_almost_eq(sizes[peak], WitchHex.OVERSHOOT, 0.02, "past its full size")
 	assert_eq(settling, Disasters.sorted(settling, true), "then settles")
