@@ -6,7 +6,7 @@ const TILES := 2000
 ## of its path tiles with their dead ends. A change that is meant to change the road updates them,
 ## and its commit says why (ROADGEN_PLAN.md §6.1).
 const PATH_DIGEST := "811569241f55e1fce2a50331fe4c3e7d"
-const ROAD_DIGEST := "33b32b4135f684041d8772ec3661e3ce"
+const ROAD_DIGEST := "3135d6c1c4c1b505121ff96b02dc202b"
 const DIGEST_SEEDS := 20
 const DIGEST_TURNS := 300
 
