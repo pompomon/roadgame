@@ -20,7 +20,12 @@ func before_each() -> void:
 	_short = 0
 
 
+## Checks the road up to turn `turns`. It stops at the first junction that fails, and checks nothing
+## once the test fails: a broken rule fails at nearly every junction, GUT keeps the text of each
+## failure, and one for each junction of 200 seeds ran out of memory (ROADGEN_PLAN.md §6.2, N7).
 func _check(gen: RoadGenerator, turns: int, label: String) -> void:
+	if is_failing():
+		return
 	var tiles := 0
 	var junctions := 0
 	for tile: RoadTile in Fixtures.path_until_turn(gen, turns):
@@ -48,6 +53,8 @@ func _check(gen: RoadGenerator, turns: int, label: String) -> void:
 				_short += 1
 				if gen.occupancy.is_free(tile.cell + Heading.VEC[exit] * (length + 1)):
 					fail_test("%s: dead end of %d tiles before a free cell" % [label, length])
+		if is_failing():
+			return
 	# Every claim succeeded (a failed claim also fails the test with its push_error).
 	assert_eq(gen.occupancy.size(), tiles, label)
 	assert_eq(gen.dropped_count, 0, "%s: %d cells are always free" % [label, ALWAYS_FREE])
