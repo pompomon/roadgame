@@ -10,6 +10,7 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
+const Sample := preload("res://tests/helpers/sample_legend.gd")
 const DELTA := Disasters.DELTA
 const MAX_FRAMES := Disasters.MAX_FRAMES
 ## How many frames the polygon test plays past a disaster's end: a legend's veil still follows the
@@ -165,8 +166,8 @@ static func _amounts(particles: CPUParticles2D) -> Vector4:
 
 func test_each_shows_its_particles_while_they_emit_and_each_emits() -> void:
 	# Smoke that pours out unseen would leave the car fading in plain view (M6 PR 6's review). No
-	# particle may be born and die unseen: one born as its emitter starts to fade in, as the
-	# tornado's dust is, shows a frame later.
+	# particle may be born and die unseen: one born as its emitter starts to fade in shows a frame
+	# later.
 	for scene: PackedScene in Disasters.contract_scenes():
 		for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
 			var disaster := Disasters.disaster(
@@ -197,8 +198,9 @@ func test_each_shows_its_particles_while_they_emit_and_each_emits() -> void:
 
 
 func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
-	# The sinkhole, the flood and the quicksand draw their ground with it.
-	for radius: float in [Tuning.SINKHOLE_RADIUS, Tuning.FLOOD_RADIUS]:
+	# The kit's, for a legend's ground: the test legend draws its ring with it. No legend of the
+	# pools does, since the natural four left them (M6_PLAN.md §4 PR 8).
+	for radius: float in [Sample.RING_RADIUS, 2.0 * Sample.RING_RADIUS]:
 		var points := DisasterBase.outline(radius)
 		assert_eq(points.size(), DisasterBase.OUTLINE_POINTS)
 		for point: Vector2 in points:

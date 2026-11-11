@@ -30,11 +30,6 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 	&"damage": preload("res://assets/audio/sfx/damage.wav"),
 	&"crash": preload("res://assets/audio/sfx/crash.wav"),
 	&"junction": preload("res://assets/audio/sfx/junction.wav"),
-	# The natural disasters, until M6 PR 8.
-	&"sinkhole": preload("res://assets/audio/sfx/sinkhole.wav"),
-	&"tornado": preload("res://assets/audio/sfx/tornado.wav"),
-	&"flood": preload("res://assets/audio/sfx/flood.wav"),
-	&"quicksand": preload("res://assets/audio/sfx/quicksand.wav"),
 	# The City's legends.
 	&"phantom_bus": preload("res://assets/audio/sfx/phantom_bus.wav"),
 	# Rural's legends.
