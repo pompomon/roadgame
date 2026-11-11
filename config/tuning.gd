@@ -232,3 +232,11 @@ const WITCH_HEX_FLY_OFF_PX := Vector2(260.0, -220.0)
 const WITCH_HEX_GLOW_ALPHA := 0.7
 
 # The Desert's legends.
+## The death worm (M6_PLAN.md §3.3): its beats, in s: the ground trembles and ripples run through
+## the sand to the car; a mound swells under it; the worm bursts up and swallows it; it dives back;
+## and its crater stays. How far the ripples run from, in tiles; and what share of the params'
+## intensity the trembling and the burst shake the camera with.
+const DEATH_WORM_BEATS: Array[float] = [0.6, 0.4, 0.6, 0.6, 0.3]
+const DEATH_WORM_BURROW_TILES := 1.75
+const DEATH_WORM_TREMOR := 0.35
+const DEATH_WORM_BURST := 1.0

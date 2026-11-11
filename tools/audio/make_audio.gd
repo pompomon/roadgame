@@ -49,6 +49,7 @@ func _initialize() -> void:
 	# The Village's legends.
 	_save_legend("witch_hex", _witch_hex)
 	# The Desert's legends.
+	_save_legend("death_worm", _death_worm)
 	quit()
 
 
@@ -334,6 +335,45 @@ func _witch_hex() -> PackedFloat32Array:
 
 
 # The Desert's legends.
+
+
+## Timed to Tuning.DEATH_WORM_BEATS from the end of the delay, when the sound starts: a deep rumble
+## that grows as the ground trembles and the mound swells, the sand crackling as it splits; a burst
+## as the worm breaks out, and its shriek, rough and dissonant, as its mouth opens; a gulp as it
+## shuts; a hiss of sand as it dives, and the rumble dying away under it. Pitched for a phone's
+## speaker, which plays nothing under about 200 Hz: the rumble's partials and noise reach above it.
+func _death_worm() -> PackedFloat32Array:
+	var beats := Tuning.DEATH_WORM_BEATS
+	var cracking: float = beats[0]
+	var burst: float = cracking + beats[1]
+	var opened: float = burst + beats[2] * DeathWorm.RISE_SHARE
+	var gulp: float = burst + beats[2] * DeathWorm.SWALLOW_TO
+	var dived: float = burst + beats[2]
+	var splash: float = dived + beats[3] * DeathWorm.SPLASH_FROM
+	var end: float = dived + beats[3] + beats[4]
+	var out := _silence(roundi((end + 0.6) * RATE))
+	var rumble := _low_pass(_noise(out.size()), 260.0)
+	_add(rumble, _tone(55.0, float(out.size()) / RATE, "triangle"), 0.0, 0.12)
+	for i: int in rumble.size():
+		var t := float(i) / RATE
+		rumble[i] *= t / burst if t < burst else exp((burst - t) / 0.7)
+	_add(out, _lfo(rumble, 40, 0.5), 0.0, 2.5)
+	for _k: int in 12:
+		var crack := _decay(_high_pass(_noise(roundi(0.05 * RATE)), 1500.0), 0.012)
+		_add(out, crack, _rng.randf_range(cracking, burst), 0.35)
+	_add(out, _decay(_low_pass(_noise(roundi(0.6 * RATE)), 1200.0), 0.14), burst, 1.0)
+	_add(out, _decay(_glide(120.0, 45.0, 0.4), 0.15), burst, 0.9)
+	var shriek_seconds := gulp - opened
+	var shriek := _glide(520.0, 1180.0, shriek_seconds)
+	_add(shriek, _glide(551.0, 1250.0, shriek_seconds), 0.0)
+	_add(shriek, _glide(260.0, 590.0, shriek_seconds), 0.0, 0.6)
+	_add(out, _swell(_low_pass(_lfo(shriek, 10, 0.7), 3000.0)), opened, 0.6)
+	_add(out, _decay(_glide(260.0, 70.0, 0.3), 0.1), gulp, 0.9)
+	_add(out, _decay(_low_pass(_noise(roundi(0.2 * RATE)), 500.0), 0.05), gulp, 2.0)
+	var hiss := _high_pass(_low_pass(_noise(roundi((end - dived) * RATE)), 4000.0), 800.0)
+	_add(out, _swell(hiss), dived, 0.5)
+	_add(out, _decay(_low_pass(_noise(roundi(0.4 * RATE)), 900.0), 0.1), splash, 0.6)
+	return out
 
 
 func _note(midi: int, seconds: float, kind: String, gain: float) -> PackedFloat32Array:
