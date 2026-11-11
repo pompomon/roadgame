@@ -84,9 +84,9 @@ static func _double(ufo: Ufo) -> Sprite2D:
 
 ## Where the middle of the double shows, in px from the car: its offset keeps it there as it
 ## shrinks about its foot.
-func _centre(double: Sprite2D) -> Vector2:
-	var middle := double.offset + Vector2(CarController.FRAME_SIZE) / 2.0
-	return double.global_position + double.scale * middle - _car.global_position
+func _centre(car_double: Sprite2D) -> Vector2:
+	var middle := car_double.offset + Vector2(CarController.FRAME_SIZE) / 2.0
+	return car_double.global_position + car_double.scale * middle - _car.global_position
 
 
 ## Where `part` is, in px from the car.
@@ -245,8 +245,8 @@ func test_the_double_shudders_then_floats_up_the_beam_turning_and_is_gone_into_t
 	assert_null(_double(ufo), "the car is still there")
 	assert_eq(_car.modulate.a, 1.0, "the car shows")
 	_step_to(ufo, ends[2])
-	var double := _double(ufo)
-	if double == null:
+	var car_double := _double(ufo)
+	if car_double == null:
 		fail_test("it took the car")
 		return
 	assert_eq(_car.modulate.a, 0.0, "the double took the car's place")
@@ -257,20 +257,20 @@ func test_the_double_shudders_then_floats_up_the_beam_turning_and_is_gone_into_t
 	var foot_stays := true
 	var shown := true
 	while not _reached(ends[3]):
-		foot_stays = foot_stays and _from_car(double).is_equal_approx(Vector2.ZERO)
+		foot_stays = foot_stays and _from_car(car_double).is_equal_approx(Vector2.ZERO)
 		if not _reached(_middle(3)):
-			shown = shown and Disasters.shows(double) and double.modulate.a == 1.0
-		alphas.append(double.modulate.a)
-		var centre := _centre(double)
+			shown = shown and Disasters.shows(car_double) and car_double.modulate.a == 1.0
+		alphas.append(car_double.modulate.a)
+		var centre := _centre(car_double)
 		if centre.x != 0.0 and centre.x not in shudder:
 			shudder.append(centre.x)
 		heights.append(-centre.y)
-		var frame := roundi(double.region_rect.position.x / CarController.FRAME_SIZE.x)
+		var frame := roundi(car_double.region_rect.position.x / CarController.FRAME_SIZE.x)
 		if frame not in frames:
 			frames.append(frame)
 		_step(ufo)
 	_step(ufo)
-	alphas.append(double.modulate.a)
+	alphas.append(car_double.modulate.a)
 	assert_true(foot_stays, "its foot stays where the car was, so it sorts there")
 	assert_true(shown, "it shows in full through the first half of the lift")
 	assert_eq(alphas, Disasters.sorted(alphas, true), "it only fades")
@@ -278,10 +278,10 @@ func test_the_double_shudders_then_floats_up_the_beam_turning_and_is_gone_into_t
 	assert_eq(shudder, [-Ufo.SHUDDER_PX, Ufo.SHUDDER_PX] as Array[float], "it shudders")
 	assert_eq(heights, Disasters.sorted(heights), "it only rises")
 	assert_eq(frames.size(), CarController.FRAMES, "turning through every heading")
-	assert_almost_eq(_centre(double), Vector2(0.0, -Ufo.HOVER), NEAR, "into the port")
+	assert_almost_eq(_centre(car_double), Vector2(0.0, -Ufo.HOVER), NEAR, "into the port")
 	var entered := Vector2.ONE * Ufo.ENTERED_SCALE
-	assert_almost_eq(double.scale, entered, NEAR, "shrunk")
-	assert_eq(double.modulate.a, 0.0, "gone in")
+	assert_almost_eq(car_double.scale, entered, NEAR, "shrunk")
+	assert_eq(car_double.modulate.a, 0.0, "gone in")
 
 
 func test_it_zips_off_to_the_side_its_direction_picks_and_leaves_a_crop_circle() -> void:
