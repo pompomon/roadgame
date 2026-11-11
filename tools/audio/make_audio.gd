@@ -41,6 +41,7 @@ func _initialize() -> void:
 	_save("sfx/flood", _flood(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/quicksand", _quicksand(), Tuning.EFFECT_PEAK, false)
 	# The City's legends.
+	_save_legend("phantom_bus", _phantom_bus)
 	# Rural's legends.
 	# The Meadows' legends.
 	# The Village's legends.
@@ -204,6 +205,28 @@ func _quicksand() -> PackedFloat32Array:
 
 
 # The City's legends.
+
+
+## Timed to Tuning.PHANTOM_BUS_BEATS from the end of the delay, when the sound starts: a cracked
+## bell tolls as the bus comes out of the fog and again as it stops, over its engine's low drone,
+## two notes that beat against each other; the doors hiss open and shut.
+func _phantom_bus() -> PackedFloat32Array:
+	var beats := Tuning.PHANTOM_BUS_BEATS
+	var arrive: float = beats[0]
+	var board: float = arrive + beats[1]
+	var leave: float = board + beats[2]
+	var out := _silence(roundi((board + 1.5) * RATE))
+	var drone_seconds: float = leave + beats[3] - arrive
+	var drone := _tone(55.0, drone_seconds, "triangle")
+	_add(drone, _tone(58.3, drone_seconds, "triangle"), 0.0)
+	_add(out, _swell(_low_pass(drone, 400.0)), arrive, 0.6)
+	for toll: float in [arrive, board]:
+		_add(out, _bell(196.0), toll, 0.8)
+		_add(out, _bell(203.0), toll, 0.6)
+	for hiss: float in [board, leave]:
+		_add(out, _decay(_high_pass(_noise(roundi(0.35 * RATE)), 2500.0), 0.1), hiss, 0.5)
+	return out
+
 
 # Rural's legends.
 

@@ -194,6 +194,14 @@ const QUICKSAND_WOBBLE := 0.3
 const QUICKSAND_WOBBLE_HZ := 3.0
 
 # The City's legends.
+## The phantom bus (M6_PLAN.md §3.3): its beats, in s: the fog rolls in, the bus comes, the car
+## boards it, the bus leaves. How far back it comes from, along the road, how far on it goes and
+## how far from the car it stops, in tiles; and how much of it shows, as it's half see-through.
+const PHANTOM_BUS_BEATS: Array[float] = [0.5, 0.9, 0.4, 0.7]
+const PHANTOM_BUS_APPROACH_TILES := 3.0
+const PHANTOM_BUS_LEAVE_TILES := 2.5
+const PHANTOM_BUS_GAP_TILES := 0.4
+const PHANTOM_BUS_ALPHA := 0.7
 
 # Rural's legends.
 
