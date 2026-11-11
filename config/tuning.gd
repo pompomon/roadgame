@@ -204,6 +204,15 @@ const PHANTOM_BUS_GAP_TILES := 0.4
 const PHANTOM_BUS_ALPHA := 0.7
 
 # Rural's legends.
+## The UFO (M6_PLAN.md §3.3): its beats, in s: night falls, the saucer drops, its beam opens, the
+## car floats up into it, and it zips off. How far it drops to its hover and where it zips to, in
+## px, the zip to the side that the params' direction picks; how many times a second its rim's
+## lights pass each point of its rim; and how much light its beam adds.
+const UFO_BEATS: Array[float] = [0.5, 0.5, 0.4, 0.8, 0.4]
+const UFO_DROP_PX := 160.0
+const UFO_ZIP_PX := Vector2(240.0, -360.0)
+const UFO_RIM_HZ := 2.0
+const UFO_BEAM_ALPHA := 0.5
 
 # The Meadows' legends.
 

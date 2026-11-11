@@ -43,6 +43,7 @@ func _initialize() -> void:
 	# The City's legends.
 	_save_legend("phantom_bus", _phantom_bus)
 	# Rural's legends.
+	_save_legend("ufo", _ufo)
 	# The Meadows' legends.
 	# The Village's legends.
 	# The Desert's legends.
@@ -229,6 +230,32 @@ func _phantom_bus() -> PackedFloat32Array:
 
 
 # Rural's legends.
+
+
+## Timed to Tuning.UFO_BEATS from the end of the delay, when the sound starts: as night falls, the
+## car radio's station is lost in a warbling static, which dies away as the saucer drops without a
+## sound. With the beam comes a deep throb, two low notes that beat against each other, and a whine
+## that climbs as the car floats up. Both are gone as the beam closes, and the saucer zips off with
+## a shriek that climbs out of hearing.
+func _ufo() -> PackedFloat32Array:
+	var beats := Tuning.UFO_BEATS
+	var drop: float = beats[0]
+	var beam: float = drop + beats[1]
+	var zip: float = beam + beats[2] + beats[3]
+	var out := _silence(roundi((zip + beats[4]) * RATE))
+	var radio := _lfo(_high_pass(_low_pass(_noise(roundi(beam * RATE)), 3000.0), 800.0), 9, 0.7)
+	for i: int in radio.size():
+		var t := float(i) / RATE
+		radio[i] *= minf(t / drop, 1.0) * clampf((beam - t) / beats[1], 0.0, 1.0)
+	_add(out, radio, 0.0, 0.5)
+	var held := zip - beam
+	var throb := _tone(48.0, held, "triangle")
+	_add(throb, _tone(51.0, held, "triangle"), 0.0)
+	_add(out, _swell(_low_pass(throb, 600.0)), beam, 0.9)
+	_add(out, _swell(_glide(900.0, 1800.0, held)), beam, 0.15)
+	_add(out, _fade_out(_glide(300.0, 3000.0, beats[4])), zip, 0.5)
+	return out
+
 
 # The Meadows' legends.
 
