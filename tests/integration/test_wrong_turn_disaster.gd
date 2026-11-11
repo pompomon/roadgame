@@ -1,7 +1,8 @@
 extends GutTest
 ## A wrong turn ends the run with a disaster (plan.md §2.1, IMPLEMENTATION_PLAN.md M3 tests): the
-## autopilot takes a wrong exit at the third junction, the input stops, the car stops, the City's
-## sinkhole swallows it, and the game-over screen shows 2 to 4 s after the turn.
+## autopilot takes a wrong exit at the third junction, the input stops, the car stops, a disaster
+## of the City's pool takes it, and the game-over screen shows 2 to 4 s after the turn. Its sound
+## starts as it shows (M6_PLAN.md S18).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
@@ -40,7 +41,7 @@ func test_a_wrong_turn_at_the_third_junction_triggers_one_disaster_in_the_city()
 	assert_false(main.get_node("%GameOver").visible, "not yet")
 
 
-func test_the_citys_sinkhole_swallows_the_car_and_then_the_game_is_over() -> void:
+func test_the_citys_disaster_takes_the_car_and_then_the_game_is_over() -> void:
 	watch_signals(EventBus)
 	var main := _wrong_turn()
 	var car := MainScene.car(main)
@@ -68,7 +69,7 @@ func test_the_citys_sinkhole_swallows_the_car_and_then_the_game_is_over() -> voi
 	assert_has(pool, disaster.scene_file_path, "from the City's pool")
 	assert_eq(disaster.get_parent(), main.get_node("%World/%DisasterLayer"))
 	assert_eq(car.sim.speed, 0.0, "the car stopped")
-	assert_almost_eq(car.scale, Vector2.ONE * Sinkhole.SUNK_SCALE, Vector2.ONE * 1e-6, "and sank")
+	assert_eq(car.modulate.a, 0.0, "and is out of sight")
 	assert_signal_emit_count(EventBus, "run_ended", 1, "once")
 	assert_true(game_over.visible)
 	assert_eq(game_over.get_node("%Cause").text, GameOver.END_MESSAGES[CarSim.WRONG_TURN])
@@ -92,10 +93,11 @@ func test_the_same_seed_plays_the_same_disaster() -> void:
 	assert_eq(rolls[0], rolls[1])
 
 
-func test_the_run_and_the_sinkhole_are_saved() -> void:
+func test_the_run_and_its_disaster_are_saved() -> void:
 	SaveService.use_memory()
 	watch_signals(EventBus)
 	var main := _wrong_turn()
+	var director: DisasterDirector = main.get_node("%Director")
 	var save := SaveService.data()
 	var city: Dictionary = save.atlas["city"]
 	assert_true(city["discovered"])
@@ -104,8 +106,43 @@ func test_the_run_and_the_sinkhole_are_saved() -> void:
 	assert_eq(save.best, {"distance": GameState.distance, "turns": 2}, "when it ended")
 	assert_eq(save.disasters, {} as Dictionary[String, Dictionary], "not before it shows")
 	MainScene.run_while(self, main, DISASTER, 600)
-	assert_signal_emitted_with_parameters(EventBus, "disaster_started", [&"sinkhole", CITY])
+	var id := director.disaster.id
+	assert_signal_emitted_with_parameters(EventBus, "disaster_started", [id, CITY])
 	var expected := {
 		"seen": 1, "first_area": "city", "first_distance": GameState.distance, "first_turns": 2
 	}
-	assert_eq(save.disasters["sinkhole"], expected)
+	assert_eq(save.disasters[String(id)], expected)
+
+
+func test_the_disasters_sound_starts_as_it_shows() -> void:
+	# On the frame its delay is over, not as it starts to play (M6_PLAN.md S18, E8).
+	watch_signals(EventBus)
+	watch_signals(AudioDirector)
+	var main := _wrong_turn()
+	var director: DisasterDirector = main.get_node("%Director")
+	var started := -1
+	var played := -1
+	var frames := 0
+	while GameState.state == DISASTER and frames < 600:
+		simulate(main, 1, MainScene.DELTA)
+		frames += 1
+		if started < 0 and get_signal_emit_count(EventBus, "disaster_started") > 0:
+			started = frames
+		if played < 0 and started > 0 and _played(director.disaster.id):
+			played = frames
+	assert_gt(started, 0, "a disaster played")
+	assert_gt(played, 0, "and its sound")
+	assert_almost_eq(
+		(played - started) * MainScene.DELTA,
+		director.params.delay,
+		MainScene.DELTA * 1.01,
+		"its delay after it started"
+	)
+
+
+## Whether AudioDirector played the sound `id`.
+func _played(id: StringName) -> bool:
+	for k: int in get_signal_emit_count(AudioDirector, "effect_played"):
+		if get_signal_parameters(AudioDirector, "effect_played", k) == [id]:
+			return true
+	return false

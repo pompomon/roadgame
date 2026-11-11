@@ -38,6 +38,19 @@ static func frame(forward: Vector2) -> int:
 	return posmod(roundi(atan2(screen.x, -screen.y) / (TAU / FRAMES)), FRAMES)
 
 
+## A new sprite of the car as it shows now, for a legend to take in its place (M6_PLAN.md §5.4):
+## the body's frame, cut from its sheet, with the car's ground centre at the sprite's origin.
+func double() -> Sprite2D:
+	var made := Sprite2D.new()
+	made.name = "Double"
+	made.texture = _body.texture
+	made.centered = false
+	made.offset = -Vector2(FOOT)
+	made.region_enabled = true
+	made.region_rect = Rect2(FRAME_SIZE.x * _body.frame, 0, FRAME_SIZE.x, FRAME_SIZE.y)
+	return made
+
+
 func _update_view() -> void:
 	position = Iso.tile_to_world(sim.pos)
 	var crashed := sim.state == CarSim.State.CRASHED

@@ -2,13 +2,25 @@ extends GutTest
 ## What every disaster in an area's pool does (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1 and M4.5):
 ## it shows nothing until play() and its delay; then it finishes once, after its static
 ## duration(params), with the car out of sight where it stopped; and with the car's stop it takes 2
-## to 4 s from the turn. It seeds its particles from its params and never redraws a polygon
-## (M2_PLAN.md §5.7). The pools come from the game's schedule, so a new disaster is checked too.
+## to 4 s from the turn. It seeds its particles from its params, shows them while they emit, and
+## never redraws a polygon (M2_PLAN.md §5.7). The pools come from the game's schedule, so a new
+## disaster is checked too. With them plays the sample legend, which uses every part of the legend
+## kit (M6_PLAN.md §4 PR 2): what a legend stands on the stage and the car's double count as what it
+## shows, and no disaster flashes (E6).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const DELTA := Disasters.DELTA
 const MAX_FRAMES := Disasters.MAX_FRAMES
+## How many frames the polygon test plays past a disaster's end: a legend's veil still follows the
+## view then.
+const AFTER_FRAMES := 30
+const GLOW := preload("res://disasters/glow.tres")
+## A glow that glides past points: its scale, a lamp's, and its way in px a frame, slow, as a
+## legend's lamps are as it nears a stop.
+const GLIDE_SCALE := 0.6
+const GLIDE := Vector2(0.4, -0.2)
+const GLIDE_FRAMES := 120
 
 
 func test_each_area_has_its_pool_of_disasters() -> void:
@@ -34,8 +46,8 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 			var disaster := Disasters.disaster(self, scene, null, null)
 			ids.append(disaster.id)
 			assert_eq(
-				scene.resource_path,
-				"res://disasters/%s.tscn" % disaster.id,
+				scene.resource_path.get_file(),
+				"%s.tscn" % disaster.id,
 				"%s: the scene is named after its id" % area.id
 			)
 		assert_eq(ids, pools.get(area.id, []), "%s's pool" % area.id)
@@ -43,14 +55,20 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 	var all: Array[StringName] = []
 	for scene: PackedScene in Disasters.scenes():
 		all.append(Disasters.disaster(self, scene, null, null).id)
-	assert_eq(all, [&"sinkhole", &"tornado", &"flood", &"quicksand"] as Array[StringName])
+	var listed: Array[StringName] = []
+	for pool: Array in pools.values():
+		for id: StringName in pool:
+			if not listed.has(id):
+				listed.append(id)
+	assert_eq(all, listed, "every disaster of the pools, once each, in the schedule's order")
 
 
 func test_each_shows_nothing_until_its_delay_is_over() -> void:
-	for scene: PackedScene in Disasters.scenes():
+	for scene: PackedScene in Disasters.contract_scenes():
 		var car := Disasters.car(self)
 		var camera := Disasters.camera(self)
 		var disaster := Disasters.disaster(self, scene, car, camera)
+		disaster.stage = Disasters.stage(self)
 		watch_signals(disaster)
 		simulate(disaster, 300, DELTA)
 		_assert_hidden(disaster, car, camera, "%s before play()" % disaster.id)
@@ -60,7 +78,7 @@ func test_each_shows_nothing_until_its_delay_is_over() -> void:
 		simulate(disaster, floori(params.delay / DELTA) - 1, DELTA)
 		_assert_hidden(disaster, car, camera, "%s in its delay" % disaster.id)
 		simulate(disaster, roundi(1.0 / DELTA), DELTA)
-		var shown := Disasters.polygons(disaster).filter(Disasters.shows)
+		var shown := Disasters.drawables(disaster).filter(Disasters.shows)
 		assert_false(shown.is_empty(), "%s shows a second after its delay" % disaster.id)
 		assert_signal_not_emitted(disaster, "finished", disaster.id)
 
@@ -68,8 +86,8 @@ func test_each_shows_nothing_until_its_delay_is_over() -> void:
 func _assert_hidden(
 	disaster: DisasterBase, car: CarController, camera: CameraRig, when: String
 ) -> void:
-	for polygon: Polygon2D in Disasters.polygons(disaster):
-		assert_false(Disasters.shows(polygon), "%s: %s is hidden" % [when, polygon.name])
+	for item: CanvasItem in Disasters.drawables(disaster):
+		assert_false(Disasters.shows(item), "%s: %s is hidden" % [when, item.name])
 	for particles: CPUParticles2D in Disasters.particles(disaster):
 		assert_false(particles.emitting, "%s: %s waits" % [when, particles.name])
 	assert_eq(car.scale, Vector2.ONE, "%s: the car's scale" % when)
@@ -79,11 +97,12 @@ func _assert_hidden(
 
 
 func test_each_finishes_once_after_its_duration_with_the_car_out_of_sight() -> void:
-	for scene: PackedScene in Disasters.scenes():
+	for scene: PackedScene in Disasters.contract_scenes():
 		for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
 			var car := Disasters.car(self)
 			var at := car.position
 			var disaster := Disasters.disaster(self, scene, car, Disasters.camera(self))
+			disaster.stage = Disasters.stage(self)
 			var params := Disasters.params(intensity)
 			var what := "%s at intensity %.1f" % [disaster.id, intensity]
 			watch_signals(disaster)
@@ -105,7 +124,7 @@ func test_each_finishes_once_after_its_duration_with_the_car_out_of_sight() -> v
 
 
 func test_each_finishes_without_a_car_or_a_camera() -> void:
-	for scene: PackedScene in Disasters.scenes():
+	for scene: PackedScene in Disasters.contract_scenes():
 		var disaster := Disasters.disaster(self, scene, null, null)
 		watch_signals(disaster)
 		disaster.play(Disasters.params())
@@ -115,7 +134,7 @@ func test_each_finishes_without_a_car_or_a_camera() -> void:
 
 func test_each_seeds_its_particles_from_its_params_and_scales_them() -> void:
 	# Godot gives each CPUParticles2D a random seed when it's made (M3_PLAN.md J16).
-	for scene: PackedScene in Disasters.scenes():
+	for scene: PackedScene in Disasters.contract_scenes():
 		var disaster := Disasters.disaster(self, scene, null, null)
 		var particles := Disasters.particles(disaster)
 		assert_false(particles.is_empty(), "%s has particles" % disaster.id)
@@ -144,6 +163,39 @@ static func _amounts(particles: CPUParticles2D) -> Vector4:
 	)
 
 
+func test_each_shows_its_particles_while_they_emit_and_each_emits() -> void:
+	# Smoke that pours out unseen would leave the car fading in plain view (M6 PR 6's review). No
+	# particle may be born and die unseen: one born as its emitter starts to fade in, as the
+	# tornado's dust is, shows a frame later.
+	for scene: PackedScene in Disasters.contract_scenes():
+		for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
+			var disaster := Disasters.disaster(
+				self, scene, Disasters.car(self), Disasters.camera(self)
+			)
+			disaster.stage = Disasters.stage(self)
+			var params := Disasters.params(intensity)
+			var what := "%s at intensity %.1f" % [disaster.id, intensity]
+			disaster.play(params)
+			var emitted: Array[String] = []
+			var unseen: Array[String] = []
+			var unseen_since: Dictionary[CPUParticles2D, float] = {}
+			for frame: int in ceili(Disasters.duration(disaster, params) / DELTA) + AFTER_FRAMES:
+				simulate(disaster, 1, DELTA)
+				var now := (frame + 1) * DELTA
+				for particles: CPUParticles2D in Disasters.particles(disaster):
+					if particles.emitting and not emitted.has(particles.name):
+						emitted.append(particles.name)
+					if Disasters.particles_show(particles):
+						unseen_since.erase(particles)
+					elif particles.emitting and not unseen_since.has(particles):
+						unseen_since[particles] = now
+					var born: float = unseen_since.get(particles, INF)
+					if now - born >= particles.lifetime and not unseen.has(particles.name):
+						unseen.append(particles.name)
+			assert_eq(unseen, [] as Array[String], "%s: none born and gone unseen" % what)
+			assert_eq(emitted.size(), Disasters.particles(disaster).size(), "%s: each emits" % what)
+
+
 func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 	# The sinkhole, the flood and the quicksand draw their ground with it.
 	for radius: float in [Tuning.SINKHOLE_RADIUS, Tuning.FLOOD_RADIUS]:
@@ -154,19 +206,68 @@ func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 			assert_almost_eq(distance, radius, 1e-4, "%.1f tiles from its centre" % radius)
 
 
+func test_none_flashes() -> void:
+	# M6_PLAN.md S11, E6, after WCAG 2.3.1: no more than three flashes a second, nor a red flash.
+	for scene: PackedScene in Disasters.contract_scenes():
+		for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
+			var why := Disasters.flashes(self, scene, Disasters.params(intensity))
+			var what := "%s at intensity %.1f" % [scene.resource_path.get_file(), intensity]
+			assert_eq(why, "", "%s: no flashing" % what)
+
+
+func test_a_glow_doesnt_flash_where_it_glides_past_points_at_its_faint_edge() -> void:
+	# The canvas draws a glow's gradient with the nearest texel, as the flash test reads it. So where
+	# a glow glides past a point at its faint edge, the light there steps up and down by a texel's
+	# worth: less than a tenth of white's light, or of pure red's, which WCAG would count (S19).
+	var images: Dictionary[Texture2D, Image] = {}
+	for tint: Color in [Color.WHITE, Color.RED]:
+		var glow := Sprite2D.new()
+		glow.texture = GLOW
+		glow.self_modulate = tint
+		glow.scale = Vector2.ONE * GLIDE_SCALE
+		add_child_autofree(glow)
+		var lights: Array[Dictionary] = []
+		var reds: Array[Dictionary] = []
+		for k: int in GLIDE_FRAMES:
+			glow.position = GLIDE * k
+			var light: Dictionary[Vector2i, float] = {}
+			var red: Dictionary[Vector2i, float] = {}
+			Disasters.shine(glow, light, red, images)
+			lights.append(light)
+			reds.append(red)
+		assert_eq(Disasters.flashing(lights, reds), "", "a %s glow" % tint.to_html(false))
+
+
 func test_none_redraws_a_polygon() -> void:
 	# Every redraw of a Polygon2D after its first raises WebGL errors on the Web (M2_PLAN.md §5.7).
-	for scene: PackedScene in Disasters.scenes():
+	# A polygon made after play(), or put on the stage, would escape the count (M6_PLAN.md S6). As
+	# in the game, the redraws that a frame's step asks for come before the next step, so a polygon
+	# shown again counts even if it ends hidden (N39). The polygons are looked at after each step,
+	# so one made and freed in between counts too (N40). Headless, a frame sleeps as if it had
+	# drawn nothing: not here.
+	var sleep := OS.low_processor_usage_mode_sleep_usec
+	OS.low_processor_usage_mode_sleep_usec = 0
+	for scene: PackedScene in Disasters.contract_scenes():
 		var car := Disasters.car(self)
 		var disaster := Disasters.disaster(self, scene, car, null)
+		var stage := Disasters.stage(self)
+		disaster.stage = stage
 		await wait_physics_frames(2)
 		var draws: Array[int] = [0]
-		for polygon: Polygon2D in Disasters.polygons(disaster):
+		var before := Disasters.polygons(disaster)
+		for polygon: Polygon2D in before:
 			polygon.draw.connect(_count.bind(draws))
-		disaster.play(Disasters.params())
-		simulate(disaster, MAX_FRAMES, DELTA)
-		await wait_physics_frames(2)
+		var params := Disasters.params()
+		disaster.play(params)
+		var others := 0
+		for _frame: int in ceili(Disasters.duration(disaster, params) / DELTA) + AFTER_FRAMES:
+			simulate(disaster, 1, DELTA)
+			await get_tree().process_frame
+			if Disasters.polygons(disaster) != before or not Disasters.polygons(stage).is_empty():
+				others += 1
 		assert_eq(draws[0], 0, "%s: no redraws" % disaster.id)
+		assert_eq(others, 0, "%s: frames with other polygons than at the start" % disaster.id)
+	OS.low_processor_usage_mode_sleep_usec = sleep
 
 
 func _count(draws: Array[int]) -> void:
@@ -178,7 +279,7 @@ func test_with_the_stop_each_takes_2_to_4_seconds() -> void:
 	# J4). The stop and the disaster's clock each add up steps of DELTA, and each sum can fall just
 	# short of its time and take a frame more (M3_PLAN.md P10).
 	var middle := (Tuning.DISASTER_INTENSITY_MIN + Tuning.DISASTER_INTENSITY_MAX) * 0.5
-	for scene: PackedScene in Disasters.scenes():
+	for scene: PackedScene in Disasters.contract_scenes():
 		var disaster := Disasters.disaster(self, scene, null, null)
 		var durations: Array[float] = []
 		for delay: float in [Tuning.DISASTER_DELAY_MIN, Tuning.DISASTER_DELAY_MAX]:
@@ -198,7 +299,7 @@ func test_with_the_stop_each_takes_2_to_4_seconds() -> void:
 func test_after_a_wrong_turn_the_director_plays_each_in_2_to_4_seconds() -> void:
 	# IMPLEMENTATION_PLAN.md M3.1, from the end of the run: the car stops, within STOP_SECONDS
 	# (M3_PLAN.md J4), and the disaster plays, with the delay of its params.
-	for scene: PackedScene in Disasters.scenes():
+	for scene: PackedScene in Disasters.contract_scenes():
 		var times: Array[float] = []
 		for run_seed: int in 10:
 			for speed: float in [2.0, Tuning.GLOBAL_SPEED_CAP]:

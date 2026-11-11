@@ -1,0 +1,75 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/helpers/sample_legend.gd" id="1_sample"]
+[ext_resource type="Material" path="res://disasters/glow_material.tres" id="2_add"]
+[ext_resource type="Texture2D" path="res://disasters/glow.tres" id="3_glow"]
+
+[node name="SampleLegend" type="Node2D" node_paths=PackedStringArray("standing")]
+script = ExtResource("1_sample")
+veil_kind = 2
+standing = [NodePath("Totem")]
+id = &"sample_legend"
+display_name = "Sample Legend"
+fate = "The sample legend took you away."
+lore = "A legend made up to test the kit: a totem, a ring, sparks and lights."
+
+[node name="Ring" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+scale = Vector2(0, 0)
+color = Color(0.745098, 0.588235, 0.901961, 1)
+
+[node name="Sparks" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 16
+lifetime = 0.8
+direction = Vector2(0, -1)
+spread = 40.0
+gravity = Vector2(0, 60)
+initial_velocity_min = 30.0
+initial_velocity_max = 60.0
+scale_amount_min = 1.0
+scale_amount_max = 2.0
+color = Color(0.588235, 0.941176, 0.745098, 1)
+
+[node name="Totem" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+position = Vector2(-28, -6)
+centered = false
+offset = Vector2(-8, -32)
+hframes = 3
+
+[node name="GlowA" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+self_modulate = Color(0.588235, 0.941176, 0.745098, 1)
+z_index = 3
+z_as_relative = false
+material = ExtResource("2_add")
+position = Vector2(-28, -30)
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("3_glow")
+
+[node name="GlowB" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+self_modulate = Color(0.745098, 0.588235, 0.901961, 1)
+z_index = 3
+z_as_relative = false
+material = ExtResource("2_add")
+position = Vector2(-20, -26)
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("3_glow")
+
+[node name="RedGlow" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+self_modulate = Color(1, 0.12, 0.12, 1)
+z_index = 3
+z_as_relative = false
+material = ExtResource("2_add")
+position = Vector2(40, 24)
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("3_glow")
