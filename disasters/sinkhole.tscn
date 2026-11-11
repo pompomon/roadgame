@@ -6,6 +6,8 @@
 script = ExtResource("1_sinkhole")
 id = &"sinkhole"
 display_name = "Sinkhole"
+fate = "The ground opened under you."
+lore = "Rain eats away the rock under a street, until one day the street gives way."
 
 [node name="Rim" type="Polygon2D" parent="."]
 unique_name_in_owner = true

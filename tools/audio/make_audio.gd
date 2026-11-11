@@ -35,10 +35,16 @@ func _initialize() -> void:
 	_save("sfx/damage", _thump(0.2, 90.0, 40.0), Tuning.EFFECT_PEAK, false)
 	_save("sfx/crash", _crash(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
+	# The natural disasters, until M6 PR 8.
 	_save("sfx/sinkhole", _sinkhole(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/tornado", _tornado(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/flood", _flood(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/quicksand", _quicksand(), Tuning.EFFECT_PEAK, false)
+	# The City's legends.
+	# Rural's legends.
+	# The Meadows' legends.
+	# The Village's legends.
+	# The Desert's legends.
 	quit()
 
 
@@ -156,6 +162,9 @@ func _chime() -> PackedFloat32Array:
 	return out
 
 
+# The natural disasters, until M6 PR 8.
+
+
 func _sinkhole() -> PackedFloat32Array:
 	var out := _decay(_low_pass(_noise(roundi(1.6 * RATE)), 180.0), 0.8)
 	_add(out, _decay(_glide(80.0, 30.0, 1.4), 0.7), 0.0, 0.8)
@@ -192,6 +201,17 @@ func _quicksand() -> PackedFloat32Array:
 	var out := _glide(200.0, 60.0, 1.6)
 	_add(out, _low_pass(_noise(out.size()), 300.0), 0.0, 0.8)
 	return _fade_out(_lfo(out, 6, 0.4))
+
+
+# The City's legends.
+
+# Rural's legends.
+
+# The Meadows' legends.
+
+# The Village's legends.
+
+# The Desert's legends.
 
 
 func _note(midi: int, seconds: float, kind: String, gain: float) -> PackedFloat32Array:
@@ -354,6 +374,13 @@ func _save(path_in_out: String, samples: PackedFloat32Array, peak: float, loop: 
 	file.store_buffer(_chunk("RIFF", "WAVE".to_ascii_buffer() + chunks))
 	file.close()
 	print("%s: %.2f s%s" % [path, float(samples.size()) / RATE, ", loop" if loop else ""])
+
+
+## Saves the legend `id`'s sound from `synth`, its noise drawn from a generator seeded by the id
+## alone, so that no other sound changes it (M6_PLAN.md S17).
+func _save_legend(id: String, synth: Callable) -> void:
+	_rng.seed = hash(id)
+	_save("sfx/" + id, synth.call(), Tuning.EFFECT_PEAK, false)
 
 
 func _chunk(id: String, body: PackedByteArray) -> PackedByteArray:

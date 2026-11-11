@@ -154,3 +154,20 @@ func test_a_retry_while_the_run_goes_on_is_an_error() -> void:
 	assert_push_error("a retry is only allowed after game over")
 	assert_eq(GameState.state, RUNNING)
 	assert_eq(MainScene.car(main), car, "the same run")
+
+
+func test_a_crash_after_a_disaster_shows_no_fate() -> void:
+	# M6_PLAN.md S8: the fate is the disaster's, and a retry forgets it.
+	var main := MainScene.open(self, ["--seed=1"])
+	_to_game_over(main, false)
+	var fate: Label = main.get_node("%GameOver/%Fate")
+	assert_true(fate.visible, "the disaster's fate")
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(GameState.state, RUNNING)
+	# Sideways off the first straight, as test_crash.gd crashes.
+	MainScene.car(main).sim.angle += PI / 2.0
+	MainScene.run_while(self, main, RUNNING, 1200)
+	MainScene.run_while(self, main, GameState.State.CRASH, 600)
+	assert_eq(GameState.state, GAME_OVER)
+	assert_has([CarSim.OFFROAD, CarSim.HEALTH], GameState.end_cause, "a crash")
+	assert_false(fate.visible, "no fate")

@@ -14,10 +14,15 @@ const MAX_FRAMES := Disasters.MAX_FRAMES
 func test_each_area_has_its_pool_of_disasters() -> void:
 	# plan.md §4.3 and IMPLEMENTATION_PLAN.md M4.2.
 	var pools := {
+		# The City's.
 		&"city": [&"sinkhole"],
+		# Rural's.
 		&"rural": [&"tornado"],
+		# The Meadows'.
 		&"meadows": [&"flood"],
+		# The Village's.
 		&"village": [&"flood", &"tornado"],
+		# The Desert's.
 		&"desert": [&"quicksand"],
 	}
 	var areas: Array = []
@@ -201,3 +206,13 @@ func test_after_a_wrong_turn_the_director_plays_each_in_2_to_4_seconds() -> void
 		var what := scene.resource_path.get_file()
 		assert_between(times.min(), 2.0, 4.0, "%s: the quickest" % what)
 		assert_between(times.max(), 2.0, 4.0, "%s: the slowest" % what)
+
+
+func test_each_has_a_fate_for_game_over_and_a_lore_for_its_card() -> void:
+	# M6_PLAN.md S8 and S12: short enough for game over's and a card's lines at 360 x 640 (P13).
+	const MAX_FATE := 40
+	const MAX_LORE := 80
+	for scene: PackedScene in Disasters.scenes():
+		var disaster := Disasters.disaster(self, scene, null, null)
+		assert_between(disaster.fate.length(), 1, MAX_FATE, "%s's fate" % disaster.id)
+		assert_between(disaster.lore.length(), 1, MAX_LORE, "%s's lore" % disaster.id)

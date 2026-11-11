@@ -21,6 +21,8 @@ var _schedule: AreaSchedule
 var _buffer: RoadBuffer
 var _sim: CarSim
 var _car: CarController
+## What the disaster that ended the run did to the car, for the game-over screen (M6_PLAN.md S8).
+var _fate := ""
 
 @onready var _world: WorldRenderer = %World
 @onready var _input: InputRouter = %InputRouter
@@ -178,6 +180,7 @@ func _clear_run() -> void:
 	_world.car = null
 	_car.free()
 	_car = null
+	_fate = ""
 
 
 func _on_turn_completed(turn_index: int) -> void:
@@ -223,6 +226,7 @@ func _turns_before(index: int) -> int:
 
 func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
 	EventBus.disaster_started.emit(disaster.id, area)
+	_fate = disaster.fate
 
 
 ## The run is over the moment it ends (M3_PLAN.md J1): the input stops, and GameState reports the
@@ -238,7 +242,7 @@ func _end_run(cause: StringName) -> void:
 ## The disaster or the crash has played: game over.
 func _on_sequence_finished() -> void:
 	GameState.show_game_over()
-	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id))
+	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id), _fate)
 
 
 static func _parse_seed(p_args: PackedStringArray) -> int:

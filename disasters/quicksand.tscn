@@ -6,6 +6,8 @@
 script = ExtResource("1_quicksand")
 id = &"quicksand"
 display_name = "Quicksand"
+fate = "The quicksand swallowed you."
+lore = "Sand soaked with water looks firm, until a weight makes it flow."
 
 [node name="Pit" type="Polygon2D" parent="."]
 unique_name_in_owner = true
