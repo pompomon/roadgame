@@ -7,7 +7,12 @@ const SEEDS := 200
 const TURNS := 500
 
 
+## Checks the road up to turn `turns`. It stops at the first junction that fails, and checks nothing
+## once the test fails: a broken rule fails at nearly every junction, GUT keeps the text of each
+## failure, and one for each junction of 200 seeds ran out of memory (ROADGEN_PLAN.md §6.2, N7).
 func _check(gen: RoadGenerator, turns: int, label: String) -> void:
+	if is_failing():
+		return
 	var tiles := 0
 	var junctions := 0
 	for tile: RoadTile in Fixtures.path_until_turn(gen, turns):
@@ -30,6 +35,8 @@ func _check(gen: RoadGenerator, turns: int, label: String) -> void:
 				fail_test("%s: dead end of %d tiles" % [label, length])
 			if exit == tile.heading and length < Tuning.DEAD_END_MIN_TILES:
 				fail_test("%s: straight-on dead end of %d tiles" % [label, length])
+		if is_failing():
+			return
 	# Every claim succeeded (a failed claim also fails the test with its push_error).
 	assert_eq(gen.occupancy.size(), tiles, label)
 	assert_eq(gen.dropped_count, 0, "%s: a 1-tile stub always fits" % label)
