@@ -73,7 +73,7 @@ func _fail(choice: int) -> void:
 
 
 ## The first junction after path index `index`. The buffer always has one: junctions are at most
-## a set piece and a straight apart, well under its 25-tile lookahead.
+## a set piece and a straight apart, which AreaSchedule.validate() keeps within BUFFER_REFILL_AT.
 func _junction_after(index: int) -> RoadTile:
 	for i: int in range(maxi(index + 1, _buffer.first_index()), _buffer.last_index() + 1):
 		var tile := _buffer.path_tile(i)

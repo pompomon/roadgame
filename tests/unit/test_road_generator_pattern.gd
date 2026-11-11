@@ -200,7 +200,8 @@ func _check_dead_ends(tile: RoadTile, where: String) -> void:
 		assert_eq(runs.has(h), wrong, "%s tile %d exit %d" % [where, tile.path_index, h])
 	for exit: int in runs:
 		var run: Array = runs[exit]
-		assert_between(run.size(), 1, Tuning.DEAD_END_MAX_TILES)
+		# Even a dead end that another cuts short has 2 tiles (ROADGEN_PLAN.md R5).
+		assert_between(run.size(), 2, Tuning.DEAD_END_MAX_TILES)
 		for k: int in run.size():
 			var branch: RoadTile = run[k]
 			var exits := Heading.bit(Heading.opposite(exit))

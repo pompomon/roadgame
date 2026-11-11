@@ -4,6 +4,16 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
+## The reference screens' viewports, after the stretch (M2_PLAN.md §6.5).
+const SCREENS: Array[Vector2i] = [
+	Vector2i(360, 640),
+	Vector2i(360, 922),
+	Vector2i(1639, 640),
+	Vector2i(532, 640),
+	Vector2i(768, 640),
+	Vector2i(360, 800),
+	Vector2i(1137, 640),
+]
 
 
 func _view(size: Vector2i) -> SubViewport:
@@ -141,3 +151,29 @@ func test_the_shake_is_in_screen_pixels() -> void:
 	assert_eq(rig.zoom, Vector2(2.0, 2.0))
 	rig.shake(1.0, 1.0)
 	assert_eq(rig.offset, Vector2(0.0, Tuning.SHAKE_PX / 2.0), "half the world pixels at zoom 2")
+
+
+## A dead end's end is out of view as the car enters its junction (ROADGEN_PLAN.md R4): on every
+## reference screen, the round end of a dead end DEAD_END_MIN_TILES long is off the view as the car
+## enters the junction's tile, with the camera on its target, as far ahead as it gets. The correct
+## path heads N or W, and a dead end goes straight on or the other way to the turn.
+func test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction() -> void:
+	var dead_ends: Dictionary[int, Array] = {
+		Heading.N: [Heading.N, Heading.E],
+		Heading.W: [Heading.W, Heading.S],
+	}
+	var centre := Vector2(0.5, 0.5)
+	var end_size := Vector2(Iso.TILE_W, Iso.TILE_H) * Tuning.ROAD_HALF_WIDTH * sqrt(2.0)
+	for size: Vector2i in SCREENS:
+		var rig := _rig(_view(size))
+		var shown := Vector2(size) / rig.zoom
+		for heading: int in dead_ends:
+			rig.car.sim.angle = heading * PI / 2.0
+			rig.car.position = Iso.tile_to_world(centre - Vector2(Heading.VEC[heading]) / 2.0)
+			rig.snap_to_target()
+			var view := Rect2(rig.position - shown / 2.0, shown)
+			var at := "%s, heading %s" % [size, Heading.NAMES[heading]]
+			for exit: int in dead_ends[heading]:
+				var tip := centre + Vector2(Heading.VEC[exit]) * Tuning.DEAD_END_MIN_TILES
+				var cap := Rect2(Iso.tile_to_world(tip) - end_size / 2.0, end_size)
+				assert_false(view.intersects(cap), "%s, dead end %s" % [at, Heading.NAMES[exit]])

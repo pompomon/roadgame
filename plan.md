@@ -85,8 +85,8 @@ None that affects gameplay. Persisted between runs:
 ### 3.3 Junctions and dead ends
 - Every turn on the correct path is a junction. It offers the correct exit plus at least one wrong exit (the opposite turn and/or straight on). A side road offers the turn and straight on, but not the opposite turn.
 - A **decoy** is a junction but no turn: it offers straight on, which is correct, and the opposite turn, a wrong exit. It shares `turnNumber` with the next junction.
-- Wrong exits become short **dead-end branches** (2–3 tiles) in any direction. They are rendered as real road so they look like valid choices.
-- Before placing a dead end, the generator checks an **occupancy grid**. On a collision it shortens the dead end to 1 tile or removes that wrong exit (for example, a crossroads becomes a T-junction). Every junction must keep at least one wrong exit.
+- Wrong exits become **dead-end branches** (6–9 tiles) in any direction. They are rendered as real road and are long enough that their end is out of view as the car enters the junction, so they look like valid choices.
+- Before placing a dead end, the generator checks an **occupancy grid**. On a collision it stops the dead end before the taken cell. Straights are at least 2 tiles, so at least 2 cells are always free and every junction keeps its wrong exits.
 - Each junction stores `expectedExit` (a heading) and `turnNumber`.
 
 ### 3.4 Buffer management
