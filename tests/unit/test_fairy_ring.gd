@@ -92,9 +92,9 @@ static func _double(ring: FairyRing) -> Sprite2D:
 
 ## Where the middle of the double shows, in px from the car: its offset keeps it there as it
 ## shrinks about its foot.
-func _centre(double: Sprite2D) -> Vector2:
-	var middle := double.offset + Vector2(CarController.FRAME_SIZE) / 2.0
-	return double.global_position + double.scale * middle - _car.global_position
+func _centre(car_double: Sprite2D) -> Vector2:
+	var middle := car_double.offset + Vector2(CarController.FRAME_SIZE) / 2.0
+	return car_double.global_position + car_double.scale * middle - _car.global_position
 
 
 ## Where `part` is, in px from the car.
@@ -102,9 +102,9 @@ func _from_car(part: Node2D) -> Vector2:
 	return part.global_position - _car.global_position
 
 
-## The frame of the car's sheet that `double` shows.
-static func _heading(double: Sprite2D) -> int:
-	return roundi(double.region_rect.position.x / CarController.FRAME_SIZE.x)
+## The frame of the car's sheet that `car_double` shows.
+static func _heading(car_double: Sprite2D) -> int:
+	return roundi(car_double.region_rect.position.x / CarController.FRAME_SIZE.x)
 
 
 ## Whether `item` adds light.
@@ -321,14 +321,14 @@ func test_the_double_dances_faster_and_faster_then_shrinks_to_a_point_and_is_gon
 	assert_null(_double(ring), "the car is still there")
 	assert_eq(_car.modulate.a, 1.0, "the car shows")
 	_step_to(ring, ends[1])
-	var double := _double(ring)
-	if double == null:
+	var car_double := _double(ring)
+	if car_double == null:
 		fail_test("it took the car")
 		return
 	assert_eq(_car.modulate.a, 0.0, "the double took the car's place")
-	assert_eq(double.get_parent(), _stage, "on the stage, where it sorts with the toadstools")
+	assert_eq(car_double.get_parent(), _stage, "on the stage, where it sorts with the toadstools")
 	var middle := Vector2(CarController.FRAME_SIZE) / 2.0 - Vector2(CarController.FOOT)
-	var heading := _heading(double)
+	var heading := _heading(car_double)
 	var headings: Array[int] = [heading]
 	var quarters: Array[int] = [0, 0, 0, 0]
 	var sizes: Array[float] = []
@@ -340,20 +340,20 @@ func test_the_double_dances_faster_and_faster_then_shrinks_to_a_point_and_is_gon
 	while not done:
 		done = _reached(ends[2])
 		if not _reached(_middle(2)):
-			shown = shown and Disasters.shows(double) and double.modulate.a == 1.0
-		alphas.append(double.modulate.a)
+			shown = shown and Disasters.shows(car_double) and car_double.modulate.a == 1.0
+		alphas.append(car_double.modulate.a)
 		_step(ring)
-		var now := _heading(double)
+		var now := _heading(car_double)
 		quarters[clampi(floori(_through(2) * quarters.size()), 0, quarters.size() - 1)] += posmod(
 			now - heading, CarController.FRAMES
 		)
 		heading = now
 		if now not in headings:
 			headings.append(now)
-		sizes.append(double.scale.x)
-		foot_stays = foot_stays and _from_car(double).is_equal_approx(Vector2.ZERO)
-		middle_stays = middle_stays and (_centre(double) - middle).length() < NEAR.x
-	alphas.append(double.modulate.a)
+		sizes.append(car_double.scale.x)
+		foot_stays = foot_stays and _from_car(car_double).is_equal_approx(Vector2.ZERO)
+		middle_stays = middle_stays and (_centre(car_double) - middle).length() < NEAR.x
+	alphas.append(car_double.modulate.a)
 	assert_true(foot_stays, "its foot stays where the car stopped, so it sorts there")
 	assert_true(middle_stays, "it spins and shrinks about its middle")
 	assert_true(shown, "it shows in full through the first half of the dance")
@@ -367,8 +367,8 @@ func test_the_double_dances_faster_and_faster_then_shrinks_to_a_point_and_is_gon
 	for k: int in range(1, quarters.size()):
 		assert_gt(quarters[k], quarters[k - 1], "faster and faster: %s" % [quarters])
 	assert_eq(sizes, Disasters.sorted(sizes, true), "it only shrinks")
-	assert_almost_eq(double.scale, Vector2.ONE * FairyRing.GONE_SCALE, NEAR, "to a point")
-	assert_eq(double.modulate.a, 0.0, "gone")
+	assert_almost_eq(car_double.scale, Vector2.ONE * FairyRing.GONE_SCALE, NEAR, "to a point")
+	assert_eq(car_double.modulate.a, 0.0, "gone")
 
 
 func test_sparkles_circle_inside_the_ring_while_the_eyes_watch() -> void:
@@ -419,8 +419,8 @@ func test_the_ring_stays_glowing_where_the_car_danced() -> void:
 		assert_almost_eq(alpha, Tuning.FAIRY_RING_GLOW_ALPHA, NEAR_ALPHA, what)
 	for pair: Sprite2D in ring.eyes():
 		assert_eq(pair.modulate.a, 0.0, "%s: shut" % pair.name)
-	var double := _double(ring)
-	assert_true(double != null and double.modulate.a == 0.0, "the car is gone")
+	var car_double := _double(ring)
+	assert_true(car_double != null and car_double.modulate.a == 0.0, "the car is gone")
 	assert_eq(_car.modulate.a, 0.0, "and stays gone")
 
 
