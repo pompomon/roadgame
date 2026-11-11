@@ -30,10 +30,16 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 	&"damage": preload("res://assets/audio/sfx/damage.wav"),
 	&"crash": preload("res://assets/audio/sfx/crash.wav"),
 	&"junction": preload("res://assets/audio/sfx/junction.wav"),
+	# The natural disasters, until M6 PR 8.
 	&"sinkhole": preload("res://assets/audio/sfx/sinkhole.wav"),
 	&"tornado": preload("res://assets/audio/sfx/tornado.wav"),
 	&"flood": preload("res://assets/audio/sfx/flood.wav"),
 	&"quicksand": preload("res://assets/audio/sfx/quicksand.wav"),
+	# The City's legends.
+	# Rural's legends.
+	# The Meadows' legends.
+	# The Village's legends.
+	# The Desert's legends.
 }
 
 ## Off on the Dummy driver, which headless runs use (the tests and smoke.sh): a sound that still

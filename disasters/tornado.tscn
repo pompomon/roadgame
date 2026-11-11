@@ -6,6 +6,8 @@
 script = ExtResource("1_tornado")
 id = &"tornado"
 display_name = "Tornado"
+fate = "A tornado carried you away."
+lore = "Where warm and cold air meet over the plains, the sky can start to spin."
 
 [node name="Funnel" type="Node2D" parent="."]
 unique_name_in_owner = true

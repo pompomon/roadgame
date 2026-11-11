@@ -159,3 +159,18 @@ static func sorted(values: Array[float], descending := false) -> Array[float]:
 ## The value in the middle of `values`.
 static func middle(values: Array[float]) -> float:
 	return values[floori(values.size() * 0.5)]
+
+
+## A scene of a disaster with only its words, which plays nothing, for the screens that show them
+## apart from the game's pools (M6_PLAN.md S15).
+static func packed(id: StringName, display_name: String, fate := "", lore := "") -> PackedScene:
+	const WORDS_DISASTER := preload("res://tests/helpers/words_disaster.gd")
+	var made: DisasterBase = WORDS_DISASTER.new()
+	made.id = id
+	made.display_name = display_name
+	made.fate = fate
+	made.lore = lore
+	var scene := PackedScene.new()
+	scene.pack(made)
+	made.free()
+	return scene
