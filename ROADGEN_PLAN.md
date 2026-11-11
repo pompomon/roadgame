@@ -4,7 +4,7 @@ Status: for review · 2026-11-11 · Q1 and Q3 answered by the owner; the other q
 
 The owner asked: "Allow junctions with only straight and either left or right, to confuse and trick the player." The first draft of this plan had side roads only, where straight on is always wrong, and kept M1's 2–3-tile dead ends. The owner's answer to it: "1q both straight and turn could be the right decision, Q3 longer deadends so it looks like a proper road."
 
-**Verified in CI, not locally.** Every file this plan adds or changes exists on branch `rg/prototype`, on top of `main` (4ade5f2), with one state per PR: cb2c7f9 for PR 1, f002f6a for PR 2 and 3c2ca03 for PR 3 (§4.1). The session that wrote this plan couldn't run Godot: it wasn't allowed to install it, or to run CI's image in Docker. So each state ran the five checks in CI, started by hand (§6.1): run 42980918434 on fb8bccb, which is PR 1 but for a check that cb2c7f9 adds to a test; 42986814437 on f002f6a; and 42986884807 on 3c2ca03, whose only failures were the two digests that PR 3 changes, whose new values it printed. The landing was simulated with `git merge-tree` (§4.5). Python models measured what the camera shows (§6.5). Not done: the negative cases (§6.2), which needed scratch pushes that weren't allowed; the editor's warnings (§6.3); the Web and the Fold4 (§6.4). A model of another family, gpt-6.1-sol, reviewed this plan (`AGENTS.md` §7, §4.6).
+**Verified in CI, not locally.** Every file this plan adds or changes exists on branch `rg/prototype`, on top of `main` (4ade5f2), with one state per PR: cb2c7f9 for PR 1, f002f6a for PR 2 and 3c2ca03 for PR 3 (§4.1). The session that wrote this plan couldn't run Godot: it wasn't allowed to install it, or to run CI's image in Docker. So each state ran the five checks in CI, started by hand (§6.1): run 42980918434 on fb8bccb, which is PR 1 but for a check that cb2c7f9 adds to a test; 42986814437 on f002f6a; and 42986884807 on 3c2ca03, whose only failures were the two digests that PR 3 changes, whose new values it printed. The landing was simulated with `git merge-tree` (§4.5). Python models measured what the camera shows (§6.5). Not done: the negative cases (§6.2), which needed scratch pushes that weren't allowed, and the editor's warnings (§6.3), both a gate before each PR merges (§7); the Web and the Fold4 (§6.4). A model of another family, gpt-6.1-sol, reviewed this plan (`AGENTS.md` §7, §4.6).
 
 - Godot 4.7.2-stable, in CI's image
 - GUT 9.7.1
@@ -45,11 +45,11 @@ The rule for the player becomes: take the pattern's next turn if the junction of
 | E2 | Decoys (R2). Straight on is a decoy's correct exit: the trigger emits `turn_completed` with `turn_index` unchanged. The heading, the turn count and the schedule wait for the next junction, which has the decoy's `turn_number` and expects the same turn. The opposite turn is wrong at a decoy, as at a T, and straight on is wrong at a crossroads or a side road. A car that leaves the road and rejoins past a decoy counts only the turns it passed | `test_junction_trigger.gd`: `test_each_kind_of_junction_has_one_correct_exit`, `test_rejoining_past_a_decoy_counts_only_the_turns`; `test_road_generator_pattern.gd`: `test_expected_exits_alternate_left_and_right`; `test_area_start.gd` |
 | E3 | `AreaDef` has `side_road_chance` and `decoy_chance`, both 0 by default. `validate()` reports a chance outside 0..1, and chances that add up to more than 1 beyond rounding (R3) | `test_area_def.gd`; `test_area_schedule.gd`: `test_the_game_schedule_is_valid` |
 | E4 | Determinism (D8). An area with no side roads or decoys keeps `main`'s road, so after PR 1 the game's road matches `main`'s digests. A side road draws what a T draws, so it keeps the path; a decoy changes the path after it. Each PR that changes the road records the new digests and says why | `test_road_generator_determinism.gd`: `test_the_game_road_matches_its_digests` |
-| E5 | Dead ends (R4, R5). They are 6–9 tiles. One that a taken cell cuts short stops right before that cell and keeps at least 2 tiles. A straight-on one is never cut, and none is dropped. On each of the 7 reference screens, the end of a dead end of 6 tiles or more is out of view as the car enters its junction | `test_road_generator_occupancy.gd`, `test_road_generator_pattern.gd`; `test_camera_rig.gd`: `test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction` |
+| E5 | Dead ends (R4, R5). They are 6–9 tiles. One with nothing in its way keeps the length it drew. One that a taken cell cuts short stops right before that cell and keeps at least 2 tiles. A straight-on one is never cut, and none is dropped. On each of the 7 reference screens, the end of a dead end of 6 tiles or more is out of view as the car enters its junction on the centreline, heading along the road, with the camera on its target. A car steered across the entry may show a few pixels of it (§5.3) | `test_road_generator_occupancy.gd`: `test_a_dead_end_stops_right_before_the_first_taken_cell` and the property tests; `test_road_generator_pattern.gd`; `test_camera_rig.gd`: `test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction` |
 | E6 | The buffer (R6), at `BUFFER_REFILL_AT` 37 and `BUFFER_BEHIND` 20. Every row of props still has the road it must avoid when it's made. Nothing comes or goes in view of the reference screens (M5 E6). A schedule at `AreaSchedule`'s limit still has M4 K1's one spare tile | `test_prop_scatter.gd`, `test_props_in_view.gd`; `test_area_schedule.gd`: `test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer` |
 | E7 | The autopilot drives 300 turns through every kind of junction, with no damage | `test_autopilot_300_turns.gd`: `test_300_turns_through_every_kind_of_junction` |
 | E8 | Areas (Q2). The City has no side roads or decoys. Rural, Meadows, the Village and the Desert get theirs, and each keeps at least a quarter of its junctions as T's | `test_area_schedule.gd`: `test_the_game_schedule_is_valid`; the digests; `smoke.sh` |
-| E9 | All five required checks are green, with §6.1's counts, and `smoke.sh` prints no error line. The editor reports no new warnings | PR checks; §6.3 |
+| E9 | All five required checks are green, with §6.1's counts, and `smoke.sh` prints no error line. Each of the PR's negative cases makes the checks it names fail, and the editor reports no new warnings | PR checks; §6.2 and §6.3, with Godot 4.7.2, before the PR merges (§7) |
 | E10 | Manual, on the Web in Chrome and Firefox and on the Fold4. A side road reads as the road going on with a turn off it, and a decoy as the road going on with the wrong turn off it. Masks 11 and 13 look right in each area's art (R9). A dead end looks like a road, not a stub. Straight on at a side road ends in "Wrong turn!"; straight on at a decoy goes on and chimes, and the HUD's count stays | §6.4, on PR 3 |
 | E11 | `plan.md` §2.1, §3.2, §3.3 and §3.7, and the comments that PRs 1 and 2 touch, say what the code does (R7) | Review |
 
@@ -99,7 +99,7 @@ The prototype follows the defaults. Q1 and Q3 are the owner's answers to the fir
 |---|---|---|---|
 | Q1 | Can straight on be correct? | **The owner's answer: yes**, "both straight and turn could be the right decision". So there are side roads, where the turn is right and straight on is a dead end, and decoys, where straight on is right and the turn waits (§5.2) | The first draft: side roads only. That needs no change to the trigger or the turn count. But a player who knows that every junction is a turn turns at each one, so a side road would trick only a player who lost count |
 | Q2 | Each area's chances | The City has none, as it teaches the pattern. Side roads and decoys: Rural 0.15 and 0.1, Meadows 0.2 and 0.15, the Village 0.2 and 0.15, the Desert 0.25 and 0.2. Each area keeps its crossroads chance, and at least a quarter of its junctions are T's (§5.5) | Other values. Each is one line in an area's `.tres`, and PR 3 re-records the digests |
-| Q3 | How long are dead ends? | **The owner's answer: longer**, "so it looks like a proper road". 6–9 tiles: the shortest at which no reference screen shows the end of an uncut dead end as the car enters its junction (P4). The buffer grows to hold them (R6) | 4–7: on the wide screens, an end shows at 60–73% of junctions (P5). Longer than 6–9, such as 8–12: a larger buffer and more dead ends cut short, but fewer ends in view from the leg before (§5.3) |
+| Q3 | How long are dead ends? | **The owner's answer: longer**, "so it looks like a proper road". 6–9 tiles: the shortest at which no reference screen shows the end of an uncut dead end as the car enters its junction on the centreline (P4). Steered 30° or more across the entry, 1639×640 shows up to 4.5 px of a 6-tile end (§5.3). The buffer grows to hold them (R6) | 4–7: on the wide screens, an end shows at 60–73% of junctions (P5). 7–9: the same buffer, and in P4's model no end shows when steered up to 45°; not run in CI. Longer, such as 8–12: a larger buffer and more dead ends cut short, but fewer ends in view from the leg before (§5.3) |
 | Q4 | `BUFFER_REFILL_AT` | 37. Its refill cycle of 19 tiles is a prime, so K1's check (`test_area_schedule.gd`:238) still finds the 1 spare tile | 36, the least that R6 needs. Its cycle of 20 tiles is met at only 5 points by the check's schedule, which finds 3 spare tiles and fails (P6). The check would need set pieces of 3 and 4 tiles in turn |
 | Q5 | The off-road limit at a decoy (R8) | "You missed the turn!", as anywhere | A message of its own, in `CarSim` and `ui/game_over.gd` |
 | Q6 | How RG lands | This plan's PR, then 3 stacked PRs: the kinds, the dead ends, the areas' chances (§4) | One PR: simpler to land, harder to review |
@@ -148,16 +148,16 @@ Branch `rg/1-junction-kinds`, from `rg/plan`. `git diff 4ade5f2 cb2c7f9 | git ap
 
 ### PR 2: Road: dead ends of 6 to 9 tiles **Δ R4–R7, Q3, Q4**
 
-Branch `rg/2-long-dead-ends`, from `rg/1-junction-kinds`. `git diff cb2c7f9 f002f6a | git apply --index`, then §4.6's first row.
+Branch `rg/2-long-dead-ends`, from `rg/1-junction-kinds`. `git diff cb2c7f9 f002f6a | git apply --index`, then §4.6's rows for PR 2.
 
 | Area | Files |
 |---|---|
 | Config | `config/tuning.gd`: `DEAD_END_MIN_TILES` 6, `DEAD_END_MAX_TILES` 9, `BUFFER_REFILL_AT` 37 and `BUFFER_BEHIND` 20, with their comments (R4, R6) |
 | Road | `road/road_generator.gd`: `_place_dead_end()` and `_free_run()` stop a dead end before a taken cell, and the header and `shortened_count`'s comment (R5); `road/junction_trigger.gd`: `_junction_after()`'s comment (R7) |
 | Docs | `plan.md` §3.3 |
-| Tests | `test_camera_rig.gd`: 1 new (R4); `test_road_generator_occupancy.gd`: at least 2 tiles, a short dead end stops before a taken cell, and a log line of the short ones; `test_road_generator_pattern.gd`: 2 to `DEAD_END_MAX_TILES` tiles; `test_road_generator_determinism.gd`: the road's new digest; `tests/integration/test_props_in_view.gd`: a comment |
+| Tests | `test_camera_rig.gd`: 1 new (R4); `test_road_generator_occupancy.gd`: 1 new, where a dead end stops (§4.6), and in the property tests at least 2 tiles, a short dead end stops before a taken cell, and a log line of the short ones; `test_road_generator_pattern.gd`: 2 to `DEAD_END_MAX_TILES` tiles; `test_road_generator_determinism.gd`: the road's new digest; `tests/integration/test_props_in_view.gd`: a comment |
 
-9 files, +100 −34. Expect: 126 scripts; `GUT: 426 tests passed` (389,074 asserts, 64.5 s in CI); the same smoke line. The occupancy test logs `130320 dead ends, 15061 (11.6%) shorter than DEAD_END_MIN_TILES`. The path's digest stays (E4). Negative cases N7–N12.
+In the prototype, 9 files, +100 −34, before §4.6's rows. Expect: 126 scripts; `GUT: 427 tests passed`: the prototype's 426 (389,074 asserts, 64.5 s in CI) and §4.6's new test; the same smoke line. The occupancy test logs `130320 dead ends, 15061 (11.6%) shorter than DEAD_END_MIN_TILES`. The path's digest stays (E4). Negative cases N7–N12 and N14.
 
 **Acceptance:** E4–E6, E9 and E11.
 
@@ -170,7 +170,7 @@ Branch `rg/3-area-chances`, from `rg/2-long-dead-ends`. `git diff f002f6a 3c2ca0
 | Areas | `areas/rural.tres`, `meadows.tres`, `village.tres` and `desert.tres`: `side_road_chance` and `decoy_chance` (§5.5) |
 | Tests | `test_road_generator_determinism.gd`: both digests, as decoys change the path |
 
-5 files, +10 −2. Expect: 126 scripts; `GUT: 426 tests passed` (421,842 asserts, about 80 s in CI). The occupancy test logs `156022 dead ends, 19646 (12.6%) shorter than DEAD_END_MIN_TILES`. The smoke line comes from this PR's CI: decoys in Rural may change its tile and turn counts. Then E10, on this PR's build (§6.4).
+5 files, +10 −2. Expect: 126 scripts; `GUT: 427 tests passed`, with PR 2's new test (the prototype: 426 tests, 421,842 asserts, about 80 s in CI). The occupancy test logs `156022 dead ends, 19646 (12.6%) shorter than DEAD_END_MIN_TILES`. The smoke line comes from this PR's CI: decoys in Rural may change its tile and turn counts. Then E10, on this PR's build (§6.4).
 
 **Acceptance:** E4, E8, E9 and E10.
 
@@ -202,6 +202,9 @@ The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add thei
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
 | 2 | P4's model of the camera showed that `test_camera_rig.gd`'s new test checks one moment, the car entering the junction. Its name and the comments said "as the car comes to its junction", but on the approach an opposite-turn dead end of exactly 6 tiles shows its end on 1639×640, just before the junction (§5.3). The test is now `test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction`, and `tuning.gd`, `plan.md` §3.3 and the occupancy test's comment say "enters" | `test_camera_rig.gd`: renamed | None: wording only |
+| Plan | The internal review (gpt-6.1-sol) found that §7 made §6.2's negative cases and §6.3's warnings optional, against `AGENTS.md` §2 step 4 and §3. They are now a gate before each PR merges, run by an agent session with Godot 4.7.2 or by the owner, with the results in the PR (E9, §6.2, §7) | None: process | None |
+| Plan | The internal review found that E5 and P4 held only for a car on the centreline, heading along the road: on 1639×640, a car entering 0.12 tiles off the centreline, steered 31° across the road, showed about 1 px of a 6-tile end. P4's model now steers the car too. E5, Q3, §5.3 and §8 say which pose the camera test checks, and what steering shows | None: the camera test checks the centreline pose, as before | None: wording only |
+| 2 | The internal review found that no test checked where a cut dead end stops if it keeps 6 tiles or more, or that one with nothing in its way keeps the length it drew: `_check()` looks only at dead ends shorter than `DEAD_END_MIN_TILES`, and only the road digest would catch the rest. New test: on a schedule of side roads, the first junction's dead end takes every length from 6 to 9 when nothing is in its way; with a cell taken k tiles past the junction, for k from 1 to 10, it keeps k − 1 tiles, up to the 9 it drew (§5.6) | `test_road_generator_occupancy.gd`: `test_a_dead_end_stops_right_before_the_first_taken_cell` | N14; N8 and N9 now fail it too |
 
 ---
 
@@ -279,14 +282,15 @@ func _place_dead_end(junction: RoadTile, exit: int, length: int) -> void:
 - An opposite-turn dead end can only be cut by an earlier junction's straight-on dead end, whose column (or row) it crosses. The nearest is that of the junction two turns back. Its column (or row) is at least 3 cells away, past a straight of at least 2 tiles (D7), so at least 2 cells stay free. Decoys between them only move it further away, and have no straight-on dead end.
 - Dead ends never touch the path. They can only meet the dead ends of junctions within 2 × `DEAD_END_MAX_TILES` = 18 path steps, which are all in the buffer (§5.4).
 
-The occupancy test checks all three over 200 seeds × 500 turns of the game's schedule: no dead end has fewer than 2 tiles, no straight-on one fewer than 6, each short one ends before a taken cell, and none is dropped. In the game's areas, 11.6% of dead ends end short after PR 2, and 12.6% after PR 3, as side roads add straight-on dead ends (P3). Most of them are in the City and the Village, whose crossroads are commonest and whose straights are shortest.
+The occupancy test checks all three over 200 seeds × 500 turns of the game's schedule: no dead end has fewer than 2 tiles, no straight-on one fewer than 6, each short one ends before a taken cell, and none is dropped. `test_a_dead_end_stops_right_before_the_first_taken_cell` puts a taken cell at each distance past a junction, and checks that the dead end stops right before it, or keeps the length it drew (§5.6). In the game's areas, 11.6% of dead ends end short after PR 2, and 12.6% after PR 3, as side roads add straight-on dead ends (P3). Most of them are in the City and the Village, whose crossroads are commonest and whose straights are shortest.
 
-**In view.** As the car enters a junction's tile, with the camera on its target, which is as far ahead as the smoothed camera gets, the end of a dead end of 6 tiles is out of view on each of the 7 reference screens, straight on or the other way (`test_camera_rig.gd`). At 5 tiles, the wide landscape screens 1639×640 and 1137×640 show it. On the approach, the view closes in on a straight-on dead end along its own line, so its end is nearest the view at that moment, and stays out of view all along the approach. P4 modelled the rest, with the camera's smoothing at 2, 4 and 7 tiles a second:
+**In view.** As the car enters a junction's tile on the centreline, heading along the road, with the camera on its target, which is as far ahead as the smoothed camera gets, the end of a dead end of 6 tiles is out of view on each of the 7 reference screens, straight on or the other way (`test_camera_rig.gd`). At 5 tiles, the wide landscape screens 1639×640 and 1137×640 show it. On the approach, the view closes in on a straight-on dead end along its own line, so its end is nearest the view at that moment, and stays out of view all along the approach. P4 modelled the rest, with the camera's smoothing at 2, 4 and 7 tiles a second:
 
 - On the approach, an opposite-turn dead end of exactly 6 tiles peeks in at a corner of 1639×640, the Fold4's cover screen in landscape, in the last 0.03–0.7 tiles before the junction, later and shorter the faster the car. At 7 tiles or more it never does.
 - The leg before the approach runs alongside the opposite-turn dead end, as many rows away as the approach is long plus 1. From that leg, every screen shows the dead end's end when the approach is short (up to 3–8 tiles, by screen), whatever its length, as on `main`.
 - From the leg before, the two tall portrait screens, 360×922 and 360×800, show a straight-on dead end's end when the approach is short: at 6 tiles, approaches of up to 4 and 3 tiles; at 7, up to 3 and 2; at 8, up to 2 tiles on 360×922 only; at 9, never.
 - A dead end that is cut short shows its end like any short one.
+- Steering moves the camera's target with the car's heading. P4 put the car on the junction's entry edge, up to 0.32 tiles either side of the centreline, heading up to 45° off the road, with the camera on its target. Up to 15°, a 6-tile end stays out of view on every screen. Up to 30°, 1639×640 shows at most 1.3 px of it, and up to 45° at most 4.5 px; the internal review found such a case (§4.6). At 7 tiles, none shows up to 45° (Q3).
 
 What the player sees of an end tells them only that an exit is a dead end, which the junction's shape and the player's rule already tell them. So the length is for the look (§8).
 
@@ -324,6 +328,7 @@ The City has none: a run's first 34 turns teach the pattern on T's and crossroad
 - `test_300_turns_through_every_kind_of_junction`: the autopilot, on `kinds_schedule(0.25, 0.25, 0.25)`.
 - `test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction` (PR 2): `test_camera_rig.gd`'s 7 reference screens, both headings, and both dead ends of `DEAD_END_MIN_TILES` tiles. The end is the road's round cap, a box of `ROAD_HALF_WIDTH` × √2 tiles around the last tile's centre.
 - The occupancy test logs how many dead ends it saw, and how many were shorter than `DEAD_END_MIN_TILES`.
+- `test_a_dead_end_stops_right_before_the_first_taken_cell` (PR 2, §4.6): on `kinds_schedule(0, 1, 0)`, every junction is a side road, whose only wrong exit is straight on. Over seeds 0–99, with nothing in its way, the first junction's dead end takes every length from `DEAD_END_MIN_TILES` to `DEAD_END_MAX_TILES`. On a seed where it takes 9, a cell is taken k tiles past the junction, for k from 1 to 10, before a fresh generator makes it. The dead end then keeps k − 1 tiles, up to 9, on the cells right after the junction. At 1 the exit is dropped, and `_junction()` reports a junction with no wrong exit, which the test expects; from 2 to 9 the dead end counts as shortened; at 10, as neither.
 
 ### 5.7 Documents and comments (R7, Q7)
 
@@ -347,7 +352,7 @@ The checks are `AGENTS.md` §4's five. This plan's numbers are CI's, from `workf
 | PR 2 (f002f6a) | 42986814437 | 126 | 61 | 426 | 389,074 | 64.5 s | The same |
 | PR 3 (3c2ca03) | 42986884807 | 126 | 61 | 426 | 421,842 | 80.2 s | Not run: the digests failed |
 
-cb2c7f9 adds a check to an existing test, with no new assert, so PR 1's counts are fb8bccb's. PR 2's run ran that check. The `test` job took 2 min 04 s on PR 1 and 2 min 21 s on PR 2.
+cb2c7f9 adds a check to an existing test, with no new assert, so PR 1's counts are fb8bccb's. PR 2's run ran that check. The `test` job took 2 min 04 s on PR 1 and 2 min 21 s on PR 2. PR 2 adds a test that the prototype lacks (§4.6), so PRs 2 and 3 run 427 tests, and that test's asserts more. Their CI runs give the final counts, which their bodies and this table record.
 
 The digests, in `test_road_generator_determinism.gd`:
 
@@ -361,7 +366,7 @@ To record new digests, set them to `""` and run the tests: the failures give the
 
 ### 6.2 Negative cases
 
-Each change below should make the named checks fail. They weren't run: the session had no Godot, and the scratch pushes they'd need for CI weren't allowed. To run one with Godot 4.7.2, apply its change to the PR's head, run `tools/ci/run_tests.sh`, check the failures, and restore the file.
+Each change below should make the named checks fail. They weren't run: the session had no Godot, and the scratch pushes they'd need for CI weren't allowed. They are a gate (E9, §7): before a PR merges, the owner or an agent session with Godot 4.7.2, such as the cloud agent, whose `copilot-setup-steps.yml` installs it, runs that PR's cases on its head. For each one, apply its change, run `tools/ci/run_tests.sh`, check that the named checks fail, and restore the file. The results go in the PR's body. A case whose checks all pass needs a new test before the PR merges (`AGENTS.md` §3).
 
 | N# | PR | Change | Should fail |
 |---|---|---|---|
@@ -372,16 +377,17 @@ Each change below should make the named checks fail. They weren't run: the sessi
 | N5 | 1 | `validate()` without the sum check | `test_validate_reports_junction_chances_that_cannot_be` |
 | N6 | 1 | The sum check without `is_equal_approx()` | The same test's rounding case |
 | N7 | 2 | Straight-on dead ends of 1 tile | `test_road_generator_occupancy.gd` and `test_road_generator_pattern.gd` |
-| N8 | 2 | `_place_dead_end()` lays 1 tile whenever the dead end doesn't fit | The occupancy test's "before a free cell" check |
-| N9 | 2 | `_free_run()` returns `maxi(k - 2, 0)` | The same check |
+| N8 | 2 | `_place_dead_end()` lays 1 tile whenever the dead end doesn't fit | The occupancy test's "before a free cell" check, and `test_a_dead_end_stops_right_before_the_first_taken_cell` |
+| N9 | 2 | `_free_run()` returns `maxi(k - 2, 0)` | The same checks |
 | N10 | 2 | `DEAD_END_MIN_TILES` 5 | `test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction` on 1639×640 and 1137×640, and the road digest |
 | N11 | 2 | `BUFFER_BEHIND` 19 | `test_props_in_view.gd` |
 | N12 | 2 | `BUFFER_REFILL_AT` 35 | `test_prop_scatter.gd`:93's fuzz, and K1's check |
 | N13 | 1 | `_junction_after()` skips decoys (`is_turn()` for `is_junction()`) | `test_each_kind_of_junction_has_one_correct_exit`: a decoy's wrong exit isn't judged |
+| N14 | 2 | `_place_dead_end()` draws at most `DEAD_END_MIN_TILES` tiles: `_free_run(junction.cell, exit, mini(length, Tuning.DEAD_END_MIN_TILES))` | `test_a_dead_end_stops_right_before_the_first_taken_cell`: no first dead end of 7–9 tiles; and the road digest |
 
 ### 6.3 Editor warnings
 
-Not measured: the session couldn't run the editor. M5 left 5 (M5_PLAN.md §6.3). By reading, no new name shadows a member or a built-in (`AGENTS.md` §3): the fixtures' parameters are `cross`, `side` and `decoy`; `kind_for()` takes `roll` and `area`; `_free_run()` takes `from`, `exit` and `length`. Whoever runs Godot on the PRs should confirm it (§7).
+Not measured: the session couldn't run the editor. M5 left 5 (M5_PLAN.md §6.3). By reading, no new name shadows a member or a built-in (`AGENTS.md` §3): the fixtures' parameters are `cross`, `side` and `decoy`; `kind_for()` takes `roll` and `area`; `_free_run()` takes `from`, `exit` and `length`. Whoever runs §6.2's cases on a PR confirms it, as part of the same gate (§7).
 
 ### 6.4 Verified only in CI or on devices
 
@@ -404,7 +410,7 @@ Not measured: the session couldn't run the editor. M5 left 5 (M5_PLAN.md §6.3).
 | P1 | The five checks in CI, on each state of the prototype | §6.1 | E9 |
 | P2 | The digests. 03c79b7's run 42978434562, with the digests empty, printed `main`'s; the later runs printed PR 2's and PR 3's | §6.1: PR 1 keeps both, and PR 2 the path's | E4 |
 | P3 | The dead ends in the occupancy test, 200 seeds × 500 turns of the game's schedule | PR 2: 130,320 dead ends, of which 15,061 (11.6%) are shorter than 6 tiles. PR 3: 156,022, and 19,646 (12.6%). None dropped, none under 2 tiles, no straight-on one short | R5, E5 |
-| P4 | The ends in view. A Python model of `CameraRig.target()`, `zoom_for()` and the smoothing, with `Iso`'s tiles, and the end as `test_camera_rig.gd` takes it, on the 7 reference screens | As the car enters the junction: dead ends of 2–5 tiles show their end on 1639×640 and 1137×640; of 6 or more, on no screen. On the approach and from the leg before, with the smoothing at 2, 4 and 7 tiles a second and approaches of 2–8 tiles: §5.3 | R4, Q3, §4.6 |
+| P4 | The ends in view. A Python model of `CameraRig.target()`, `zoom_for()` and the smoothing, with `Iso`'s tiles, and the end as `test_camera_rig.gd` takes it, on the 7 reference screens | As the car enters the junction on the centreline, heading along the road: dead ends of 2–5 tiles show their end on 1639×640 and 1137×640; of 6 or more, on no screen. Steered at the entry: on 1639×640, a 6-tile end shows at most 1.3 px up to 30° and 4.5 px up to 45°; a 7-tile one, nothing up to 45°. On the approach and from the leg before, with the smoothing at 2, 4 and 7 tiles a second and approaches of 2–8 tiles: §5.3 | R4, Q3, §4.6 |
 | P5 | The share of junctions where some dead end's end is in view as the car enters, on the wide screens, by area with PR 3's chances: a Python model of the generator and the camera | 6–9 tiles: the City 40%, the Village 39%, Rural 16%, Meadows 17% and the Desert 12%, all of them dead ends cut short. 4–7 tiles: the City 73%, the others about 60%. `main`: every junction | Q3 |
 | P6 | K1's check at `BUFFER_REFILL_AT` 36 (8da3835, run 42985667487) | Failed: it found 3 spare tiles, not 1. The road digest failed too, as expected before it was recorded | R6, Q4 |
 | P7 | The landing, with `git merge-tree --write-tree --merge-base` | §4.5 | Q6 |
@@ -417,7 +423,7 @@ Not measured: the session couldn't run the editor. M5 left 5 (M5_PLAN.md §6.3).
 |---|---|---|
 | Now | Review this plan, and answer Q2 and Q4–Q7 or accept the defaults | A comment on this plan's PR. Without an answer, the PRs follow the defaults |
 | Before PR 3 merges | E10 on the Fold4 | `gh workflow run ci.yml -R pompomon/roadgame --ref rg/3-area-chances -f upload-builds=true`; `gh run download <run id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`; `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`. Then §6.4 |
-| Optional, before merging | §6.2's negative cases and §6.3's warnings, with Godot 4.7.2 | §6.2 |
+| Before each PR merges | Its negative cases and the editor's warnings, with Godot 4.7.2: run them, or start an agent session that can, such as the cloud agent | §6.2, §6.3; the results in the PR (E9) |
 | To land RG | Merge this plan's PR, then PRs 1, 2 and 3, each once its base is `main` | §4.5 |
 | After | Delete the prototype's branch | `git push origin --delete rg/prototype` |
 
@@ -428,10 +434,10 @@ Not measured: the session couldn't run the editor. M5 left 5 (M5_PLAN.md §6.3).
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Decoys change the road from Rural on | A seed gives a different road after Rural's first decoy (D8) | Said in PR 3, whose digests record it. Nothing saved holds a road |
-| Ends still show in some views (§5.3) | From the leg before, an opposite-turn dead end's end shows on every screen after a short approach, and a straight-on one's on the tall portrait screens. A cut one shows like any short one: at about 40% of the City's junctions | These exits are wrong wherever they are, and the player's rule decides from the turn alone, so an end gives nothing away; it only spoils the look. Longer dead ends hide more, for a larger buffer (Q3). Art could end a dead end in something that reads as a road's end (§9) |
+| Ends still show in some views (§5.3) | From the leg before, an opposite-turn dead end's end shows on every screen after a short approach, and a straight-on one's on the tall portrait screens. A cut one shows like any short one: at about 40% of the City's junctions. A car steered 30° or more across the entry shows up to 4.5 px of a 6-tile end on 1639×640 | These exits are wrong wherever they are, and the player's rule decides from the turn alone, so an end gives nothing away; it only spoils the look. Longer dead ends hide more (Q3): 7–9 tiles hide the steered views with the same buffer, and 8–12 more of the leg before's views, with a larger one. Art could end a dead end in something that reads as a road's end (§9) |
 | The trick feels unfair | A missed side road or decoy ends the run | Judged on the Fold4 (E10). Each chance is one line in an area's `.tres` (Q2) |
 | Masks 11 and 13 look wrong in some area's art | Seen only in E10 | The road sheets are generated (`tools/art/make_art.gd`): fix them there |
-| Verified only in CI | A count may differ locally, and the negative cases haven't run | Each PR's CI runs every check. §6.2 lists the cases for whoever runs Godot |
+| Verified only in CI | A count may differ locally, and the negative cases and the editor's warnings haven't been checked | Each PR's CI runs every check, and §6.2's cases and §6.3's warnings are a gate before each PR merges (§7) |
 | Longer tests | GUT took 58.1 s on `main`, and 64.5–80.2 s with RG | The `test` job still takes about 2 minutes |
 | A Godot upgrade changes the road stream | The digests fail on the upgrade | Intended: such an upgrade breaks old seeds (D8). Its PR records the new digests (§6.1) |
 
