@@ -3,14 +3,23 @@ extends RefCounted
 ## Streams the correct path one tile at a time (IMPLEMENTATION_PLAN.md D3, M1.4). A junction comes
 ## with its dead-end branches attached. Every tile is in `occupancy` when it is returned.
 ##
+## Each junction is of a Kind that the area's chances pick (ROADGEN_PLAN.md R1, R2). A decoy
+## doesn't offer the pattern's next turn, so straight on is its correct exit, and the turn waits
+## for the next junction.
+##
 ## The path heads N, then alternates W and N, so it moves only towards -x and -y. Wrong exits point
 ## E or S, or straight on (N or W) while the path turns. A dead end therefore never touches a past
 ## or future path cell, only other dead ends within 6 path steps. The opposite-turn stub of one
-## tile always fits, so every junction keeps a wrong exit.
+## tile always fits, and so does a straight-on dead end, so every junction keeps a wrong exit.
+
+## The exits a junction offers besides its entry. T: the turn and the opposite turn. CROSSROADS:
+## straight on as well. SIDE_ROAD: the turn and straight on. DECOY: straight on, which is correct,
+## and the opposite turn.
+enum Kind { T, CROSSROADS, SIDE_ROAD, DECOY }
 
 var occupancy := OccupancyGrid.new()
 var current_area: AreaDef
-## Junctions emitted so far, which is also the next junction's turn_number.
+## Turns emitted so far, which is also the next junction's turn_number. A decoy is no turn.
 var turn_count := 0
 ## Dead ends shortened to 1 tile, and wrong exits dropped, because their cells were taken.
 var shortened_count := 0
@@ -63,6 +72,22 @@ func next_tile() -> RoadTile:
 	return tile
 
 
+## The kind of junction that `roll`, from 0 to 1, picks in `area`. The crossroads, side road and
+## decoy chances take their parts of 0..1 in that order, and T the rest: one roll per junction, as
+## M1 drew for a crossroads alone, so an area with no side roads or decoys keeps its road.
+static func kind_for(roll: float, area: AreaDef) -> Kind:
+	var bound := area.cross_junction_chance
+	if roll < bound:
+		return Kind.CROSSROADS
+	bound += area.side_road_chance
+	if roll < bound:
+		return Kind.SIDE_ROAD
+	bound += area.decoy_chance
+	if roll < bound:
+		return Kind.DECOY
+	return Kind.T
+
+
 ## The schedule's area whose id is `id`. Every tile's area_id names one; for any other id, the
 ## first area.
 func find_area(id: StringName) -> AreaDef:
@@ -83,13 +108,16 @@ func _path_tile(type: RoadTile.Type) -> RoadTile:
 
 
 func _junction() -> RoadTile:
-	var expected := Heading.turn_for(turn_count, _heading)
+	var turn := Heading.turn_for(turn_count, _heading)
+	var kind := kind_for(_rng_road.randf(), current_area)
 	var junction := _path_tile(RoadTile.Type.T_JUNCTION)
-	junction.exits = Heading.bit(Heading.opposite(_heading)) | Heading.bit(expected)
 	junction.turn_number = turn_count
-	junction.expected_exit = expected
-	var wrong: Array[int] = [Heading.opposite(expected)]
-	if _rng_road.randf() < current_area.cross_junction_chance:
+	junction.expected_exit = _heading if kind == Kind.DECOY else turn
+	junction.exits = Heading.bit(Heading.opposite(_heading)) | Heading.bit(junction.expected_exit)
+	var wrong: Array[int] = []
+	if kind != Kind.SIDE_ROAD:
+		wrong.append(Heading.opposite(turn))
+	if kind == Kind.CROSSROADS or kind == Kind.SIDE_ROAD:
 		wrong.append(_heading)
 	for exit: int in wrong:
 		var length := _rng_road.randi_range(Tuning.DEAD_END_MIN_TILES, Tuning.DEAD_END_MAX_TILES)
@@ -98,7 +126,11 @@ func _junction() -> RoadTile:
 		push_error("RoadGenerator: junction %d has no wrong exit" % junction.turn_number)
 	if junction.exits == Heading.ALL:
 		junction.type = RoadTile.Type.CROSS_JUNCTION
-	_heading = expected
+	if kind == Kind.DECOY:
+		# No turn: the heading, the turn count and the schedule wait for the next junction.
+		_straight_left = _sample_straight()
+		return junction
+	_heading = turn
 	turn_count += 1
 	var entry := _due_entry()
 	if entry == null:

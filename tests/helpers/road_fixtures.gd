@@ -44,6 +44,31 @@ static func set_piece_schedule(
 	return built
 
 
+## One area whose straights are all 2 tiles, as in dense_schedule(), and whose junctions are
+## crossroads, side roads and decoys with chances `cross`, `side` and `decoy`, and T-junctions
+## otherwise (ROADGEN_PLAN.md R1).
+static func kinds_schedule(cross: float, side: float, decoy: float) -> AreaSchedule:
+	var kinds := dense_schedule()
+	var area := kinds.entries[0].area
+	area.id = &"kinds"
+	area.cross_junction_chance = cross
+	area.side_road_chance = side
+	area.decoy_chance = decoy
+	return kinds
+
+
+## The kind of `junction`, from its exits: a decoy's correct exit is straight on, a crossroads has
+## every exit, and a side road offers straight on but not the opposite turn.
+static func kind(junction: RoadTile) -> RoadGenerator.Kind:
+	if junction.expected_exit == junction.heading:
+		return RoadGenerator.Kind.DECOY
+	if junction.exits == Heading.ALL:
+		return RoadGenerator.Kind.CROSSROADS
+	if junction.has_exit(junction.heading):
+		return RoadGenerator.Kind.SIDE_ROAD
+	return RoadGenerator.Kind.T
+
+
 ## dense_schedule()'s area, with a bridge after every junction up to `turns`, 2 to 6 tiles long.
 static func bridge_every_turn(turns: int) -> AreaSchedule:
 	var dense := dense_schedule()
@@ -68,7 +93,8 @@ static func signature(tile: RoadTile) -> Array:
 	return sig
 
 
-## Path tiles from a fresh generator until it has emitted `turns` junctions.
+## Path tiles from a fresh generator until it has emitted `turns` turns, so the last is a turn's
+## junction. A decoy is no turn.
 static func path_until_turn(gen: RoadGenerator, turns: int) -> Array[RoadTile]:
 	var path: Array[RoadTile] = []
 	while gen.turn_count < turns:

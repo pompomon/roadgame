@@ -16,12 +16,12 @@ static func _banner(main: Node) -> Label:
 	return main.get_node("%HUD/%AreaBanner")
 
 
-## The path distance to the far edge of the junction with turn number `turn_number`, or -1 if
-## `buffer` doesn't hold it.
+## The path distance to the far edge of the junction of turn `turn_number`, not a decoy before it
+## (ROADGEN_PLAN.md R2), or -1 if `buffer` doesn't hold it.
 static func _far_edge_of_junction(buffer: RoadBuffer, turn_number: int) -> float:
 	for i: int in range(buffer.first_index(), buffer.last_index() + 1):
 		var tile := buffer.path_tile(i)
-		if tile.is_junction() and tile.turn_number == turn_number:
+		if tile.is_turn() and tile.turn_number == turn_number:
 			return tile.path_index + 0.5
 	return -1.0
 

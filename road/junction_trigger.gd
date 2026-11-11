@@ -4,7 +4,8 @@ extends RefCounted
 ## (plan.md §4.1, IMPLEMENTATION_PLAN.md D5, M2.3). Pure logic: CarSim reports cell crossings,
 ## rejoins and the off-road limit, and the run's owner relays the signals to EventBus.
 
-## A correct exit. `turn_index` is the number of correct turns so far.
+## A correct exit: the pattern's turn, or straight on at a decoy, which leaves `turn_index`, the
+## number of correct turns so far, as it was (ROADGEN_PLAN.md R2).
 signal turn_completed(turn_index: int)
 ## A wrong exit, whose heading is `choice`, or a missed turn (`choice` -1). The trigger then stops.
 signal disaster_triggered(junction: RoadTile, choice: int)
@@ -59,7 +60,8 @@ func _resolve(choice: int) -> void:
 	if choice != next_junction.expected_exit:
 		_fail(choice)
 		return
-	turn_index += 1
+	if next_junction.is_turn():
+		turn_index += 1
 	next_junction = _junction_after(next_junction.path_index)
 	turn_completed.emit(turn_index)
 
