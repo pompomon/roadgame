@@ -60,8 +60,8 @@ road/         heading.gd, road_tile.gd, road_generator.gd, occupancy_grid.gd,
               road_buffer.gd, junction_trigger.gd, road_geometry.gd
 world/        world.tscn, world_renderer.gd, prop_pool.gd, iso.gd, camera_rig.gd
 car/          car.tscn, car_controller.gd, car_sim.gd, input_router.gd, autopilot.gd
-disasters/    disaster_director.gd, disaster_base.gd, disaster_params.gd,
-              sinkhole.tscn, tornado.tscn, flood.tscn, quicksand.tscn
+disasters/    disaster_director.gd, disaster_base.gd, disaster_params.gd, legend.gd,
+              legends/ (phantom_bus, ufo, fairy_ring, witch_hex, death_worm; M6)
 areas/        area_def.gd, prop_def.gd, area_schedule.gd,
               city.tres, rural.tres, meadows.tres, village.tres, desert.tres, schedule.tres
 setpieces/    set_piece.gd, tunnel.tscn, bridge.tscn
@@ -80,7 +80,7 @@ tools/        ci/ (lint.sh, import.sh, run_tests.sh, smoke.sh, export.sh, stamp_
 ## 3. Milestones and dependency graph
 
 ```
-M0 Bootstrap & CI ─▶ M1 Generator ─▶ M2 Driving ─▶ M3 Failure ─▶ M4 Areas ─▶ M5 Content ─▶ M6 Ship
+M0 Bootstrap & CI ─▶ M1 Generator ─▶ M2 Driving ─▶ M3 Failure ─▶ M4 Areas ─▶ M5 Content ─▶ M6 Legends ─▶ M7 Ship
                           │                 └──────────────▶ (sim tests) ──────────────┘
                           └─▶ grey-box renderer (M1.6) can be built alongside M2
 ```
@@ -95,7 +95,8 @@ Sizes: **S** ≤ 1 day, **M** 2–3 days, **L** 4–6 days (one developer).
 | M3 | Wrong or missed turn → Sinkhole → game over → retry; crash path works | M |
 | M4 | 5 areas, tunnel, bridge and schedule; per-area disaster pools (grey-box art) | M |
 | M5 | Final art and audio, Atlas, disaster collection, settings, save file | L |
-| M6 | Orientation and foldable handling, haptics, Web audio unlock, signed release pipeline, device QA | M |
+| M6 | Each area's disaster comes from a legend, with its veil, art, sound, fate and lore, and nothing flashes (`M6_PLAN.md`) | L |
+| M7 | Orientation and foldable handling, haptics, Web audio unlock, signed release pipeline, device QA | M |
 
 ---
 
@@ -427,24 +428,32 @@ Schedule: `0 → city`, `34 → rural (tunnel, 6 tiles)`, `100 → meadows (brid
 
 ---
 
-### M6 — Ship
+### M6 — Legends
 
-#### M6.1 Orientation and foldables (M)
+`M6_PLAN.md` has the details. Five disasters from myths, folk tales and urban legends replaced the natural four, one for each area: the phantom bus (City), the UFO (Rural), the fairy ring (Meadows), the witch's hex (Village) and the death worm (Desert). Its §3.3 has two more options for each area. `Legend` (`disasters/legend.gd`) adds beats on one clock, a veil that darkens the World, glows, standing parts that sort with the props, and a double that takes the car's place. Each disaster has a fate, which game over shows, and a lore, which its card in the collection shows.
+
+---
+
+### M7 — Ship
+
+`M5_PLAN.md` §9's notes for M6 apply to M7.
+
+#### M7.1 Orientation and foldables (M)
 - Map the saved orientation setting to exactly one value (`sensor` → `DisplayServer.SCREEN_SENSOR`, `portrait` → `DisplayServer.SCREEN_PORTRAIT`, `landscape` → `DisplayServer.SCREEN_LANDSCAPE`) and pass only that value to `DisplayServer.screen_set_orientation()`.
 - Every layout-dependent node (`CameraRig`, HUD, `TouchZones`) listens to `get_viewport().size_changed`; the run state is never touched by this path.
-- Android: `display/window/size/resizable=true` → `resizeableActivity=true` (checked in the Godot 4.7.2 export plugin). Godot's activity already declares `configChanges` for screen size and orientation, so fold/unfold does **not** recreate the activity. Verify on the device (M6.5).
+- Android: `display/window/size/resizable=true` → `resizeableActivity=true` (checked in the Godot 4.7.2 export plugin). Godot's activity already declares `configChanges` for screen size and orientation, so fold/unfold does **not** recreate the activity. Verify on the device (M7.5).
 
-#### M6.2 Haptics (S)
+#### M7.2 Haptics (S)
 - `Input.vibrate_handheld(30)` on damage ticks (at most 1 per 250 ms) and `vibrate_handheld(250)` when a disaster starts, gated by the setting. Requires `permissions/vibrate=true` (preset).
 
-#### M6.3 Web specifics (S)
+#### M7.3 Web specifics (S)
 - Single-threaded export (preset). Do not start Music or Ambient until the first `InputEvent` (title screen "Tap to start"). Godot resumes the AudioContext on user gesture.
 - Keyboard focus: `html/focus_canvas_on_start=true`.
 
-#### M6.4 Release pipeline (S)
+#### M7.4 Release pipeline (S)
 - Create the release keystore (offline, kept by the owner), add the repository secrets (§7.6), tag `v0.1.0`, and check that the release has the signed APK, AAB and Web zip.
 
-#### M6.5 Device QA checklist (Galaxy Z Fold4 plus one other Android phone and desktop Chrome/Firefox)
+#### M7.5 Device QA checklist (Galaxy Z Fold4 plus one other Android phone and desktop Chrome/Firefox)
 - [ ] Cover screen (portrait 23:9) and inner screen (near-square) both show ≥ 5 tiles ahead; HUD is not clipped.
 - [ ] Fold and unfold mid-run 5 times: the run continues and `turn_index` and health are unchanged.
 - [ ] Rotate in sensor mode: layout reflows; orientation lock is respected.
@@ -453,7 +462,7 @@ Schedule: `0 → city`, `34 → rural (tunnel, 6 tiles)`, `100 → meadows (brid
 - [ ] Web: audio starts after the first tap; keyboard works; no COOP/COEP errors in the console.
 - [ ] Informal 60 fps on the Fold4 (Godot monitor overlay); not a blocker (`plan.md` §10).
 
-#### M6.6 Visual screenshots (S, non-blocking)
+#### M7.6 Visual screenshots (S, non-blocking)
 - `tools/screenshots.gd`: boots `main.tscn` with `--seed`, `--autopilot` and `--fixed-fps 60`, fast-forwards to turns {0, 34, 100, 200, 220}, and saves PNGs for portrait (360×640) and landscape (640×360).
 - **Note:** `--headless` uses a dummy renderer and cannot take screenshots. The workflow runs under `xvfb-run` with `--rendering-driver opengl3` (Mesa llvmpipe). Images are uploaded as artifacts for human review, kept 1 day (§7.1); pixel diffing is post-MVP.
 
@@ -500,8 +509,8 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 | Brake before every junction, accelerate after | `unit/test_car_sim_speed.gd` | M2 |
 | Corner cut within 2 tiles = correct + damage | `sim/test_corner_cut.gd` | M2 |
 | > 2 tiles off-road: disaster near junction, crash on straight | `unit/test_car_sim_offroad.gd` | M2 |
-| Fold/unfold keeps the run | M6.5 manual checklist | M6 |
-| Headless screenshots | `visual.yml` + `tools/screenshots.gd` | M6 |
+| Fold/unfold keeps the run | M7.5 manual checklist | M7 |
+| Headless screenshots | `visual.yml` + `tools/screenshots.gd` | M7 |
 
 ---
 
@@ -887,7 +896,7 @@ jobs:
 
 PR builds from forks get no secrets. They only build debug artifacts, so this is by design.
 
-### 7.7 `.github/workflows/visual.yml` (M6, non-blocking)
+### 7.7 `.github/workflows/visual.yml` (M7, non-blocking)
 ```yaml
 name: Visual screenshots
 on:
@@ -957,6 +966,6 @@ Or all of them inside the CI image:
 - [ ] All `plan.md` §11 automated tests exist and pass in CI (§6 matrix).
 - [ ] `ci.yml` is green on `main`; Pages serves the latest Web build; debug APK and AAB artifacts (from a manual run with `upload-builds`) install and run.
 - [ ] `v0.1.0` tag produces a GitHub Release with a signed APK, AAB and Web zip.
-- [ ] All 5 areas, tunnel and bridge, and 4 disaster types appear in order during an autopilot run to turn 230.
+- [ ] All 5 areas, tunnel and bridge appear in order during an autopilot run to turn 230, and a wrong turn in each area plays its legend (M6).
 - [ ] Atlas, disaster collection and settings persist across restarts (`user://save.json` v1).
-- [ ] M6.5 device QA checklist passes on the Galaxy Z Fold4 and in desktop Chrome and Firefox.
+- [ ] M7.5 device QA checklist passes on the Galaxy Z Fold4 and in desktop Chrome and Firefox.

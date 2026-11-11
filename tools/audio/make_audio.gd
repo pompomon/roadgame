@@ -35,11 +35,6 @@ func _initialize() -> void:
 	_save("sfx/damage", _thump(0.2, 90.0, 40.0), Tuning.EFFECT_PEAK, false)
 	_save("sfx/crash", _crash(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
-	# The natural disasters, until M6 PR 8.
-	_save("sfx/sinkhole", _sinkhole(), Tuning.EFFECT_PEAK, false)
-	_save("sfx/tornado", _tornado(), Tuning.EFFECT_PEAK, false)
-	_save("sfx/flood", _flood(), Tuning.EFFECT_PEAK, false)
-	_save("sfx/quicksand", _quicksand(), Tuning.EFFECT_PEAK, false)
 	# The City's legends.
 	_save_legend("phantom_bus", _phantom_bus)
 	# Rural's legends.
@@ -165,47 +160,6 @@ func _chime() -> PackedFloat32Array:
 	_add(out, _note(84, 0.15, "square", 0.3), 0.0)
 	_add(out, _note(91, 0.2, "square", 0.3), 0.12)
 	return out
-
-
-# The natural disasters, until M6 PR 8.
-
-
-func _sinkhole() -> PackedFloat32Array:
-	var out := _decay(_low_pass(_noise(roundi(1.6 * RATE)), 180.0), 0.8)
-	_add(out, _decay(_glide(80.0, 30.0, 1.4), 0.7), 0.0, 0.8)
-	for _k: int in 10:
-		_add(out, _thump(0.04, 400.0, 250.0), _rng.randf_range(0.1, 1.2), 0.1)
-	return out
-
-
-func _tornado() -> PackedFloat32Array:
-	var n := 2 * RATE
-	var out := _silence(n)
-	var noise := _noise(n)
-	var low := 0.0
-	var band := 0.0
-	for i: int in n:
-		var t := float(i) / n
-		var cutoff := 300.0 + 900.0 * sin(PI * t) + 200.0 * sin(TAU * 3.0 * t)
-		var a := 1.0 - exp(-TAU * cutoff / RATE)
-		low += a * (noise[i] - low)
-		band += a * (low - band)
-		out[i] = (low - band) * sin(PI * t)
-	return out
-
-
-func _flood() -> PackedFloat32Array:
-	var n := 2 * RATE
-	var out := _lfo(_low_pass(_noise(n), 500.0), 3, 0.5)
-	for k: int in 30:
-		_add(out, _decay(_glide(_rng.randf_range(300.0, 800.0), 900.0, 0.05), 0.02), k * 0.06, 0.2)
-	return _fade_out(out)
-
-
-func _quicksand() -> PackedFloat32Array:
-	var out := _glide(200.0, 60.0, 1.6)
-	_add(out, _low_pass(_noise(out.size()), 300.0), 0.0, 0.8)
-	return _fade_out(_lfo(out, 6, 0.4))
 
 
 # The City's legends.

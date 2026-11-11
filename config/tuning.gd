@@ -122,8 +122,7 @@ const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
 ## Where a legend's parts draw (M6_PLAN.md §5.5): a part in the sky, such as the UFO's saucer, over
-## the props and the car, as the tornado's funnel is; the veil over them all; and the glows over the
-## veil, which they light.
+## the props and the car; the veil over them all; and the glows over the veil, which they light.
 const SKY_Z := 1
 const VEIL_Z := 2
 const GLOW_Z := 3
@@ -157,41 +156,6 @@ const SHAKE_FREQ_Y := 31.0
 ## A crash's shake.
 const CRASH_SHAKE := 0.5
 const CRASH_SHAKE_SECONDS := 0.4
-
-# The natural disasters, until M6 PR 8.
-## The sinkhole (IMPLEMENTATION_PLAN.md M3.2): the hole's radius at intensity 1, in tiles; how long
-## it grows, how long the car takes to sink into it, and how long the scene then holds, in seconds.
-const SINKHOLE_RADIUS := 0.8
-const SINKHOLE_GROW_SECONDS := 0.8
-const SINKHOLE_SINK_SECONDS := 1.0
-const SINKHOLE_HOLD_SECONDS := 0.6
-## The tornado (IMPLEMENTATION_PLAN.md M4.5): how far away it starts, along the params' direction,
-## and how far it goes on, in tiles; its height at intensity 1, in screen pixels; how long it takes
-## to reach the car, to carry it off and to leave, in seconds; and the car's turns per second as it
-## goes, at intensity 1.
-const TORNADO_APPROACH_TILES := 2.5
-const TORNADO_LEAVE_TILES := 1.5
-const TORNADO_HEIGHT_PX := 72.0
-const TORNADO_APPROACH_SECONDS := 1.0
-const TORNADO_LIFT_SECONDS := 1.0
-const TORNADO_LEAVE_SECONDS := 0.6
-const TORNADO_SPIN := 2.0
-## The flood (M4.5): its water's radius, in tiles, and where it comes from, that far against the
-## params' direction; how long it takes to roll in, to rise over the car at intensity 1 (faster when
-## stronger) and to hold, in seconds.
-const FLOOD_RADIUS := 1.4
-const FLOOD_SPREAD_SECONDS := 0.6
-const FLOOD_RISE_SECONDS := 0.7
-const FLOOD_HOLD_SECONDS := 0.7
-## The quicksand (M4.5): the pit's radius at intensity 1, in tiles; how long it takes to spread, to
-## swallow the car at intensity 1 (faster when stronger) and to hold, in seconds; and how far the
-## car rocks as it sinks, in radians, how often, in Hz.
-const QUICKSAND_RADIUS := 0.9
-const QUICKSAND_SPREAD_SECONDS := 0.6
-const QUICKSAND_SINK_SECONDS := 0.75
-const QUICKSAND_HOLD_SECONDS := 0.6
-const QUICKSAND_WOBBLE := 0.3
-const QUICKSAND_WOBBLE_HZ := 3.0
 
 # The City's legends.
 ## The phantom bus (M6_PLAN.md §3.3): its beats, in s: the fog rolls in, the bus comes, the car
