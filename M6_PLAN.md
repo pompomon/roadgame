@@ -1,8 +1,8 @@
 # M6 Legends — Detailed Plan
 
-Status: answered by the owner in #45: Q8's alternative, scarier but still with no gore, and the defaults for the rest; being built (§4) · 2026-11-11 · Scope: new disasters drawn from myths, folk tales and urban legends, with three options for each area, their visuals, sound and lore (§3.3); the changes they need in the disaster contract, its tests, the palette and the UI; and where the milestone goes (Q1)
+Status: answered by the owner in #45: Q8's alternative, scarier but still with no gore, and the defaults for the rest; built on `m6/prototype` and verified (§6.1, §6.2); PRs 1–8 in review (§4) · 2026-11-11 · Scope: new disasters drawn from myths, folk tales and urban legends, with three options for each area, their visuals, sound and lore (§3.3); the changes they need in the disaster contract, its tests, the palette and the UI; and where the milestone goes (Q1)
 
-**Verified so far, and what isn't yet.** This plan reviews `main` at 4ade5f2 (#44). Each claim about the code cites its file and line. Each claim about Godot that its docs don't settle was checked with a probe, P1–P15 (§6.5): headless, or rendered with the Compatibility renderer (`opengl3` on Mesa llvmpipe under Xvfb, as IP M6.6 plans for screenshots). There was no prototype before the owner's answers: building all 15 options would have wasted the 10 not picked. Now `m6/prototype` is built as `AGENTS.md` §2 says, one commit per PR (§4.1). It fixes §6.1's counts, runs §6.2's negative cases and simulates the landing again on its own files (§4.5), and this plan takes its results before PR 1 opens. A model of another family reviewed this plan (`AGENTS.md` §7), and so did Copilot; their findings and the fixes are in §4.6.
+**Verified so far, and what isn't yet.** This plan reviews `main` at 4ade5f2 (#44). Each claim about the code cites its file and line. Each claim about Godot that its docs don't settle was checked with a probe, P1–P15 (§6.5): headless, or rendered with the Compatibility renderer (`opengl3` on Mesa llvmpipe under Xvfb, as IP M6.6 plans for screenshots). The prototype came after the owner's answers: building all 15 options would have wasted the 10 not picked. `m6/prototype` was then built as `AGENTS.md` §2 says, one commit per PR (§4.1). It gave §6.1's counts, ran §6.2's negative cases, simulated the landing again on its own files (§4.5) and found S19, and §5 follows it. A model of another family reviewed this plan (`AGENTS.md` §7), and so did Copilot; their findings and the fixes are in §4.6. Each PR's reviews are in its body, and PR 8 adds them to §4.6.
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -12,7 +12,7 @@ Status: answered by the owner in #45: Q8's alternative, scarier but still with n
 
 **Precedence.** For M6, this document replaces `plan.md` §4.3's disaster pools and IP §9's line on disaster types wherever they differ. Each difference is marked **Δ** with its finding (S#, §2). With Q1's default, this milestone comes before Ship: IP §3's and §4's M6 "Ship" becomes M7, its work packages M6.1–M6.6 become M7.1–M7.6, and M5_PLAN.md §9's notes for M6 apply to M7. PR 8 folds the changes back into IP and `plan.md` (§4).
 
-**Reference code.** None yet (above). §5 names the classes and functions that the prototype must have.
+**Reference code.** `m6/prototype`, one commit per PR up to 2c0e0c4. Each PR's section names its commit.
 
 **Prerequisites.** M5 is merged (#39–#44). No repository settings change.
 
@@ -127,6 +127,10 @@ Each finding has its evidence and its fix. The fixes are in §4's PRs, and §6.2
 - Evidence: the director emits `disaster_started` as it calls `play()` (`disasters/disaster_director.gd:119–120`), and `main.gd:224–225` passes it on to `EventBus`, where `AudioDirector` plays the disaster's sound at once (`autoload/audio_director.gd:73`, `:265–266`). The disaster shows only after `params.delay`, 0.1–0.5 s a run (`disasters/disaster_params.gd:26`, `config/tuning.gd:118–119`), as `sinkhole.gd:57–59` counts it. A legend's sound has cues on its beats, such as the UFO's zip and Baba Yaga's steps, and a WAV that starts early misses them by a different amount each run.
 - Fix: PR 2's director emits `disaster_appeared(disaster, area)` once, on the frame the delay is over. It counts the delay as the disaster does, on a clock of its own from `play()`, since its `_time` counts from the run's end (`:27–28`); `clear()` resets that clock. In the main scene the disaster steps before the director (`test_disaster_director.gd:14–15`), and a node added during a step first steps on the next frame, so both clocks add the same steps, and the signal comes on the frame the disaster shows (P15). `main.gd` relays it to `EventBus.disaster_appeared`, where `AudioDirector` plays the sound, so a legend's synth puts each cue at its beat's start (§5.9). `SaveService` still records the disaster at `disaster_started` (`autoload/save_service.gd:35`), so a player who closes the app during the delay keeps it (M5_PLAN.md L7). The natural four's sounds start with their pictures too, 0.1–0.5 s later than on `main`. N36.
 
+**S19. The flash test counts a glow that glides as flashing.**
+- Evidence: found by PR 3's prototype. §5.6's rule counted a change of a tenth of a point's own peak. At a glow's faint edge, a peak of 0.044, the canvas draws the nearest texel of the glow's texture, so the light there steps by about 0.005 as the glow glides: the bus's lamp, drawing up, "rose" 5 times in 42 frames, a change no eye sees.
+- Fix: PR 2 counts only a change of more than a tenth of the point's peak or of white's light, whichever is more, and for red light of its peak or of pure red's light: WCAG 2.3.1 counts no less (`Tuning.FLASH_CHANGE`; `test_disasters.gd`'s `test_a_glow_doesnt_flash_where_it_glides_past_points_at_its_faint_edge`). N42.
+
 ### Low
 
 **S11. No rule or test against flashing.** None of the natural four flashes, so nothing checks it. Several legends have lights that pulse: the UFO's rim, the wisps, the Marfa lights. Fix: E6's test, run on every legend. Lights that overlap add up, so it measures their sum at each point of the view, not each glow alone (§5.6). N20, N21.
@@ -136,8 +140,6 @@ Each finding has its evidence and its fix. The fixes are in §4's PRs, and §6.2
 **S13. One test is for the Village's pair.** `test_disaster_pools.gd:72–80` checks that 8 seeds play both of the Village's disasters. With one legend per pool it would check a pool of one. Fix: PR 2 makes it check that every disaster of every pool plays, which also covers Q2's larger choices.
 
 **S14. The documents list the natural four.** `plan.md:158–167` (§4.3's pools) and `:293` (§8's files); `IMPLEMENTATION_PLAN.md:960` (§9: "4 disaster types"), and `:83` and `:98`, where M6 is Ship. Fix: PR 8's Δs (§4).
-
----
 
 ---
 
@@ -326,12 +328,12 @@ After PR 1, game over names the natural disaster that ended the run, and the col
 Each PR's changes are one commit of `m6/prototype`, ported as M5's were (M5_PLAN.md §4.1):
 
 1. `git fetch origin main '+refs/heads/m6/*:refs/remotes/origin/m6/*'`, then `git switch -c m6/1-words origin/m6/plan`; PRs 2–8 branch from the previous PR's branch (§4.5).
-2. `git cherry-pick --no-commit <commit>`, the commit named in the PR's section once the prototype exists. Where a review fix changed the same lines, keep both.
+2. `git cherry-pick --no-commit <commit>`, the prototype commit named in the PR's section. Where a review fix changed the same lines, keep both.
 3. Run `tools/ci/import.sh`: it must create no files. Run `godot --headless -s tools/audio/make_audio.gd` in every PR, and `tools/art/make_legends.gd` from PR 2 on: they must make the committed sounds and sheets again, byte for byte. In PR 8, this shows that no legend's sound changed with the natural four's going (S17).
 4. Run §6.1, and compare the counts with the PR's "Expect" line.
 5. Have a model of another family review it (`AGENTS.md` §7). Then commit, push and open the PR.
 
-The counts below are estimates until the prototype fixes them. Every new `.gd` comes with its `.gd.uid`, and every PNG and WAV with its `.import`.
+The counts below are the prototype's (§6.1). Every new `.gd` comes with its `.gd.uid`, and every PNG and WAV with its `.import`.
 
 ### PR 1: Words, colours and anchors: fates, lore, the palette, and a place for each area's legends **Δ S5, S8, S9, S12, S15–S17, Q4, Q6, Q7**
 
@@ -343,13 +345,13 @@ Branch `m6/1-words`, from `m6/plan`: this plan's PR, #45, is the stack's root (�
 | UI | `ui/game_over.gd`, `.tscn`: `open(stats, area, fate)`, and a `%Fate` label under `%Cause`, at 16 px and wrapping (P13); `ui/menu_card.gd`, `.tscn`: `show_entry(title, details, color, lore := "")` and a `%Lore` label under `%Details`, hidden when it is empty, so the Atlas's calls stay as they are (S12, §5.8); `ui/collection_screen.gd`: `disasters()` gives each one's lore too, and a seen card shows it; `ui/main.gd`: keeps the fate from `disaster_started` (`:224`), clears it in `_clear_run()` (`:173`), and passes it on (`:241`) |
 | Art | `assets/palette.gpl`: night, violet, lilac and wisp, after yellow, and "36 colours" in its comment. The generators read colours by name (`tools/art/make_art.gd:54`), so no sheet changes |
 | Anchors | A comment line for each area, and the natural four in a block of their own, in `autoload/audio_director.gd`'s `EFFECTS`, `tools/audio/make_audio.gd`'s `_initialize()` and synths, `config/tuning.gd`, and `test_disasters.gd`'s pools (S5, §5.10). `make_audio.gd`: `_save_legend()`, after `_save()` (`:336`), which seeds each legend's sound by its id (S17, §5.9) |
-| Tests | `test_game_over.gd`: the fate, and none after a crash; `test_collection_screen.gd`: every test on a schedule of packed test disasters, `:63`'s flood too (S15), a seen card's lore in `%Lore`, and none on a silhouette; `tests/helpers/disaster_fixtures.gd`: `packed()`, after its last function (`:160`), which packs `tests/helpers/test_disaster.gd`, a disaster with only its words; `test_disasters.gd`: each has a fate of at most 40 characters and a lore of at most 80, appended after the last test; `test_title_screen.gd`: every disaster of the pools seen, and the scroll (S15, S16); `test_smoke.gd`: the fates and lore in the glyph check; `tests/integration/test_wrong_turn_disaster.gd`: game over shows the disaster's fate, under the check of the cause (`:74`); `test_retry.gd`: a crash in the next run shows none |
+| Tests | `test_game_over.gd`: the fate, and none after a crash; `test_collection_screen.gd`: every test on a schedule of packed test disasters, `:63`'s flood too (S15), a seen card's lore in `%Lore`, and none on a silhouette; `tests/helpers/disaster_fixtures.gd`: `packed()`, after its last function (`:160`), which packs `tests/helpers/words_disaster.gd`, a disaster with only its words; `test_disasters.gd`: each has a fate of at most 40 characters and a lore of at most 80, appended after the last test; `test_title_screen.gd`: every disaster of the pools seen, and the scroll (S15, S16); `test_smoke.gd`: the fates and lore in the glyph check; `tests/integration/test_wrong_turn_disaster.gd`: game over shows the disaster's fate, under the check of the cause (`:74`); `test_retry.gd`: a crash in the next run shows none |
 
-Expect: `check_scripts: loaded 126 scripts`; about 426 tests. The smoke line as on `main`. Negative cases N13, N14, N17, N23, N30 and N35.
+Prototype: 4413a6f. Expect: `check_scripts: loaded 126 scripts`; 422 tests. The smoke line as on `main`. Negative cases N13, N14, N17, N23, N30 and N35.
 
 **Acceptance:** E9, E7's palette, and the anchors that E12's landing needs (§4.5).
 
-### PR 2: The legend kit: stage, double, beats, veils and glows **Δ S1–S7, S10, S11, S13, S15, S18**
+### PR 2: The legend kit: stage, double, beats, veils and glows **Δ S1–S7, S10, S11, S13, S15, S18, S19**
 
 Branch `m6/2-kit`, from `m6/1-words`.
 
@@ -360,9 +362,9 @@ Branch `m6/2-kit`, from `m6/1-words`.
 | Audio | `autoload/event_bus.gd`: `disaster_appeared(id, area)`, after `disaster_started` (`:17`); `autoload/audio_director.gd`: a disaster's sound at `disaster_appeared`, not at `disaster_started` (`:73`, `:265–266`; S18, §5.9) |
 | Game | `ui/main.gd`: `_director.stage = _world.get_node("%Props")` after `:45`, and `disaster_appeared` relayed to `EventBus`: its connect after `:47`, its function before `:224`; `config/tuning.gd`: `SKY_Z`, `VEIL_Z`, `GLOW_Z`, `VEIL_HALF_SIZE`, `VEIL_DUSK`, `VEIL_NIGHT` and `FLASH_*`, after `PARTICLE_SCALE_MAX` (`:123`), away from PR 1's anchors |
 | Art | `tools/art/make_legends.gd`, which runs each `tools/art/legends/<id>.gd` it finds; `tools/art/legend_art.gd`: drawing helpers (§5.7) |
-| Tests | `tests/unit/test_beats.gd` (6), `test_legend.gd` (12), `test_legend_art.gd` (3); `tests/helpers/test_legend.gd`, `.tscn`: a legend that uses every part of the kit, which the contract tests run with the pools' disasters; `tests/helpers/disaster_fixtures.gd`: `drawables()`, the stage and `flashes()`, by `polygons()` (`:107`); `test_disasters.gd`: the checks on `drawables()`, the polygon set and the flash test, its new tests before `test_none_redraws_a_polygon` (`:152`), away from PR 1's at the end (S1, S6, S11). Its pools test checks a scene's file name, not its folder (`:31–35`), and its list of every disaster in the pools (`:41`) comes from the dict (S15); `test_car_controller.gd`: the double; `test_disaster_director.gd`: the stage, and `disaster_appeared` once, on the frame the disaster's clock reaches its delay, for the run seeds whose delays are nearest 0.1 and 0.5 s, and never after `clear()` during the delay (`:214`) (S18); `test_wrong_turn_disaster.gd` (`:71`, `:104–108`) and `test_title.gd:154` read the pools, and `test_area_schedule.gd:66–68` leaves the City's pool to `test_disasters.gd`'s pools test (S15); `test_wrong_turn_disaster.gd`: the disaster's sound `params.delay` after `disaster_started`, within a frame, appended (S18); `test_disaster_pools.gd`: each area's wrong turn plays one of its pool (`:65–69`, S15), and every disaster of every pool plays (`:72–80`, S13); `test_audio_director.gd`: the counts from the data (S5), and a disaster's sound at `disaster_appeared`, none at `disaster_started` (S18) |
+| Tests | `tests/unit/test_beats.gd` (6), `test_legend.gd` (13), `test_legend_art.gd` (3); `tests/helpers/sample_legend.gd`, `.tscn` (a `test_` name would make GUT run it): a legend that uses every part of the kit, which the contract tests run with the pools' disasters; `tests/helpers/disaster_fixtures.gd`: `drawables()`, the stage and `flashes()`, by `polygons()` (`:107`); `test_disasters.gd`: the checks on `drawables()`, the polygon set and the flash test, its new tests before `test_none_redraws_a_polygon` (`:152`), away from PR 1's at the end (S1, S6, S11). Its pools test checks a scene's file name, not its folder (`:31–35`), and its list of every disaster in the pools (`:41`) comes from the dict (S15); `test_car_controller.gd`: the double; `test_disaster_director.gd`: the stage, and `disaster_appeared` once, on the frame the disaster's clock reaches its delay, for the run seeds whose delays are nearest 0.1 and 0.5 s, and never after `clear()` during the delay (`:214`) (S18); `test_wrong_turn_disaster.gd` (`:71`, `:104–108`) and `test_title.gd:154` read the pools, and `test_area_schedule.gd:66–68` leaves the City's pool to `test_disasters.gd`'s pools test (S15); `test_wrong_turn_disaster.gd`: the disaster's sound `params.delay` after `disaster_started`, within a frame, appended (S18); `test_disaster_pools.gd`: each area's wrong turn plays one of its pool (`:65–69`, S15), and every disaster of every pool plays (`:72–80`, S13); `test_audio_director.gd`: the counts from the data (S5), and a disaster's sound at `disaster_appeared`, none at `disaster_started` (S18) |
 
-Expect: about 134 scripts and 455 tests. The smoke line as on `main`: no pool has a legend yet. Negative cases N1–N12, N16, N19–N21, N24–N29 and N36.
+Prototype: 4c74084. Expect: 134 scripts and 451 tests. The smoke line as on `main`: no pool has a legend yet. Negative cases N1–N12, N16, N19–N21, N24–N29 and N36.
 
 **Acceptance:** E2–E6, and E8's derived counts and timing.
 
@@ -385,9 +387,9 @@ Each adds, for its legend `<id>`:
 | Art | `tools/art/legends/<id>.gd`; `assets/legends/<id>/*.png` |
 | Audio | `assets/audio/sfx/<id>.wav`; its line in `audio_director.gd`'s `EFFECTS`, and its `_save_legend()` call and synth in `make_audio.gd`, each under its area's comment line (§5.9, §5.10) |
 | Config | `config/tuning.gd`: its beats and constants, under its area's comment line |
-| Tests | `tests/unit/test_<id>.gd` (6–8): its beats' end states (§3.3), what it leaves behind, its glows' count, and the double; `test_disasters.gd`: its area's line of the pools, under that area's comment (§5.10). PR 6 replaces the Village's `[&"flood", &"tornado"]` with `[&"witch_hex"]`. The other contract tests take it from the pool with no change |
+| Tests | `tests/unit/test_<id>.gd` (5–8): its beats' end states (§3.3), what it leaves behind, its glows' count, and the double; `test_disasters.gd`: its area's line of the pools, under that area's comment (§5.10). PR 6 replaces the Village's `[&"flood", &"tornado"]` with `[&"witch_hex"]`. The other contract tests take it from the pool with no change |
 
-Expect, after each: 3 scripts and about 7 tests more, up to 149 scripts and about 490 tests after PR 7. After PR 3, `smoke.sh` still prints the same line: the autopilot never turns wrong. Each PR runs, on its own legend, the negative cases that §6.2's matrix gives it.
+Prototype: 90dd1eb, da46984, 6e75c0d, beec8a2 and 5959625. Expect, after each: 3 scripts and 5–8 tests more, to 137, 140, 143, 146 and 149 scripts and 456, 464, 472, 480 and 488 tests. After PR 3, `smoke.sh` still prints the same line: the autopilot never turns wrong. Each PR runs, on its own legend, the negative cases that §6.2's matrix gives it.
 
 **Acceptance:** E1 for its area; E2–E8 for its legend.
 
@@ -400,10 +402,10 @@ Branch `m6/8-retire`, from `m6/7-desert`.
 | Disasters | delete `sinkhole`, `tornado`, `flood` and `quicksand`: `.gd`, `.gd.uid`, `.tscn`; `disaster_base.gd:19`, `:21`: examples from the legends |
 | Audio | delete their WAVs and their block in `audio_director.gd` and `make_audio.gd`. `make_audio.gd` then makes every other WAV again byte for byte (S17, §4.1) |
 | Config | `config/tuning.gd`: delete their block (`:133–165`, under PR 1's comment) |
-| Tests | delete `test_sinkhole.gd` (10), `test_tornado.gd` (7), `test_flood.gd` (5) and `test_quicksand.gd` (6); `test_disasters.gd`: the outline test's radii from `Tuning`'s that remain; `test_collection_screen.gd`: a save that recorded the sinkhole loads and shows only the pools' disasters, appended (E10); `test_disaster_director.gd:5–6`: comments |
+| Tests | delete `test_sinkhole.gd` (10), `test_tornado.gd` (7), `test_flood.gd` (5) and `test_quicksand.gd` (6); `test_disasters.gd`: the outline test's radii from the test legend's ring, as no `Tuning` radius remains; `test_collection_screen.gd`: a save that recorded the sinkhole loads and shows only the pools' disasters, appended (E10); `test_disaster_director.gd:5–6`: comments |
 | Docs | `plan.md` §4.3 (`:158–167`), §5.3 (`:199`) and §8 (`:293`); `IMPLEMENTATION_PLAN.md` `:83`, `:98`, `:430–456` and `:960`, with Ship as M7 (Q1); `AGENTS.md`: §1's state, which still names M3 as next (`AGENTS.md:30`), §3's Web rule, whose font is now Pixel Operator 8 (`ui/theme.tres:3`), §3's rules for legends (§5.3–§5.6, §5.9, §5.10), and M5_PLAN.md §9's notes for §3–§5 and §10, which it doesn't have yet; this plan's status, §4.6 and §6.6 |
 
-Expect: about 141 scripts and 463 tests. The smoke line unchanged.
+Prototype: 2c0e0c4. Expect: 141 scripts and 461 tests. The smoke line unchanged.
 
 Steps:
 1. After the review fixes, `git diff --stat origin/m6/prototype -- . ':!M6_PLAN.md'` lists only their files (§4.6).
@@ -425,7 +427,7 @@ Steps:
 
 ### 4.5 Landing the stack
 
-The PRs land by `AGENTS.md` §5's procedure, with the `m6/` names, as M5's did (M5_PLAN.md §4.5). This plan's PR, #45, lands first: PR 1 targets `m6/plan` until then, as M1's PR 1 opened before its plan merged. Once #45 is squash-merged, PR 1 merges `origin/m6/plan` and then `origin/main`, both adding this plan with the same text, and targets `main`. P7 simulated the landing on a model of the lists that the PRs share, and the prototype simulates it again on its own files with `git merge-tree`. Four rules keep it free of conflicts:
+The PRs land by `AGENTS.md` §5's procedure, with the `m6/` names, as M5's did (M5_PLAN.md §4.5). This plan's PR, #45, lands first: PR 1 targets `m6/plan` until then, as M1's PR 1 opened before its plan merged. Once #45 is squash-merged, PR 1 merges `origin/m6/plan` and then `origin/main`, both adding this plan with the same text, and targets `main`. P7 simulated the landing on a model of the lists that the PRs share, and the prototype simulated it again on its own files with `git merge-tree`: every update merges cleanly, each PR's diff is its own files, and `main` ends as PR 8's tree. Four rules keep it free of conflicts:
 
 - **No add/add conflicts.** No PR changes a file that an earlier M6 PR adds. A legend that needs a change to the kit gets it on PR 2's branch, merged up. `make_legends.gd` finds the legends' art scripts by itself (§5.7), and a legend's sound and sheets depend only on its id (S17), so no later PR changes them. Files that several PRs change all exist on `main`: `config/tuning.gd`, `test_disasters.gd` and `audio_director.gd` (PRs 1–8), `make_audio.gd` (1, 3–8), `disaster_base.gd` (1, 2, 8), `ui/main.gd`, `disaster_fixtures.gd` and `test_wrong_turn_disaster.gd` (1, 2), `test_disaster_director.gd` (2, 8), and `test_collection_screen.gd` (1, 8).
 - **A line of the merge base between** (P7). When PR k+1 is updated after PR k's squash, the merge base holds `main` and PRs 1 to k−1. Two neighbouring PRs' changes need a line from there between them, or they conflict. So PR 1 adds the anchors, a comment line for each area (§5.10). Each legend PR adds its lines under its own area's comment, so the next area's comment lies between its lines and the next PR's. The natural four's block comes before the City's comment, far from the Desert's, the last that a PR adds to before PR 8 deletes the block. PR 1 and PR 2 change seven files with `main`'s lines between their changes:
@@ -476,7 +478,7 @@ The PRs' reviews:
 
 ## 5. Design
 
-There is no reference code yet. This section is what `m6/prototype` builds. Where the prototype finds a better way, this section changes with it before PR 1 opens.
+This section is what `m6/prototype` builds, changed where the prototype found a better way. Each legend's look and sound as built are in its PR, and PR 8 brings them into §3.3.
 
 ### 5.1 Files and IDs
 
@@ -497,10 +499,11 @@ func advance(delta: float) -> void   # the one clock
 func index() -> int                  # -1 before start; lengths.size() once done
 func progress(i: int) -> float       # beat i's share done: 0 before it, 1 after it
 func done() -> bool
+func ended() -> Array[int]           # the beats ended since the last call, in order
 static func total(lengths: Array[float]) -> float
 ```
 
-A legend's script has `static func duration(params: DisasterParams) -> float`, `params.delay + Beats.total(Tuning.<ID>_BEATS)`, as `disaster_base.gd:8–10` asks. `Legend` shows each beat's end once, in order: when a frame skips over beat i, `_pose(i, 1.0)` comes before the next beat's first pose, so nothing is left halfway (N12).
+A legend's script has `static func duration(params: DisasterParams) -> float`, `params.delay + Beats.total(Tuning.<ID>_BEATS)`, as `disaster_base.gd:8–10` asks. `Legend` shows each beat's end once, in order: when a frame skips over beat i, `_pose(i, 1.0)`, from `ended()`, comes before the next beat's first pose, so nothing is left halfway (N12).
 
 ### 5.3 Legend and the stage (PR 2; S2, S6)
 
@@ -511,6 +514,9 @@ extends DisasterBase
 ## that sort with the props, and a double that takes the car's place.
 
 enum Veil { NONE, DUSK, NIGHT }
+
+## After the camera's step (priority 0), so the veil follows the view of the same frame (§5.5).
+const PHYSICS_PRIORITY := 1
 
 @export var veil_kind := Veil.NONE
 ## Sprites that stand up: play() puts them on the stage, where they sort with the props.
@@ -541,15 +547,15 @@ The witch's hex needs no double: the car hides in the puff, by its own `modulate
 
 ### 5.5 Veils and glows (PR 2; S4, S10, E5, Q5)
 
-- **The veil** is a Polygon2D square, 2 × `VEIL_HALF_SIZE` (4096 px) a side, that `Legend._ready()` makes: white, with a `BLEND_MODE_MUL` material, at `z_index` `VEIL_Z`, not relative. That is above the car, the props and the parts (z 0 and 1), and below the glows (`GLOW_Z`). The widest reference view is 3278 × 1280 px of the world at zoom 0.5, so the square covers it wherever the camera points. Each frame it moves to `camera.get_screen_center_position()`; moving it draws nothing again (P2). It waits at `modulate.a` 0, drawn once (P10). At the delay, `modulate.a` becomes 1, and over the first beat `self_modulate` goes from white to `Tuning.VEIL_DUSK` or `VEIL_NIGHT`, about (170, 130, 190) and (70, 80, 150), darker for Q8's answer and tuned on the Fold4: P6 shows that halfway darkens half as much. It never brightens again while the legend plays (E6; N8). It's in the World, so the HUD and the menus stay as they are (P9). Without a camera, it stays where the legend is.
+- **The veil** is a Polygon2D square, 2 × `VEIL_HALF_SIZE` (4096 px) a side, that `Legend._ready()` makes: white, with a `BLEND_MODE_MUL` material, at `z_index` `VEIL_Z` (2), not relative. That is above the car, the props and the parts (z 0 and `SKY_Z`, 1), and below the glows (`GLOW_Z`, 3). The widest reference view is 3278 × 1280 px of the world at zoom 0.5, so the square covers it wherever the camera points. Each frame, also after the end while the camera may still shake, it moves to the view's centre, `camera.global_position + camera.offset`: CameraRig moves itself and shakes by its `offset`, and `get_screen_center_position()` is kept only for the current camera, of which a test may have none. Moving it draws nothing again (P2). It waits at `modulate.a` 0, drawn once (P10). At the delay, `modulate.a` becomes 1, and over the first beat `self_modulate` goes from white to `Tuning.VEIL_DUSK` or `VEIL_NIGHT`, about (170, 130, 190) and (70, 80, 150), darker for Q8's answer and tuned on the Fold4: P6 shows that halfway darkens half as much. It never brightens again while the legend plays (E6; N8). It's in the World, so the HUD and the menus stay as they are (P9). Without a camera, it stays where the legend is.
 - **A glow** is a Sprite2D with a `BLEND_MODE_ADD` material at `GLOW_Z`: a soft round light (a radial `GradientTexture2D`, white to clear) tinted with a palette colour by `self_modulate`, or a part of a sheet, such as the UFO's beam. It grows by `scale` and fades by `modulate.a`. Over a veil, a glow lights the dark (P5). Over a light ground it clips to white (S10), so a legend without a veil has no glows: its lights are plain sprites.
 - **A sky part**, such as the saucer, sits at `SKY_Z`, over the props, as the tornado's funnel does at z 1 (`disasters/tornado.tscn:10–12`).
 
 ### 5.6 No flashing (PR 2; S11, E6)
 
 `Disasters.flashes(disaster)` plays a disaster frame by frame and records the light at the points of a grid fixed in the World, 4 px apart, so that the camera's shake doesn't count. Each glow adds its light at every point it covers: its texture's luminance and alpha there, times its `self_modulate`, and its `modulate` with its parents'. So glows that overlap add up, a glow cut from a sheet, such as the UFO's beam, counts as a round one does, and a glow that moves counts at each point it passes. Only points that a glow covers are kept, so the test's cost follows the glows' area. E6's test fails if:
-- at a point, the light rises and falls by more than 10 % of that point's peak more than 3 times in any 60 frames (WCAG 2.3.1: three flashes a second);
-- at a point, the red light, from glows whose red is at least 80 % of their colour, rises more than once, or falls more than once, by more than 10 % of its peak;
+- at a point, the light rises and falls by more than 10 % of that point's peak, or of white's light if that's more (S19), more than 3 times in any 60 frames (WCAG 2.3.1: three flashes a second);
+- at a point, the red light, from glows whose red is at least 80 % of their colour, rises more than once, or falls more than once, by more than 10 % of its peak, or of pure red's light if that's more;
 - a glow covers 57,600 px² or more at the reference zoom, a quarter of 360 × 640;
 - the veil's luminance rises while the legend plays;
 - or a `Tuning` constant whose name ends in `_HZ` is above 3.
@@ -610,21 +616,25 @@ They go into `AudioDirector.EFFECTS`, `make_audio.gd`'s `_initialize()` and its 
 
 ### 6.1 Local checks
 
-The commands are those of `AGENTS.md` §4. The counts after `main`'s are estimates, which `m6/prototype` replaces with its own (§4.1).
+The commands are those of `AGENTS.md` §4. The counts are the prototype's, on each PR's commit (§4).
 
 | State | `check_scripts` | GUT tests | `smoke.sh` |
 |---|---|---|---|
 | `main` (4ade5f2) | 125 | 418: 147,736 asserts in 43.0 s | `autopilot: tile 165, turns 35, area rural` |
-| PR 1 | 126 | about 426 | the same |
-| PR 2 | about 134 | about 455 | the same |
-| PRs 3–7 | 3 more each: 149 after PR 7 | 7 more each: about 490 | the same |
-| PR 8 | 141 | about 463 | the same |
+| PR 1 | 126 | 422: 147,770 in 43.3 s | the same |
+| PR 2 | 134 | 451: 148,033 in 45.8 s | the same |
+| PR 3 | 137 | 456: 148,240 in 46.2 s | the same |
+| PR 4 | 140 | 464: 148,506 in 47.8 s | the same |
+| PR 5 | 143 | 472: 149,039 in 47.7 s | the same |
+| PR 6 | 146 | 480: 149,189 in 46.9 s | the same |
+| PR 7 | 149 | 488: 149,314 in 46.6 s | the same |
+| PR 8 | 141 | 461: 148,382 in 46.6 s | the same |
 
 The smoke line never changes: the autopilot never turns wrong (M2's `sim/test_autopilot_300_turns.gd`), so no disaster plays in it, and no PR changes the road, the props or a random stream. After every check, and after `make_audio.gd` in every PR and `make_legends.gd` from PR 2 on, `git status --porcelain` prints nothing (§4.1).
 
 ### 6.2 Negative cases
 
-Each is a temporary change, made on the prototype and again on its PR's head, and each fails the checks named. "The test legend" is PR 2's `tests/helpers/test_legend.tscn`. PRs 3–7 also make some of PR 2's cases again on their own legend: the matrix after the table says which.
+Each is a temporary change, made on the prototype and again on its PR's head, and each fails the checks named. "The test legend" is PR 2's `tests/helpers/sample_legend.tscn`. PRs 3–7 also make some of PR 2's cases again on their own legend: the matrix after the table says which.
 
 | N# | PR | Ref | Change | Fails |
 |---|---|---|---|---|
@@ -674,6 +684,8 @@ The kit's cases (N2–N12, N19, N26–N29, N36) break parts of PR 2's that no le
 | `fairy_ring` (5) | as the bus's, on its *wisp* glows | — |
 | `witch_hex` (6) | N1 (a part hidden by `modulate.a`; the pumpkin is hidden by its scale), N16, N20, N21 (on its lantern's glow), N24, N25 | — |
 | `death_worm` (7) | N1, N16, N24, N25 | N20, N21: no glows |
+
+**Results.** On the prototype, every case failed the checks named, each on its PR's commit, and `git status --porcelain` printed nothing after each. N30's four variants and Q2's order were simulated on the prototype's own files (§4.5): each variant conflicts where the table says, and Q2's order lands clean. N30a's PR 1 is laid out by `gdformat` without its anchors, as such a PR would be. The PRs' reviews and testing added N37–N128, which their bodies list and PR 8 adds to §4.6.
 
 ### 6.3 Editor warnings
 
@@ -739,10 +751,10 @@ These need the repository owner. The current state was read with `gh api` on 202
 | The flash test reads the glows' and the veil's light, not the screen's pixels (§5.6) | A sheet whose frames alternate light and dark could flash where no glow does | The placeholder sheets change shape from frame to frame, not light. A final sheet is checked by eye on the Fold4 (E11), and a rendered check could follow (§9) |
 | Godot 4.7.2 redraws a `Polygon2D` with WebGL errors (godotengine/godot#124726) | Errors in the browser's console, and a legend that may draw wrong on the Web | S6: no polygon is drawn twice. `test_none_redraws_a_polygon` checks every drawable, the stage's parts and the veil included (N9, N10). What changes is a sprite, a particle or a material (P1–P3) |
 | The veil and the glows on the Fold4 | Fewer than 60 frames a second during a legend | The veil is one square, clipped to the screen, and E6 keeps each glow under a quarter of the view. E11 measures the frame rate on the Fold4 (§6.6) |
-| The kit is backed by probes, not yet by a prototype (§4.1) | PR 2's kit may lack something a legend needs, and the counts may differ | The test legend uses every part of the kit. A change goes on PR 2's branch and is merged up (§4.5), and §4.6 records it. The prototype replaces every estimate |
+| The kit was built before the legends (§4.1) | A Copilot finding on PR 3–7 may need the kit to change | The prototype built the five legends on it and found S19. The test legend uses every part of the kit. A change goes on PR 2's branch and is merged up (§4.5), and §4.6 records it |
 | Q2's alternative: up to three legends per area | Three times the art and the timing, and up to five more PRs | An area's further legends share a PR, after PR 7 (§4.5), from §3.3's design, and the kit doesn't change. The ★s land first, and PR 8 last |
-| Eight stacked PRs change `config/tuning.gd`, `test_disasters.gd`, `audio_director.gd` and `make_audio.gd` | Conflicts as they land, or a sound that changes as the natural four's go | §4.5's rules: PR 1's comment line per area (S5, P11); a line of the merge base between neighbouring PRs' changes (P7); counts from the data; sounds and sheets seeded by their id (S17). P7 simulated the landing, and the prototype simulates it again on its own files (N30, N32) |
-| Copilot reviews no file whose diff is over about 100 KB | A plan or a PR with no review | This plan is kept under 95 KB, and each legend has a PR of its own |
+| Eight stacked PRs change `config/tuning.gd`, `test_disasters.gd`, `audio_director.gd` and `make_audio.gd` | Conflicts as they land, or a sound that changes as the natural four's go | §4.5's rules: PR 1's comment line per area (S5, P11); a line of the merge base between neighbouring PRs' changes (P7); counts from the data; sounds and sheets seeded by their id (S17). P7 simulated the landing, and the prototype simulated it again on its own files (N30, N32) |
+| Copilot reviews no file whose diff is over about 100 KB | A plan or a PR with no review | This plan's diff in #45 is kept under 100 KB, and each legend has a PR of its own |
 | Saves keep the natural four's ids (Q9) | Nothing the player sees: the collection lists only the pools' disasters, and shows no count | E10's test. A later save version could drop them (§9) |
 
 ---
