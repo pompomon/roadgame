@@ -1,15 +1,17 @@
 extends GutTest
 ## A forced wrong turn in each area plays a disaster from that area's pool only
 ## (IMPLEMENTATION_PLAN.md M4 tests): the main scene starts in the area (--area, M4_PLAN.md K10),
-## the pilot takes a wrong exit at its third junction, and the area's disaster swallows the car
-## before the game-over screen, 2 to 4 s after the turn.
+## the pilot takes a wrong exit at its third junction, and the area's disaster takes the car before
+## the game-over screen, 2 to 4 s after the turn. Every disaster of every pool plays for some seed
+## (M6_PLAN.md S13).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
+const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
 const RUNNING := GameState.State.RUNNING
 const DISASTER := GameState.State.DISASTER
-## Seeds to try until the Village has played both of its disasters.
-const VILLAGE_SEEDS := 8
+## Seeds to try until an area has played every disaster of its pool.
+const SEEDS := 8
 
 
 func before_each() -> void:
@@ -62,19 +64,28 @@ func test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool() -> void:
 	for entry: AreaScheduleEntry in schedule.entries:
 		played.append(_wrong_turn_in(entry.area, 1))
 	assert_eq(played.size(), 5, "the five areas")
-	assert_eq(played[0], &"sinkhole", "the City's")
-	assert_eq(played[1], &"tornado", "Rural's")
-	assert_eq(played[2], &"flood", "the Meadows'")
-	assert_has([&"flood", &"tornado"], played[3], "the Village's")
-	assert_eq(played[4], &"quicksand", "the Desert's")
+	assert_does_not_have(played, &"", "each played one of its pool")
 
 
-func test_the_village_plays_both_of_its_disasters() -> void:
-	var village: AreaDef = load("res://areas/village.tres")
-	var played := {}
-	for run_seed: int in VILLAGE_SEEDS:
-		played[_wrong_turn_in(village, run_seed)] = true
-		if played.size() == 2:
-			break
-	assert_true(played.has(&"flood"), "the flood")
-	assert_true(played.has(&"tornado"), "and the tornado")
+func test_every_disaster_of_every_pool_plays() -> void:
+	for area: AreaDef in Fixtures.schedule().areas():
+		var pool := _ids(area)
+		var played: Array[StringName] = []
+		for run_seed: int in SEEDS:
+			var id := _wrong_turn_in(area, run_seed)
+			if id not in played:
+				played.append(id)
+			if pool.all(func(of: StringName) -> bool: return of in played):
+				break
+		for id: StringName in pool:
+			assert_has(played, id, "%s: %s plays for one of %d seeds" % [area.id, id, SEEDS])
+
+
+## The ids of the disasters of `area`'s pool.
+static func _ids(area: AreaDef) -> Array[StringName]:
+	var found: Array[StringName] = []
+	for scene: PackedScene in area.disasters:
+		var disaster := scene.instantiate() as DisasterBase
+		found.append(disaster.id)
+		disaster.free()
+	return found

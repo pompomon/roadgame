@@ -63,9 +63,6 @@ func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
 				assert_ne(disaster.id, &"", "%s: %s has an id" % [area.id, scene.resource_path])
 			node.free()
 	assert_eq(areas, 5, "the five areas")
-	var city: AreaDef = load("res://areas/city.tres")
-	var sinkhole: PackedScene = load("res://disasters/sinkhole.tscn")
-	assert_eq(city.disasters, [sinkhole] as Array[PackedScene], "the City's sinkhole")
 
 
 func test_validate_reports_broken_schedules() -> void:

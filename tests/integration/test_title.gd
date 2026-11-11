@@ -133,11 +133,12 @@ func test_title_after_game_over_then_play_starts_afresh() -> void:
 	assert_eq(_cars(main), 1, "one car")
 
 
-func test_the_atlas_and_the_collection_show_a_wrong_turn_into_the_sinkhole() -> void:
+func test_the_atlas_and_the_collection_show_a_wrong_turn() -> void:
 	var main := _open()
 	MainScene.press_key(main, KEY_ENTER)
 	_to_game_over(main)
 	var distance := Hud.distance_text(GameState.distance)
+	var seen := (main.get_node("%Director") as DisasterDirector).disaster.display_name
 	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
 	var title := _title(main)
 	assert_eq((title.get_node("%Best") as Label).text, "Best: %s, 2 turns" % distance)
@@ -151,7 +152,7 @@ func test_the_atlas_and_the_collection_show_a_wrong_turn_into_the_sinkhole() -> 
 	title.go_back()
 	(title.get_node("%DisastersButton") as Button).pressed.emit()
 	cards = title.get_node("%Collection/%Cards").get_children()
-	assert_eq((cards[0].get_node("%Title") as Label).text, "Sinkhole")
+	assert_eq((cards[0].get_node("%Title") as Label).text, seen, "the City's disaster")
 	assert_eq(
 		(cards[0].get_node("%Details") as Label).text,
 		"Seen once\nFirst: City, %s, 2 turns" % distance

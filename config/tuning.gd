@@ -121,6 +121,33 @@ const DISASTER_INTENSITY_MIN := 0.5
 const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
+## Where a legend's parts draw (M6_PLAN.md §5.5): a part in the sky, such as the UFO's saucer, over
+## the props and the car, as the tornado's funnel is; the veil over them all; and the glows over the
+## veil, which they light.
+const SKY_Z := 1
+const VEIL_Z := 2
+const GLOW_Z := 3
+## The veil is a square this many px from its centre to each side: wherever it is centred in the
+## view, it covers the widest view of the world, 3278 × 1280 px at the smallest zoom.
+const VEIL_HALF_SIZE := 4096.0
+## What a legend's veil multiplies the world's colours by, at dusk and at night (Q5, Q8).
+const VEIL_DUSK := Color8(170, 130, 190)
+const VEIL_NIGHT := Color8(70, 80, 150)
+## No flashing (M6_PLAN.md §5.6, E6, after WCAG 2.3.1). Light changes once it rises or falls by
+## more than FLASH_CHANGE of its peak, or of white's light, or pure red's for red light, if that's
+## more: WCAG counts no less, and where a glow glides past a point at its faint edge, the light
+## there steps by less, as the canvas draws the nearest texel (S19). At no point of the world may it
+## rise and fall more than FLASH_MAX times in FLASH_SECONDS, nor more than FLASH_RED_MAX times in
+## all in saturated red, whose share of the colour is at least FLASH_RED_SHARE. No glow may cover
+## FLASH_AREA px² of the world, a quarter of a 360 × 640 screen at zoom 1. The test reads the light
+## every FLASH_GRID px.
+const FLASH_CHANGE := 0.1
+const FLASH_MAX := 3
+const FLASH_SECONDS := 1.0
+const FLASH_RED_SHARE := 0.8
+const FLASH_RED_MAX := 1
+const FLASH_AREA := 57600.0
+const FLASH_GRID := 4
 ## Screen shake (CameraRig.shake): the offset at intensity 1, in screen pixels, which fades out over
 ## the shake, and its frequencies across and up the screen, in rad/s. They differ, so the camera
 ## moves in a figure rather than along a line.

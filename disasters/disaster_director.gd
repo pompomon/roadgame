@@ -10,11 +10,16 @@ extends Node
 signal sequence_finished
 ## The disaster from `area`'s pool started to play.
 signal disaster_started(disaster: DisasterBase, area: AreaDef)
+## The disaster shows: the delay in its params is over, on its own clock from play() (M6_PLAN.md
+## S18). Its sound starts now, with its first beat.
+signal disaster_appeared(disaster: DisasterBase, area: AreaDef)
 
 enum Sequence { NONE, STOPPING, PLAYING, CRASH, FINISHED }
 
 ## Where disasters go: World's DisasterLayer, above the road and below the car (J5).
 var layer: Node2D
+## Where a legend stands its parts: World's Props (M6_PLAN.md S2).
+var stage: Node2D
 var sequence := Sequence.NONE
 ## The disaster playing, or null, and its params.
 var disaster: DisasterBase
@@ -26,6 +31,9 @@ var _car: CarController
 var _camera: CameraRig
 ## Seconds since the run ended.
 var _time := 0.0
+## Seconds since play(), as the disaster counts them, and whether disaster_appeared came.
+var _play_time := 0.0
+var _shown := false
 
 
 ## Clears the last run's sequence and takes this run's disaster stream.
@@ -68,6 +76,8 @@ func clear() -> void:
 	_car = null
 	_camera = null
 	_time = 0.0
+	_play_time = 0.0
+	_shown = false
 
 
 ## The scene `rng` draws from `pool`, or null if the pool is empty.
@@ -81,6 +91,11 @@ func _physics_process(delta: float) -> void:
 	if sequence == Sequence.NONE or sequence == Sequence.FINISHED:
 		return
 	_time += delta
+	if sequence == Sequence.PLAYING and not _shown:
+		_play_time += delta
+		if _play_time >= params.delay:
+			_shown = true
+			disaster_appeared.emit(disaster, _area)
 	if sequence == Sequence.STOPPING and _car.sim.speed == 0.0:
 		_start_disaster()
 	elif sequence == Sequence.CRASH and _time >= Tuning.CRASH_SECONDS:
@@ -112,9 +127,12 @@ func _start_disaster() -> void:
 		return
 	disaster.car = _car
 	disaster.camera = _camera
+	disaster.stage = stage
 	disaster.finished.connect(_on_disaster_finished)
 	layer.add_child(disaster)
 	sequence = Sequence.PLAYING
+	_play_time = 0.0
+	_shown = false
 	params = DisasterParams.roll(_rng, _car.position)
 	disaster.play(params)
 	disaster_started.emit(disaster, _area)
