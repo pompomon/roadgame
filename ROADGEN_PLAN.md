@@ -1,10 +1,10 @@
 # Road Generation: Junction Kinds and Long Dead Ends — Detailed Plan
 
-Status: for review in #54, with PRs 1–3 (#55–#57) built and verified locally (§6) · 2026-11-11 · Q1 and Q3 answered by the owner; the other questions follow their defaults until answered (§3) · Scope: junctions that offer straight on and only one turn, where either straight on or the turn can be right, and dead ends long enough to look like roads. This plan calls the work RG. It comes after M5 (#39–#44) and is independent of M6's plan (#45).
+Status: for review in #54, with PRs 1–3 (#55–#57) built and verified locally and in CI, and E10 checked on the Web; E10 on the Fold4 is the owner's (§6, §7) · 2026-11-11 · Q1 and Q3 answered by the owner; the other questions follow their defaults until answered (§3) · Scope: junctions that offer straight on and only one turn, where either straight on or the turn can be right, and dead ends long enough to look like roads. This plan calls the work RG. It comes after M5 (#39–#44) and is independent of M6's plan (#45).
 
 The owner asked: "Allow junctions with only straight and either left or right, to confuse and trick the player." The first draft of this plan had side roads only, where straight on is always wrong, and kept M1's 2–3-tile dead ends. The owner's answer to it: "1q both straight and turn could be the right decision, Q3 longer deadends so it looks like a proper road."
 
-**Verified locally and in CI.** Every file this plan adds or changes was first built on branch `rg/prototype`, on top of `main` (4ade5f2), with one state per PR: cb2c7f9 for PR 1, f002f6a for PR 2 and 3c2ca03 for PR 3 (§4.1). The session that wrote the plan's first draft couldn't run Godot, so each state ran the five checks in CI, started by hand (§6.1): run 42980918434 on fb8bccb, which is PR 1 but for a check that cb2c7f9 adds to a test; 42986814437 on f002f6a; and 42986884807 on 3c2ca03, whose only failures were the two digests that PR 3 changes, whose new values it printed. Once the owner allowed the tools, each PR's branch was built from those states and checked locally with Godot 4.7.2: the five checks (§6.1), every negative case (§6.2) and the editor's warnings (§6.3). The negative cases found two gaps, and the internal review a third, which the PRs fix (§4.6). The landing was simulated with `git merge-tree` (§4.5). Python models measured what the camera shows, and a probe in Godot how near a freed tile comes to the view (§6.5). Not done: the Web and the Fold4 (§6.4). A model of another family, gpt-6.1-sol, reviewed this plan and each PR (`AGENTS.md` §7, §4.6).
+**Verified locally and in CI.** Every file this plan adds or changes was first built on branch `rg/prototype`, on top of `main` (4ade5f2), with one state per PR: cb2c7f9 for PR 1, f002f6a for PR 2 and 3c2ca03 for PR 3 (§4.1). The session that wrote the plan's first draft couldn't run Godot, so each state ran the five checks in CI, started by hand (§6.1): run 42980918434 on fb8bccb, which is PR 1 but for a check that cb2c7f9 adds to a test; 42986814437 on f002f6a; and 42986884807 on 3c2ca03, whose only failures were the two digests that PR 3 changes, whose new values it printed. Once the owner allowed the tools, each PR's branch was built from those states and checked locally with Godot 4.7.2: the five checks (§6.1), every negative case (§6.2) and the editor's warnings (§6.3). The negative cases found two gaps, and the internal review a third, which the PRs fix (§4.6). The landing was simulated with `git merge-tree` (§4.5). Python models measured what the camera shows, and a probe in Godot how near a freed tile comes to the view (§6.5). Each PR's head passed CI, and PR 3's build passed E10 on the Web, in Chrome and Firefox (§6.4). Not done: E10 on the Fold4 (§7). A model of another family, gpt-6.1-sol, reviewed this plan and each PR (`AGENTS.md` §7, §4.6).
 
 - Godot 4.7.2-stable, in CI's image and locally
 - GUT 9.7.1
@@ -210,7 +210,7 @@ The internal review of this plan (`AGENTS.md` §7) and the PRs' reviews add thei
 | 3 | The internal review found that nothing checked E8. `validate()` lets an area's chances add up to 1, so a Desert with `decoy_chance` 0.25 would keep only 20% of its junctions as T's, and only the digests, which a later change re-records, would fail. New test: the City has no side roads or decoys, every later area has both, and each keeps at least a quarter of its junctions as T's, with rounding, as the Desert's are exactly a quarter | `test_area_schedule.gd`: `test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions` | N15, N16 |
 | 1 | Copilot's review of the plan (#54) found that `plan.md` §4.1 still said that a match does `turnIndex += 1`, against rule 6 of §2.1 as PR 1 has it: straight on at a decoy is correct, but no turn. §4.1 now says that only a turn adds to `turnIndex`, and that every correct exit emits `turn_completed`, as `JunctionTrigger._resolve()` does. §2.4 and §11 said "turn" for the exit that a car rejoining the road takes, which can be a decoy's straight on: they now say "exit". E11, Q7, R2, R7 and §5.7 list the sections | None: docs only. `test_junction_trigger.gd`'s `test_each_kind_of_junction_has_one_correct_exit` and `test_rejoining_past_a_decoy_counts_only_the_turns` already check what §4.1 now says | None: docs only |
 
-Of the internal reviews of the PRs as built (gpt-6.1-sol), PR 3's found the first row for PR 3. PR 1's, PR 2's and that of PR 2's fix for N11 found no issue. Of Copilot's first reviews, #54's found the last row, #55's and #56's no issue, and #57's asked only for E10's manual checks (§6.4).
+Of the internal reviews of the PRs as built (gpt-6.1-sol), PR 3's found the first row for PR 3. PR 1's, PR 2's and that of PR 2's fix for N11 found no issue. Of Copilot's first reviews, #54's found the last row, #55's and #56's no issue, and #57's asked only for E10's manual checks (§6.4). Its reviews after the last row's fix found no issue on #54–#56, and #57's again asked only for E10, which §6.4's Web checks answer.
 
 ---
 
@@ -352,7 +352,7 @@ The City has none: a run's first 34 turns teach the pattern on T's and crossroad
 
 ### 6.1 Checks and counts
 
-The checks are `AGENTS.md` §4's five. The prototype's states ran them in CI, in `workflow_dispatch` runs, and each PR's head ran them locally, with Godot 4.7.2 on 2 CPUs:
+The checks are `AGENTS.md` §4's five. The prototype's states ran them in CI, in `workflow_dispatch` runs. Each PR's head ran them locally, with Godot 4.7.2 on 2 CPUs, and then in its PR's CI:
 
 | State | Where | Scripts loaded | Test scripts | Tests | Asserts | GUT time | Smoke |
 |---|---|---|---|---|---|---|---|
@@ -363,8 +363,11 @@ The checks are `AGENTS.md` §4's five. The prototype's states ran them in CI, in
 | PR 1 (a3b71e7) | Local | 126 | 61 | 425 | 272,401 | 50.3 s | The same |
 | PR 2 (0f5f9b5) | Local | 126 | 61 | 428 | 389,299 | 57.7 s | The same |
 | PR 3 (bd98d0d) | Local | 126 | 61 | 429 | 422,082 | 61.3 s | The same |
+| PR 1 (0a6c54a) | Run 43055538426 | 126 | 61 | 425 | 272,401 | 47.3 s | The same |
+| PR 2 (d9e7a81) | Run 43055544171 | 126 | 61 | 428 | 389,299 | 74.7 s | The same |
+| PR 3 (a2f65ab) | Run 43055551795 | 126 | 61 | 429 | 422,082 | 59.2 s | The same |
 
-cb2c7f9 adds a check to an existing test, with no new assert, so the prototype's PR 1 counts are fb8bccb's. The `test` job took 2 min 04 s on PR 1's state and 2 min 21 s on PR 2's. The PRs add §4.6's fixes: PR 1's asserts the same, PR 2 adds two tests and PR 3 one. Locally, every check passed on each head, `smoke.sh` printed no error line, and `git status --porcelain` printed nothing after them. GUT's time varies by about 15 s from run to run there. The PRs' CI runs give the CI times, which their bodies record.
+cb2c7f9 adds a check to an existing test, with no new assert, so the prototype's PR 1 counts are fb8bccb's. The `test` job took 2 min 04 s on PR 1's state and 2 min 21 s on PR 2's. The PRs add §4.6's fixes: PR 1's asserts the same, PR 2 adds two tests and PR 3 one. Locally, every check passed on each head, `smoke.sh` printed no error line, and `git status --porcelain` printed nothing after them. GUT's time varies by about 15 s from run to run there. The heads that CI ran differ from those checked locally only in `plan.md` and this plan; there the `test` job took 2 min 04 s, 2 min 18 s and 2 min 10 s.
 
 The digests, in `test_road_generator_determinism.gd`:
 
@@ -406,7 +409,7 @@ Measured with the editor's language server, Godot 4.7.2, on `main` and on each P
 
 ### 6.4 Verified only in CI or on devices
 
-- **CI.** The five required checks on each PR, and the `test` job's time.
+- **CI.** The five required checks on each PR, and the `test` job's time. All passed on each PR's head (§6.1).
 - **E10 on the Web**, on PR 3's build, by an agent if it can, or else by the owner. Build, download and serve it with M4's patch, which passes the URL's `arg`s to the game (M4_PLAN.md §4, PR 3 step 3):
   ```bash
   gh workflow run ci.yml -R pompomon/roadgame --ref rg/3-area-chances -f upload-builds=true
@@ -416,13 +419,15 @@ Measured with the editor's language server, Godot 4.7.2, on `main` and on each P
   python3 -m http.server -d /tmp/roadgame-web 8000
   ```
   Open `http://localhost:8000/?arg=--autopilot&arg=--area=desert` in Chrome and Firefox, and the same for `meadows`, `village` and `rural`, to watch; and `?arg=--play&arg=--area=desert` to drive, as `--play` skips the title (M5_PLAN.md:349). In the Desert, 45% of junctions are side roads or decoys. Check each point of E10, and post a table in a PR comment, one row per check, with screenshots.
+
+  **Done**, on the build of upload-builds run 43053719720, of ff4303f, which differs from PR 3's head, a2f65ab, only in `plan.md` and this plan ([#57's comment](https://github.com/pompomon/roadgame/pull/57#issuecomment-6801384985)). Playwright drove Chrome 157 and Firefox 159, headed under Xvfb with software GL, at 1137×640. Each ran the autopilot for 45 s in Rural, Meadows, the Village and the Desert, with seed 7, or 20 for Rural, and the Desert with no input, seed 7. Every point of E10 passed in both but the chime, which can't be heard without a sound device; `test_junction_trigger.gd` checks the `turn_completed` that plays it. With no input, the Desert's first junction, a decoy, left the HUD at 0 turns, and straight on at its second, a side road (mask 13), ended in "Wrong turn!" at 130 m. In the frames checked, every end in view was an opposite-turn dead end's, as §8 expects, and the two looked at closely had been cut short by another dead end (R5); no straight-on dead end showed its end. The consoles had no errors, only the known noise: Chrome's `CONTEXT_LOST_WEBGL` and `GPU stall due to ReadPixels`, Firefox's deprecated wasm `try`, and in both the AudioContext's wait for a user gesture.
 - **On the Fold4**, by the owner. The APK takes no arguments (M4_PLAN.md P4), so drive into Rural, at turn 34: with its chances, 94% of runs meet a side road or a decoy in Rural's first 10 junctions. Or, as M4 did (M4_PLAN.md Q6), serve the Web build above, run `adb reverse tcp:8000 tcp:8000`, and open the same URLs in the Fold4's Chrome. Check the look on both screens, that a dead end reads as a road and not a stub, and that the trick feels fair.
 
 ### 6.5 Measurements
 
 | P# | What | Result | Used by |
 |---|---|---|---|
-| P1 | The five checks: in CI on each state of the prototype, and locally on each PR's head | §6.1 | E9 |
+| P1 | The five checks: in CI on each state of the prototype, and locally and in CI on each PR's head | §6.1 | E9 |
 | P2 | The digests. 03c79b7's run 42978434562, with the digests empty, printed `main`'s; the later runs printed PR 2's and PR 3's | §6.1: PR 1 keeps both, and PR 2 the path's | E4 |
 | P3 | The dead ends in the occupancy test, 200 seeds × 500 turns of the game's schedule | PR 2: 130,320 dead ends, of which 15,061 (11.6%) are shorter than 6 tiles. PR 3: 156,022, and 19,646 (12.6%). None dropped, none under 2 tiles, no straight-on one short | R5, E5 |
 | P4 | The ends in view. A Python model of `CameraRig.target()`, `zoom_for()` and the smoothing, with `Iso`'s tiles, and the end as `test_camera_rig.gd` takes it, on the 7 reference screens | As the car enters the junction on the centreline, heading along the road: dead ends of 2–5 tiles show their end on 1639×640 and 1137×640; of 6 or more, on no screen. Steered at the entry: on 1639×640, a 6-tile end shows at most 1.3 px up to 30° and 4.5 px up to 45°; a 7-tile one, nothing up to 45°. On the approach and from the leg before, with the smoothing at 2, 4 and 7 tiles a second and approaches of 2–8 tiles: §5.3 | R4, Q3, §4.6 |
@@ -438,7 +443,7 @@ Measured with the editor's language server, Godot 4.7.2, on `main` and on each P
 | When | Action | How |
 |---|---|---|
 | Now | Review this plan, and answer Q2 and Q4–Q7 or accept the defaults | A comment on this plan's PR. Without an answer, the PRs follow the defaults |
-| Before PR 3 merges | E10 on the Fold4 | `gh workflow run ci.yml -R pompomon/roadgame --ref rg/3-area-chances -f upload-builds=true`; `gh run download <run id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`; `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`. Then §6.4 |
+| Before PR 3 merges | E10 on the Fold4 | `gh run download 43053719720 -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`, until 2026-11-12 15:58 UTC; after that, `gh workflow run ci.yml -R pompomon/roadgame --ref rg/3-area-chances -f upload-builds=true` makes a new one. Then `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`, and §6.4 |
 | To land RG | Merge this plan's PR, then PRs 1, 2 and 3, each once its base is `main` | §4.5 |
 | After | Delete the prototype's branch | `git push origin --delete rg/prototype` |
 
@@ -451,8 +456,8 @@ Measured with the editor's language server, Godot 4.7.2, on `main` and on each P
 | Decoys change the road from Rural on | A seed gives a different road after Rural's first decoy (D8) | Said in PR 3, whose digests record it. Nothing saved holds a road |
 | Ends still show in some views (§5.3) | From the leg before, an opposite-turn dead end's end shows on every screen after a short approach, and a straight-on one's on the tall portrait screens. A cut one shows like any short one: at about 40% of the City's junctions. A car steered 30° or more across the entry shows up to 4.5 px of a 6-tile end on 1639×640 | These exits are wrong wherever they are, and the player's rule decides from the turn alone, so an end gives nothing away; it only spoils the look. Longer dead ends hide more (Q3): 7–9 tiles hide the steered views with the same buffer, and 8–12 more of the leg before's views, with a larger one. Art could end a dead end in something that reads as a road's end (§9) |
 | The trick feels unfair | A missed side road or decoy ends the run | Judged on the Fold4 (E10). Each chance is one line in an area's `.tres` (Q2) |
-| Masks 11 and 13 look wrong in some area's art | Seen only in E10 | The road sheets are generated (`tools/art/make_art.gd`): fix them there |
-| Longer tests | In CI, GUT took 58.1 s on `main`, and 64.5–80.2 s on the prototype's states | The `test` job still takes about 2 minutes |
+| Masks 11 and 13 look wrong in some area's art | Seen only in E10 | They look right on the Web in all four areas (§6.4). The road sheets are generated (`tools/art/make_art.gd`): fix them there |
+| Longer tests | In CI, GUT took 58.1 s on `main`, 64.5–80.2 s on the prototype's states and 47.3–74.7 s on the PRs' heads | The `test` job still takes about 2 minutes |
 | A Godot upgrade changes the road stream | The digests fail on the upgrade | Intended: such an upgrade breaks old seeds (D8). Its PR records the new digests (§6.1) |
 
 ---
