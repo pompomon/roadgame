@@ -47,7 +47,7 @@ static func _back(main: Node) -> void:
 	main.get_parent().propagate_notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 
 
-## Drives `main` on to the game-over screen: through a wrong turn into the City's sinkhole at the
+## Drives `main` on to the game-over screen: through a wrong turn into the City's phantom bus at the
 ## third junction, or with no input, which ends the run at the first junction.
 func _to_game_over(main: Node, wrong_turn := true) -> void:
 	if wrong_turn:
