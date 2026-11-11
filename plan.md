@@ -48,7 +48,7 @@ An isometric pixel-art endless driving roguelike. The player steers a car along 
 
 ### 2.4 Off-road and health
 - Health starts at 100 and is drained per second while off-road (rate set per area).
-- **Corner cutting:** if the car leaves the road near a junction and rejoins it within **2 tiles**, this counts as **damage only**, not as a missed turn. Which turn the player took is decided by the road tile the car rejoins (§4.1).
+- **Corner cutting:** if the car leaves the road near a junction and rejoins it within **2 tiles**, this counts as **damage only**, not as a missed turn. Which exit the player took is decided by the road tile the car rejoins (§4.1).
 - **Off-road limit:** the car cannot stay off the road for longer than **2 tiles** of travel. Reaching the limit ends the run:
   - near a junction, it counts as a missed turn and triggers a **disaster**
   - anywhere else, the car **crashes**
@@ -148,7 +148,7 @@ AreaDef
 - Each junction tile has an **exit-decision zone** on each edge. The first exit zone the car enters records the player's choice.
 - If the car leaves the road near a junction (cutting the corner), the choice is decided when it **rejoins the road within 2 tiles**. The branch it rejoins (the correct exit, a dead end, or the straight-on road) is the choice. Off-road damage still applies.
 - `JunctionTrigger` compares that choice with `expectedExit`:
-  - Match: `turnIndex += 1`, `EventBus.turn_completed` is emitted.
+  - Match: at a turn, `turnIndex += 1`; straight on at a decoy leaves it as it was (§2.1). Either way, `EventBus.turn_completed` is emitted.
   - Mismatch (wrong turn, or straight on when a turn was expected): `EventBus.disaster_triggered(area, junction)` is emitted.
   - Off-road limit reached before rejoining any branch: treated as a missed turn, so `disaster_triggered` is emitted.
 
@@ -352,7 +352,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 - A scripted driver follows `expectedExit` for 300+ turns with no disaster.
 - A deliberate wrong turn triggers a disaster from the current area's pool.
 - The car slows down before every junction, for both correct and wrong turns, and speeds up again on straights.
-- Cutting a corner and rejoining the correct exit within 2 tiles counts as a correct turn and applies damage only.
+- Cutting a corner and rejoining the correct exit within 2 tiles counts as taking it and applies damage only.
 - Exceeding 2 tiles off-road triggers a disaster near a junction and a crash on a straight.
 
 **Device**
