@@ -1,7 +1,7 @@
 class_name AreaScheduleEntry
 extends Resource
-## One AreaSchedule entry: when the generator has emitted `turn` junctions, the road enters `area`.
-## A set piece (a run of straight tiles with no junction) can lead into it.
+## One AreaSchedule entry: when the generator has emitted `turn` turns, not counting decoys, the
+## road enters `area`. A set piece (a run of straight tiles with no junction) can lead into it.
 
 @export var turn := 0
 @export var area: AreaDef
