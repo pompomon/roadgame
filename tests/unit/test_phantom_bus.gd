@@ -132,15 +132,15 @@ func test_the_car_and_its_double_draw_over_the_bus_as_they_board() -> void:
 			var what := "car %s, direction %s" % [heading, direction]
 			_step_to(bus, ends[1])
 			var sprite := _sprite(bus)
-			var double := _double(bus)
+			var car_double := _double(bus)
 			assert_lt(sprite.global_position.y, _car.global_position.y, "%s: up-screen" % what)
-			if double == null:
+			if car_double == null:
 				fail_test("%s: the bus took the car" % what)
 				continue
-			assert_eq(double.get_parent(), sprite.get_parent(), "%s: on one stage" % what)
+			assert_eq(car_double.get_parent(), sprite.get_parent(), "%s: on one stage" % what)
 			var least := INF
 			while _frames <= ceili((_params.delay + ends[2]) / DELTA):
-				least = minf(least, double.global_position.y - sprite.global_position.y)
+				least = minf(least, car_double.global_position.y - sprite.global_position.y)
 				simulate(bus, 1, DELTA)
 				_frames += 1
 			assert_gt(least, 0.0, "%s: the double stays down-screen of the bus" % what)
@@ -155,30 +155,30 @@ func test_its_doors_open_on_the_dark_and_the_double_shrinks_into_them() -> void:
 	assert_eq(sprite.frame, first, "shut as it comes")
 	assert_null(_double(bus), "the car is still there")
 	_step_to(bus, ends[1])
-	var double := _double(bus)
-	if double == null:
+	var car_double := _double(bus)
+	if car_double == null:
 		fail_test("the bus took the car")
 		return
 	assert_eq(_car.modulate.a, 0.0, "the double has taken the car's place")
 	var shown := true
 	var alphas: Array[float] = []
 	while not _reached(_middle(2)):
-		shown = shown and Disasters.shows(double) and double.modulate.a == 1.0
-		alphas.append(double.modulate.a)
+		shown = shown and Disasters.shows(car_double) and car_double.modulate.a == 1.0
+		alphas.append(car_double.modulate.a)
 		_step(bus)
 	assert_true(shown, "it shows in full through the first half of the beat")
 	assert_eq(sprite.frame, first + PhantomBus.DOORS - 1, "open")
 	var done := false
 	while not done:
 		done = _reached(ends[2])
-		alphas.append(double.modulate.a)
+		alphas.append(car_double.modulate.a)
 		_step(bus)
-	alphas.append(double.modulate.a)
+	alphas.append(car_double.modulate.a)
 	assert_eq(alphas, Disasters.sorted(alphas, true), "it only fades")
-	assert_almost_eq(double.global_position, _doors(Vector2.RIGHT), NEAR, "at the doors")
+	assert_almost_eq(car_double.global_position, _doors(Vector2.RIGHT), NEAR, "at the doors")
 	var boarded := Vector2.ONE * PhantomBus.BOARDED_SCALE
-	assert_almost_eq(double.scale, boarded, NEAR, "shrunk")
-	assert_eq(double.modulate.a, 0.0, "gone in")
+	assert_almost_eq(car_double.scale, boarded, NEAR, "shrunk")
+	assert_eq(car_double.modulate.a, 0.0, "gone in")
 
 
 func test_it_glides_off_and_fades_and_leaves_its_ticket_at_the_doors() -> void:
