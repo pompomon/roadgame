@@ -382,17 +382,17 @@ static func shows(item: CanvasItem) -> bool:
 	return alpha > 0.01 and size > 1e-4
 
 
-## Whether `particles` show what they emit: they show(), and some live a while, at a size over
-## nothing, in colours that aren't all clear.
-static func particles_show(particles: CPUParticles2D) -> bool:
+## Whether `emitter` shows what it emits: it show()s, and its particles live a while, at a size
+## over nothing, in colours that aren't all clear. (`particles` would shadow particles().)
+static func particles_show(emitter: CPUParticles2D) -> bool:
 	return (
-		shows(particles)
-		and particles.amount > 0
-		and particles.lifetime > 0.0
-		and particles.scale_amount_max > 0.0
-		and particles.color.a > 0.01
-		and _some_opaque(particles.color_ramp)
-		and _some_opaque(particles.color_initial_ramp)
+		shows(emitter)
+		and emitter.amount > 0
+		and emitter.lifetime > 0.0
+		and emitter.scale_amount_max > 0.0
+		and emitter.color.a > 0.01
+		and _some_opaque(emitter.color_ramp)
+		and _some_opaque(emitter.color_initial_ramp)
 	)
 
 
