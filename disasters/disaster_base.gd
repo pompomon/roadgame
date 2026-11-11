@@ -31,6 +31,9 @@ const OUTLINE_POINTS := 32
 ## which CarController sets every physics frame (J3, M4_PLAN.md K19).
 var car: CarController
 var camera: CameraRig
+## Where a legend stands its parts, so that they sort with the props and the car: World's Props
+## (M6_PLAN.md S2). Null in tests that need no stage.
+var stage: Node2D
 
 @abstract func play(params: DisasterParams) -> void
 

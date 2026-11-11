@@ -45,8 +45,10 @@ func _ready() -> void:
 	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
 	print("grey box: tilesets built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	_director.layer = _world.get_node("%DisasterLayer")
+	_director.stage = _world.get_node("%Props")
 	_director.sequence_finished.connect(_on_sequence_finished)
 	_director.disaster_started.connect(_on_disaster_started)
+	_director.disaster_appeared.connect(_on_disaster_appeared)
 	_game_over.retry_requested.connect(_retry)
 	_game_over.title_requested.connect(_to_title)
 	# The Atlas and the collection show the whole schedule, also with --area.
@@ -222,6 +224,10 @@ func _turns_before(index: int) -> int:
 	# The buffer always holds the next junction (JunctionTrigger._junction_after()).
 	push_error("main: no junction after path index %d" % index)
 	return GameState.turn_index
+
+
+func _on_disaster_appeared(disaster: DisasterBase, area: AreaDef) -> void:
+	EventBus.disaster_appeared.emit(disaster.id, area)
 
 
 func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:

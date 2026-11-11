@@ -76,7 +76,7 @@ func _ready() -> void:
 	EventBus.car_offroad_changed.connect(_on_offroad_changed)
 	EventBus.health_changed.connect(_on_health_changed)
 	EventBus.run_ended.connect(_on_run_ended)
-	EventBus.disaster_started.connect(_on_disaster_started)
+	EventBus.disaster_appeared.connect(_on_disaster_appeared)
 	SaveService.settings_changed.connect(_on_settings_changed)
 
 
@@ -268,7 +268,9 @@ func _on_run_ended(cause: StringName, _stats: Dictionary) -> void:
 		play_effect(&"crash")
 
 
-func _on_disaster_started(id: StringName, _area: AreaDef) -> void:
+## A disaster's sound starts as it shows, with its first beat, not as it starts to play: its delay
+## may be up to DISASTER_DELAY_MAX (M6_PLAN.md S18).
+func _on_disaster_appeared(id: StringName, _area: AreaDef) -> void:
 	play_effect(id)
 
 
