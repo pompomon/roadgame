@@ -35,7 +35,7 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 	# plan.md §4.3 and IMPLEMENTATION_PLAN.md M4.2.
 	var pools := {
 		# The City's.
-		&"city": [&"sinkhole"],
+		&"city": [&"phantom_bus"],
 		# Rural's.
 		&"rural": [&"tornado"],
 		# The Meadows'.
