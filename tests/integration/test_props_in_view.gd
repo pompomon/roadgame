@@ -6,7 +6,8 @@ extends GutTest
 ## every reference screen (M2_PLAN.md §6.5) shows a part of the world that the tallest or the widest
 ## of them shows, and the drives run on those two. Each drive takes one seed at the speeds it
 ## reaches, and the worst case over seeds and speeds comes up to 16 px nearer, so each thing must
-## stay MARGIN away.
+## stay MARGIN away. But for a dead end freed with its junction: its worst case comes only where the
+## path ran the dead end's way, so test_camera_rig.gd checks it (ROADGEN_PLAN.md R6).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 ## The reference screens' viewports, after the stretch (M2_PLAN.md §6.5).
@@ -22,7 +23,7 @@ const SCREENS: Array[Vector2i] = [
 const TALLEST := Vector2i(360, 922)
 const WIDEST := Vector2i(1639, 640)
 const RUN_SEED := 3
-## A screen row. With BUFFER_BEHIND 19, a dead end freed with its junction would come 12 px from
+## A screen row. With BUFFER_BEHIND 19, a dead end freed with its junction would come 13 px from
 ## the tallest view at worst (M5_PLAN.md L2, ROADGEN_PLAN.md R6).
 const MARGIN := Iso.TILE_H / 2.0
 

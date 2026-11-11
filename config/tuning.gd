@@ -14,8 +14,9 @@ const BUFFER_REFILL_AT := 37
 ## Correct-path tiles kept behind the car's tile. Older tiles are freed with their branches, and a
 ## set piece with its last tile. With BUFFER_REFILL_AT and PROP_AHEAD, enough that no reference
 ## screen sees a tile, a set piece or a prop come or go (M5_PLAN.md L2). What reaches highest above
-## a freed path tile is a straight-on dead end, DEAD_END_MAX_TILES rows above it: 19 would leave it
-## 12 px below the tallest view at top speed, 20 leaves 44 (ROADGEN_PLAN.md R6).
+## a freed path tile is a straight-on dead end, DEAD_END_MAX_TILES rows above it: at
+## GLOBAL_SPEED_CAP, 19 would leave its end 13 px below the tallest view, and 20 leaves 45
+## (test_camera_rig.gd, ROADGEN_PLAN.md R6).
 const BUFFER_BEHIND := 20
 ## Straight tiles before the first junction: path indices 0 to START_STRAIGHT_TILES - 1.
 const START_STRAIGHT_TILES := 4

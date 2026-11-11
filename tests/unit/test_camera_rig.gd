@@ -14,6 +14,8 @@ const SCREENS: Array[Vector2i] = [
 	Vector2i(360, 800),
 	Vector2i(1137, 640),
 ]
+## How near the view something may come or go: a screen row, as in test_props_in_view.gd.
+const MARGIN := Iso.TILE_H / 2.0
 
 
 func _view(size: Vector2i) -> SubViewport:
@@ -177,3 +179,34 @@ func test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction() -> void:
 				var tip := centre + Vector2(Heading.VEC[exit]) * Tuning.DEAD_END_MIN_TILES
 				var cap := Rect2(Iso.tile_to_world(tip) - end_size / 2.0, end_size)
 				assert_false(view.intersects(cap), "%s, dead end %s" % [at, Heading.NAMES[exit]])
+
+
+## A dead end freed with its junction is out of view (ROADGEN_PLAN.md R6, M5_PLAN.md L2). The
+## buffer frees a junction and its dead ends as the car enters the path tile BUFFER_BEHIND + 1 past
+## it. Each path tile is a row above the last, so the end of a straight-on dead end
+## DEAD_END_MAX_TILES long is BUFFER_BEHIND + 1 - DEAD_END_MAX_TILES rows below the car's tile,
+## whichever way the path ran. Where the path ran the dead end's way, that end is under the view,
+## the worst case, which a drive meets only now and then: so only heights count. On every reference
+## screen, with the car entering its tile on the centreline at GLOBAL_SPEED_CAP and the camera
+## trailing it as far as it does at that speed, the end stays MARGIN below the view.
+func test_a_dead_end_freed_with_its_junction_stays_below_the_view_at_top_speed() -> void:
+	var delta := 1.0 / 60.0
+	var frames := 180
+	var rows := Tuning.BUFFER_BEHIND + 1 - Tuning.DEAD_END_MAX_TILES
+	var end_top := rows * Iso.TILE_H / 2.0
+	for size: Vector2i in SCREENS:
+		var rig := _rig(_view(size))
+		var shown := Vector2(size) / rig.zoom
+		for heading: int in [Heading.N, Heading.W]:
+			var step := Vector2(Heading.VEC[heading])
+			var velocity := Iso.tile_to_world(step) * Tuning.GLOBAL_SPEED_CAP
+			rig.car.sim.angle = heading * PI / 2.0
+			rig.car.position = Iso.tile_to_world(Vector2(0.5, 0.5) - step / 2.0)
+			rig.car.position -= velocity * delta * frames
+			rig.snap_to_target()
+			for _i: int in frames:
+				rig.car.position += velocity * delta
+				simulate(rig, 1, delta)
+			var view := Rect2(rig.position - shown / 2.0, shown)
+			var gap := end_top - view.end.y
+			assert_gte(gap, MARGIN, "%s, heading %s: %.1f px" % [size, Heading.NAMES[heading], gap])
