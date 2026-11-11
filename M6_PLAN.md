@@ -1,8 +1,8 @@
 # M6 Legends — Detailed Plan
 
-Status: draft for the owner's choices, Q1–Q3 first (§3) · 2026-11-11 · Scope: new disasters drawn from myths, folk tales and urban legends, with three options for each area, their visuals, sound and lore (§3.3); the changes they need in the disaster contract, its tests, the palette and the UI; and where the milestone goes (Q1)
+Status: answered by the owner in #45: Q8's alternative, scarier but still with no gore, and the defaults for the rest; being built (§4) · 2026-11-11 · Scope: new disasters drawn from myths, folk tales and urban legends, with three options for each area, their visuals, sound and lore (§3.3); the changes they need in the disaster contract, its tests, the palette and the UI; and where the milestone goes (Q1)
 
-**Verified so far, and what isn't yet.** This plan reviews `main` at 4ade5f2 (#44). Each claim about the code cites its file and line. Each claim about Godot that its docs don't settle was checked with a probe, P1–P15 (§6.5): headless, or rendered with the Compatibility renderer (`opengl3` on Mesa llvmpipe under Xvfb, as IP M6.6 plans for screenshots). Unlike M2–M5, there is no prototype yet: building all 15 options would waste the 10 the owner doesn't pick. Once Q1–Q3 are answered, `m6/prototype` is built as `AGENTS.md` §2 says, one commit per PR (§4.1). It fixes §6.1's counts, runs §6.2's negative cases and simulates the landing again on its own files (§4.5), and this plan is updated before PR 1 opens. A model of another family reviewed this plan (`AGENTS.md` §7), and so did Copilot; their findings and the fixes are in §4.6.
+**Verified so far, and what isn't yet.** This plan reviews `main` at 4ade5f2 (#44). Each claim about the code cites its file and line. Each claim about Godot that its docs don't settle was checked with a probe, P1–P15 (§6.5): headless, or rendered with the Compatibility renderer (`opengl3` on Mesa llvmpipe under Xvfb, as IP M6.6 plans for screenshots). There was no prototype before the owner's answers: building all 15 options would have wasted the 10 not picked. Now `m6/prototype` is built as `AGENTS.md` §2 says, one commit per PR (§4.1). It fixes §6.1's counts, runs §6.2's negative cases and simulates the landing again on its own files (§4.5), and this plan takes its results before PR 1 opens. A model of another family reviewed this plan (`AGENTS.md` §7), and so did Copilot; their findings and the fixes are in §4.6.
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
@@ -31,7 +31,7 @@ Contents:
 
 ## 1. Goal and exit criteria
 
-**Goal.** When a run ends at a junction, the player meets a legend of the area instead of a natural disaster: with Q2's default, a phantom bus in the City, a UFO over Rural's fields, a fairy ring in the Meadows, a witch's hex in the Village and a death worm in the Desert. Each is a 2–4 s scene that keeps the disaster contract (`disasters/disaster_base.gd:3–10`), reads at the reference screen of 360×640, and plays the same on Android and the Web. The tone is spooky-funny, for all ages (Q8).
+**Goal.** When a run ends at a junction, the player meets a legend of the area instead of a natural disaster: with Q2's default, a phantom bus in the City, a UFO over Rural's fields, a fairy ring in the Meadows, a witch's hex in the Village and a death worm in the Desert. Each is a 2–4 s scene that keeps the disaster contract (`disasters/disaster_base.gd:3–10`), reads at the reference screen of 360×640, and plays the same on Android and the Web. The tone is scary, with no gore: no blood, no wounds and no one hurt on screen (Q8).
 
 | ID | Exit criterion | How it is checked |
 |---|---|---|
@@ -94,7 +94,7 @@ Each finding has its evidence and its fix. The fixes are in §4's PRs, and §6.2
 
 **S8. Nothing says which disaster ended the run.**
 - Evidence: the game-over screen's messages go by CarSim's cause (`ui/game_over.gd:16–21`), and `open(stats, area)` takes nothing else (`:41–45`). `main.gd:224–225` knows the disaster when it starts. For a legend, being named is the point.
-- Fix (Q6): `DisasterBase.fate`, a line such as "The phantom bus took you aboard." `main.gd` keeps the fate from `disaster_started`, clears it at each run's start, and passes it to `GameOver.open()`, which shows it under the cause. A crash has none. PR 1 writes the natural four's fates too. N13, N14.
+- Fix (Q6): `DisasterBase.fate`, a line such as "The bus with no driver took you aboard." `main.gd` keeps the fate from `disaster_started`, clears it at each run's start, and passes it to `GameOver.open()`, which shows it under the cause. A crash has none. PR 1 writes the natural four's fates too. N13, N14.
 
 **S9. The palette has no colours for night magic.**
 - Evidence: `assets/palette.gpl` has 32 colours, and none is a deep blue, a violet, a lilac or a pale spirit green. The nearest are shadow (52 48 60), foam (158 199 240) and meadows light (140 200 108). `plan.md:199` asks for 16–32 colours.
@@ -116,7 +116,7 @@ Each finding has its evidence and its fix. The fixes are in §4's PRs, and §6.2
 - Fix: PR 2 makes them read the pools, and checks only a scene's file name. The City's disaster, whichever it is, takes the car and is saved; the collection shows the card of the disaster that played; and each area's wrong turn plays one of its pool. The card tests are PR 1's. PR 1 changes the cards (S12), and with them the dicts that `test_collection_screen.gd:44–52` and `:70` compare, so it moves every test of that file to a schedule of packed test disasters (`Disasters.packed()`), one of them in two pools, as the Village's flood and tornado are now, and `:63`'s flood to one of them. PR 2 then leaves that file alone (§4.5). PR 1, which adds the lore, also makes the layout test mark every disaster of the pools as seen, so each legend's lore is laid out at 360×640 as its PR adds it (E9). N22.
 
 **S16. The layout test fails on cards the collection scrolls to.**
-- Evidence: P13. With the five ★ legends seen and their lore under their details, the cards are 857 px high in the collection's 504 px `Scroll` (`ui/collection_screen.tscn:37–45`), and 2 of them end below the screen. That's what the scroll is for, but `test_title_screen.gd:127–130` requires every visible control to lie within 360×640. No card is wider than the screen: the scroll doesn't scroll sideways (`:40`), and the labels wrap (`ui/menu_card.tscn:24`, `:29`).
+- Evidence: P13. With the five ★ legends seen and their lore under their details, the cards are 891 px high in the collection's 504 px `Scroll` (`ui/collection_screen.tscn:37–45`), and 2 of them end below the screen. That's what the scroll is for, but `test_title_screen.gd:127–130` requires every visible control to lie within 360×640. No card is wider than the screen: the scroll doesn't scroll sideways (`:40`), and the labels wrap (`ui/menu_card.tscn:24`, `:29`).
 - Fix: PR 1's layout test checks a control inside the scroll only against the screen's width, and checks that the scroll itself fits. Then it scrolls to the last card (`ensure_control_visible()`) and checks that the card is inside the scroll's rect. N23.
 
 **S17. One generator makes every sound.**
@@ -145,7 +145,7 @@ Each finding has its evidence and its fix. The fixes are in §4's PRs, and §6.2
 
 ### 3.1 Questions
 
-The prototype follows the defaults. Each alternative changes the PRs named.
+The owner chose Q8's alternative, still with no gore, and the defaults for the rest (#45, 2026-11-11). The prototype follows these answers. Each other alternative would change the PRs named.
 
 | # | Question | Default | Alternative |
 |---|---|---|---|
@@ -156,7 +156,7 @@ The prototype follows the defaults. Each alternative changes the PRs named.
 | Q5 | Which legends darken the view? | A night veil for the UFO, Mothman, the wisps and the Marfa lights; a dusk veil for the bus, the horseman, the fairy ring, the witch and Baba Yaga | No veils: lights are plain sprites (S10), and E5 goes |
 | Q6 | Does game over name the legend? | Yes: a fate line under the cause (S8) | No: no `fate`, no N13, N14 |
 | Q7 | Does the collection tell the legend? | Yes: a seen card adds its lore (S12, S16) | No: no `lore`, no S16 |
-| Q8 | How scary? | Spooky-funny, for all ages: no gore, and no one hurt on screen. The car is taken, shrunk or changed, never smashed | Scarier: §3.2's grim legends come back, and the store's content rating needs a look |
+| Q8 | How scary? | Spooky-funny, for all ages: no gore, and no one hurt on screen. The car is taken, shrunk or changed, never smashed | **Chosen**, with no gore: scarier. The ★s get darker veils, eyes in the dark, grim sounds and words (§3.3); the car is still never smashed, and no one is hurt on screen. §3.2's omens of death may come back (§9), and the store's content rating needs a look (§7) |
 | Q9 | What of saves that recorded a natural disaster? | Nothing: they load as before, as `_read()` keeps any id (`autoload/save_data.gd:155–158`), and the collection shows only the pools' disasters | A save version 2 that drops them, with a migration (`autoload/save_data.gd:59`) |
 | Q10 | Should props near a standing legend hide? | No: it sorts with them (S2) | Hide them for the scene: the prop pool needs a way to, and tests |
 | Q11 | Placeholder art? | Sheets made by script, as M5's are (`tools/art/`), with contracts that final art must keep (E7) | Hand-drawn sheets first, held to the same contracts |
@@ -167,7 +167,7 @@ Each option:
 1. reads at 360×640 in 2–4 s without words;
 2. belongs in its area;
 3. ends with the car gone and something left behind, so the last frame tells what happened;
-4. suits all ages (Q8), comes from folklore or a public-domain story, and isn't sacred to a living tradition;
+4. is eerie or frightening but shows no gore: no blood, no wounds and no one hurt on screen (Q8); comes from folklore or a public-domain story, and isn't sacred to a living tradition;
 5. takes the car another way than its area's other two;
 6. needs only sprite sheets with frames of at most 96×96, and no polygon drawn twice (S6).
 
@@ -176,23 +176,22 @@ Across the ★s, the car goes five ways: aboard, up, away, changed and down.
 Left out:
 - the vanishing hitchhiker (the hitchhiker vanishes, not the car) and the ghost stagecoach (the bus and the horseman again);
 - the Pied Piper (the wisps' luring, and the children), the roc (Mothman again) and Nessie (the kelpie again);
-- Black Shuck, the banshee and the Grim Reaper: omens of death (Q8);
 - Slender Man, Siren Head and the Backrooms: recent works with owners;
 - the skinwalker, the wendigo and the thunderbird (sacred to Indigenous nations), La Llorona (drowned children) and the djinn (religious);
 - Krampus, which is seasonal.
 
 ### 3.3 The legends
 
-Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`). Each legend's beats add up to 2.3–2.6 s, so with the delay and the car's stop it takes 3.0–3.7 s (E2). A sheet is `assets/legends/<id>/<part>.png`, given as its frame size × its frames. Colours are the palette's, by name (`assets/palette.gpl`), with Q4's four in italics. The double is the car's stand-in (S3), a standing part sorts with the props (S2), and a glow is an additive light, used only in a veil or over a dark part (S10). Sizes, once PR 2 is in: S up to 1 day, M 1–1.5 days, L 2 days. P13 checked every name, fate and lore below: all their glyphs are in the game's font, Pixel Operator 8, and the longest are 17, 39 and 74 characters.
+Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`). Each legend's beats add up to 2.3–2.6 s, so with the delay and the car's stop it takes 3.0–3.7 s (E2). A sheet is `assets/legends/<id>/<part>.png`, given as its frame size × its frames. Colours are the palette's, by name (`assets/palette.gpl`), with Q4's four in italics. The double is the car's stand-in (S3), a standing part sorts with the props (S2), and a glow is an additive light, used only in a veil or over a dark part (S10). Sizes, once PR 2 is in: S up to 1 day, M 1–1.5 days, L 2 days. Q8's answer made the five ★s scarier: darker veils (§5.5), eyes in the dark, low and dissonant sounds, and grim words, still with no gore. The other ten are as first proposed, and would darken the same way if chosen (§9). P13 checked every name, fate and lore below: all their glyphs are in the game's font, Pixel Operator 8, and the longest are 17, 39 and 79 characters.
 
 #### City (now: the sinkhole)
 
 **★ Phantom Bus** · `phantom_bus` · M · fog 0.5, approach 0.9, board 0.4, leave 0.7
-- Look: a dusk veil, and fog (white particles) drifting over the road. A red double-decker with ink windows, half see-through, glides in along `params.direction` with two yellow headlamp glows, and stops by the car with its doors open. `bus.png`: 64×56 × 6, two facings × three door frames, flipped for the other two facings.
-- The car: the double slides to the doors and shrinks into them. The doors close, and the bus glides off and fades.
+- Look: a dusk veil, and a cold fog (white particles) rolling over the road. A red double-decker, half see-through and with no one at the wheel, glides out of it along `params.direction`, its headlamps two *wisp* glows. Its windows are ink, with pale faces (white) pressed to the glass. It stops by the car, its doors open on the dark. `bus.png`: 64×56 × 6, two facings × three door frames, flipped for the other two facings.
+- The car: the double slides to the doors and shrinks into them. The doors close, and the bus glides off into the fog and fades.
 - Left behind: a ticket (`ticket.png`, 12×8; white and red) on the road.
-- Sound: a ding-ding bell, an idling engine, the doors' hiss.
-- Words: "The phantom bus took you aboard." / "North Kensington, 1934: a driverless No. 7 bus ran cars off the road."
+- Sound: a cracked bell tolling twice, a low engine drone, the doors' hiss.
+- Words: "The bus with no driver took you aboard." / "North Kensington, 1934: a driver died swerving from a ghostly No. 7 bus."
 
 **Sewer Gator** · `sewer_gator` · M · rumble 0.5, burst 0.4, jaws 0.7, drag 0.5, hold 0.4
 - Look: no veil. The street shakes (`camera.shake()`, as in `sinkhole.gd:63`), and a manhole cover by the car (`cover.png`, 24×12 × 2; asphalt light) bursts up on a jet of steam (white particles). An alligator's head (`gator.png`, 48×48 × 5: rising, jaws open, jaws shut, sinking; meadows dark, white teeth) rises from the hole.
@@ -211,11 +210,11 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 #### Rural (now: the tornado)
 
 **★ UFO** · `ufo` · M · night 0.5, descend 0.5, beam 0.4, lift 0.8, zip 0.4
-- Look: a night veil falls over the fields. A flying saucer (`saucer.png`, 56×24 × 4; asphalt light and white, with yellow lights chasing round its rim at most 3 times a second) drops from the sky and hovers over the car. A cone of light (a *wisp* glow, opened by `scale.x` from 0 to 1) falls on the car, with white sparkles rising in it.
-- The car: the double floats up the beam by its offset, turning through its 16 headings, and is gone into the saucer. The beam closes, and the saucer zips off.
-- Left behind: a crop circle (`crop_circle.png`, 64×32; rural dark) pressed into the field.
-- Sound: a rising whine, a hum, a zip.
-- Words: "You were abducted by a UFO." / "New Hampshire, 1961: Betty and Barney Hill saw a saucer on a night drive."
+- Look: a night veil falls over the fields. A dark saucer (`saucer.png`, 56×24 × 4; shadow and asphalt, with *wisp* lights turning round its rim at most 3 times a second) drops without a sound and hovers over the car. A cone of cold light (a *wisp* glow, opened by `scale.x` from 0 to 1) falls on the car, with white sparkles rising in it. Three tall grey figures (`grey.png`, 12×32 × 2: facing, head tilted; asphalt light, with ink eyes) stand at its edge, on the stage, and watch.
+- The car: the double shudders, then floats up the beam by its offset, turning through its 16 headings, and is gone into the saucer. The beam closes, the figures are gone, and the saucer zips off.
+- Left behind: a crop circle (`crop_circle.png`, 64×32; rural dark) scorched into the field.
+- Sound: rising radio static, a deep throb, a high whine, and a zip into silence.
+- Words: "They took you. Two hours are missing." / "New Hampshire, 1961: Betty and Barney Hill lost two hours on a night drive."
 
 **Headless Horseman** · `headless_horseman` · M · hooves 0.5, gallop 0.8, hurl 0.5, fade 0.7
 - Look: a dusk veil. Hooves drum, and a headless rider in a fire-orange cape on a black horse (`horseman.png`, 56×56 × 8: four gallop frames, two facings; ink, shadow and fire) gallops in with ghost-fire at its hooves (fire particles), rears, and hurls a lit jack-o'-lantern (`pumpkin.png`, 16×16 × 2; fire and yellow) in an arc.
@@ -223,7 +222,7 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 - Left behind: the jack-o'-lantern, grinning on the road.
 - Sound: galloping hooves, a whinny, a pop.
 - Words: "The Headless Horseman took your car." / "Sleepy Hollow, 1820: a headless rider hurls his head. Or was it a pumpkin?"
-- Its pumpkin repeats the witch's (the Village's ★). With both, he throws his lantern instead.
+- Its jack-o'-lantern repeats the witch's (the Village's ★). With both, he hurls a ball of ghost-fire instead.
 
 **Scarecrow** · `scarecrow` · S–M · creak 0.4, turn 0.4, flock 1.0, scatter 0.6
 - Look: no veil, in broad day. A scarecrow (`scarecrow.png`, 32×48 × 4: still, head turning, head turned, arm raised; plank, rural light straw and a shadow hat) stands in the field by the road and slowly turns its head to the car. Crows burst from it (particles with an 8×6 × 2 ink texture, orbiting) and wheel round the car.
@@ -235,11 +234,11 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 #### Meadows (now: the flood)
 
 **★ Fairy Ring** · `fairy_ring` · M · sprout 0.6, glow 0.5, spin 0.9, hold 0.4
-- Look: a dusk veil. Ten toadstools (`toadstool.png`, 10×10 × 3 growing frames; red caps with white spots) sprout one by one in a ring round the car, standing on the stage. A soft *lilac* glow swells over each in turn and stays lit, and *lilac* and *wisp* sparkles circle inside the ring.
-- The car: the double spins through its 16 headings, faster and faster, shrinks to a point and is gone.
+- Look: a dusk veil. Ten pale toadstools (`toadstool.png`, 10×10 × 3 growing frames; white caps with shadow spots) sprout one by one in a ring round the car, standing on the stage. A sickly *wisp* glow swells over each in turn and stays lit. Pairs of small yellow eyes (glows) open one by one in the grass beyond the ring and watch, and *lilac* and *wisp* sparkles circle inside it.
+- The car: the double spins through its 16 headings, faster and faster, as if made to dance, shrinks to a point and is gone. The eyes close.
 - Left behind: the ring of toadstools.
-- Sound: tiny bells, a rising whirl, a chime.
-- Words: "You drove into a fairy ring." / "Step into a ring of toadstools and the fair folk make you dance."
+- Sound: tiny bells out of tune, thin laughter, a rising whirl, then one low chime.
+- Words: "The fair folk made you dance forever." / "Step into a fairy ring and you dance with the fair folk. Years pass in a night."
 
 **Will-o'-the-Wisp** · `will_o_wisp` · M · lights 0.5, circle 0.6, bog 0.4, sink 0.8, out 0.3
 - Look: a night veil over the meadow. Three to five wisps (*wisp* glows round white cores; the count from `params.intensity`) light one after another and circle the car, at most half a turn a second (E6). The ground under it turns to bog: a meadows dark pool, grown by `scale` from 0, with bubbles (particles).
@@ -258,11 +257,11 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 #### Village (now: the flood and the tornado)
 
 **★ Witch's Hex** · `witch_hex` · S · cackle 0.5, hex 0.5, puff 0.6, pumpkin 0.8
-- Look: a dusk veil. A witch on a broomstick (`witch.png`, 32×24 × 2; ink, *violet* and plank) swoops in, circles the car once and points. A trail of *violet* sparkles runs from her finger to the car.
-- The car: a puff of smoke (white and *lilac* particles) hides it. When the smoke clears, a pumpkin (`pumpkin.png`, 24×20 × 2; fire, with a desert cactus stalk) has popped up where it stood, by `scale`. The witch flies off.
-- Left behind: the pumpkin.
-- Sound: a cackle, a poof, a pop.
-- Words: "A witch turned your car into a pumpkin." / "Perrault, 1697: a pumpkin became a coach. Witches can undo that."
+- Look: a dusk veil. A hunched witch on a broomstick (`witch.png`, 32×24 × 2; ink, *violet* and plank, with *wisp* eyes) swoops in out of the dark, circles the car once and points a long finger. A trail of *violet* sparkles runs from her finger to the car.
+- The car: a puff of black smoke (ink and *violet* particles) hides it. When the smoke clears, a jack-o'-lantern (`pumpkin.png`, 24×20 × 2; fire, with an ink grin and a desert cactus stalk) has popped up where it stood, by `scale`, and a yellow glow lights its grin from within. The witch flies off, cackling.
+- Left behind: the jack-o'-lantern, its grin lit.
+- Sound: a long, low cackle, a whoosh, a poof, a hollow knock.
+- Words: "The witch made you her jack-o'-lantern." / "Village tales: cross a witch after dark and she keeps you, lit, on her step."
 - No double: the car hides in the puff. That makes it the cheapest legend.
 
 **Frau Holle's Well** · `frau_holle` · M · well 0.5, tip 0.5, fall 0.7, snow 0.8
@@ -283,11 +282,11 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 #### Desert (now: the quicksand)
 
 **★ Death Worm** · `death_worm` · M · ripple 0.6, bulge 0.4, erupt 0.6, sink 0.6, hold 0.3
-- Look: no veil, in the glare. Ripples run through the sand to the car (desert dark particles), and a mound swells under it (`mound.png`, 48×24 × 2; desert dark and light). A giant red worm (`worm.png`, 40×80 × 5: rising, mouth open, mouth shut, sinking; village roof with desert light bands) bursts up in a spray of sand.
+- Look: no veil, in the glare. The ground trembles (`camera.shake()`, as in `sinkhole.gd:63`), ripples run through the sand to the car (desert dark particles), and a mound swells under it (`mound.png`, 48×24 × 2; desert dark and light). A giant eyeless worm (`worm.png`, 40×80 × 5: rising, mouth open, mouth shut, sinking; village roof with desert light bands, its round mouth ringed with white teeth) bursts up in a spray of sand and rears over the car.
 - The car: the worm's mouth closes over the double, and the worm dives back into the sand, sinking by cropping.
 - Left behind: a crater (`crater.png`, 48×24) where the car stood.
-- Sound: a deep rumble, a burst, a gulp.
-- Words: "The death worm swallowed you." / "Gobi Desert: herders tell of the olgoi-khorkhoi, a worm under the sand."
+- Sound: a deep rumble that grows, a shriek, a burst, a gulp.
+- Words: "The death worm swallowed you whole." / "Gobi Desert: herders fear the olgoi-khorkhoi, a worm whose touch kills."
 
 **Marfa Lights** · `marfa_lights` · S · dusk 0.5, orbs 0.7, converge 0.6, merge 0.5
 - Look: a night veil over the desert. Four to six orbs (yellow, white and foam glows; the count from `params.intensity`) rise on the horizon, drift and bob at most once a second (E6), then close in on the car.
@@ -326,7 +325,7 @@ After PR 1, game over names the natural disaster that ended the run, and the col
 
 Each PR's changes are one commit of `m6/prototype`, ported as M5's were (M5_PLAN.md §4.1):
 
-1. `git fetch origin main '+refs/heads/m6/*:refs/remotes/origin/m6/*'`, then `git switch -c m6/1-words origin/main`; PRs 2–8 branch from the previous PR's branch (§4.5).
+1. `git fetch origin main '+refs/heads/m6/*:refs/remotes/origin/m6/*'`, then `git switch -c m6/1-words origin/m6/plan`; PRs 2–8 branch from the previous PR's branch (§4.5).
 2. `git cherry-pick --no-commit <commit>`, the commit named in the PR's section once the prototype exists. Where a review fix changed the same lines, keep both.
 3. Run `tools/ci/import.sh`: it must create no files. Run `godot --headless -s tools/audio/make_audio.gd` in every PR, and `tools/art/make_legends.gd` from PR 2 on: they must make the committed sounds and sheets again, byte for byte. In PR 8, this shows that no legend's sound changed with the natural four's going (S17).
 4. Run §6.1, and compare the counts with the PR's "Expect" line.
@@ -336,7 +335,7 @@ The counts below are estimates until the prototype fixes them. Every new `.gd` c
 
 ### PR 1: Words, colours and anchors: fates, lore, the palette, and a place for each area's legends **Δ S5, S8, S9, S12, S15–S17, Q4, Q6, Q7**
 
-Branch `m6/1-words`, from `main`.
+Branch `m6/1-words`, from `m6/plan`: this plan's PR, #45, is the stack's root (§4.5).
 
 | Area | Files |
 |---|---|
@@ -426,7 +425,7 @@ Steps:
 
 ### 4.5 Landing the stack
 
-The PRs land by `AGENTS.md` §5's procedure, with the `m6/` names, as M5's did (M5_PLAN.md §4.5). P7 simulated the landing on a model of the lists that the PRs share, and the prototype simulates it again on its own files with `git merge-tree`. Four rules keep it free of conflicts:
+The PRs land by `AGENTS.md` §5's procedure, with the `m6/` names, as M5's did (M5_PLAN.md §4.5). This plan's PR, #45, lands first: PR 1 targets `m6/plan` until then, as M1's PR 1 opened before its plan merged. Once #45 is squash-merged, PR 1 merges `origin/m6/plan` and then `origin/main`, both adding this plan with the same text, and targets `main`. P7 simulated the landing on a model of the lists that the PRs share, and the prototype simulates it again on its own files with `git merge-tree`. Four rules keep it free of conflicts:
 
 - **No add/add conflicts.** No PR changes a file that an earlier M6 PR adds. A legend that needs a change to the kit gets it on PR 2's branch, merged up. `make_legends.gd` finds the legends' art scripts by itself (§5.7), and a legend's sound and sheets depend only on its id (S17), so no later PR changes them. Files that several PRs change all exist on `main`: `config/tuning.gd`, `test_disasters.gd` and `audio_director.gd` (PRs 1–8), `make_audio.gd` (1, 3–8), `disaster_base.gd` (1, 2, 8), `ui/main.gd`, `disaster_fixtures.gd` and `test_wrong_turn_disaster.gd` (1, 2), `test_disaster_director.gd` (2, 8), and `test_collection_screen.gd` (1, 8).
 - **A line of the merge base between** (P7). When PR k+1 is updated after PR k's squash, the merge base holds `main` and PRs 1 to k−1. Two neighbouring PRs' changes need a line from there between them, or they conflict. So PR 1 adds the anchors, a comment line for each area (§5.10). Each legend PR adds its lines under its own area's comment, so the next area's comment lies between its lines and the next PR's. The natural four's block comes before the City's comment, far from the Desert's, the last that a PR adds to before PR 8 deletes the block. PR 1 and PR 2 change seven files with `main`'s lines between their changes:
@@ -542,7 +541,7 @@ The witch's hex needs no double: the car hides in the puff, by its own `modulate
 
 ### 5.5 Veils and glows (PR 2; S4, S10, E5, Q5)
 
-- **The veil** is a Polygon2D square, 2 × `VEIL_HALF_SIZE` (4096 px) a side, that `Legend._ready()` makes: white, with a `BLEND_MODE_MUL` material, at `z_index` `VEIL_Z`, not relative. That is above the car, the props and the parts (z 0 and 1), and below the glows (`GLOW_Z`). The widest reference view is 3278 × 1280 px of the world at zoom 0.5, so the square covers it wherever the camera points. Each frame it moves to `camera.get_screen_center_position()`; moving it draws nothing again (P2). It waits at `modulate.a` 0, drawn once (P10). At the delay, `modulate.a` becomes 1, and over the first beat `self_modulate` goes from white to `Tuning.VEIL_DUSK` or `VEIL_NIGHT`, about (210, 170, 220) and (90, 100, 170), tuned on the Fold4: P6 shows that halfway darkens half as much. It never brightens again while the legend plays (E6; N8). It's in the World, so the HUD and the menus stay as they are (P9). Without a camera, it stays where the legend is.
+- **The veil** is a Polygon2D square, 2 × `VEIL_HALF_SIZE` (4096 px) a side, that `Legend._ready()` makes: white, with a `BLEND_MODE_MUL` material, at `z_index` `VEIL_Z`, not relative. That is above the car, the props and the parts (z 0 and 1), and below the glows (`GLOW_Z`). The widest reference view is 3278 × 1280 px of the world at zoom 0.5, so the square covers it wherever the camera points. Each frame it moves to `camera.get_screen_center_position()`; moving it draws nothing again (P2). It waits at `modulate.a` 0, drawn once (P10). At the delay, `modulate.a` becomes 1, and over the first beat `self_modulate` goes from white to `Tuning.VEIL_DUSK` or `VEIL_NIGHT`, about (170, 130, 190) and (70, 80, 150), darker for Q8's answer and tuned on the Fold4: P6 shows that halfway darkens half as much. It never brightens again while the legend plays (E6; N8). It's in the World, so the HUD and the menus stay as they are (P9). Without a camera, it stays where the legend is.
 - **A glow** is a Sprite2D with a `BLEND_MODE_ADD` material at `GLOW_Z`: a soft round light (a radial `GradientTexture2D`, white to clear) tinted with a palette colour by `self_modulate`, or a part of a sheet, such as the UFO's beam. It grows by `scale` and fades by `modulate.a`. Over a veil, a glow lights the dark (P5). Over a light ground it clips to white (S10), so a legend without a veil has no glows: its lights are plain sprites.
 - **A sky part**, such as the saucer, sits at `SKY_Z`, over the props, as the tornado's funnel does at z 1 (`disasters/tornado.tscn:10–12`).
 
@@ -555,7 +554,7 @@ The witch's hex needs no double: the car hides in the puff, by its own `modulate
 - the veil's luminance rises while the legend plays;
 - or a `Tuning` constant whose name ends in `_HZ` is above 3.
 
-Blinking parts are paced in Hz by such constants: the UFO's rim at most 3 Hz, the wing beats of a later Mothman at most 3 Hz. Moving glows keep to the test too: the bus's headlamps pass a point at most once coming and once going; the UFO's beam opens and closes once; the fairy ring's glows swell one by one and stay lit to the end; five wisps, spread evenly and circling at most half a turn a second, pass a point at most 3 times in any second. The test legend has two glows that overlap and pulse together, in short pulses twice a second (N20, N21).
+Blinking parts are paced in Hz by such constants: the UFO's rim at most 3 Hz, the wing beats of a later Mothman at most 3 Hz. Moving glows keep to the test too: the bus's headlamps pass a point at most once coming and once going; the UFO's beam opens and closes once; the fairy ring's glows and eyes light one by one and stay lit until the eyes close at the end; the witch's lantern lights once; five wisps, spread evenly and circling at most half a turn a second, pass a point at most 3 times in any second. The test legend has two glows that overlap and pulse together, in short pulses twice a second (N20, N21).
 
 ### 5.7 Palette and art (PR 1, PRs 3–7; S9, Q4, Q11, E7)
 
@@ -672,8 +671,8 @@ The kit's cases (N2–N12, N19, N26–N29, N36) break parts of PR 2's that no le
 |---|---|---|
 | `phantom_bus` (3) | N1, N16, N20, N21 (its headlamps' glow grows to 260 × 260 px), N24, N25 | — |
 | `ufo` (4) | N1, N16, N20 (its beam, then `UFO_RIM_HZ` at 4), N21 (a glow grows), N24, N25 | — |
-| `fairy_ring` (5) | as the bus's, on its *lilac* glows | — |
-| `witch_hex` (6) | N1 (a part hidden by `modulate.a`; the pumpkin is hidden by its scale), N16, N24, N25 | N20, N21: no glows |
+| `fairy_ring` (5) | as the bus's, on its *wisp* glows | — |
+| `witch_hex` (6) | N1 (a part hidden by `modulate.a`; the pumpkin is hidden by its scale), N16, N20, N21 (on its lantern's glow), N24, N25 | — |
 | `death_worm` (7) | N1, N16, N24, N25 | N20, N21: no glows |
 
 ### 6.3 Editor warnings
@@ -685,7 +684,7 @@ None of the five checks reports GDScript warnings. As in M2–M5 (M5_PLAN.md §6
 - **CI** builds the Web and Android exports on each PR (`AGENTS.md` §10). Only PR 8's builds are checked by hand (§4, PR 8).
 - **The Web** (E11), in Chrome and Firefox, driven by Playwright, headed under Xvfb as #28 did: each legend from `?arg=--play&arg=--area=<id>`, its veil at the widest and the tallest window, game over's fate, the collection's lore and its last card. Chrome's `GPU stall due to ReadPixels` notes and an early `CONTEXT_LOST_WEBGL` come from the environment, as with M2–M5's builds (M5_PLAN.md:273).
 - **The Fold4** (E11, §7): 60 frames a second through each legend, folded and unfolded, and the text crisp.
-- **No check judges** whether a legend reads in 2–4 s without words, whether it is spooky-funny rather than scary (Q8), or whether its sound fits. The owner judges them on the Fold4, from PR 3 on. A legend that misses goes back to its art and beats, in its own PR.
+- **No check judges** whether a legend reads in 2–4 s without words, whether it is scary with no gore (Q8), or whether its sound fits. The owner judges them on the Fold4, from PR 3 on. A legend that misses goes back to its art and beats, in its own PR.
 
 ### 6.5 Probes
 
@@ -699,13 +698,13 @@ Each ran with Godot 4.7.2: headless, or rendered with the Compatibility renderer
 | P4 | Properties and constants the legends use | `CanvasItemMaterial`'s ADD (1) and MUL (3) blends and particle animation; CPUParticles2D's `texture`, `anim_speed_*`, `anim_offset_*`, `orbit_velocity_*` and `tangential_accel_*`; `clip_children` | §3.3, §5.5 |
 | P5 | Rendered: a MUL square tinted (30, 34, 72) over a ground of (200, 200, 200), and an ADD glow of (110, 220, 160) on and off it | The veiled ground (23, 27, 56); the glow on it (133, 247, 216), and off it (255, 255, 255) | S10, §5.5 |
 | P6 | Rendered: the MUL square at `modulate.a` 0, 0.5 and 1; at `self_modulate` halfway from white; and an ADD (40, 40, 40) at alpha 0.5 | 0: the ground (200, 200, 200); 0.5 and 1: (23, 27, 56); halfway: (112, 113, 128), half the darkening; the ADD adds (20, 20, 20) | S4, §5.5 |
-| P7 | Two stacked branches change neighbouring lines of one file, and then lines one unchanged line apart; the first is squash-merged, and `main` is merged into the second. Then the whole stack of eight, on a model of the lists they share (`EFFECTS`, `make_audio.gd`'s calls and synths, `tuning.gd`, `test_disasters.gd`'s pools and tests), each PR formatted by `gdformat` and landed by `AGENTS.md` §5's updates. Then Q2's alternative, in several orders (§4.5) | Neighbouring lines conflict. Lines one line apart merge cleanly only if that line is in the merge base. With PR 1's anchors, every update is clean, and `main` ends as PR 8's branch. With the anchors in PR 2, PR 3's update conflicts in all four files; without `# Rural's legends.` in `EFFECTS`, PR 4's does; with PR 2's tests right after PR 1's, PR 2's does. One PR for each area's further legends, after PR 7 in the areas' order and before PR 8, lands cleanly for all five areas (13 PRs), for the City alone, the Meadows alone, and the pairs of the City, the Village and the Desert. The Desert's alone conflict right after PR 7, in all four files, and land cleanly inside it. A second City PR right after PR 3, or two City PRs after PR 7, conflict in all four files | S5, §4.5, §5.10 |
+| P7 | Two stacked branches change neighbouring lines of one file, and then lines one unchanged line apart; the first is squash-merged, and `main` is merged into the second. Then the whole stack of eight, on a model of the lists they share (`EFFECTS`, `make_audio.gd`'s calls and synths, `tuning.gd`, `test_disasters.gd`'s pools and tests), each PR formatted by `gdformat` and landed by `AGENTS.md` §5's updates. Then Q2's alternative, in several orders (§4.5) | Neighbouring lines conflict; lines one apart merge cleanly only if that line is in the merge base. With PR 1's anchors every update is clean, and `main` ends as PR 8's branch. Anchors in PR 2: PR 3's update conflicts in all four files; no `# Rural's legends.` in `EFFECTS`: PR 4's does; PR 2's tests right after PR 1's: PR 2's does. Further legends, one PR per area after PR 7 in the areas' order: clean for all five areas (13 PRs), the City alone, the Meadows alone, and the pairs of the City, the Village and the Desert. The Desert's alone conflict right after PR 7, and land cleanly inside it. A second City PR right after PR 3, or two after PR 7, conflict in all four files | S5, §4.5, §5.10 |
 | P8 | A part staged under Props is freed by its disaster's `_exit_tree()` (`is_instance_valid()`, then `free()`): with the disaster freed, with the World freed, and with the World queued | Nothing left under Props in each case, and no errors | S2, §5.3 |
 | P9 | Rendered: the MUL square in the World, and a panel on a CanvasLayer over it | The World under the square (23, 27, 56); the panel's (240, 200, 80) as it is | E5, §5.5 |
 | P10 | Two Polygon2Ds and a Sprite2D, drawn, are moved to another parent; then their `modulate`, `z_index` and `position` change | Each draws once more on the move, and not for the rest | S2, S6 |
 | P11 | `gdformat` and `gdlint` (gdtoolkit 4.5.0) on a script with §5.10's comment lines in a typed Dictionary constant, in a dictionary literal, among statements and among functions; then a function added under one of the comments | Both keep them, and neither reports anything. Among functions, `gdformat` keeps one blank line between two comments, and puts two before a comment that a function follows. The added function adds lines only between its comment and the next | S5, §5.10 |
 | P12 | A `const` of `PackedFloat64Array`, and one of `Array[float]` | The first fails to parse, and the check hangs; the second is typed and read-only, so beats are `Array[float]` | §5.2 |
-| P13 | Every name, fate and lore of §3.3 against Pixel Operator 8 (`assets/fonts/pixel_operator_8.tres`); the five ★ legends' cards laid out in the collection at 360 × 640, each lore in a Label of its own under the details; game over with the longest fate | Every glyph is in the font. The cards are 857 px high in a 504 px scroll, 2 of them below the screen and none wider than it; with all 15, 2,597 px and 12. The fate takes at most two lines, and nothing leaves the screen | S12, S16, §5.8 |
+| P13 | Every name, fate and lore of §3.3 against Pixel Operator 8 (`assets/fonts/pixel_operator_8.tres`); the five ★ legends' cards laid out in the collection at 360 × 640, each lore in a Label of its own under the details; game over with the longest fate | Every glyph is in the font. The cards are 891 px high in a 504 px scroll, 2 of them below the screen and none wider than it; with all 15, 2,661 px and 12. The fate takes at most two lines, and nothing leaves the screen | S12, S16, §5.8 |
 | P14 | `hash()` of `"a"` and of `"phantom_bus"`, in two runs; a `RandomNumberGenerator` that has drawn, seeded again with the second, against a new one with that seed | `hash("a")` is 177670, as the docs say, and `hash("phantom_bus")` 2079240293, in both runs. Both generators then draw 0.205491 first | S17, §5.9 |
 | P15 | 200 pairs of a layer and a director after it, as in the main scene. On a random frame the director adds a disaster under the layer and calls its `play()` with a delay of 0.1–0.5 s; both count the delay from there, each in its own `_physics_process` | A node added during a later sibling's step first steps on the next frame. The director's clock reaches the delay on the frame the disaster's does, in all 200 | S18 |
 
@@ -721,9 +720,9 @@ These need the repository owner. The current state was read with `gh api` on 202
 
 | When | Action | How |
 |---|---|---|
-| Now | Answer Q1–Q3, then Q4–Q11, or accept the defaults | A comment on this plan's PR. Q1–Q3 shape the stack: Q2's alternative adds a PR for each area with further legends, after PR 7 (§4.5), and Q3's leaves PR 8 only the documents. Without an answer, the PRs follow the defaults |
-| Now | Merge this plan's PR | Squash-merge it into `main`. PR 1 branches from `main` with this plan, and PR 8's tree check leaves the plan out (§4, PR 8 step 1) |
-| As PRs 3–7 come | Judge each legend on the Fold4: it reads in 2–4 s without words, it is spooky-funny rather than scary (Q8), and its sound fits (§6.4) | The PR's builds: `gh workflow run ci.yml -R pompomon/roadgame --ref <branch> -f upload-builds=true`, then `AGENTS.md` §6's commands. The APK reaches the City's and Rural's legends within a minute (M4 Q6); the other areas' as in §4, PR 8 step 2 |
+| Done, 2026-11-11 | Answer Q1–Q11 | Q8's alternative, with no gore; the defaults for the rest (#45) |
+| Now | Merge this plan's PR | Squash-merge it into `main` first: it is the stack's root, and PR 1 targets `m6/plan` until then (§4.5). PR 8's tree check leaves the plan out (§4, PR 8 step 1) |
+| As PRs 3–7 come | Judge each legend on the Fold4: it reads in 2–4 s without words, it is scary with no gore (Q8), and its sound fits (§6.4) | The PR's builds: `gh workflow run ci.yml -R pompomon/roadgame --ref <branch> -f upload-builds=true`, then `AGENTS.md` §6's commands. The APK reaches the City's and Rural's legends within a minute (M4 Q6); the other areas' as in §4, PR 8 step 2 |
 | Before PR 8 merges | E11 on the Galaxy Z Fold4, folded and unfolded. An agent does the Web checks in Chrome and Firefox (§6.4) | §4, PR 8 step 2 |
 | To land M6 | Merge PRs 1–8 in order, each once its base is `main` and it is updated as in §4.5, and resolve their review threads | §4.5 |
 | Optional | Delete each PR's branch after it merges, so GitHub retargets the next PR by itself. Delete `m6/prototype` once PR 8 has merged | The **Delete branch** button on the merged PR (§4.5); `git push origin --delete m6/prototype` |
@@ -736,7 +735,7 @@ These need the repository owner. The current state was read with `gh api` on 202
 |---|---|---|
 | The legends' art is made by scripts (Q11) | A legend may not read as itself at 360 × 640: the fairy ring as just a ring, the hex as just a glow | Each legend is a silhouette that reads in frames of at most 96 × 96, and leaves something behind (§3.2). Game over names it (Q6). The owner judges each from PR 3 on (§7). Final sheets replace the placeholders within E7's contracts, with no change to the code |
 | A legend's timing | Five beats in 2–4 s may feel rushed, or slow by the tenth retry | The beats' lengths are `Tuning` constants, and E2 bounds the total. The owner judges them on the Fold4 (§7) |
-| The tone (Q8), and where the legends come from | A legend frightens young players, or offends the tradition it comes from | §3.2's criteria and the legends it leaves out. No one is hurt on screen. The owner judges each before its PR lands |
+| The tone (Q8), and where the legends come from | A legend is too frightening for the rating the store gives, or offends the tradition it comes from | §3.2's criteria and the legends it leaves out. No gore, and no one hurt on screen. The owner judges each before its PR lands, and the store's content rating is checked before release (§9) |
 | The flash test reads the glows' and the veil's light, not the screen's pixels (§5.6) | A sheet whose frames alternate light and dark could flash where no glow does | The placeholder sheets change shape from frame to frame, not light. A final sheet is checked by eye on the Fold4 (E11), and a rendered check could follow (§9) |
 | Godot 4.7.2 redraws a `Polygon2D` with WebGL errors (godotengine/godot#124726) | Errors in the browser's console, and a legend that may draw wrong on the Web | S6: no polygon is drawn twice. `test_none_redraws_a_polygon` checks every drawable, the stage's parts and the veil included (N9, N10). What changes is a sprite, a particle or a material (P1–P3) |
 | The veil and the glows on the Fold4 | Fewer than 60 frames a second during a legend | The veil is one square, clipped to the screen, and E6 keeps each glow under a quarter of the view. E11 measures the frame rate on the Fold4 (§6.6) |
@@ -752,8 +751,8 @@ These need the repository owner. The current state was read with `gh api` on 202
 
 - **M7 Ship** (Q1). IP's M6 becomes M7, and M5_PLAN.md §9's notes for M6 become M7's: the orientation and vibration settings, the Web's audio, the release checklist and tall windows. With the legends:
   - the vibration setting can pulse on a legend's beats, whose ends `Beats` gives (§5.2);
-  - the store's screenshots and its content rating follow Q8's tone.
-- **More legends** (Q2's alternative): §3.3 has ten more designs. They land as §4.5 says: one PR per area, never two in a row for one area. A new legend is checked against §3.2's criteria first.
+  - the store's content rating declares the legends' horror: fear, with no blood or gore (Q8). Its screenshots may show them.
+- **More legends** (Q2's alternative): §3.3 has ten more designs. They land as §4.5 says: one PR per area, never two in a row for one area. A new legend is checked against §3.2's criteria first, and made as dark as the ★s (Q8). Q8's answer also lets the omens of death in: Black Shuck in Rural, the banshee in the Village, the Grim Reaper in any area.
 - **Godot 4.8** fixes the `Polygon2D` redraws (godotengine/godot#124726). Keep S6's rule and its test while the Web build runs 4.7. After an upgrade, run P1–P3 and P10 again (IP §7.1).
 - **A rendered flash check** (§8): render each legend frame by frame, as P5 does, and measure the screen's light, for final sheets.
 - **Saves:** a later save version could drop the ids that no pool has, with its migration and its test (Q9).
