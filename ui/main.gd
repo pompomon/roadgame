@@ -215,7 +215,7 @@ func _on_area_changed(area: AreaDef) -> void:
 
 
 ## The turns before path index `index`: the turn number of the first junction from there on, as a
-## junction's turn number counts the junctions before it.
+## junction's turn number counts the turns before it, and a decoy is no turn (ROADGEN_PLAN.md R1).
 func _turns_before(index: int) -> int:
 	for i: int in range(index, _buffer.last_index() + 1):
 		var tile := _buffer.path_tile(i)
