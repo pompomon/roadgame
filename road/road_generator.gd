@@ -9,8 +9,9 @@ extends RefCounted
 ##
 ## The path heads N, then alternates W and N, so it moves only towards -x and -y. Wrong exits point
 ## E or S, or straight on (N or W) while the path turns. A dead end therefore never touches a past
-## or future path cell, only other dead ends within 6 path steps. The opposite-turn stub of one
-## tile always fits, and so does a straight-on dead end, so every junction keeps a wrong exit.
+## or future path cell, only other dead ends within twice DEAD_END_MAX_TILES path steps. Straights
+## are at least 2 tiles (D7), so an opposite-turn dead end always has 2 free cells, and a
+## straight-on dead end always fits whole: every junction keeps a wrong exit (ROADGEN_PLAN.md R5).
 
 ## The exits a junction offers besides its entry. T: the turn and the opposite turn. CROSSROADS:
 ## straight on as well. SIDE_ROAD: the turn and straight on. DECOY: straight on, which is correct,
@@ -21,7 +22,7 @@ var occupancy := OccupancyGrid.new()
 var current_area: AreaDef
 ## Turns emitted so far, which is also the next junction's turn_number. A decoy is no turn.
 var turn_count := 0
-## Dead ends shortened to 1 tile, and wrong exits dropped, because their cells were taken.
+## Dead ends cut short by a taken cell, and wrong exits dropped because their first cell was taken.
 var shortened_count := 0
 var dropped_count := 0
 ## The seed of the run's props (M5_PLAN.md §5.6). They hash it with each ground cell and take no
@@ -144,17 +145,18 @@ func _junction() -> RoadTile:
 	return junction
 
 
-## Adds a dead end of `length` tiles, or of 1 tile if a cell is taken (plan.md §3.3).
+## Adds a dead end of `length` tiles, or of the cells before the first taken one (plan.md §3.3,
+## ROADGEN_PLAN.md R5).
 func _place_dead_end(junction: RoadTile, exit: int, length: int) -> void:
-	if not _is_free_run(junction.cell, exit, length):
-		if length == 1 or not _is_free_run(junction.cell, exit, 1):
-			dropped_count += 1
-			return
-		length = 1
+	var fits := _free_run(junction.cell, exit, length)
+	if fits == 0:
+		dropped_count += 1
+		return
+	if fits < length:
 		shortened_count += 1
-	for k: int in range(1, length + 1):
+	for k: int in range(1, fits + 1):
 		var exits := Heading.bit(Heading.opposite(exit))
-		if k < length:
+		if k < fits:
 			exits |= Heading.bit(exit)
 		var cell := junction.cell + Heading.VEC[exit] * k
 		var tile := RoadTile.new(cell, RoadTile.Type.DEAD_END, exit, exits)
@@ -166,11 +168,12 @@ func _place_dead_end(junction: RoadTile, exit: int, length: int) -> void:
 	junction.exits |= Heading.bit(exit)
 
 
-func _is_free_run(from: Vector2i, exit: int, length: int) -> bool:
+## How many of the `length` cells past `from` towards `exit` are free, up to the first taken one.
+func _free_run(from: Vector2i, exit: int, length: int) -> int:
 	for k: int in range(1, length + 1):
 		if not occupancy.is_free(from + Heading.VEC[exit] * k):
-			return false
-	return true
+			return k - 1
+	return length
 
 
 func _due_entry() -> AreaScheduleEntry:

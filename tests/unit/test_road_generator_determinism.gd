@@ -32,8 +32,9 @@ func test_different_seed_different_road() -> void:
 
 
 func test_buffer_refills_and_frees_do_not_change_the_road() -> void:
-	# Freed dead ends release their cells. The road stays the same only because they are at least
-	# 30 path tiles behind the tiles being generated, and dead ends only collide within 6.
+	# Freed dead ends release their cells. The road stays the same only because they are more than
+	# BUFFER_REFILL_AT + BUFFER_BEHIND path tiles behind the tiles being generated, and dead ends
+	# only collide within twice DEAD_END_MAX_TILES (RoadGenerator).
 	var expected := _signatures(RoadGenerator.new(7, Fixtures.schedule()), TILES)
 	var buffer := RoadBuffer.new(RoadGenerator.new(7, Fixtures.schedule()))
 	var got: Array = []

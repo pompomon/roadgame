@@ -1,10 +1,23 @@
 extends GutTest
 ## Property tests over many seeds (plan.md §11): no two tiles share a cell, every junction keeps
-## its wrong exits, dead ends are 1 to 3 tiles long, and a straight-on one is never cut short.
+## its wrong exits, and dead ends are 2 to DEAD_END_MAX_TILES tiles long. A straight-on one is
+## never cut short, and one cut below DEAD_END_MIN_TILES stops at a taken cell (ROADGEN_PLAN.md R5).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 200
 const TURNS := 500
+## The cells that an opposite-turn dead end always has free: a straight is at least 2 tiles (D7).
+const ALWAYS_FREE := 2
+
+## The dead ends that _check() has seen in this test, and those shorter than DEAD_END_MIN_TILES,
+## whose end shows as the car comes to their junction (ROADGEN_PLAN.md R4).
+var _dead_ends := 0
+var _short := 0
+
+
+func before_each() -> void:
+	_dead_ends = 0
+	_short = 0
 
 
 func _check(gen: RoadGenerator, turns: int, label: String) -> void:
@@ -26,18 +39,25 @@ func _check(gen: RoadGenerator, turns: int, label: String) -> void:
 				)
 		for exit: int in lengths:
 			var length: int = lengths[exit]
-			if length < 1 or length > Tuning.DEAD_END_MAX_TILES:
+			_dead_ends += 1
+			if length < ALWAYS_FREE or length > Tuning.DEAD_END_MAX_TILES:
 				fail_test("%s: dead end of %d tiles" % [label, length])
 			if exit == tile.heading and length < Tuning.DEAD_END_MIN_TILES:
 				fail_test("%s: straight-on dead end of %d tiles" % [label, length])
+			if length < Tuning.DEAD_END_MIN_TILES:
+				_short += 1
+				if gen.occupancy.is_free(tile.cell + Heading.VEC[exit] * (length + 1)):
+					fail_test("%s: dead end of %d tiles before a free cell" % [label, length])
 	# Every claim succeeded (a failed claim also fails the test with its push_error).
 	assert_eq(gen.occupancy.size(), tiles, label)
-	assert_eq(gen.dropped_count, 0, "%s: a 1-tile stub always fits" % label)
+	assert_eq(gen.dropped_count, 0, "%s: %d cells are always free" % [label, ALWAYS_FREE])
 
 
 func test_no_shared_cells_over_200_seeds_and_500_turns() -> void:
 	for run_seed: int in SEEDS:
 		_check(RoadGenerator.new(run_seed, Fixtures.schedule()), TURNS, "seed %d" % run_seed)
+	var share := 100.0 * _short / _dead_ends
+	gut.p("%d dead ends, %d (%.1f%%) shorter than DEAD_END_MIN_TILES" % [_dead_ends, _short, share])
 	pass_test("checked %d seeds × %d turns" % [SEEDS, TURNS])
 
 

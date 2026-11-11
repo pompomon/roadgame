@@ -22,8 +22,8 @@ const SCREENS: Array[Vector2i] = [
 const TALLEST := Vector2i(360, 922)
 const WIDEST := Vector2i(1639, 640)
 const RUN_SEED := 3
-## A screen row. With BUFFER_BEHIND 13, a dead end freed with its junction comes 28 px from the
-## tallest view in this drive and 12 px at worst (M5_PLAN.md L2).
+## A screen row. With BUFFER_BEHIND 19, a dead end freed with its junction would come 12 px from
+## the tallest view at worst (M5_PLAN.md L2, ROADGEN_PLAN.md R6).
 const MARGIN := Iso.TILE_H / 2.0
 
 var _generated: Array[RoadTile] = []
