@@ -122,13 +122,13 @@ static func _double(legend: DeathWorm) -> Sprite2D:
 
 
 ## Where the double's foot shows, in px from the car.
-func _foot(double: Sprite2D) -> Vector2:
-	return _from_car(double) + double.offset + Vector2(CarController.FOOT)
+func _foot(car_double: Sprite2D) -> Vector2:
+	return _from_car(car_double) + car_double.offset + Vector2(CarController.FOOT)
 
 
 ## How far down from the car the bottom edge of what shows of the double is, in px.
-func _double_bottom(double: Sprite2D) -> float:
-	return _from_car(double).y + double.offset.y + double.region_rect.size.y
+func _double_bottom(car_double: Sprite2D) -> float:
+	return _from_car(car_double).y + car_double.offset.y + car_double.region_rect.size.y
 
 
 ## How far down from the car the top and the bottom edges of what shows of the worm are, in px.
@@ -234,8 +234,8 @@ func test_a_mound_swells_under_the_car_and_lifts_it_shuddering() -> void:
 	assert_eq(_car.modulate.a, 1.0, "the car shows")
 	assert_false(Disasters.shows(mound), "no mound yet")
 	_step_to(legend, ends[0])
-	var double := _double(legend)
-	if double == null:
+	var car_double := _double(legend)
+	if car_double == null:
 		fail_test("it took the car")
 		return
 	assert_eq(_car.modulate.a, 0.0, "the double took the car's place")
@@ -247,13 +247,13 @@ func test_a_mound_swells_under_the_car_and_lifts_it_shuddering() -> void:
 	var smooth := true
 	while not _reached(ends[1]):
 		sizes.append(mound.scale.x)
-		var foot := _foot(double)
+		var foot := _foot(car_double)
 		lifts.append(-foot.y)
 		if foot.x != 0.0 and foot.x not in shudder:
 			shudder.append(foot.x)
 		riding = riding and is_equal_approx(-foot.y, DeathWorm.MOUND_LIFT * mound.scale.x)
-		whole = whole and double.region_rect.size.y == CarController.FRAME_SIZE.y
-		whole = whole and double.modulate.a == 1.0
+		whole = whole and car_double.region_rect.size.y == CarController.FRAME_SIZE.y
+		whole = whole and car_double.modulate.a == 1.0
 		smooth = smooth and mound.frame == 0
 		_step(legend)
 	# The step that ends the beat starts the burst.
@@ -271,8 +271,8 @@ func test_a_mound_swells_under_the_car_and_lifts_it_shuddering() -> void:
 	shudder.sort()
 	var px := DeathWorm.SHUDDER_PX
 	assert_eq(shudder, [-px, px] as Array[float], "it shudders")
-	assert_eq(_foot(double).x, 0.0, "then stills")
-	assert_lte(_foot(double).y, -DeathWorm.MOUND_LIFT, "on top")
+	assert_eq(_foot(car_double).x, 0.0, "then stills")
+	assert_lte(_foot(car_double).y, -DeathWorm.MOUND_LIFT, "on top")
 
 
 func test_the_worm_bursts_up_out_of_the_cracked_mound_carrying_the_double_on_its_head() -> void:
@@ -289,13 +289,13 @@ func test_the_worm_bursts_up_out_of_the_cracked_mound_carrying_the_double_on_its
 	while _short_of(ends[1]):
 		_step(legend)
 	assert_false(Disasters.shows(worm), "still under the sand")
-	var double := _double(legend)
-	if double == null:
+	var car_double := _double(legend)
+	if car_double == null:
 		fail_test("it took the car")
 		return
 	assert_eq(worm.get_parent(), _stage, "on the stage")
-	assert_eq(Disasters.z(worm), Disasters.z(double), "with the double")
-	assert_lt(_from_car(worm).y, _from_car(double).y, "behind it, so the double sorts in front")
+	assert_eq(Disasters.z(worm), Disasters.z(car_double), "with the double")
+	assert_lt(_from_car(worm).y, _from_car(car_double).y, "behind it, so the double sorts in front")
 	# From none of it.
 	var tops: Array[float] = [0.0]
 	var riding := true
@@ -316,8 +316,8 @@ func test_the_worm_bursts_up_out_of_the_cracked_mound_carrying_the_double_on_its
 		var left := _from_car(worm).x + worm.offset.x
 		standing = standing and is_equal_approx(left, -DeathWorm.WORM.x / 2.0)
 		var on_head := minf(-DeathWorm.MOUND_LIFT, _worm_top(worm) + DeathWorm.TIP)
-		riding = riding and is_equal_approx(_foot(double).y, on_head)
-		riding = riding and double.region_rect.size.y == CarController.FRAME_SIZE.y
+		riding = riding and is_equal_approx(_foot(car_double).y, on_head)
+		riding = riding and car_double.region_rect.size.y == CarController.FRAME_SIZE.y
 	# The camera isn't stepped, so it holds the last shake's first offset.
 	assert_gt(_camera.offset.length(), _shake_px(Tuning.DEATH_WORM_TREMOR), "it bursts out")
 	assert_true(cracked, "the mound cracks open, and the crater shows as it goes")
@@ -338,8 +338,8 @@ func test_its_mouth_opens_and_the_double_sinks_down_its_throat() -> void:
 	var worm := _worm(legend)
 	var shut := _at(2, DeathWorm.SWALLOW_TO)
 	_step_to(legend, _at(2, DeathWorm.RISE_SHARE))
-	var double := _double(legend)
-	if double == null:
+	var car_double := _double(legend)
+	if car_double == null:
 		fail_test("it took the car")
 		return
 	var mouth := float(DeathWorm.MOUTH - DeathWorm.WORM.y)
@@ -355,20 +355,20 @@ func test_its_mouth_opens_and_the_double_sinks_down_its_throat() -> void:
 	while not _reached(shut - DELTA):
 		open = open and worm.frame == DeathWorm.OPEN
 		if _through(2) < DeathWorm.SWALLOW_FROM and _clear_of(2, DeathWorm.SWALLOW_FROM):
-			dropped_in = dropped_in and is_equal_approx(_foot(double).y, mouth)
-		if double.region_rect.size.y > 0.0:
-			at_the_lip = at_the_lip and Disasters.shows(double)
-			at_the_lip = at_the_lip and absf(_double_bottom(double) - lip) <= HALF_TEXEL
-			if Disasters.shows(double):
-				least = minf(least, double.region_rect.size.y)
-		lifts.append(-_foot(double).y)
-		kept.append(double.region_rect.size.y)
-		alphas.append(double.modulate.a)
+			dropped_in = dropped_in and is_equal_approx(_foot(car_double).y, mouth)
+		if car_double.region_rect.size.y > 0.0:
+			at_the_lip = at_the_lip and Disasters.shows(car_double)
+			at_the_lip = at_the_lip and absf(_double_bottom(car_double) - lip) <= HALF_TEXEL
+			if Disasters.shows(car_double):
+				least = minf(least, car_double.region_rect.size.y)
+		lifts.append(-_foot(car_double).y)
+		kept.append(car_double.region_rect.size.y)
+		alphas.append(car_double.modulate.a)
 		_step(legend)
 	_step_to(legend, shut)
-	lifts.append(-_foot(double).y)
-	kept.append(double.region_rect.size.y)
-	alphas.append(double.modulate.a)
+	lifts.append(-_foot(car_double).y)
+	kept.append(car_double.region_rect.size.y)
+	alphas.append(car_double.modulate.a)
 	assert_true(open, "its mouth opens")
 	assert_true(dropped_in, "the double drops into it")
 	assert_true(at_the_lip, "and what is left of it shows, down to its front lip")
@@ -377,8 +377,8 @@ func test_its_mouth_opens_and_the_double_sinks_down_its_throat() -> void:
 	assert_lt(lifts[-1], lifts[0], "it sinks")
 	assert_eq(kept, Disasters.sorted(kept, true), "less of it shows")
 	assert_eq(alphas, Disasters.sorted(alphas, true), "it only goes")
-	assert_eq(double.region_rect.size.y, 0.0, "down its throat")
-	assert_eq(double.modulate.a, 0.0, "gone")
+	assert_eq(car_double.region_rect.size.y, 0.0, "down its throat")
+	assert_eq(car_double.modulate.a, 0.0, "gone")
 	assert_eq(worm.frame, DeathWorm.SHUT, "its mouth shuts")
 
 
@@ -463,11 +463,11 @@ func test_its_open_mouth_shows_only_teeth_round_a_black_throat() -> void:
 			if (at / throat).length_squared() <= 1.0 and color.is_equal_approx(palette["ink"]):
 				black += 1
 			if color.is_equal_approx(palette["white"]):
-				teeth[Vector2i(signi(at.x), signi(at.y))] = true
+				teeth[Vector2i(signi(int(at.x)), signi(int(at.y)))] = true
 	assert_eq(flesh, [] as Array[Vector2i], "texels of flesh in its mouth")
 	assert_gt(black, roundi(PI * throat.x * throat.y / 2.0), "a black throat")
 	assert_eq(teeth.size(), 4, "white teeth all round it")
-	var middle := DeathWorm.OPEN * DeathWorm.WORM.x + DeathWorm.WORM.x / 2
+	var middle := DeathWorm.OPEN * DeathWorm.WORM.x + (DeathWorm.WORM.x >> 1)
 	var inside := sheet.get_pixel(middle, DeathWorm.LIP - 1)
 	assert_true(inside.is_equal_approx(palette["ink"]), "black down to its front edge")
 	assert_false(sheet.get_pixel(middle, DeathWorm.LIP).is_equal_approx(palette["ink"]), "at LIP")
