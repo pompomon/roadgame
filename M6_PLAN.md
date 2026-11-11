@@ -1,14 +1,14 @@
 # M6 Legends — Detailed Plan
 
-Status: answered by the owner in #45: Q8's alternative, scarier but still with no gore, and the defaults for the rest; built on `m6/prototype` and verified (§6.1, §6.2); PRs 1–8 in review (§4) · 2026-11-11 · Scope: new disasters drawn from myths, folk tales and urban legends, with three options for each area, their visuals, sound and lore (§3.3); the changes they need in the disaster contract, its tests, the palette and the UI; and where the milestone goes (Q1)
+Status: answered by the owner in #45: Q8's alternative, scarier but still with no gore, and the defaults for the rest; built as PRs 1–8 (#46–#53), reviewed (§4.6), verified (§6) and checked on the Web (§6.6); the Fold4's checks are the owner's (§7) · 2026-11-11 · Scope: new disasters drawn from myths, folk tales and urban legends, with three options for each area, their visuals, sound and lore (§3.3); the changes they need in the disaster contract, its tests, the palette and the UI; and where the milestone goes (Q1)
 
-**Verified so far, and what isn't yet.** This plan reviews `main` at 4ade5f2 (#44). Each claim about the code cites its file and line. Each claim about Godot that its docs don't settle was checked with a probe, P1–P15 (§6.5): headless, or rendered with the Compatibility renderer (`opengl3` on Mesa llvmpipe under Xvfb, as IP M6.6 plans for screenshots). The prototype came after the owner's answers: building all 15 options would have wasted the 10 not picked. `m6/prototype` was then built as `AGENTS.md` §2 says, one commit per PR (§4.1). It gave §6.1's counts, ran §6.2's negative cases, simulated the landing again on its own files (§4.5) and found S19, and §5 follows it. A model of another family reviewed this plan (`AGENTS.md` §7), and so did Copilot; their findings and the fixes are in §4.6. Each PR's reviews are in its body, and PR 8 adds them to §4.6.
+**Verified so far, and what isn't yet.** This plan reviews `main` at 4ade5f2 (#44). Each claim about the code cites its file and line. Each claim about Godot that its docs don't settle was checked with a probe, P1–P15 (§6.5): headless, or rendered with the Compatibility renderer (`opengl3` on Mesa llvmpipe under Xvfb, as IP plans for M7.6's screenshots). After the owner's answers, `m6/prototype` was built as `AGENTS.md` §2 says, one commit per PR (§4.1). It gave §6.1's counts, ran §6.2's negative cases, simulated the landing again on its own files (§4.5) and found S19, and §5 follows it. A model of another family (`AGENTS.md` §7) and Copilot reviewed this plan and each PR, and §4.6 has their fixes.
 
 - Godot 4.7.2-stable (Linux x86_64)
 - GUT 9.7.1
 - Mesa llvmpipe under Xvfb, for the rendered probes P5, P6 and P9
 
-**Baseline.** On `main` (4ade5f2) with Godot 4.7.2: `check_scripts.sh` loads 125 scripts; `run_tests.sh` runs 60 scripts, 418 tests and 147,736 asserts in 43.0 s, all passing; `smoke.sh` prints `autopilot: tile 165, turns 35, area rural`; and `git status --porcelain` prints nothing.
+**Baseline.** On `main` (4ade5f2) with Godot 4.7.2, the five checks pass with §6.1's counts, and `git status --porcelain` prints nothing.
 
 **Precedence.** For M6, this document replaces `plan.md` §4.3's disaster pools and IP §9's line on disaster types wherever they differ. Each difference is marked **Δ** with its finding (S#, §2). With Q1's default, this milestone comes before Ship: IP §3's and §4's M6 "Ship" becomes M7, its work packages M6.1–M6.6 become M7.1–M7.6, and M5_PLAN.md §9's notes for M6 apply to M7. PR 8 folds the changes back into IP and `plan.md` (§4).
 
@@ -189,7 +189,7 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 #### City (now: the sinkhole)
 
 **★ Phantom Bus** · `phantom_bus` · M · fog 0.5, approach 0.9, board 0.4, leave 0.7
-- Look: a dusk veil, and a cold fog (white particles) rolling over the road. A red double-decker, half see-through and with no one at the wheel, glides out of it along `params.direction`, its headlamps two *wisp* glows. Its windows are ink, with pale faces (white) pressed to the glass. It stops by the car, its doors open on the dark. `bus.png`: 64×56 × 6, two facings × three door frames, flipped for the other two facings.
+- Look: a dusk veil, and a cold fog (white particles) rolling over the road. A red double-decker, half see-through and with no one at the wheel, glides out of it along `params.direction`, its headlamps two *wisp* glows. Its windows are ink, with pale faces (white) pressed to the glass. It stops by the car, its doors open on the dark. `bus.png`: 64×56 × 12, three door frames for each of four facings: flipped, a facing would be lit from the right.
 - The car: the double slides to the doors and shrinks into them. The doors close, and the bus glides off into the fog and fades.
 - Left behind: a ticket (`ticket.png`, 12×8; white and red) on the road.
 - Sound: a cracked bell tolling twice, a low engine drone, the doors' hiss.
@@ -212,8 +212,8 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 #### Rural (now: the tornado)
 
 **★ UFO** · `ufo` · M · night 0.5, descend 0.5, beam 0.4, lift 0.8, zip 0.4
-- Look: a night veil falls over the fields. A dark saucer (`saucer.png`, 56×24 × 4; shadow and asphalt, with *wisp* lights turning round its rim at most 3 times a second) drops without a sound and hovers over the car. A cone of cold light (a *wisp* glow, opened by `scale.x` from 0 to 1) falls on the car, with white sparkles rising in it. Three tall grey figures (`grey.png`, 12×32 × 2: facing, head tilted; asphalt light, with ink eyes) stand at its edge, on the stage, and watch.
-- The car: the double shudders, then floats up the beam by its offset, turning through its 16 headings, and is gone into the saucer. The beam closes, the figures are gone, and the saucer zips off.
+- Look: a night veil falls over the fields. A dark saucer (`saucer.png`, 56×24; shadow and asphalt) drops without a sound and hovers over the car, and *wisp* lights come on round its rim and turn (`rim.png`, a glow, 56×24 × 4 at 8 frames a second, so a point lights twice a second). A cone of cold light (a *wisp* glow, opened by `scale.x` from 0 to 1) falls on the car, with white sparkles rising in it. Three tall grey figures (`grey.png`, 12×32 × 2: facing, head tilted; asphalt light, with ink eyes) stand at its edge, on the stage, and watch.
+- The car: the double shudders, then floats up the beam by its offset, turning through its 16 headings, and is gone into the saucer. The lights go out, the beam closes, the figures are gone, and the saucer zips off.
 - Left behind: a crop circle (`crop_circle.png`, 64×32; rural dark) scorched into the field.
 - Sound: rising radio static, a deep throb, a high whine, and a zip into silence.
 - Words: "They took you. Two hours are missing." / "New Hampshire, 1961: Betty and Barney Hill lost two hours on a night drive."
@@ -284,9 +284,9 @@ Beats are in seconds after the delay (0.1–0.5 s, `config/tuning.gd:118–119`)
 #### Desert (now: the quicksand)
 
 **★ Death Worm** · `death_worm` · M · ripple 0.6, bulge 0.4, erupt 0.6, sink 0.6, hold 0.3
-- Look: no veil, in the glare. The ground trembles (`camera.shake()`, as in `sinkhole.gd:63`), ripples run through the sand to the car (desert dark particles), and a mound swells under it (`mound.png`, 48×24 × 2; desert dark and light). A giant eyeless worm (`worm.png`, 40×80 × 5: rising, mouth open, mouth shut, sinking; village roof with desert light bands, its round mouth ringed with white teeth) bursts up in a spray of sand and rears over the car.
-- The car: the worm's mouth closes over the double, and the worm dives back into the sand, sinking by cropping.
-- Left behind: a crater (`crater.png`, 48×24) where the car stood.
+- Look: no veil, in the glare. The ground trembles (`camera.shake()`, as in `sinkhole.gd:63`), ripples run through the sand to the car (desert dark particles), and a mound swells under it (`mound.png`, 64×24 × 2; desert dark and light). A giant eyeless worm (`worm.png`, 56×96 × 5: head shut, mouth open, then a bulge high, halfway and low; village roof with desert light bands, its round mouth ringed with white teeth) bursts up in a spray of sand under the double, carrying it on its head.
+- The car: the head opens into the mouth, and the double sinks down its throat. The mouth shuts, a bulge runs down the worm, and it dives back into the sand, sinking by cropping.
+- Left behind: a crater (`crater.png`, 64×32) where the car stood.
 - Sound: a deep rumble that grows, a shriek, a burst, a gulp.
 - Words: "The death worm swallowed you whole." / "Gobi Desert: herders fear the olgoi-khorkhoi, a worm whose touch kills."
 
@@ -403,7 +403,7 @@ Branch `m6/8-retire`, from `m6/7-desert`.
 | Audio | delete their WAVs and their block in `audio_director.gd` and `make_audio.gd`. `make_audio.gd` then makes every other WAV again byte for byte (S17, §4.1) |
 | Config | `config/tuning.gd`: delete their block (`:133–165`, under PR 1's comment) |
 | Tests | delete `test_sinkhole.gd` (10), `test_tornado.gd` (7), `test_flood.gd` (5) and `test_quicksand.gd` (6); `test_disasters.gd`: the outline test's radii from the test legend's ring, as no `Tuning` radius remains; `test_collection_screen.gd`: a save that recorded the sinkhole loads and shows only the pools' disasters, appended (E10); `test_disaster_director.gd:5–6`: comments |
-| Docs | `plan.md` §4.3 (`:158–167`), §5.3 (`:199`) and §8 (`:293`); `IMPLEMENTATION_PLAN.md` `:83`, `:98`, `:430–456` and `:960`, with Ship as M7 (Q1); `AGENTS.md`: §1's state, which still names M3 as next (`AGENTS.md:30`), §3's Web rule, whose font is now Pixel Operator 8 (`ui/theme.tres:3`), §3's rules for legends (§5.3–§5.6, §5.9, §5.10), and M5_PLAN.md §9's notes for §3–§5 and §10, which it doesn't have yet; this plan's status, §4.6 and §6.6 |
+| Docs | `plan.md` §4.3 (`:158–167`), §5.3 (`:199`) and §8 (`:293`); `IMPLEMENTATION_PLAN.md` `:83`, `:98`, `:430–456` and `:960`, with Ship as M7 (Q1); `AGENTS.md`: §1's state, which still names M3 as next (`AGENTS.md:30`), §3's Web rule, whose font is now Pixel Operator 8 (`ui/theme.tres:3`), §3's rules for legends (§5.3–§5.6, §5.9, §5.10), and M5_PLAN.md §9's notes for §3–§5 and §10, which it doesn't have yet. This plan's status, §4.6 and §6.6 are synced on `m6/plan`, as #45 adds the plan, and each PR takes them as it lands (§4.5) |
 
 Prototype: 2c0e0c4. Expect: 141 scripts and 461 tests. The smoke line unchanged.
 
@@ -450,7 +450,7 @@ If PR k's branch is already deleted, merge its last state from `git fetch origin
 
 ### 4.6 Review fixes
 
-The PRs' reviews add their fixes here, each with its tests and negative case, as M5's did (M5_PLAN.md §4.6). Before the plan PR, a model of another family (GPT-6.1 Sol, as a rubber duck) reviewed the plan against `main` (`AGENTS.md` §7). It found R1–R5, and its fixes found R6. Each was checked against the code or a probe. A second review of the fixes, by the same model, found only two citations a few lines off, now corrected. The six and their fixes:
+Before the plan PR, a model of another family (GPT-6.1 Sol, as a rubber duck) reviewed the plan against `main` (`AGENTS.md` §7). It found R1–R5, and its fixes found R6, each checked against the code or a probe. Its second review found only two citations a few lines off, now corrected:
 
 | Finding | Fix | PR | Tests | Negative case |
 |---|---|---|---|---|
@@ -469,10 +469,19 @@ Copilot's review of d5e2beb, this plan's first state on PR #45, found three more
 | [§5.6](https://github.com/pompomon/roadgame/pull/45#discussion_r4534107539): each glow was checked alone, so two that overlap, each with 3 short pulses a second, 10 frames apart, would flash 6 times a second | The flash test adds up the glows' light at each point of the view (S11, §5.6) | 2 | the flash test | N20's second variant |
 | [§5.9](https://github.com/pompomon/roadgame/pull/45#discussion_r4534107565): the sound started at `disaster_started`, 0.1–0.5 s before the legend shows, so its cues would miss the beats | S18: the director's `disaster_appeared`, at the delay, starts the sound (P15) | 2 | `test_disaster_director.gd`, at both ends of the delay's range; `test_audio_director.gd`; `test_wrong_turn_disaster.gd` | N36 |
 
-The PRs' reviews:
+The PRs' reviews, by GPT-6.1 Sol before each PR opened unless named; it found nothing in PRs 1 and 3. Each fix has a negative case that the old tests passed, and the PR's body names the tests:
 
-| PR | Change | Tests | Negative case |
-|---|---|---|---|
+| PR | Change | Negative case |
+|---|---|---|
+| 2 | `drawables()` walks what hangs under each staged part; the flash test splits a sprite's region into its frames; the redraw test draws after each step; `Legend.PHYSICS_PRIORITY` 1, so the veil follows the camera's view of the same frame. S19, from testing the bus | N37–N42 |
+| 2 | PR 6's review: particles must show while they live, not only emit | N99–N103 |
+| 3–5 | PR 5's review: the double's tests passed with it hidden. It must now show whole through half its beat, then only fade | N72, N74, N75 |
+| 4 | Where the rim's halves met, a point lit twice a turn: only the near half lights now. The beam's and the rim's tests passed unlit | N56, N57 |
+| 5 | A glow could go out mid-dance; and, from testing, an even spin passed "faster and faster" | N66, N73 |
+| 7 | The worm could pop up or vanish at once; a double hidden at the lip passed; the tremor test never stepped the camera | N121–N125 |
+| 8 | IP's M7.1 still sent its device check to M6.5, now M7.5 | — |
+
+Copilot recommended approving PR 1, and found nothing in PRs 2–8, before or after §6.3's fixes: its reviews asked only for the Web's checks, now done (§6.6), and the Fold4's (§7).
 
 ---
 
@@ -685,16 +694,18 @@ The kit's cases (N2–N12, N19, N26–N29, N36) break parts of PR 2's that no le
 | `witch_hex` (6) | N1 (a part hidden by `modulate.a`; the pumpkin is hidden by its scale), N16, N20, N21 (on its lantern's glow), N24, N25 | — |
 | `death_worm` (7) | N1, N16, N24, N25 | N20, N21: no glows |
 
-**Results.** On the prototype, every case failed the checks named, each on its PR's commit, and `git status --porcelain` printed nothing after each. N30's four variants and Q2's order were simulated on the prototype's own files (§4.5): each variant conflicts where the table says, and Q2's order lands clean. N30a's PR 1 is laid out by `gdformat` without its anchors, as such a PR would be. The PRs' reviews and testing added N37–N128, which their bodies list and PR 8 adds to §4.6.
+**Results.** On the prototype, every case failed the checks named, each on its PR's commit, and `git status --porcelain` printed nothing after each. N30's four variants and Q2's order were simulated on the prototype's own files (§4.5): each variant conflicts where the table says, and Q2's order lands clean. N30a's PR 1 is laid out by `gdformat` without its anchors, as such a PR would be. The PRs' reviews and testing added N37–N128, which their bodies list, and §4.6 those that came from reviews. On PRs 1–8's final heads, their 5, 38, 18, 23, 27, 38, 32 and 3 cases each failed the checks named, and left the tree clean.
 
 ### 6.3 Editor warnings
 
 None of the five checks reports GDScript warnings. As in M2–M5 (M5_PLAN.md §6.3), a probe asks the editor's language server for them. Each PR must report only the warnings that `main` does, none of them in its files. Shadowing shows only there (`AGENTS.md` §3): `Legend` keeps its params as `_params`, so `play(params)` shadows nothing, and a part's variable is never named `scale`, `offset` or `position`.
 
+**Results.** `main` reports 5 warnings in 125 scripts, as M5 left them. As opened, PRs 1–8 reported 5, 6, 8, 10, 14, 15, 23 and 23: 18 more, in PRs 2–7's tests, from shadowing and implicit conversions, now fixed. Each final head reports `main`'s 5 and no others.
+
 ### 6.4 Verified only in CI or on devices
 
 - **CI** builds the Web and Android exports on each PR (`AGENTS.md` §10). Only PR 8's builds are checked by hand (§4, PR 8).
-- **The Web** (E11), in Chrome and Firefox, driven by Playwright, headed under Xvfb as #28 did: each legend from `?arg=--play&arg=--area=<id>`, its veil at the widest and the tallest window, game over's fate, the collection's lore and its last card. Chrome's `GPU stall due to ReadPixels` notes and an early `CONTEXT_LOST_WEBGL` come from the environment, as with M2–M5's builds (M5_PLAN.md:273).
+- **The Web** (E11), in Chrome and Firefox, driven by Playwright, headed under Xvfb as #28 did: PR 8 step 2's checks, with §6.6's results. Chrome's `GPU stall due to ReadPixels` notes and an early `CONTEXT_LOST_WEBGL` come from the environment, as with M2–M5's builds (M5_PLAN.md:273).
 - **The Fold4** (E11, §7): 60 frames a second through each legend, folded and unfolded, and the text crisp.
 - **No check judges** whether a legend reads in 2–4 s without words, whether it is scary with no gore (Q8), or whether its sound fits. The owner judges them on the Fold4, from PR 3 on. A legend that misses goes back to its art and beats, in its own PR.
 
@@ -710,7 +721,7 @@ Each ran with Godot 4.7.2: headless, or rendered with the Compatibility renderer
 | P4 | Properties and constants the legends use | `CanvasItemMaterial`'s ADD (1) and MUL (3) blends and particle animation; CPUParticles2D's `texture`, `anim_speed_*`, `anim_offset_*`, `orbit_velocity_*` and `tangential_accel_*`; `clip_children` | §3.3, §5.5 |
 | P5 | Rendered: a MUL square tinted (30, 34, 72) over a ground of (200, 200, 200), and an ADD glow of (110, 220, 160) on and off it | The veiled ground (23, 27, 56); the glow on it (133, 247, 216), and off it (255, 255, 255) | S10, §5.5 |
 | P6 | Rendered: the MUL square at `modulate.a` 0, 0.5 and 1; at `self_modulate` halfway from white; and an ADD (40, 40, 40) at alpha 0.5 | 0: the ground (200, 200, 200); 0.5 and 1: (23, 27, 56); halfway: (112, 113, 128), half the darkening; the ADD adds (20, 20, 20) | S4, §5.5 |
-| P7 | Two stacked branches change neighbouring lines of one file, and then lines one unchanged line apart; the first is squash-merged, and `main` is merged into the second. Then the whole stack of eight, on a model of the lists they share (`EFFECTS`, `make_audio.gd`'s calls and synths, `tuning.gd`, `test_disasters.gd`'s pools and tests), each PR formatted by `gdformat` and landed by `AGENTS.md` §5's updates. Then Q2's alternative, in several orders (§4.5) | Neighbouring lines conflict; lines one apart merge cleanly only if that line is in the merge base. With PR 1's anchors every update is clean, and `main` ends as PR 8's branch. Anchors in PR 2: PR 3's update conflicts in all four files; no `# Rural's legends.` in `EFFECTS`: PR 4's does; PR 2's tests right after PR 1's: PR 2's does. Further legends, one PR per area after PR 7 in the areas' order: clean for all five areas (13 PRs), the City alone, the Meadows alone, and the pairs of the City, the Village and the Desert. The Desert's alone conflict right after PR 7, and land cleanly inside it. A second City PR right after PR 3, or two after PR 7, conflict in all four files | S5, §4.5, §5.10 |
+| P7 | Two stacked branches change neighbouring lines of one file, and then lines one unchanged line apart; the first is squash-merged, and `main` is merged into the second. Then the whole stack of eight, on a model of the lists they share (`EFFECTS`, `make_audio.gd`'s calls and synths, `tuning.gd`, `test_disasters.gd`'s pools and tests), each PR formatted by `gdformat` and landed by `AGENTS.md` §5's updates. Then Q2's alternative, in several orders (§4.5) | Neighbouring lines conflict; lines one apart merge cleanly only if that line is in the merge base. With PR 1's anchors every update is clean, and `main` ends as PR 8's branch. Anchors in PR 2: PR 3's update conflicts in all four files; no `# Rural's legends.` in `EFFECTS`: PR 4's does; PR 2's tests right after PR 1's: PR 2's does. With Q2's alternative, §4.5's order lands cleanly for all five areas' further legends (13 PRs), for one area's and for two areas'; the orders it rules out conflict | S5, §4.5, §5.10 |
 | P8 | A part staged under Props is freed by its disaster's `_exit_tree()` (`is_instance_valid()`, then `free()`): with the disaster freed, with the World freed, and with the World queued | Nothing left under Props in each case, and no errors | S2, §5.3 |
 | P9 | Rendered: the MUL square in the World, and a panel on a CanvasLayer over it | The World under the square (23, 27, 56); the panel's (240, 200, 80) as it is | E5, §5.5 |
 | P10 | Two Polygon2Ds and a Sprite2D, drawn, are moved to another parent; then their `modulate`, `z_index` and `position` change | Each draws once more on the move, and not for the rest | S2, S6 |
@@ -722,7 +733,10 @@ Each ran with Godot 4.7.2: headless, or rendered with the Compatibility renderer
 
 ### 6.6 Measurements (PRs)
 
-To fill in as the PRs land: each PR's counts, GUT time and diff; the frame rate in each legend, on the Web and on the Fold4; and how long each legend takes from the turn.
+- **Counts.** Each final head gives §6.1's counts, with GUT in 44–49 s here and CI's `test` job in 1 min 54 s to 2 min 8 s. Diffs: PR 1 +288 −50 lines, PR 2 +1,665 −67, PRs 3–7 +789 to +1,168, PR 8 +103 −1,563.
+- **From the turn**, a legend takes 3.1–3.7 s: beats of 2.4–2.6 s, the delay and the car's stop (E2).
+- **The Web** (E11, [#53's results](https://github.com/pompomon/roadgame/pull/53#issuecomment-6798792664), on PR 8's build, whose game its final head keeps): in Chrome 157 and Firefox 156 under Xvfb, at 1640 × 640 and 360 × 922, each legend played as §3.3 says. Each veil darkened the whole view, to 0.08–0.39 of its light, and left the HUD alone; game over showed the fate, and Disasters the lore. No errors; at most one flash a second (E6); the first darker frame 41–193 ms after the sound's start (E8).
+- **Frame rate.** Drawn on the CPU, the legends' median fell by about a sixth at 1640 × 640, and M5's disasters' by under a twentieth. The worm, with no veil or glow, cost next to nothing, and at 360 × 922 the median barely moved: the cost is the veil's and the glows' blending. The Fold4's is the owner's (§7, §8).
 
 ---
 
@@ -735,7 +749,7 @@ These need the repository owner. The current state was read with `gh api` on 202
 | Done, 2026-11-11 | Answer Q1–Q11 | Q8's alternative, with no gore; the defaults for the rest (#45) |
 | Now | Merge this plan's PR | Squash-merge it into `main` first: it is the stack's root, and PR 1 targets `m6/plan` until then (§4.5). PR 8's tree check leaves the plan out (§4, PR 8 step 1) |
 | As PRs 3–7 come | Judge each legend on the Fold4: it reads in 2–4 s without words, it is scary with no gore (Q8), and its sound fits (§6.4) | The PR's builds: `gh workflow run ci.yml -R pompomon/roadgame --ref <branch> -f upload-builds=true`, then `AGENTS.md` §6's commands. The APK reaches the City's and Rural's legends within a minute (M4 Q6); the other areas' as in §4, PR 8 step 2 |
-| Before PR 8 merges | E11 on the Galaxy Z Fold4, folded and unfolded. An agent does the Web checks in Chrome and Firefox (§6.4) | §4, PR 8 step 2 |
+| Before PR 8 merges | E11 on the Galaxy Z Fold4, folded and unfolded. The Web's checks are done (§6.6) | §4, PR 8 step 2 |
 | To land M6 | Merge PRs 1–8 in order, each once its base is `main` and it is updated as in §4.5, and resolve their review threads | §4.5 |
 | Optional | Delete each PR's branch after it merges, so GitHub retargets the next PR by itself. Delete `m6/prototype` once PR 8 has merged | The **Delete branch** button on the merged PR (§4.5); `git push origin --delete m6/prototype` |
 
@@ -750,8 +764,8 @@ These need the repository owner. The current state was read with `gh api` on 202
 | The tone (Q8), and where the legends come from | A legend is too frightening for the rating the store gives, or offends the tradition it comes from | §3.2's criteria and the legends it leaves out. No gore, and no one hurt on screen. The owner judges each before its PR lands, and the store's content rating is checked before release (§9) |
 | The flash test reads the glows' and the veil's light, not the screen's pixels (§5.6) | A sheet whose frames alternate light and dark could flash where no glow does | The placeholder sheets change shape from frame to frame, not light. A final sheet is checked by eye on the Fold4 (E11), and a rendered check could follow (§9) |
 | Godot 4.7.2 redraws a `Polygon2D` with WebGL errors (godotengine/godot#124726) | Errors in the browser's console, and a legend that may draw wrong on the Web | S6: no polygon is drawn twice. `test_none_redraws_a_polygon` checks every drawable, the stage's parts and the veil included (N9, N10). What changes is a sprite, a particle or a material (P1–P3) |
-| The veil and the glows on the Fold4 | Fewer than 60 frames a second during a legend | The veil is one square, clipped to the screen, and E6 keeps each glow under a quarter of the view. E11 measures the frame rate on the Fold4 (§6.6) |
-| The kit was built before the legends (§4.1) | A Copilot finding on PR 3–7 may need the kit to change | The prototype built the five legends on it and found S19. The test legend uses every part of the kit. A change goes on PR 2's branch and is merged up (§4.5), and §4.6 records it |
+| The veil and the glows on the Fold4 | Fewer than 60 frames a second during a legend | The veil is one square, clipped to the screen, and E6 keeps each glow under a quarter of the view. On the Web, drawn on the CPU, they cost about a sixth of the frame rate (§6.6). E11 measures it on the Fold4 |
+| The kit was built before the legends (§4.1) | A finding on PR 3–7 may need the kit to change | The prototype built the five legends on it, and the test legend uses all of it. A change goes on PR 2's branch and is merged up (§4.5), as PR 6's review's did (§4.6) |
 | Q2's alternative: up to three legends per area | Three times the art and the timing, and up to five more PRs | An area's further legends share a PR, after PR 7 (§4.5), from §3.3's design, and the kit doesn't change. The ★s land first, and PR 8 last |
 | Eight stacked PRs change `config/tuning.gd`, `test_disasters.gd`, `audio_director.gd` and `make_audio.gd` | Conflicts as they land, or a sound that changes as the natural four's go | §4.5's rules: PR 1's comment line per area (S5, P11); a line of the merge base between neighbouring PRs' changes (P7); counts from the data; sounds and sheets seeded by their id (S17). P7 simulated the landing, and the prototype simulated it again on its own files (N30, N32) |
 | Copilot reviews no file whose diff is over about 100 KB | A plan or a PR with no review | This plan's diff in #45 is kept under 100 KB, and each legend has a PR of its own |
