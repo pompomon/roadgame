@@ -42,3 +42,26 @@ func test_buffer_refills_and_frees_do_not_change_the_road() -> void:
 	while got.size() < TILES:
 		buffer.on_car_path_index(buffer.car_index() + rng.randi_range(0, 30))
 	assert_true(got.slice(0, TILES) == expected)
+
+
+## The game's road for seeds 0 to 19 up to turn 300, as MD5 digests: of its path tiles alone, and
+## of its path tiles with their dead ends. A change that is meant to change the road updates them,
+## and its commit says why.
+const PATH_DIGEST := ""
+const ROAD_DIGEST := ""
+const DIGEST_SEEDS := 20
+const DIGEST_TURNS := 300
+
+
+func test_the_game_road_matches_its_digests() -> void:
+	var path_lines := PackedStringArray()
+	var road_lines := PackedStringArray()
+	for run_seed: int in DIGEST_SEEDS:
+		var gen := RoadGenerator.new(run_seed, Fixtures.schedule())
+		for tile: RoadTile in Fixtures.path_until_turn(gen, DIGEST_TURNS):
+			var sig := Fixtures.signature(tile)
+			path_lines.append(str(sig.slice(0, 7)))
+			road_lines.append(str(sig))
+	gut.p("digest tiles: %d" % path_lines.size())
+	assert_eq("\n".join(path_lines).md5_text(), PATH_DIGEST, "the path tiles")
+	assert_eq("\n".join(road_lines).md5_text(), ROAD_DIGEST, "the path tiles and their dead ends")
