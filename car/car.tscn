@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://car/car_controller.gd" id="1_car"]
+[ext_resource type="Texture2D" path="res://assets/car/car.png" id="2_sheet"]
 
 [node name="Car" type="Node2D"]
 script = ExtResource("1_car")
@@ -36,6 +37,9 @@ scale_amount_min = 3.0
 scale_amount_max = 7.0
 color = Color(0, 0, 0, 0.8)
 
-[node name="Arrow" type="Polygon2D" parent="."]
+[node name="Body" type="Sprite2D" parent="."]
 unique_name_in_owner = true
-polygon = PackedVector2Array(0, -20, 12, 14, 0, 7, -12, 14)
+texture = ExtResource("2_sheet")
+centered = false
+offset = Vector2(-18, -18)
+hframes = 17

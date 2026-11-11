@@ -367,12 +367,13 @@ func test_layers_line_up_with_tile_space() -> void:
 
 
 func test_disasters_draw_above_the_road_and_below_the_car() -> void:
-	# World draws its children in order, and only Props sorts by y (M3_PLAN.md J5).
+	# World draws its children in order, and only Props sorts by y (M3_PLAN.md J5). Skid marks lie
+	# on the road, under the disasters (M5_PLAN.md §5.7).
 	var names: Array[StringName] = []
 	for node: Node in _world.get_children():
 		names.append(node.name)
 	var order: Array[StringName] = [
-		&"Ground", &"SetPieces", &"RoadLayer", &"DisasterLayer", &"Props"
+		&"Ground", &"SetPieces", &"RoadLayer", &"Skids", &"DisasterLayer", &"Props"
 	]
 	assert_eq(names, order)
 	var layer: Node2D = _world.get_node("%DisasterLayer")

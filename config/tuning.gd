@@ -57,6 +57,14 @@ const BRAKE := 4.0
 const STEER_RATE := 3.0
 const STRAIGHTEN_RATE := 1.0
 const START_HEALTH := 100.0
+## Skid marks (M5_PLAN.md §5.7): while the car brakes for a junction, a pair every SKID_SPACING
+## tiles, SKID_REAR tiles behind its centre and SKID_TRACK tiles apart, at SKID_ALPHA. At most
+## SKID_MARKS show.
+const SKID_SPACING := 0.08
+const SKID_REAR := 0.09
+const SKID_TRACK := 0.18
+const SKID_ALPHA := 0.5
+const SKID_MARKS := 256
 
 ## Camera (IMPLEMENTATION_PLAN.md M2.5). Road tiles to show across the smaller screen side.
 const VISIBLE_TILES := 5.0
@@ -122,8 +130,6 @@ const SHAKE_FREQ_Y := 31.0
 ## A crash's shake.
 const CRASH_SHAKE := 0.5
 const CRASH_SHAKE_SECONDS := 0.4
-## The crashed car's tint (its grey-box crash frame).
-const CRASH_TINT := Color(0.4, 0.4, 0.4)
 ## The sinkhole (IMPLEMENTATION_PLAN.md M3.2): the hole's radius at intensity 1, in tiles; how long
 ## it grows, how long the car takes to sink into it, and how long the scene then holds, in seconds.
 const SINKHOLE_RADIUS := 0.8

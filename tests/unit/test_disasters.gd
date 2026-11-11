@@ -149,16 +149,14 @@ func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 			assert_almost_eq(distance, radius, 1e-4, "%.1f tiles from its centre" % radius)
 
 
-func test_none_redraws_a_polygon_or_the_car() -> void:
+func test_none_redraws_a_polygon() -> void:
 	# Every redraw of a Polygon2D after its first raises WebGL errors on the Web (M2_PLAN.md §5.7).
 	for scene: PackedScene in Disasters.scenes():
 		var car := Disasters.car(self)
 		var disaster := Disasters.disaster(self, scene, car, null)
 		await wait_physics_frames(2)
 		var draws: Array[int] = [0]
-		var polygons := Disasters.polygons(disaster)
-		polygons.append(car.get_node("%Arrow"))
-		for polygon: Polygon2D in polygons:
+		for polygon: Polygon2D in Disasters.polygons(disaster):
 			polygon.draw.connect(_count.bind(draws))
 		disaster.play(Disasters.params())
 		simulate(disaster, MAX_FRAMES, DELTA)
