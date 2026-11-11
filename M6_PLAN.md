@@ -128,8 +128,8 @@ Each finding has its evidence and its fix. The fixes are in §4's PRs, and §6.2
 - Fix: PR 2's director emits `disaster_appeared(disaster, area)` once, on the frame the delay is over. It counts the delay as the disaster does, on a clock of its own from `play()`, since its `_time` counts from the run's end (`:27–28`); `clear()` resets that clock. In the main scene the disaster steps before the director (`test_disaster_director.gd:14–15`), and a node added during a step first steps on the next frame, so both clocks add the same steps, and the signal comes on the frame the disaster shows (P15). `main.gd` relays it to `EventBus.disaster_appeared`, where `AudioDirector` plays the sound, so a legend's synth puts each cue at its beat's start (§5.9). `SaveService` still records the disaster at `disaster_started` (`autoload/save_service.gd:35`), so a player who closes the app during the delay keeps it (M5_PLAN.md L7). The natural four's sounds start with their pictures too, 0.1–0.5 s later than on `main`. N36.
 
 **S19. The flash test counts a glow that glides as flashing.**
-- Evidence: found by PR 3's prototype. §5.6's rule counted a change of a tenth of a point's own peak. At a glow's faint edge, a peak of 0.044, the canvas draws the nearest texel of the glow's texture, so the light there steps by about 0.005 as the glow glides: the bus's lamp, drawing up, "rose" 5 times in 42 frames, a change no eye sees.
-- Fix: PR 2 counts only a change of more than a tenth of the point's peak or of white's light, whichever is more, and for red light of its peak or of pure red's light: WCAG 2.3.1 counts no less (`Tuning.FLASH_CHANGE`; `test_disasters.gd`'s `test_a_glow_doesnt_flash_where_it_glides_past_points_at_its_faint_edge`). N42.
+- Evidence: found by PR 3's prototype. §5.6's rule counted a change of a tenth of a point's own peak. At a glow's faint edge, a peak of 0.044, the canvas draws the glow's nearest texel, so the light there steps by about 0.005 as the glow glides: the bus's lamp, drawing up, "rose" 5 times in 42 frames, a change no eye sees.
+- Fix: PR 2 counts only a change of more than a tenth of white's light, or of pure red's for red light, at any peak, as WCAG 2.3.1 does (`Tuning.FLASH_CHANGE`; `test_disasters.gd`'s `test_a_glow_doesnt_flash_where_it_glides_past_points_at_its_faint_edge`). N42, N129.
 
 ### Low
 
@@ -461,13 +461,14 @@ Before the plan PR, a model of another family (GPT-6.1 Sol, as a rubber duck) re
 | R5. Each legend PR was to repeat the kit's cases, though most break the kit, which no legend PR changes, and the witch and the worm have no glows | §6.2's matrix: each legend PR breaks only its own parts, and PR 2 alone the kit | 3–7 | — | — |
 | R6. PR 1's lore changes the dicts that `test_collection_screen.gd:44–52` and `:70` compare, lines that S15 had PR 2 change too; and `:80` and `:116` count four cards | PR 1 moves every test of that file to packed test disasters, and PR 2 leaves it alone (S15) | 1 | `test_collection_screen.gd` | N30's third variant |
 
-Copilot's review of d5e2beb, this plan's first state on PR #45, found three more. Each was checked against the code, P7's simulation or a probe:
+Copilot's reviews of d5e2beb, this plan's first state on PR #45, and 2037750 found four more. Each was checked against the code, P7's simulation or a probe:
 
 | Finding | Fix | PR | Tests | Negative case |
 |---|---|---|---|---|
 | [§4.5](https://github.com/pompomon/roadgame/pull/45#discussion_r4534107502): with Q2's alternative, two PRs in a row for one area add lines under the same comment, with no line of the merge base between | Each area's further legends in one PR, after PR 7 in the areas' order, and PR 8 last; the Desert's alone join PR 7 (§4.5) | 3–8 | the landing simulated (P7) | N30's fourth variant |
 | [§5.6](https://github.com/pompomon/roadgame/pull/45#discussion_r4534107539): each glow was checked alone, so two that overlap, each with 3 short pulses a second, 10 frames apart, would flash 6 times a second | The flash test adds up the glows' light at each point of the view (S11, §5.6) | 2 | the flash test | N20's second variant |
 | [§5.9](https://github.com/pompomon/roadgame/pull/45#discussion_r4534107565): the sound started at `disaster_started`, 0.1–0.5 s before the legend shows, so its cues would miss the beats | S18: the director's `disaster_appeared`, at the delay, starts the sound (P15) | 2 | `test_disaster_director.gd`, at both ends of the delay's range; `test_audio_director.gd`; `test_wrong_turn_disaster.gd` | N36 |
+| [§5.6](https://github.com/pompomon/roadgame/pull/45#discussion_r4539796229): S19's floor rose with a point's peak, so dim pulses after glows past white passed | A tenth of white's light, or pure red's, at any peak | 2 | the flash test | N129 |
 
 The PRs' reviews, by GPT-6.1 Sol before each PR opened unless named; it found nothing in PRs 1 and 3. Each fix has a negative case that the old tests passed, and the PR's body names the tests:
 
@@ -563,8 +564,8 @@ The witch's hex needs no double: the car hides in the puff, by its own `modulate
 ### 5.6 No flashing (PR 2; S11, E6)
 
 `Disasters.flashes(disaster)` plays a disaster frame by frame and records the light at the points of a grid fixed in the World, 4 px apart, so that the camera's shake doesn't count. Each glow adds its light at every point it covers: its texture's luminance and alpha there, times its `self_modulate`, and its `modulate` with its parents'. So glows that overlap add up, a glow cut from a sheet, such as the UFO's beam, counts as a round one does, and a glow that moves counts at each point it passes. Only points that a glow covers are kept, so the test's cost follows the glows' area. E6's test fails if:
-- at a point, the light rises and falls by more than 10 % of that point's peak, or of white's light if that's more (S19), more than 3 times in any 60 frames (WCAG 2.3.1: three flashes a second);
-- at a point, the red light, from glows whose red is at least 80 % of their colour, rises more than once, or falls more than once, by more than 10 % of its peak, or of pure red's light if that's more;
+- at a point, the light rises and falls by more than 10 % of white's light (S19), more than 3 times in any 60 frames (WCAG 2.3.1: three flashes a second);
+- at a point, the red light, from glows whose red is at least 80 % of their colour, rises more than once, or falls more than once, by more than 10 % of pure red's light;
 - a glow covers 57,600 px² or more at the reference zoom, a quarter of 360 × 640;
 - the veil's luminance rises while the legend plays;
 - or a `Tuning` constant whose name ends in `_HZ` is above 3.
@@ -694,7 +695,7 @@ The kit's cases (N2–N12, N19, N26–N29, N36) break parts of PR 2's that no le
 | `witch_hex` (6) | N1 (a part hidden by `modulate.a`; the pumpkin is hidden by its scale), N16, N20, N21 (on its lantern's glow), N24, N25 | — |
 | `death_worm` (7) | N1, N16, N24, N25 | N20, N21: no glows |
 
-**Results.** On the prototype, every case failed the checks named, each on its PR's commit, and `git status --porcelain` printed nothing after each. N30's four variants and Q2's order were simulated on the prototype's own files (§4.5): each variant conflicts where the table says, and Q2's order lands clean. N30a's PR 1 is laid out by `gdformat` without its anchors, as such a PR would be. The PRs' reviews and testing added N37–N128, which their bodies list, and §4.6 those that came from reviews. On PRs 1–8's final heads, their 5, 38, 18, 23, 27, 38, 32 and 3 cases each failed the checks named, and left the tree clean.
+**Results.** On the prototype, every case failed the checks named, each on its PR's commit, and `git status --porcelain` printed nothing after each. N30's four variants and Q2's order were simulated on the prototype's own files (§4.5): each variant conflicts where the table says, and Q2's order lands clean. N30a's PR 1 is laid out by `gdformat` without its anchors, as such a PR would be. The PRs' reviews and testing added N37–N129, which their bodies list, and §4.6 those that came from reviews. On PRs 1–8's final heads, their 5, 39, 18, 23, 27, 38, 32 and 3 cases each failed the checks named, and left the tree clean.
 
 ### 6.3 Editor warnings
 
@@ -733,7 +734,7 @@ Each ran with Godot 4.7.2: headless, or rendered with the Compatibility renderer
 
 ### 6.6 Measurements (PRs)
 
-- **Counts.** Each final head gives §6.1's counts, with GUT in 44–49 s here and CI's `test` job in 1 min 54 s to 2 min 8 s. Diffs: PR 1 +288 −50 lines, PR 2 +1,665 −67, PRs 3–7 +789 to +1,168, PR 8 +103 −1,563.
+- **Counts.** Each final head gives §6.1's counts, from PR 2 on with a test and 2 asserts more, GUT in 44–50 s here and CI's `test` job in 1 min 56 s to 2 min 27 s. Diffs: PR 1 +288 −50 lines, PR 2 +1,692 −67, PRs 3–7 +789 to +1,168, PR 8 +103 −1,563.
 - **From the turn**, a legend takes 3.1–3.7 s: beats of 2.4–2.6 s, the delay and the car's stop (E2).
 - **The Web** (E11, [#53's results](https://github.com/pompomon/roadgame/pull/53#issuecomment-6798792664), on PR 8's build, whose game its final head keeps): in Chrome 157 and Firefox 156 under Xvfb, at 1640 × 640 and 360 × 922, each legend played as §3.3 says. Each veil darkened the whole view, to 0.08–0.39 of its light, and left the HUD alone; game over showed the fate, and Disasters the lore. No errors; at most one flash a second (E6); the first darker frame 41–193 ms after the sound's start (E8).
 - **Frame rate.** Drawn on the CPU, the legends' median fell by about a sixth at 1640 × 640, and M5's disasters' by under a twentieth. The worm, with no veil or glow, cost next to nothing, and at 360 × 922 the median barely moved: the cost is the veil's and the glows' blending. The Fold4's is the owner's (§7, §8).
