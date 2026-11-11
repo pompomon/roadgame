@@ -215,6 +215,10 @@ const UFO_RIM_HZ := 2.0
 const UFO_BEAM_ALPHA := 0.5
 
 # The Meadows' legends.
+## The fairy ring (M6_PLAN.md §3.3): its beats, in s: the toadstools sprout, their glows swell and
+## the eyes open, the car dances, and the ring holds; and how much light each toadstool's glow adds.
+const FAIRY_RING_BEATS: Array[float] = [0.6, 0.5, 0.9, 0.4]
+const FAIRY_RING_GLOW_ALPHA := 0.6
 
 # The Village's legends.
 
