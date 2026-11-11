@@ -7,8 +7,10 @@ var _buffer: RoadBuffer
 var _trigger: JunctionTrigger
 
 
-func _start(run_seed: int) -> void:
-	_buffer = RoadBuffer.new(RoadGenerator.new(run_seed, Fixtures.schedule()))
+## Starts on the road of `run_seed` and `schedule`, by default the game's.
+func _start(run_seed: int, schedule: AreaSchedule = null) -> void:
+	var road := schedule if schedule != null else Fixtures.schedule()
+	_buffer = RoadBuffer.new(RoadGenerator.new(run_seed, road))
 	_buffer.start()
 	_restart()
 
@@ -20,13 +22,18 @@ func _restart() -> void:
 
 
 ## Starts the first seed whose first junction passes `check`, and returns that junction.
-func _start_where(check: Callable) -> RoadTile:
+func _start_where(check: Callable, schedule: AreaSchedule = null) -> RoadTile:
 	for run_seed: int in range(1, 100):
-		_start(run_seed)
+		_start(run_seed, schedule)
 		if check.call(_junctions()[0]):
 			return _junctions()[0]
 	fail_test("no seed from 1 to 99 has such a first junction")
 	return null
+
+
+## A check for _start_where(): the junction is of `kind`.
+static func _of_kind(kind: int) -> Callable:
+	return func(j: RoadTile) -> bool: return Fixtures.kind(j) == kind
 
 
 ## The buffer's junctions, in path order.
@@ -70,17 +77,38 @@ func test_the_correct_exit_completes_the_turn() -> void:
 	assert_signal_not_emitted(_trigger, "disaster_triggered")
 
 
-func test_every_wrong_exit_of_a_crossroads_is_a_disaster() -> void:
-	var cross := _start_where(
-		func(j: RoadTile) -> bool: return j.type == RoadTile.Type.CROSS_JUNCTION
-	)
-	for exit: int in [Heading.opposite(cross.expected_exit), cross.heading]:
-		_restart()
-		_leave(cross, exit)
-		assert_signal_emitted_with_parameters(_trigger, "disaster_triggered", [cross, exit])
-		assert_signal_not_emitted(_trigger, "turn_completed")
-		assert_null(_trigger.next_junction)
-		assert_eq(_trigger.turn_index, 0)
+## Each exit of the first junction of each kind, from a new trigger each time: the correct one
+## completes a turn, or no turn at a decoy (ROADGEN_PLAN.md R2), and every other is a disaster.
+func test_each_kind_of_junction_has_one_correct_exit() -> void:
+	for kind: int in RoadGenerator.Kind.values():
+		var junction := _start_where(_of_kind(kind), Fixtures.kinds_schedule(0.25, 0.25, 0.25))
+		if junction == null:
+			return
+		var after := _junctions()[1]
+		var exits := 0
+		for exit: int in 4:
+			if exit != Heading.opposite(junction.heading) and junction.has_exit(exit):
+				_restart()
+				_leave(junction, exit)
+				_assert_decided(junction, exit, after)
+				exits += 1
+		assert_eq(exits, 3 if kind == RoadGenerator.Kind.CROSSROADS else 2, "kind %d" % kind)
+
+
+## What leaving `junction`, the first, through `exit` decided. `after` is the junction after it.
+func _assert_decided(junction: RoadTile, exit: int, after: RoadTile) -> void:
+	var where := "kind %d exit %d" % [Fixtures.kind(junction), exit]
+	if exit != junction.expected_exit:
+		assert_signal_emitted_with_parameters(_trigger, "disaster_triggered", [junction, exit])
+		assert_signal_not_emitted(_trigger, "turn_completed", where)
+		assert_null(_trigger.next_junction, where)
+		assert_eq(_trigger.turn_index, 0, where)
+		return
+	var turns := 1 if junction.is_turn() else 0
+	assert_signal_emitted_with_parameters(_trigger, "turn_completed", [turns])
+	assert_signal_not_emitted(_trigger, "disaster_triggered", where)
+	assert_eq(_trigger.turn_index, turns, where)
+	assert_eq(_trigger.next_junction, after, where)
 
 
 func test_nothing_is_decided_after_a_disaster() -> void:
@@ -163,6 +191,18 @@ func test_rejoining_past_two_junctions_completes_both_turns() -> void:
 	assert_eq(_trigger.next_junction, junctions[2])
 
 
+func test_rejoining_past_a_decoy_counts_only_the_turns() -> void:
+	_start_where(_of_kind(RoadGenerator.Kind.DECOY), Fixtures.kinds_schedule(0.25, 0.25, 0.25))
+	var junctions := _junctions()
+	var turns := 1 if junctions[1].is_turn() else 0
+	_trigger.on_rejoin(_buffer.path_tile(junctions[1].path_index + 1))
+	assert_signal_emit_count(_trigger, "turn_completed", 2)
+	assert_signal_emitted_with_parameters(_trigger, "turn_completed", [turns])
+	assert_eq(_trigger.turn_index, turns)
+	assert_eq(_trigger.next_junction, junctions[2])
+	assert_signal_not_emitted(_trigger, "disaster_triggered")
+
+
 func test_rejoining_on_a_later_dead_end_completes_the_turn_then_fails() -> void:
 	_start(1)
 	var junctions := _junctions()
@@ -182,14 +222,21 @@ func test_the_offroad_limit_is_a_missed_turn() -> void:
 	assert_null(_trigger.next_junction)
 
 
+## On the game's road, and through every kind of junction, where decoys add junctions but no
+## turns (ROADGEN_PLAN.md R2).
 func test_finds_the_next_junction_for_300_turns() -> void:
-	_start(3)
-	for turn: int in 300:
-		var junction := _trigger.next_junction
-		if junction == null or not junction.is_junction():
-			fail_test("no junction after turn %d" % turn)
-			return
-		_buffer.on_car_path_index(junction.path_index)
-		_leave(junction, junction.expected_exit)
-	assert_eq(_trigger.turn_index, 300)
-	assert_signal_not_emitted(_trigger, "disaster_triggered")
+	var kinds := Fixtures.kinds_schedule(0.25, 0.25, 0.25)
+	for schedule: AreaSchedule in [Fixtures.schedule(), kinds]:
+		_start(3, schedule)
+		var junctions := 0
+		while _trigger.turn_index < 300 and junctions < 1000:
+			var junction := _trigger.next_junction
+			if junction == null or not junction.is_junction():
+				fail_test("no junction after %d junctions" % junctions)
+				return
+			_buffer.on_car_path_index(junction.path_index)
+			_leave(junction, junction.expected_exit)
+			junctions += 1
+		assert_eq(_trigger.turn_index, 300)
+		assert_signal_emit_count(_trigger, "turn_completed", junctions)
+		assert_signal_not_emitted(_trigger, "disaster_triggered")

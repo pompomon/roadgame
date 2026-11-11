@@ -2,6 +2,13 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const TILES := 2000
+## The game's road for seeds 0 to 19 up to turn 300, as MD5 digests: of its path tiles alone, and
+## of its path tiles with their dead ends. A change that is meant to change the road updates them,
+## and its commit says why (ROADGEN_PLAN.md §6.1).
+const PATH_DIGEST := "811569241f55e1fce2a50331fe4c3e7d"
+const ROAD_DIGEST := "33b32b4135f684041d8772ec3661e3ce"
+const DIGEST_SEEDS := 20
+const DIGEST_TURNS := 300
 
 
 func _signatures(gen: RoadGenerator, count: int) -> Array:
@@ -42,15 +49,6 @@ func test_buffer_refills_and_frees_do_not_change_the_road() -> void:
 	while got.size() < TILES:
 		buffer.on_car_path_index(buffer.car_index() + rng.randi_range(0, 30))
 	assert_true(got.slice(0, TILES) == expected)
-
-
-## The game's road for seeds 0 to 19 up to turn 300, as MD5 digests: of its path tiles alone, and
-## of its path tiles with their dead ends. A change that is meant to change the road updates them,
-## and its commit says why.
-const PATH_DIGEST := ""
-const ROAD_DIGEST := ""
-const DIGEST_SEEDS := 20
-const DIGEST_TURNS := 300
 
 
 func test_the_game_road_matches_its_digests() -> void:

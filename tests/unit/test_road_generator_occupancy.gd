@@ -1,6 +1,6 @@
 extends GutTest
-## Property tests over many seeds (plan.md §11): no two tiles share a cell, every junction keeps a
-## wrong exit, and dead ends are 1 to 3 tiles long.
+## Property tests over many seeds (plan.md §11): no two tiles share a cell, every junction keeps
+## its wrong exits, and dead ends are 1 to 3 tiles long.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 200
@@ -45,3 +45,10 @@ func test_densest_rules_shorten_dead_ends_but_never_drop_them() -> void:
 		_check(gen, TURNS, "dense seed %d" % run_seed)
 		shortened += gen.shortened_count
 	assert_gt(shortened, 0, "collisions happen, and the generator shortens those dead ends")
+
+
+## Side roads and decoys too (ROADGEN_PLAN.md R1): a straight-on dead end always fits whole.
+func test_every_kind_of_junction_keeps_its_wrong_exits() -> void:
+	for run_seed: int in 50:
+		var gen := RoadGenerator.new(run_seed, Fixtures.kinds_schedule(0.25, 0.25, 0.25))
+		_check(gen, TURNS, "kinds seed %d" % run_seed)

@@ -25,10 +25,10 @@ An isometric pixel-art endless driving roguelike. The player steers a car along 
 ### 2.1 Run flow
 1. The run starts in the **City**, heading north.
 2. The car controls its speed automatically (§2.3). The player only steers.
-3. The road has straights and **junctions**. At each junction the player must take the next turn in the global pattern `L, R, L, R, …`. The first turn is always **Left**.
-4. Taking the wrong exit, or continuing straight through a junction (a "missed turn"), triggers a **disaster** and ends the run.
+3. The road has straights and **junctions**. At each junction the player must take the next turn in the global pattern `L, R, L, R, …`. The first turn is always **Left**. A **decoy** junction doesn't offer that turn, only straight on and the other turn: there straight on is correct, and the turn waits for a later junction.
+4. Taking the wrong exit, or continuing straight through a junction that offers the turn (a "missed turn"), triggers a **disaster** and ends the run.
 5. Driving off the road drains **health** and is limited to short excursions (§2.4). At 0 health the car crashes and the run ends.
-6. Correct turns increment `turnIndex`. Fixed areas and set pieces start at predefined turn numbers.
+6. Correct turns increment `turnIndex`; straight on at a decoy doesn't. Fixed areas and set pieces start at predefined turn numbers.
 7. The game-over screen shows distance, turns, the area reached and the cause of the run's end.
 
 ### 2.2 Controls: free steering with automatic speed
@@ -78,12 +78,13 @@ None that affects gameplay. Persisted between runs:
 - The correct path alternates L and R, so it forms a staircase. Starting north, it alternates between two headings (N → W → N → W…). Because it always moves in the same overall direction, it **can never cross itself**.
 - Randomness comes from:
   - straight lengths between junctions (`minStraight`..`maxStraight` per area)
-  - junction type (T-junction or crossroads, so whether "straight on" is offered)
+  - junction kind (T-junction, crossroads, side road or decoy, so which of the turn, the opposite turn and "straight on" are offered)
   - which wrong branches exist
   - decorations and ground variants
 
 ### 3.3 Junctions and dead ends
-- Every turn on the correct path is a junction. It offers the correct exit plus at least one wrong exit (the opposite turn and/or straight on).
+- Every turn on the correct path is a junction. It offers the correct exit plus at least one wrong exit (the opposite turn and/or straight on). A side road offers the turn and straight on, but not the opposite turn.
+- A **decoy** is a junction but no turn: it offers straight on, which is correct, and the opposite turn, a wrong exit. It shares `turnNumber` with the next junction.
 - Wrong exits become short **dead-end branches** (2–3 tiles) in any direction. They are rendered as real road so they look like valid choices.
 - Before placing a dead end, the generator checks an **occupancy grid**. On a collision it shortens the dead end to 1 tile or removes that wrong exit (for example, a crossroads becomes a T-junction). Every junction must keep at least one wrong exit.
 - Each junction stores `expectedExit` (a heading) and `turnNumber`.
@@ -124,6 +125,8 @@ AreaDef
   props: Array[PropDef]           # scene, weight, density, min distance from road
   min_straight, max_straight: int
   cross_junction_chance: float     # chance a junction also offers "straight on"
+  side_road_chance: float          # chance a junction offers the turn and "straight on" only
+  decoy_chance: float              # chance a junction offers "straight on" (correct) and the opposite turn
   straight_accel: float            # speed gain per tile on straights
   junction_brake_distance: float   # tiles before a junction where auto-braking starts
   junction_speed: float            # target speed while passing through a junction
