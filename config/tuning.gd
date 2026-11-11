@@ -221,5 +221,14 @@ const FAIRY_RING_BEATS: Array[float] = [0.6, 0.5, 0.9, 0.4]
 const FAIRY_RING_GLOW_ALPHA := 0.6
 
 # The Village's legends.
+## The witch's hex (M6_PLAN.md §3.3): its beats, in s: the witch swoops in and circles the car,
+## cackling; she points and hexes it; a puff of smoke hides it; and a jack-o'-lantern pops up where
+## it stood as she flies off. Where she swoops in from and flies off to, in px from where she
+## hovers, for a hex whose params' direction points to the right of the screen, mirrored for the
+## left; and how much light the lantern's grin adds.
+const WITCH_HEX_BEATS: Array[float] = [0.5, 0.5, 0.6, 0.8]
+const WITCH_HEX_SWOOP_PX := Vector2(-140.0, -200.0)
+const WITCH_HEX_FLY_OFF_PX := Vector2(260.0, -220.0)
+const WITCH_HEX_GLOW_ALPHA := 0.7
 
 # The Desert's legends.

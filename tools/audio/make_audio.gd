@@ -47,6 +47,7 @@ func _initialize() -> void:
 	# The Meadows' legends.
 	_save_legend("fairy_ring", _fairy_ring)
 	# The Village's legends.
+	_save_legend("witch_hex", _witch_hex)
 	# The Desert's legends.
 	quit()
 
@@ -298,6 +299,40 @@ func _fairy_ring() -> PackedFloat32Array:
 
 # The Village's legends.
 
+
+## Timed to Tuning.WITCH_HEX_BEATS from the end of the delay, when the sound starts: a long, low
+## cackle as the witch swoops in; the whoosh of her broom as she circles the car; a thin whine that
+## climbs and trembles as the hex runs from her finger; a dull poof as the smoke bursts; a hollow
+## knock as the jack-o'-lantern pops up, and the soft rush of its grin catching light. Her cackle
+## again as she flies off, dying away.
+func _witch_hex() -> PackedFloat32Array:
+	var beats := Tuning.WITCH_HEX_BEATS
+	var swooped: float = beats[0] * WitchHex.SWOOP_SHARE
+	var circled: float = beats[0] + beats[1] * WitchHex.CIRCLE_SHARE
+	var puff: float = beats[0] + beats[1]
+	var pop: float = puff + beats[2]
+	var lit: float = pop + beats[3] * WitchHex.POP_SHARE
+	var out := _silence(roundi((pop + 1.2) * RATE))
+	_add(out, _cackle(260.0, 6), 0.0, 0.9)
+	var whoosh := _high_pass(_low_pass(_noise(roundi((circled - swooped) * RATE)), 1500.0), 400.0)
+	_add(out, _swell(whoosh), swooped, 0.6)
+	var held := puff - circled
+	var whine := _glide(440.0, 1320.0, held)
+	_add(whine, _glide(452.0, 1356.0, held), 0.0)
+	whine = _lfo(whine, 6, 0.6)
+	for i: int in whine.size():
+		whine[i] *= float(i) / whine.size()
+	_add(out, whine, circled, 0.15)
+	_add(out, _decay(_low_pass(_noise(roundi(0.5 * RATE)), 600.0), 0.12), puff, 1.0)
+	_add(out, _decay(_tone(70.0, 0.3, "sine"), 0.08), puff, 0.6)
+	var knock := _decay(_tone(180.0, 0.3, "sine"), 0.05)
+	_add(knock, _decay(_tone(470.0, 0.3, "sine"), 0.02), 0.0, 0.4)
+	_add(out, knock, pop, 0.8)
+	_add(out, _swell(_low_pass(_noise(roundi(0.3 * RATE)), 400.0)), lit, 0.4)
+	_add(out, _fade_out(_low_pass(_cackle(280.0, 7), 1200.0)), pop, 0.5)
+	return out
+
+
 # The Desert's legends.
 
 
@@ -353,6 +388,20 @@ func _chirp(freq: float) -> PackedFloat32Array:
 	for i: int in out.size():
 		out[i] *= sin(PI * i / out.size())
 	return out
+
+
+## `count` rasping "ha"s, from `freq` Hz, each lower than the last: in each, a voice of three
+## partials falls a fifth of its pitch over a breath of noise.
+func _cackle(freq: float, count: int) -> PackedFloat32Array:
+	var syllable := 0.1
+	var out := _silence(roundi(syllable * (count + 1) * RATE))
+	for k: int in count:
+		var pitch := freq * pow(0.94, k)
+		var ha := _low_pass(_noise(roundi(syllable * RATE)), 2000.0)
+		for partial: float in [1.0, 2.0, 3.0]:
+			_add(ha, _glide(pitch * partial, pitch * partial * 0.8, syllable), 0.0, 1.0 / partial)
+		_add(out, _swell(ha), k * syllable)
+	return _low_pass(out, 2500.0)
 
 
 func _bell(freq: float) -> PackedFloat32Array:
