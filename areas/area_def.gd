@@ -15,6 +15,13 @@ extends Resource
 @export_range(2, 20) var max_straight := 5
 ## Chance that a junction also offers "straight on" as a wrong exit (a crossroads).
 @export_range(0.0, 1.0) var cross_junction_chance := 0.3
+## Chance that a junction offers the turn and straight on, a wrong exit, but not the opposite turn
+## (a side road, ROADGEN_PLAN.md R1).
+@export_range(0.0, 1.0) var side_road_chance := 0.0
+## Chance that a junction offers straight on and the opposite turn, a wrong exit, but not the turn
+## (a decoy, R1): straight on is correct there, and the turn waits for the next junction. The three
+## chances add up to 1 at most; T-junctions take the rest.
+@export_range(0.0, 1.0) var decoy_chance := 0.0
 
 @export_group("Art")
 ## The road sheet (M5_PLAN.md §5.5): GreyboxAtlas's layout, opaque exactly where its road is. With
@@ -68,6 +75,13 @@ func validate() -> PackedStringArray:
 		problems.append("%s: max_straight %d is below min_straight" % [id, max_straight])
 	if cross_junction_chance < 0.0 or cross_junction_chance > 1.0:
 		problems.append("%s: cross_junction_chance is outside 0..1" % id)
+	if side_road_chance < 0.0 or side_road_chance > 1.0:
+		problems.append("%s: side_road_chance is outside 0..1" % id)
+	if decoy_chance < 0.0 or decoy_chance > 1.0:
+		problems.append("%s: decoy_chance is outside 0..1" % id)
+	var chances := cross_junction_chance + side_road_chance + decoy_chance
+	if chances > 1.0 and not is_equal_approx(chances, 1.0):
+		problems.append("%s: the junction chances add up to more than 1" % id)
 	if straight_accel < 0.0:
 		problems.append("%s: straight_accel is negative" % id)
 	if junction_brake_distance < least_brake_distance():
