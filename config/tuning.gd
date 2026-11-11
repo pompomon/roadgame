@@ -130,6 +130,8 @@ const SHAKE_FREQ_Y := 31.0
 ## A crash's shake.
 const CRASH_SHAKE := 0.5
 const CRASH_SHAKE_SECONDS := 0.4
+
+# The natural disasters, until M6 PR 8.
 ## The sinkhole (IMPLEMENTATION_PLAN.md M3.2): the hole's radius at intensity 1, in tiles; how long
 ## it grows, how long the car takes to sink into it, and how long the scene then holds, in seconds.
 const SINKHOLE_RADIUS := 0.8
@@ -163,3 +165,13 @@ const QUICKSAND_SINK_SECONDS := 0.75
 const QUICKSAND_HOLD_SECONDS := 0.6
 const QUICKSAND_WOBBLE := 0.3
 const QUICKSAND_WOBBLE_HZ := 3.0
+
+# The City's legends.
+
+# Rural's legends.
+
+# The Meadows' legends.
+
+# The Village's legends.
+
+# The Desert's legends.

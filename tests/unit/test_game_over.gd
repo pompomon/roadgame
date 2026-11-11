@@ -1,7 +1,7 @@
 extends GutTest
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3) on its own: why the run ended,
-## its stats, the seed, Retry, and Title (M5.5). It runs in a SubViewport, so that Retry can take
-## the focus.
+## the disaster's fate (M6_PLAN.md S8), its stats, the seed, Retry, and Title (M5.5). It runs in a
+## SubViewport, so that Retry can take the focus.
 
 const GAME_OVER_SCENE := preload("res://ui/game_over.tscn")
 
@@ -117,3 +117,19 @@ func test_title_asks_for_the_title_screen_only_while_open() -> void:
 	title.pressed.emit()
 	assert_signal_emit_count(game_over, "title_requested", 1)
 	assert_signal_not_emitted(game_over, "retry_requested")
+
+
+func test_it_shows_the_fate_of_the_disaster_that_ended_the_run_under_the_cause() -> void:
+	# M6_PLAN.md S8: what the disaster did to the car, from DisasterBase.fate.
+	var game_over := _game_over()
+	var fate: Label = game_over.get_node("%Fate")
+	var cause: Label = game_over.get_node("%Cause")
+	assert_eq(fate.get_parent(), cause.get_parent())
+	assert_eq(fate.get_index(), cause.get_index() + 1, "under the cause")
+	game_over.open(_stats(CarSim.WRONG_TURN), _rural(), "A ghost took you.")
+	assert_true(fate.visible)
+	assert_eq(fate.text, "A ghost took you.")
+	game_over.close()
+	game_over.open(_stats(CarSim.OFFROAD), _rural())
+	assert_false(fate.visible, "no fate after a crash")
+	assert_eq(fate.text, "")

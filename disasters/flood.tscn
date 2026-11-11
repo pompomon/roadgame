@@ -6,6 +6,8 @@
 script = ExtResource("1_flood")
 id = &"flood"
 display_name = "Flood"
+fate = "The flood swept you away."
+lore = "After a storm upstream, a river can rise over its banks within the hour."
 
 [node name="Water" type="Polygon2D" parent="."]
 unique_name_in_owner = true
