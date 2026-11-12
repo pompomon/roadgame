@@ -27,7 +27,8 @@ var angle := 0.0
 var speed := 0.0
 var health := Tuning.START_HEALTH
 var state := State.DRIVING
-## Tiles driven in the run, and since the last correct turn.
+## Tiles driven in the run, and since the car last took a junction's correct exit: a turn, or a
+## decoy's straight on (ROADGEN_PLAN.md R2).
 var dist_total := 0.0
 var dist_on_straight := 0.0
 ## Tiles driven since the car last left the road.

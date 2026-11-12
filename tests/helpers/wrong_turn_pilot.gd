@@ -3,7 +3,8 @@ extends Autopilot
 ## junction's centre it follows a wrong exit instead of the correct one (IMPLEMENTATION_PLAN.md M3
 ## tests). No class_name: tests/ is not exported.
 
-## The 0-based turn number of the junction where it goes wrong: 2 is the third junction.
+## The 0-based turn number of the junction where it goes wrong: 2 is the third turn's, or a decoy
+## before it (ROADGEN_PLAN.md R2).
 var wrong_at := 2
 
 

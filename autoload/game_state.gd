@@ -47,7 +47,7 @@ func start_run(p_run_seed: int) -> void:
 
 
 ## The car reached the area `id`, whose first tile begins `start_distance` tiles along the path,
-## after `start_turns` junctions: the distance and turns from there on count for it, in
+## after `start_turns` turns: the distance and turns from there on count for it, in
 ## stats()["areas"]. The car may get there before its turn at the junction behind is judged, or
 ## before `distance` passes `start_distance`: until then, those still count for the area before.
 func enter_area(id: StringName, start_distance: float, start_turns: int) -> void:

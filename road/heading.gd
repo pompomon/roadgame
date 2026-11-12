@@ -21,8 +21,9 @@ static func opposite(h: int) -> int:
 	return (h + 2) % 4
 
 
-## Expected exit of junction `turn_number` (0-based) entered with heading `h`: even turns go left,
-## odd turns go right.
+## The heading that turn `turn_number` (0-based) takes from heading `h`: even turns go left, odd
+## turns go right. It is the expected exit of the junction with that turn number, but not of a
+## decoy before it, which shares the number (ROADGEN_PLAN.md R1).
 static func turn_for(turn_number: int, h: int) -> int:
 	return left(h) if turn_number % 2 == 0 else right(h)
 

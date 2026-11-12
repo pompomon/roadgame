@@ -14,9 +14,11 @@ var exits: int
 ## Index on the correct path, or -1 for dead-end tiles.
 var path_index := -1
 var area_id := &""
-## Junctions only: 0-based turn number. Turn 0 expects a left turn.
+## Junctions only: the turns before it, which is the 0-based number of the next turn. Turn 0 expects
+## a left turn. A decoy shares it with the junction after it.
 var turn_number := -1
-## Junctions only: the heading of the correct exit.
+## Junctions only: the heading of the correct exit, which is the next turn, or straight on at a
+## decoy.
 var expected_exit := -1
 ## Dead-end tiles only: path_index of their junction. An index, not a reference, so tiles never
 ## form a reference cycle (RefCounted cycles are never freed).
@@ -38,6 +40,11 @@ func _init(p_cell: Vector2i, p_type: Type, p_heading: int, p_exits: int) -> void
 
 func is_junction() -> bool:
 	return type == Type.T_JUNCTION or type == Type.CROSS_JUNCTION
+
+
+## A junction whose correct exit turns: every junction but a decoy.
+func is_turn() -> bool:
+	return is_junction() and expected_exit != heading
 
 
 func has_exit(h: int) -> bool:
