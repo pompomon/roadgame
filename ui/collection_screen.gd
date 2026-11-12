@@ -2,8 +2,9 @@ class_name CollectionScreen
 extends MenuScreen
 ## The disaster collection (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): a card for each disaster in
 ## the pools of the schedule's areas, in the order a run can first meet them. A card tells how often
-## the disaster was seen, and where and how far into a run it was seen first; one never seen is a
-## silhouette. Like the HUD, its text uses only characters in Godot's default font.
+## the disaster was seen, where and how far into a run it was seen first, and its lore (M6_PLAN.md
+## S12); one never seen is a silhouette. Like the HUD, its text uses only characters in the game's
+## font.
 
 const CARD_SCENE := preload("res://ui/menu_card.tscn")
 ## The name of a disaster never seen, and its card's text and swatch.
@@ -31,15 +32,15 @@ func open(data: SaveData, schedule: AreaSchedule) -> void:
 		if seen > 0:
 			var area := _find_area(schedule, entry["first_area"])
 			var color := area.id_color if area != null else SILHOUETTE
-			card.show_entry(disaster["name"], seen_text(entry, area), color)
+			card.show_entry(disaster["name"], seen_text(entry, area), color, disaster["lore"])
 		else:
 			card.show_entry(UNKNOWN, NOT_SEEN, SILHOUETTE)
 	show()
 	_back.grab_focus()
 
 
-## The id and the display name of each disaster in the pools of `schedule`'s areas, each once, in
-## the order of the areas: [{"id": StringName, "name": String}].
+## The id, the display name and the lore of each disaster in the pools of `schedule`'s areas, each
+## once, in the order of the areas: [{"id": StringName, "name": String, "lore": String}].
 static func disasters(schedule: AreaSchedule) -> Array[Dictionary]:
 	var found: Array[Dictionary] = []
 	var scenes: Array[PackedScene] = []
@@ -51,7 +52,9 @@ static func disasters(schedule: AreaSchedule) -> Array[Dictionary]:
 			var node: Node = scene.instantiate() if scene.can_instantiate() else null
 			var disaster := node as DisasterBase
 			if disaster != null:
-				found.append({"id": disaster.id, "name": disaster.display_name})
+				found.append(
+					{"id": disaster.id, "name": disaster.display_name, "lore": disaster.lore}
+				)
 			else:
 				push_error("CollectionScreen: %s isn't a disaster" % scene.resource_path)
 			if node != null:

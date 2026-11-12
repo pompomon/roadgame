@@ -127,6 +127,32 @@ const DISASTER_INTENSITY_MIN := 0.5
 const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
+## Where a legend's parts draw (M6_PLAN.md §5.5): a part in the sky, such as the UFO's saucer, over
+## the props and the car; the veil over them all; and the glows over the veil, which they light.
+const SKY_Z := 1
+const VEIL_Z := 2
+const GLOW_Z := 3
+## The veil is a square this many px from its centre to each side: wherever it is centred in the
+## view, it covers the widest view of the world, 3278 × 1280 px at the smallest zoom.
+const VEIL_HALF_SIZE := 4096.0
+## What a legend's veil multiplies the world's colours by, at dusk and at night (Q5, Q8).
+const VEIL_DUSK := Color8(170, 130, 190)
+const VEIL_NIGHT := Color8(70, 80, 150)
+## No flashing (M6_PLAN.md §5.6, E6, after WCAG 2.3.1). Light changes once it rises or falls by
+## more than FLASH_CHANGE of white's light, or of pure red's for red light, as WCAG counts, even
+## where glows add up past white. Where a glow glides past a point at its faint edge, the light
+## there steps by less, as the canvas draws the nearest texel (S19). At no point of the world may it
+## rise and fall more than FLASH_MAX times in FLASH_SECONDS, nor more than FLASH_RED_MAX times in
+## all in saturated red, whose share of the colour is at least FLASH_RED_SHARE. No glow may cover
+## FLASH_AREA px² of the world, a quarter of a 360 × 640 screen at zoom 1. The test reads the light
+## every FLASH_GRID px.
+const FLASH_CHANGE := 0.1
+const FLASH_MAX := 3
+const FLASH_SECONDS := 1.0
+const FLASH_RED_SHARE := 0.8
+const FLASH_RED_MAX := 1
+const FLASH_AREA := 57600.0
+const FLASH_GRID := 4
 ## Screen shake (CameraRig.shake): the offset at intensity 1, in screen pixels, which fades out over
 ## the shake, and its frequencies across and up the screen, in rad/s. They differ, so the camera
 ## moves in a figure rather than along a line.
@@ -136,36 +162,51 @@ const SHAKE_FREQ_Y := 31.0
 ## A crash's shake.
 const CRASH_SHAKE := 0.5
 const CRASH_SHAKE_SECONDS := 0.4
-## The sinkhole (IMPLEMENTATION_PLAN.md M3.2): the hole's radius at intensity 1, in tiles; how long
-## it grows, how long the car takes to sink into it, and how long the scene then holds, in seconds.
-const SINKHOLE_RADIUS := 0.8
-const SINKHOLE_GROW_SECONDS := 0.8
-const SINKHOLE_SINK_SECONDS := 1.0
-const SINKHOLE_HOLD_SECONDS := 0.6
-## The tornado (IMPLEMENTATION_PLAN.md M4.5): how far away it starts, along the params' direction,
-## and how far it goes on, in tiles; its height at intensity 1, in screen pixels; how long it takes
-## to reach the car, to carry it off and to leave, in seconds; and the car's turns per second as it
-## goes, at intensity 1.
-const TORNADO_APPROACH_TILES := 2.5
-const TORNADO_LEAVE_TILES := 1.5
-const TORNADO_HEIGHT_PX := 72.0
-const TORNADO_APPROACH_SECONDS := 1.0
-const TORNADO_LIFT_SECONDS := 1.0
-const TORNADO_LEAVE_SECONDS := 0.6
-const TORNADO_SPIN := 2.0
-## The flood (M4.5): its water's radius, in tiles, and where it comes from, that far against the
-## params' direction; how long it takes to roll in, to rise over the car at intensity 1 (faster when
-## stronger) and to hold, in seconds.
-const FLOOD_RADIUS := 1.4
-const FLOOD_SPREAD_SECONDS := 0.6
-const FLOOD_RISE_SECONDS := 0.7
-const FLOOD_HOLD_SECONDS := 0.7
-## The quicksand (M4.5): the pit's radius at intensity 1, in tiles; how long it takes to spread, to
-## swallow the car at intensity 1 (faster when stronger) and to hold, in seconds; and how far the
-## car rocks as it sinks, in radians, how often, in Hz.
-const QUICKSAND_RADIUS := 0.9
-const QUICKSAND_SPREAD_SECONDS := 0.6
-const QUICKSAND_SINK_SECONDS := 0.75
-const QUICKSAND_HOLD_SECONDS := 0.6
-const QUICKSAND_WOBBLE := 0.3
-const QUICKSAND_WOBBLE_HZ := 3.0
+
+# The City's legends.
+## The phantom bus (M6_PLAN.md §3.3): its beats, in s: the fog rolls in, the bus comes, the car
+## boards it, the bus leaves. How far back it comes from, along the road, how far on it goes and
+## how far from the car it stops, in tiles; and how much of it shows, as it's half see-through.
+const PHANTOM_BUS_BEATS: Array[float] = [0.5, 0.9, 0.4, 0.7]
+const PHANTOM_BUS_APPROACH_TILES := 3.0
+const PHANTOM_BUS_LEAVE_TILES := 2.5
+const PHANTOM_BUS_GAP_TILES := 0.4
+const PHANTOM_BUS_ALPHA := 0.7
+
+# Rural's legends.
+## The UFO (M6_PLAN.md §3.3): its beats, in s: night falls, the saucer drops, its beam opens, the
+## car floats up into it, and it zips off. How far it drops to its hover and where it zips to, in
+## px, the zip to the side that the params' direction picks; how many times a second its rim's
+## lights pass each point of its rim; and how much light its beam adds.
+const UFO_BEATS: Array[float] = [0.5, 0.5, 0.4, 0.8, 0.4]
+const UFO_DROP_PX := 160.0
+const UFO_ZIP_PX := Vector2(240.0, -360.0)
+const UFO_RIM_HZ := 2.0
+const UFO_BEAM_ALPHA := 0.5
+
+# The Meadows' legends.
+## The fairy ring (M6_PLAN.md §3.3): its beats, in s: the toadstools sprout, their glows swell and
+## the eyes open, the car dances, and the ring holds; and how much light each toadstool's glow adds.
+const FAIRY_RING_BEATS: Array[float] = [0.6, 0.5, 0.9, 0.4]
+const FAIRY_RING_GLOW_ALPHA := 0.6
+
+# The Village's legends.
+## The witch's hex (M6_PLAN.md §3.3): its beats, in s: the witch swoops in and circles the car,
+## cackling; she points and hexes it; a puff of smoke hides it; and a jack-o'-lantern pops up where
+## it stood as she flies off. Where she swoops in from and flies off to, in px from where she
+## hovers, for a hex whose params' direction points to the right of the screen, mirrored for the
+## left; and how much light the lantern's grin adds.
+const WITCH_HEX_BEATS: Array[float] = [0.5, 0.5, 0.6, 0.8]
+const WITCH_HEX_SWOOP_PX := Vector2(-140.0, -200.0)
+const WITCH_HEX_FLY_OFF_PX := Vector2(260.0, -220.0)
+const WITCH_HEX_GLOW_ALPHA := 0.7
+
+# The Desert's legends.
+## The death worm (M6_PLAN.md §3.3): its beats, in s: the ground trembles and ripples run through
+## the sand to the car; a mound swells under it; the worm bursts up and swallows it; it dives back;
+## and its crater stays. How far the ripples run from, in tiles; and what share of the params'
+## intensity the trembling and the burst shake the camera with.
+const DEATH_WORM_BEATS: Array[float] = [0.6, 0.4, 0.6, 0.6, 0.3]
+const DEATH_WORM_BURROW_TILES := 1.75
+const DEATH_WORM_TREMOR := 0.35
+const DEATH_WORM_BURST := 1.0

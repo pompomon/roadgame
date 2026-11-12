@@ -1,6 +1,6 @@
 extends GutTest
 ## CarController and the car scene (IMPLEMENTATION_PLAN.md M2.4, M3.3): the sprite frame for a
-## heading, and the car's view of its CarSim.
+## heading, and the car's view of its CarSim. A legend's double of the car (M6_PLAN.md §5.4).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
@@ -55,6 +55,35 @@ func test_the_body_shows_the_frame_of_each_heading() -> void:
 		await wait_physics_frames(2)
 		frames.append(body.frame)
 	assert_eq(frames, [3, 5, 11, 13] as Array[int], "N, E, S and W")
+
+
+func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
+	var car := _car()
+	var body: Sprite2D = car.get_node("%Body")
+	var sheet := body.texture.get_image()
+	var frame_size := body.texture.get_size() / Vector2(body.hframes, body.vframes)
+	car.input.enabled = false
+	for heading: int in 4:
+		car.sim.angle = heading * PI / 2.0
+		await wait_physics_frames(2)
+		var made := car.double()
+		add_child(made)
+		made.global_position = car.global_position
+		var what := "frame %d" % body.frame
+		assert_eq(made.texture, body.texture, what + ": the body's sheet")
+		assert_true(made.region_enabled, what + ": a part of it")
+		assert_eq(
+			made.get_global_transform() * made.get_rect(),
+			body.get_global_transform() * body.get_rect(),
+			what + ": where the body shows"
+		)
+		var shown := Rect2i(Vector2i(Vector2(body.frame_coords) * frame_size), Vector2i(frame_size))
+		assert_eq(
+			Art.pixels(sheet.get_region(Rect2i(made.region_rect))),
+			Art.pixels(sheet.get_region(shown)),
+			what + ": the body's frame"
+		)
+		made.free()
 
 
 func test_dust_flies_only_while_the_car_is_off_the_road() -> void:
