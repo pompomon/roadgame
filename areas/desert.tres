@@ -11,7 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://8y5ljkb26gyp" path="res://assets/desert/road.png" id="art_road"]
 [ext_resource type="Texture2D" uid="uid://dd7vc8a0lhobs" path="res://assets/desert/ground.png" id="art_ground"]
 [ext_resource type="Texture2D" uid="uid://b2c2g46t72k0g" path="res://assets/desert/edge.png" id="art_edge"]
-[ext_resource type="PackedScene" path="res://disasters/quicksand.tscn" id="2_quicksand"]
+[ext_resource type="PackedScene" path="res://disasters/legends/death_worm.tscn" id="2_death_worm"]
 [ext_resource type="AudioStreamWAV" uid="uid://dv2lf8l6r5ybh" path="res://assets/audio/music/desert.wav" id="audio_music"]
 [ext_resource type="AudioStreamWAV" uid="uid://cp122yrd5cbpd" path="res://assets/audio/ambient/desert.wav" id="audio_ambient"]
 
@@ -31,6 +31,6 @@ junction_brake_distance = 1.5
 junction_speed = 2.4
 offroad_speed_mult = 0.45
 offroad_damage_per_sec = 35.0
-disasters = Array[PackedScene]([ExtResource("2_quicksand")])
+disasters = Array[PackedScene]([ExtResource("2_death_worm")])
 music = ExtResource("audio_music")
 ambient_loop = ExtResource("audio_ambient")
