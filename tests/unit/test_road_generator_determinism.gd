@@ -6,7 +6,7 @@ const TILES := 2000
 ## of its path tiles with their dead ends. A change that is meant to change the road updates them,
 ## and its commit says why (ROADGEN_PLAN.md §6.1).
 const PATH_DIGEST := "811569241f55e1fce2a50331fe4c3e7d"
-const ROAD_DIGEST := "33b32b4135f684041d8772ec3661e3ce"
+const ROAD_DIGEST := "3135d6c1c4c1b505121ff96b02dc202b"
 const DIGEST_SEEDS := 20
 const DIGEST_TURNS := 300
 
@@ -32,8 +32,9 @@ func test_different_seed_different_road() -> void:
 
 
 func test_buffer_refills_and_frees_do_not_change_the_road() -> void:
-	# Freed dead ends release their cells. The road stays the same only because they are at least
-	# 30 path tiles behind the tiles being generated, and dead ends only collide within 6.
+	# Freed dead ends release their cells. The road stays the same only because they are more than
+	# BUFFER_REFILL_AT + BUFFER_BEHIND path tiles behind the tiles being generated, and dead ends
+	# only collide within twice DEAD_END_MAX_TILES (RoadGenerator).
 	var expected := _signatures(RoadGenerator.new(7, Fixtures.schedule()), TILES)
 	var buffer := RoadBuffer.new(RoadGenerator.new(7, Fixtures.schedule()))
 	var got: Array = []
