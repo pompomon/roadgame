@@ -16,15 +16,24 @@ signal finished
 ## Points on an outline().
 const OUTLINE_POINTS := 32
 
-## What the disaster collection will record it as (plan.md §9), such as &"sinkhole".
+## What the disaster collection will record it as (plan.md §9), such as &"phantom_bus".
 @export var id := &""
-## What the disaster collection calls it, such as "Sinkhole" (M5.5).
+## What the disaster collection calls it, such as "Phantom Bus" (M5.5).
 @export var display_name := ""
+## What the game-over screen says it did to the car, such as "The bus with no driver took you
+## aboard.", in at most 40 characters (M6_PLAN.md S8).
+@export var fate := ""
+## A line of its lore, which the collection shows on its card once it's seen, in at most 80
+## characters (M6_PLAN.md S12).
+@export_multiline var lore := ""
 
 ## The stopped car. A disaster may change its scale, modulate and rotation, but not its position,
 ## which CarController sets every physics frame (J3, M4_PLAN.md K19).
 var car: CarController
 var camera: CameraRig
+## Where a legend stands its parts, so that they sort with the props and the car: World's Props
+## (M6_PLAN.md S2). Null in tests that need no stage.
+var stage: Node2D
 
 @abstract func play(params: DisasterParams) -> void
 

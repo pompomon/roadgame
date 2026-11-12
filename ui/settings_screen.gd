@@ -4,7 +4,7 @@ extends MenuScreen
 ## effects and the ambient sound, vibration, and the screen's orientation. Each change goes to
 ## SaveService at once, which writes it SETTINGS_SAVE_DELAY after the last change, or when the
 ## screen closes. AudioDirector applies the volumes as they change (M5.3); vibration and the
-## orientation take effect in M6 (M6.1, M6.2). Like the HUD, its text uses only characters in
+## orientation take effect in M7 (M7.1, M7.2). Like the HUD, its text uses only characters in
 ## Godot's default font.
 
 ## How the orientation menu names SaveData.ORIENTATIONS, in its order.

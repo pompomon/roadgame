@@ -158,14 +158,16 @@ AreaDef
 3. Sets random parameters (direction, intensity, timing, particle counts) from the seed so no two disasters look the same.
 4. Plays the sequence (2–4 s), records it in the disaster collection and shows the game-over screen.
 
-### 4.3 MVP disaster pool
+### 4.3 Disaster pools
+Since M6 the disasters come from myths, folk tales and urban legends: one for each area, from three options each (`M6_PLAN.md` §3.3). They replaced the MVP's natural four: the sinkhole, the tornado, the flood and the quicksand.
+
 | Area | Disasters |
 |---|---|
-| City | Sinkhole |
-| Rural | Tornado |
-| Meadows | Flood |
-| Village | Flood / Tornado |
-| Desert | Quicksand |
+| City | Phantom Bus |
+| Rural | UFO |
+| Meadows | Fairy Ring |
+| Village | Witch's Hex |
+| Desert | Death Worm |
 
 Each disaster is a self-contained scene (animation, GPU particles, shaders, sound effects) that follows a common interface: `play(params) -> signal finished`.
 
@@ -199,7 +201,7 @@ Shared assets:
 - Car: 16 directions at about 32×24 px, plus a crash frame.
 - Effects: dust, smoke, skid marks.
 - UI: HUD, health bar, pixel font, pause and menus.
-- One master palette of 16–32 colours, with a sub-palette for each area.
+- One master palette of 36 colours, `assets/palette.gpl`, with a sub-palette for each area. M6 added four of them for night magic (`M6_PLAN.md` S9).
 
 ### 5.4 Art pipeline
 - Drawn in Aseprite and exported as PNG sprite sheets into `assets/<area>/`.
@@ -293,7 +295,7 @@ autoload/      game_state.gd, event_bus.gd, save_service.gd, audio_director.gd
 road/          road_generator.gd, road_tile.gd, junction_trigger.gd
 world/         world.tscn, world_renderer.gd, prop_pool.gd
 car/           car.tscn, car_controller.gd, input_router.gd
-disasters/     disaster_director.gd, sinkhole.tscn, tornado.tscn, flood.tscn, quicksand.tscn
+disasters/     disaster_director.gd, legend.gd, legends/phantom_bus.tscn, legends/ufo.tscn, ...
 areas/         city.tres, rural.tres, meadows.tres, village.tres, desert.tres, schedule.tres
 setpieces/     tunnel.tscn, bridge.tscn
 ui/            title.tscn, hud.tscn, game_over.tscn, atlas.tscn
@@ -311,7 +313,7 @@ tests/         GUT tests
   "version": 1,
   "atlas": { "city": { "discovered": true, "best_distance": 0 } },
   "best": { "distance": 0, "turns": 0 },
-  "disasters": { "sinkhole": { "seen": 3, "first_area": "city" } },
+  "disasters": { "phantom_bus": { "seen": 3, "first_area": "city" } },
   "settings": { "music": 0.8, "sfx": 1.0, "ambient": 0.8, "haptics": true, "orientation": "sensor" }
 }
 ```
