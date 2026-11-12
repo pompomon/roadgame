@@ -11,7 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://jblxwof624dg" path="res://assets/meadows/road.png" id="art_road"]
 [ext_resource type="Texture2D" uid="uid://ilv1nx2bnxoa" path="res://assets/meadows/ground.png" id="art_ground"]
 [ext_resource type="Texture2D" uid="uid://c8hn3mififm8g" path="res://assets/meadows/edge.png" id="art_edge"]
-[ext_resource type="PackedScene" path="res://disasters/flood.tscn" id="2_flood"]
+[ext_resource type="PackedScene" path="res://disasters/legends/fairy_ring.tscn" id="2_fairy_ring"]
 [ext_resource type="AudioStreamWAV" uid="uid://d30nrf0ncscml" path="res://assets/audio/music/meadows.wav" id="audio_music"]
 [ext_resource type="AudioStreamWAV" uid="uid://bgsw1uyktq52u" path="res://assets/audio/ambient/meadows.wav" id="audio_ambient"]
 
@@ -30,6 +30,6 @@ straight_accel = 0.6
 junction_speed = 2.2
 offroad_speed_mult = 0.6
 offroad_damage_per_sec = 25.0
-disasters = Array[PackedScene]([ExtResource("2_flood")])
+disasters = Array[PackedScene]([ExtResource("2_fairy_ring")])
 music = ExtResource("audio_music")
 ambient_loop = ExtResource("audio_ambient")

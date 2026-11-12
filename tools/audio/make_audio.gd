@@ -45,6 +45,7 @@ func _initialize() -> void:
 	# Rural's legends.
 	_save_legend("ufo", _ufo)
 	# The Meadows' legends.
+	_save_legend("fairy_ring", _fairy_ring)
 	# The Village's legends.
 	# The Desert's legends.
 	quit()
@@ -258,6 +259,42 @@ func _ufo() -> PackedFloat32Array:
 
 
 # The Meadows' legends.
+
+
+## Timed to Tuning.FAIRY_RING_BEATS from the end of the delay, when the sound starts: a tiny bell as
+## each toadstool sprouts, each out of tune with itself; thin laughter, giggles that fall away, as
+## the glows swell and the eyes open; a whirl that rises and quickens as the car is made to dance,
+## and is gone with it; then one low chime as the eyes close.
+func _fairy_ring() -> PackedFloat32Array:
+	var beats := Tuning.FAIRY_RING_BEATS
+	var glow: float = beats[0]
+	var dance: float = glow + beats[1]
+	var hold: float = dance + beats[2]
+	var out := _silence(roundi((hold + 1.5) * RATE))
+	var count := FairyRing.TOADSTOOLS
+	for k: int in count:
+		var at: float = beats[0] * FairyRing.turn_start(k, count, FairyRing.GROW_SHARE)
+		var freq := 1250.0 * pow(2.0, _rng.randf_range(0.0, 0.5))
+		_add(out, _bell(freq), at, 0.3)
+		_add(out, _bell(freq * 1.045), at, 0.2)
+	for k: int in 6:
+		_add(out, _chirp(1500.0 * pow(0.93, k)), glow + 0.03 + k * 0.07, 0.4)
+	for k: int in 5:
+		_add(out, _chirp(1900.0 * pow(0.9, k)), glow + 0.22 + k * 0.06, 0.25)
+	var n := roundi(beats[2] * RATE)
+	var whirl := _high_pass(_low_pass(_noise(n), 2500.0), 400.0)
+	var rising := _glide(220.0, 880.0, beats[2])
+	for i: int in n:
+		var t := float(i) / n
+		# A whoosh for each quarter of the double's turns, faster and faster, as it spins.
+		var whoosh := 0.5 + 0.5 * sin(TAU * 4.0 * FairyRing.TURNS * t * t)
+		var gone := clampf((1.0 - t) / FairyRing.SHRINK_SHARE, 0.0, 1.0)
+		whirl[i] = (whirl[i] + 0.4 * rising[i]) * whoosh * gone * minf(t * 5.0, 1.0)
+	_add(out, whirl, dance, 0.6)
+	_add(out, _bell(98.0), hold, 1.0)
+	_add(out, _bell(99.5), hold, 0.7)
+	return out
+
 
 # The Village's legends.
 
