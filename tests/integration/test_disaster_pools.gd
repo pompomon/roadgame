@@ -1,8 +1,9 @@
 extends GutTest
 ## A forced wrong turn in each area plays a disaster from that area's pool only
 ## (IMPLEMENTATION_PLAN.md M4 tests): the main scene starts in the area (--area, M4_PLAN.md K10),
-## the pilot takes a wrong exit at its third junction, and the area's disaster takes the car before
-## the game-over screen, 2 to 4 s after the turn. Every disaster of every pool plays for some seed
+## the pilot takes a wrong exit at the junction of turn number 2, the third turn's or a decoy
+## before it (ROADGEN_PLAN.md R2), and the area's disaster takes the car before the game-over
+## screen, 2 to 4 s after the turn. Every disaster of every pool plays for some seed
 ## (M6_PLAN.md S13).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
@@ -37,7 +38,7 @@ func _wrong_turn_in(area: AreaDef, run_seed: int) -> StringName:
 		return &""
 	var triggered: Array = get_signal_parameters(EventBus, "disaster_triggered")
 	assert_eq(triggered[0], area, "%s: in the area" % what)
-	assert_eq((triggered[1] as RoadTile).turn_number, 2, "%s: at the third junction" % what)
+	assert_eq((triggered[1] as RoadTile).turn_number, 2, "%s: at turn number 2" % what)
 	var director: DisasterDirector = main.get_node("%Director")
 	var played: DisasterBase = null
 	var frames := 0
