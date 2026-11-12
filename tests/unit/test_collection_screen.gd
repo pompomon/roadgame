@@ -9,6 +9,13 @@ const COLLECTION_SCENE := preload("res://ui/collection_screen.tscn")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const GHOST_LORE := "A sheet with two holes cut in it, out on the road at night."
 const GHOUL_LORE := "It waits by the graveyard gate."
+## A save that recorded the sinkhole, which left the game in M6 PR 8.
+const RETIRED_SAVE := """{
+	"version": 1,
+	"disasters": {
+		"sinkhole": { "seen": 3, "first_area": "city", "first_distance": 12.5, "first_turns": 3 }
+	}
+}"""
 
 
 func _collection() -> CollectionScreen:
@@ -168,3 +175,20 @@ func test_opening_again_replaces_the_cards_and_back_asks_to_close() -> void:
 	back.pressed.emit()
 	assert_signal_emit_count(collection, "back_requested", 1)
 	assert_no_new_orphans()
+
+
+func test_a_save_that_recorded_a_retired_disaster_loads_and_shows_only_the_pools() -> void:
+	# M6_PLAN.md E10, Q3: the natural four left the game's pools and files in M6 PR 8. A save that
+	# recorded one still loads and keeps it, and the collection shows a card for each disaster of
+	# the game's pools alone, each a silhouette.
+	var data := SaveData.new()
+	assert_eq(data.load_json(RETIRED_SAVE), SaveData.Status.LOADED)
+	assert_eq(data.problems, PackedStringArray())
+	assert_eq(data.disasters.keys(), ["sinkhole"], "it keeps what it recorded")
+	var schedule: AreaSchedule = load("res://areas/schedule.tres")
+	var collection := _collection()
+	collection.open(data, schedule)
+	var cards := _cards(collection)
+	assert_eq(cards.size(), CollectionScreen.disasters(schedule).size(), "the pools' disasters")
+	for card: MenuCard in cards:
+		assert_eq(_card_text(card), [CollectionScreen.UNKNOWN, CollectionScreen.NOT_SEEN])

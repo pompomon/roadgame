@@ -2,9 +2,10 @@ extends GutTest
 ## DisasterDirector (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1, M3.3): after a wrong or missed turn
 ## it waits for the car to stop and plays a disaster from the area's pool, drawn with the run's
 ## disaster stream; after a crash it shakes the camera for CRASH_SECONDS. Every sequence ends once
-## and in time, even one that is stuck. The disasters here are test ones; test_sinkhole.gd plays
-## the sinkhole through the director. A disaster gets the stage for a legend's parts, and
-## disaster_appeared comes when its delay is over (M6_PLAN.md S2, S18).
+## and in time, even one that is stuck. The disasters here are test ones;
+## test_wrong_turn_disaster.gd plays the City's legend through the game's director. A disaster gets
+## the stage for a legend's parts, and disaster_appeared comes when its delay is over (M6_PLAN.md
+## S2, S18).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const StuckDisaster := preload("res://tests/helpers/stuck_disaster.gd")
