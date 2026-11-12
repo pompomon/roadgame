@@ -21,6 +21,8 @@ var _schedule: AreaSchedule
 var _buffer: RoadBuffer
 var _sim: CarSim
 var _car: CarController
+## What the disaster that ended the run did to the car, for the game-over screen (M6_PLAN.md S8).
+var _fate := ""
 
 @onready var _world: WorldRenderer = %World
 @onready var _input: InputRouter = %InputRouter
@@ -43,8 +45,10 @@ func _ready() -> void:
 	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
 	print("grey box: tilesets built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	_director.layer = _world.get_node("%DisasterLayer")
+	_director.stage = _world.get_node("%Props")
 	_director.sequence_finished.connect(_on_sequence_finished)
 	_director.disaster_started.connect(_on_disaster_started)
+	_director.disaster_appeared.connect(_on_disaster_appeared)
 	_game_over.retry_requested.connect(_retry)
 	_game_over.title_requested.connect(_to_title)
 	# The Atlas and the collection show the whole schedule, also with --area.
@@ -178,6 +182,7 @@ func _clear_run() -> void:
 	_world.car = null
 	_car.free()
 	_car = null
+	_fate = ""
 
 
 func _on_turn_completed(turn_index: int) -> void:
@@ -221,8 +226,13 @@ func _turns_before(index: int) -> int:
 	return GameState.turn_index
 
 
+func _on_disaster_appeared(disaster: DisasterBase, area: AreaDef) -> void:
+	EventBus.disaster_appeared.emit(disaster.id, area)
+
+
 func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
 	EventBus.disaster_started.emit(disaster.id, area)
+	_fate = disaster.fate
 
 
 ## The run is over the moment it ends (M3_PLAN.md J1): the input stops, and GameState reports the
@@ -238,7 +248,7 @@ func _end_run(cause: StringName) -> void:
 ## The disaster or the crash has played: game over.
 func _on_sequence_finished() -> void:
 	GameState.show_game_over()
-	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id))
+	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id), _fate)
 
 
 static func _parse_seed(p_args: PackedStringArray) -> int:

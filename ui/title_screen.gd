@@ -4,7 +4,7 @@ extends Control
 ## collection and the settings, each a screen of its own with a Back button. The game starts on it,
 ## and the game-over screen's Title button comes back to it. Esc, and Android's back button through
 ## main.gd, leave a screen for the title (M5_PLAN.md L13). On the Web, the tap on Play is also the
-## first gesture, which lets the game start its sound (M6.3).
+## first gesture, which lets the game start its sound (M7.3).
 
 ## Play was pressed.
 signal play_requested

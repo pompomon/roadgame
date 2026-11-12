@@ -4,6 +4,7 @@ extends GutTest
 ## sounds of a run's events. Each test has its own AudioDirector, which it steps by hand.
 
 const AudioDirectorScript := preload("res://autoload/audio_director.gd")
+const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const PitchSpy := preload("res://tests/helpers/pitch_spy.gd")
 const CITY := preload("res://areas/city.tres")
@@ -269,6 +270,25 @@ func test_a_crash_sounds_only_when_the_car_is_wrecked_or_lost_off_the_road() -> 
 
 
 func test_every_disaster_of_every_area_has_its_sound() -> void:
+	var ids := _disaster_ids()
+	assert_eq(ids.size(), Disasters.scenes().size(), "each disaster of the pools has its own id")
+	watch_signals(_audio)
+	for id: StringName in ids:
+		assert_has(AudioDirectorScript.EFFECTS, id)
+		EventBus.disaster_appeared.emit(id, CITY)
+		assert_signal_emitted_with_parameters(_audio, "effect_played", [id])
+
+
+func test_a_disaster_sounds_as_it_shows_not_as_it_starts_to_play() -> void:
+	# Its delay may be up to DISASTER_DELAY_MAX (M6_PLAN.md S18).
+	watch_signals(_audio)
+	for id: StringName in _disaster_ids():
+		EventBus.disaster_started.emit(id, CITY)
+	assert_signal_not_emitted(_audio, "effect_played")
+
+
+## The ids of the disasters of every area's pool, once each.
+func _disaster_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for area: AreaDef in _areas():
 		for scene: PackedScene in area.disasters:
@@ -276,12 +296,7 @@ func test_every_disaster_of_every_area_has_its_sound() -> void:
 			if disaster.id not in ids:
 				ids.append(disaster.id)
 			disaster.free()
-	assert_eq(ids.size(), 4, "the sinkhole, tornado, flood and quicksand")
-	watch_signals(_audio)
-	for id: StringName in ids:
-		assert_has(AudioDirectorScript.EFFECTS, id)
-		EventBus.disaster_started.emit(id, CITY)
-		assert_signal_emitted_with_parameters(_audio, "effect_played", [id])
+	return ids
 
 
 func test_an_unknown_sound_is_an_error() -> void:
@@ -325,7 +340,11 @@ func test_no_sound_peaks_above_its_kinds_budget() -> void:
 		budgets[AudioDirectorScript.LOOPS[id].resource_path] = Tuning.LOOP_PEAK
 	for id: StringName in AudioDirectorScript.EFFECTS:
 		budgets[AudioDirectorScript.EFFECTS[id].resource_path] = Tuning.EFFECT_PEAK
-	assert_eq(budgets.size(), 20, "each area's music and ambient loop, the loops and the effects")
+	var files := 2 * _areas().size() + AudioDirectorScript.LOOPS.size()
+	files += AudioDirectorScript.EFFECTS.size()
+	assert_eq(
+		budgets.size(), files, "each area's music and ambient loop, the loops and the effects"
+	)
 	for path: String in budgets:
 		assert_between(_peak(path), 0.0, budgets[path], path)
 

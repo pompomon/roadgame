@@ -2,19 +2,25 @@ extends GutTest
 ## DisasterDirector (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1, M3.3): after a wrong or missed turn
 ## it waits for the car to stop and plays a disaster from the area's pool, drawn with the run's
 ## disaster stream; after a crash it shakes the camera for CRASH_SECONDS. Every sequence ends once
-## and in time, even one that is stuck. The disasters here are test ones; test_sinkhole.gd plays
-## the sinkhole through the director.
+## and in time, even one that is stuck. The disasters here are test ones;
+## test_wrong_turn_disaster.gd plays the City's legend through the game's director. A disaster gets
+## the stage for a legend's parts, and disaster_appeared comes when its delay is over (M6_PLAN.md
+## S2, S18).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const StuckDisaster := preload("res://tests/helpers/stuck_disaster.gd")
 const TimedDisaster := preload("res://tests/helpers/timed_disaster.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
 const DELTA := 1.0 / 60.0
+## The run seeds among which test_disaster_appeared_comes_once_when_the_delay_is_over looks for
+## delays near the bounds.
+const SEEDS := 100
 
 ## In the main scene's order, which is the order of their physics steps: the disaster layer, the
-## car, the camera and the director.
+## car, the stage, the camera and the director.
 var _root: Node
 var _layer: Node2D
+var _stage: Node2D
 var _car: CarController
 var _camera: CameraRig
 var _director: DisasterDirector
@@ -25,12 +31,15 @@ func before_each() -> void:
 	add_child_autofree(_root)
 	_layer = Node2D.new()
 	_root.add_child(_layer)
+	_stage = Node2D.new()
+	_root.add_child(_stage)
 	_car = null
 	_new_car()
 	_camera = CameraRig.new()
 	_root.add_child(_camera)
 	_director = DisasterDirector.new()
 	_director.layer = _layer
+	_director.stage = _stage
 	_root.add_child(_director)
 	_director.start_run(1)
 
@@ -116,6 +125,7 @@ func test_a_disaster_waits_for_the_car_to_stop() -> void:
 	assert_eq(disaster.get_parent(), _layer, "on the layer")
 	assert_eq(disaster.car, _car)
 	assert_eq(disaster.camera, _camera)
+	assert_eq(disaster.stage, _stage, "with the stage for a legend's parts")
 	assert_eq(disaster.params, _director.params, "played with the params")
 	assert_eq(_director.params.origin_world, _car.position, "where the car stopped")
 
@@ -150,6 +160,49 @@ func test_disaster_started_comes_once_when_the_disaster_plays() -> void:
 	_run(600)
 	assert_signal_emit_count(_director, "disaster_started", 1)
 	assert_signal_emitted_with_parameters(_director, "disaster_started", [_director.disaster, area])
+
+
+func test_disaster_appeared_comes_once_when_the_delay_is_over() -> void:
+	# The sound starts as the disaster shows, not as it starts to play (M6_PLAN.md S18). The
+	# disaster counts its delay from play(), frame by frame as the director does.
+	for delay: float in [Tuning.DISASTER_DELAY_MIN, Tuning.DISASTER_DELAY_MAX]:
+		var area := _timed()
+		_director.start_run(_seed_near(delay))
+		_new_car()
+		clear_signal_watcher()
+		watch_signals(_director)
+		_director.play_disaster(area, _car, _camera)
+		simulate(_root, 1, DELTA)
+		assert_signal_emit_count(_director, "disaster_started", 1, "it plays")
+		var params := _director.params
+		var why := "after a delay of %.3f s" % params.delay
+		assert_almost_eq(params.delay, delay, 0.05, why + ": near the bound")
+		var frames := 0
+		while get_signal_emit_count(_director, "disaster_appeared") == 0 and frames < 120:
+			simulate(_root, 1, DELTA)
+			frames += 1
+		assert_between(frames * DELTA, params.delay - 1e-6, params.delay + DELTA * 1.01, why)
+		simulate(_root, 120, DELTA)
+		assert_signal_emit_count(_director, "disaster_appeared", 1, why + ": once")
+		assert_signal_emitted_with_parameters(
+			_director, "disaster_appeared", [_director.disaster, area]
+		)
+
+
+## The first of SEEDS run seeds whose disaster, the first of the run, has the delay nearest
+## `delay`. It draws as the director does.
+func _seed_near(delay: float) -> int:
+	var pool := _timed().disasters
+	var nearest := 0
+	var off := INF
+	for run_seed: int in SEEDS:
+		var rng := DisasterDirector.stream(run_seed)
+		DisasterDirector.pick(pool, rng)
+		var rolled := DisasterParams.roll(rng, Vector2.ZERO).delay
+		if absf(rolled - delay) < off:
+			off = absf(rolled - delay)
+			nearest = run_seed
+	return nearest
 
 
 func test_a_crash_shakes_the_camera_and_ends_after_crash_seconds() -> void:
@@ -224,6 +277,7 @@ func test_clear_frees_the_disaster_at_once_and_forgets_the_sequence() -> void:
 	assert_null(_director.params)
 	simulate(_root, 420, DELTA)
 	assert_signal_not_emitted(_director, "sequence_finished")
+	assert_signal_not_emitted(_director, "disaster_appeared", "a cleared disaster never shows")
 
 
 func test_a_second_sequence_is_an_error() -> void:

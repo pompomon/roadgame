@@ -1,5 +1,7 @@
 extends GutTest
 
+const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
+
 
 func after_each() -> void:
 	GameState.quit_to_title()
@@ -18,7 +20,8 @@ func test_main_scene_shows_the_version_and_the_seed() -> void:
 func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# The Web build has no system fonts to fall back on: a glyph missing from the default
 	# font shows as a box. The HUD, the game-over screen and the title's screens (M5.5) also show
-	# numbers, the areas' and the disasters' names, and messages they keep in constants.
+	# numbers, the areas' and the disasters' names, the disasters' fates and lore (M6_PLAN.md S8,
+	# S12), and messages they keep in constants.
 	var main := _main()
 	var shown: Array[Control] = []
 	shown.append_array(main.find_children("*", "Label", true, false))
@@ -38,7 +41,9 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 			var first := {"seen": seen, "first_distance": 1.0, "first_turns": 1}
 			texts.append(CollectionScreen.seen_text(first, entry.area))
 	for disaster: Dictionary in CollectionScreen.disasters(schedule):
-		texts.append(disaster["name"])
+		texts.append_array([disaster["name"], disaster["lore"]])
+	for scene: PackedScene in Disasters.scenes():
+		texts.append(Disasters.disaster(self, scene, null, null).fate)
 	var missing := ""
 	for control: Control in shown:
 		var font := control.get_theme_font("font")

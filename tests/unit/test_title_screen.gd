@@ -108,18 +108,24 @@ func test_close_closes_the_open_screen() -> void:
 
 
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
-	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings).
+	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings). Every
+	# disaster of the pools is seen, so that each card shows its lore (M6_PLAN.md S15).
 	var data := SaveService.data()
 	var areas := {}
 	for id: StringName in [&"city", &"rural", &"meadows", &"village", &"desert"]:
 		areas[id] = {"distance": 9999.9, "turns": 999}
-		data.record_disaster(&"tornado", &"meadows", {"distance": 9999.9, "turn_index": 999})
 	data.record_run({"areas": areas, "distance": 9999.9, "turn_index": 999})
-	for id: String in ["sinkhole", "flood", "quicksand"]:
-		data.record_disaster(StringName(id), &"village", {"distance": 9999.9, "turn_index": 999})
 	var title := _title()
+	for disaster: Dictionary in CollectionScreen.disasters(title.schedule):
+		for _seen: int in 5:
+			data.record_disaster(
+				disaster["id"], &"meadows", {"distance": 9999.9, "turn_index": 999}
+			)
 	title.open()
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
+	# The collection's cards may run below the screen, as its scroll scrolls to them (S16).
+	var cards: Control = title.get_node("%Collection/%Cards")
+	var scroll: ScrollContainer = cards.get_parent()
 	for button: String in ["", "AtlasButton", "DisastersButton", "SettingsButton"]:
 		if button != "":
 			_button(title, button).pressed.emit()
@@ -127,5 +133,16 @@ func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 		for control: Control in title.find_children("*", "Control", true, false):
 			if control.is_visible_in_tree():
 				var rect := control.get_global_rect()
-				assert_true(bounds.encloses(rect), "%s: %s at %s" % [button, control.name, rect])
+				var fits := bounds.encloses(rect)
+				if scroll.is_ancestor_of(control):
+					fits = rect.position.x >= bounds.position.x and rect.end.x <= bounds.end.x
+				assert_true(fits, "%s: %s at %s" % [button, control.name, rect])
 		title.go_back()
+	_button(title, "DisastersButton").pressed.emit()
+	await wait_process_frames(2)
+	var last: Control = cards.get_child(cards.get_child_count() - 1)
+	scroll.ensure_control_visible(last)
+	await wait_process_frames(2)
+	assert_true(
+		scroll.get_global_rect().encloses(last.get_global_rect()), "the last card scrolls in"
+	)

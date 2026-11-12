@@ -23,25 +23,30 @@ Contents:
 
 | File | What | IDs |
 |---|---|---|
-| `M<n>_PLAN.md` | The detailed plan of milestone n. For that milestone it replaces IP wherever it marks a difference with **Δ** | E# exit criteria; F#, G#, H# findings (M0, M1, M2); Q# questions; N# negative cases |
-| `IMPLEMENTATION_PLAN.md` (IP) | Milestones M0–M6 (§3, §4), decisions D1–D12 (§1.2), conventions (§1.3), determinism (§5.3), CI (§7), definition of done (§9) | D#; work packages such as M2.2 |
+| `M<n>_PLAN.md` | The detailed plan of milestone n. For that milestone it replaces IP wherever it marks a difference with **Δ** | E# exit criteria; F#, G#, H#, J#, K#, L#, S# findings (M0–M6); P# probes; Q# questions; N# negative cases |
+| `IMPLEMENTATION_PLAN.md` (IP) | Milestones M0–M7 (§3, §4), decisions D1–D12 (§1.2), conventions (§1.3), determinism (§5.3), CI (§7), definition of done (§9) | D#; work packages such as M2.2 |
 | `plan.md` | The game design | — |
 
-**State.** M0–M2 are merged (#1–#28): CI, the road generator and grey box, and driving. M3 is next: a wrong or missed turn ends the run with a disaster, then game over and retry (IP §3, §4 M3). Read M2_PLAN.md §9 first; it has notes for M3–M6.
+**State.** M0–M6 are merged (#1–#53): CI, the road generator and grey box, driving, disasters with game over and retry, the five areas with the tunnel and the bridge, the final art and audio with the menus and the save, and the legends. M7 is next: Ship, with orientation and foldables, haptics, the Web's audio, the signed release and device QA (IP §3, §4 M7). Read M6_PLAN.md §9 and M5_PLAN.md §9 first; they have notes for M7.
 
 **Layout.**
 
 | Path | What |
 |---|---|
-| `autoload/` | The `EventBus` and `GameState` singletons |
+| `autoload/` | The `EventBus`, `GameState`, `SaveService` and `AudioDirector` singletons, and `SaveData` |
 | `road/` | Road generator, buffer, geometry, occupancy grid and junction trigger |
 | `car/` | `CarSim` (the pure simulation), `Autopilot`, `CarController` and `InputRouter` |
-| `world/` | Isometric projection, grey-box renderer and camera |
-| `ui/` | `main.tscn` (the main scene) and the HUD |
+| `world/` | Isometric projection, the renderer with its props and skid marks, and the camera |
+| `disasters/` | `DisasterDirector`, `DisasterBase` and `Legend`, and each legend's script and scene in `legends/` |
+| `setpieces/` | The tunnel and the bridge |
+| `ui/` | `main.tscn` (the main scene), the HUD, game over, the title with its screens, and the theme |
+| `audio/` | `CrossFade`, for the music and the ambience |
 | `areas/` | `AreaDef`, the area schedule, and one `.tres` per area |
 | `config/tuning.gd` | Tuning constants |
+| `assets/` | The palette, the art, the font and the sounds |
 | `tests/` | GUT tests in `unit/`, `sim/` and `integration/`, with `helpers/` and `gut_post_run.gd` |
 | `tools/ci/` | The CI scripts. They run the same way locally (§4) |
+| `tools/art/`, `tools/audio/` | The scripts that make the art, the font and the sounds in `assets/`: `godot --headless -s <script>`, then `tools/ci/import.sh` |
 | `tools/agent/` | Agent helpers: `watch_pr.sh` (§9) |
 | `addons/gut/` | GUT 9.7.1, vendored unmodified |
 | `.github/` | `ci.yml`, `release.yml`, `copilot-setup-steps.yml`, the `godot-env` action and Dependabot |
@@ -76,10 +81,19 @@ Reviewers check these too. The IDs say where each rule comes from.
 - **Values.** Tuning values live only in the `AreaDef` `.tres` files and `config/tuning.gd`. No magic numbers in logic (D11).
 - **Nodes.** No node lookups by string path outside scene roots: use `@export`, or `@onready` with `%UniqueName` (IP §1.3). A node that must work while the tree is paused, such as input handling, needs `process_mode = PROCESS_MODE_ALWAYS` (H3).
 - **Web.**
-  - The Web export has no system font fallback. UI text may use only glyphs of Godot's default font (no arrows such as ↑), unless the game ships a font. `test_smoke.gd` checks the main scene's text.
+  - The Web export has no system font fallback. UI text may use only glyphs of the game's font, Pixel Operator 8 (`ui/theme.tres:3`): no arrows such as ↑. `test_smoke.gd` checks the main scene's text, with the disasters' names, fates and lore (M6 §5.8).
   - In Godot 4.7.2, each redraw of a `Polygon2D` after its first raises WebGL errors on the Web (godotengine/godot#124726, fixed in 4.8). Tint through `self_modulate`, not `color` (M2 §5.7).
   - Losing focus reaches the game only as the canvas's blur. The Web never sends `NOTIFICATION_APPLICATION_FOCUS_OUT` (H4, N46).
-- **Files.** Commit the `.uid` file that Godot makes for each new script. After the checks, `git status --porcelain` must print nothing.
+- **Files.** Commit the `.uid` file that Godot makes for each new script. After the checks, `git status --porcelain` must print nothing. A file that the editor saves by itself, as it does the bus layout, is committed just as the editor writes it, uid included: change the buses in the editor's Audio panel (M5 L28).
+- **Legends** (M6_PLAN.md §5). A disaster from a legend extends `Legend` (`disasters/legend.gd`):
+  - It poses its beats, `Tuning.<ID>_BEATS`, on its own clock in `_physics_process`: no Tween and no timer (§5.2, §5.3).
+  - Before its delay nothing shows. Each part is in its scene, hidden by `modulate.a` 0 or `scale` 0. Polygons and particles stay under the legend, and a `Polygon2D`'s `visible`, `color`, `polygon` and `offset` never change (S6). A sprite that stands up goes in `standing`: `play()` puts it on the stage, `%Props`, to sort with the props and the car, and the legend frees it when it leaves the tree (§5.3).
+  - To take the car, it hides it in the frame that the double from `take_car()` shows (§5.4).
+  - Glows add light, so only a legend with a veil has them: over a light ground they clip to white (S10, §5.5).
+  - Nothing flashes (WCAG 2.3.1). `test_disasters.gd` plays each legend and fails on a light that rises and falls more than 3 times a second, a red one more than once, a glow that covers a quarter of the screen, a veil that brightens, or a `Tuning` `*_HZ` above 3 (§5.6, E6).
+  - Its sound is made by `make_audio.gd`'s `_save_legend(id, synth)`, seeded by its id alone so that no other sound changes, with each cue at its beat's start (§5.9).
+  - Lists that each legend adds to (`AudioDirector.EFFECTS`, `make_audio.gd`, `config/tuning.gd` and `test_disasters.gd`'s pools) have a comment for each area. Add a legend's lines under its area's, so that stacked PRs' lines never touch (§5.10).
+  - Scary, but no gore: the car is taken, shrunk or changed, never smashed, and no one is hurt on screen (Q8).
 - **`addons/gut/`** is GUT 9.7.1 as released. Don't patch it: upgrade by copying a newer release, and report bugs to bitwes/Gut.
 - **Versions.** Godot 4.7.2 is pinned by the CI image tag `barichello/godot-ci:4.7.2` and by `GODOT_VERSION` in `copilot-setup-steps.yml`, and `project.godot`'s `config/features` starts with "4.7". `check_versions.sh` checks that they agree; a version bump follows IP §7.1. It reads every `barichello/godot-ci:` tag under `.github/`, so don't write that string there in any other form.
 - **Actions storage.** No Actions caches, and artifacts are kept 1 day (M0 F34). `check_actions_storage.sh` enforces it.
@@ -104,6 +118,7 @@ git status --porcelain     # must print nothing
 - **Godot 4.7.2.** For the cloud agent, `copilot-setup-steps.yml` installs it as `/usr/local/bin/godot`, checked against its SHA-512. Elsewhere, install it the same way. Docker can run the CI image instead: `docker run --rm -v "$PWD":/w -w /w barichello/godot-ci:4.7.2 bash -c "tools/ci/import.sh && tools/ci/check_scripts.sh && tools/ci/run_tests.sh && tools/ci/smoke.sh"`.
 - **pip refuses** to install into the system Python on Debian and Ubuntu (PEP 668). Use a virtual environment: `python3 -m venv /tmp/venv && /tmp/venv/bin/pip install -r tools/ci/requirements.txt`, then put `/tmp/venv/bin` first on `PATH`.
 - **shellcheck.** `lint.sh` only warns if it's missing. The plans were verified with shellcheck 0.11.0 and actionlint 1.7.12; the `lint` job runs actionlint too.
+- **The tree.** CI's `test` job runs the last check too, after the others, and fails if it prints anything (M5 L28).
 - **Results.** Reports go to `build/reports/`. Put the counts in the PR, as M2_PLAN.md §6.1 does: scripts loaded, tests, asserts, GUT time, and `smoke.sh`'s `autopilot: tile …, turns …, area …` line.
 
 ## 5. Branches, commits and stacked PRs
@@ -114,7 +129,7 @@ git status --porcelain     # must print nothing
 - **One worktree per PR branch**, such as `git worktree add ../m2-2 m2/2-car-sim`, so the branches of a stack don't mix.
 - **Stacked PRs** (M2_PLAN.md §4.5):
   1. PR k+1 branches from PR k's branch and targets it, so its diff shows only its own files. CI runs on every PR, but the required checks gate only PRs into `main`.
-  2. A review fix goes on the branch of the PR that adds the file. Then merge that branch into each later one with `git merge --no-ff --no-edit` ("Merge m2/1-trigger into m2/2-car-sim"). If a later branch changes a file that an earlier PR adds, merging `main` after the squash is an add/add conflict.
+  2. A review fix goes on the branch of the PR that adds the file. Then merge that branch into each later one with `git merge --no-ff --no-edit` ("Merge m2/1-trigger into m2/2-car-sim"). If a later branch changes a file that an earlier PR adds, merging `main` after the squash is an add/add conflict. Likewise, a line inserted right next to one that an earlier PR inserts conflicts once that PR is squash-merged: keep them apart, as M5's `SKID_*` constants are from the `PROP_*` ones (M5_PLAN.md §4.5), or under comments that an earlier PR adds, as M6's legends are (M6_PLAN.md §5.10).
   3. Only PRs whose base is `main` get merged. In M0, fix PRs merged into stack branches skipped the required checks, so #16 and #18 had to land them again.
   4. After the owner squash-merges PR k, update PR k+1:
      ```bash
@@ -218,7 +233,7 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 
 ## 10. CI
 
-`ci.yml` runs on every pull request (no branch filter), on pushes to `main` and by hand. The jobs are `lint`, `test`, `export-web`, and `export-android` for the APK and the AAB; these five are the required checks of ruleset "Test". `deploy-web` publishes to GitHub Pages and runs only on `main`. A run takes about 4–6 minutes: `lint` under 20 s, `test` 1–2 min, each export 1–3 min. `release.yml` runs for `v*.*.*` tags or by hand.
+`ci.yml` runs on every pull request (no branch filter), on pushes to `main` and by hand. The jobs are `lint`, `test`, `export-web`, and `export-android` for the APK and the AAB; these five are the required checks of ruleset "Test". `test` also fails if the checks changed the tree (`git status --porcelain`, M5 L28). `deploy-web` publishes to GitHub Pages and runs only on `main`. A run takes about 4–6 minutes: `lint` under 20 s, `test` 1–2 min, each export 1–3 min. `release.yml` runs for `v*.*.*` tags or by hand.
 
 When a check fails:
 - Read the log: `gh run view <run-id> --log-failed`. `gh pr checks <n>` gives the run's URL.
