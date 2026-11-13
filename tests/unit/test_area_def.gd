@@ -1,6 +1,6 @@
 extends GutTest
-## AreaDef's junction chances (ROADGEN_PLAN.md R3). test_area_schedule.gd tests the rest of
-## validate(), through the schedule that reports it.
+## AreaDef's junction chances (ROADGEN_PLAN.md R3) and its day (DAYNIGHT_PLAN.md C7).
+## test_area_schedule.gd tests the rest of validate(), through the schedule that reports it.
 
 
 static func _problems(area: AreaDef) -> String:
@@ -34,3 +34,30 @@ func test_validate_reports_junction_chances_that_cannot_be() -> void:
 	assert_eq(_problems(full), "", "1 but for rounding")
 	full.decoy_chance = 0.11
 	assert_eq(_problems(full), "full: the junction chances add up to more than 1")
+
+
+func test_validate_reports_a_day_too_short_to_follow() -> void:
+	# The light can't follow a shorter day at LIGHT_MAX_RATE (DAYNIGHT_PLAN.md C7). The day that
+	# the message names is long enough, though the least day isn't a whole number of hundredths
+	# (N37).
+	var area := _area(&"short")
+	area.day_seconds = DayCycle.least_day_seconds()
+	assert_eq(_problems(area), "", "the least day")
+	area.day_seconds = DayCycle.least_day_seconds() - 0.01
+	var message := _problems(area)
+	assert_string_starts_with(message, "short: day_seconds is below ")
+	area.day_seconds = 0.0
+	assert_eq(_problems(area), message, "no day")
+	var named := message.get_slice("below ", 1)
+	area.day_seconds = named.to_float()
+	assert_eq(_problems(area), "", "the day that the message names: " + named)
+	area.day_seconds = named.to_float() - 0.01
+	assert_eq(_problems(area), message, "a hundredth less")
+
+
+func test_validate_reports_a_day_that_isnt_finite() -> void:
+	# NaN and ±INF, which DayCycle.enter() refuses (N38).
+	var area := _area(&"endless")
+	for day: float in [NAN, INF, -INF]:
+		area.day_seconds = day
+		assert_eq(_problems(area), "endless: day_seconds isn't finite", str(day))
