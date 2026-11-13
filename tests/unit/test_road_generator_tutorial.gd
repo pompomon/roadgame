@@ -131,32 +131,32 @@ func _check_tutorial(gen: RoadGenerator, path: Array[RoadTile], end: int, label:
 
 ## Walks the loop from `start`'s wrong exit to `end`'s, and checks each of its tiles.
 func _check_loop(gen: RoadGenerator, start: RoadTile, end: RoadTile, label: String) -> void:
-	var name := "%s: the loop from turn %d" % [label, start.turn_number]
+	var loop_name := "%s: the loop from turn %d" % [label, start.turn_number]
 	if end == null:
-		fail_test(name + " has no junction two on")
+		fail_test(loop_name + " has no junction two on")
 		return
-	var loop := _walk_loop(gen, start, end, name)
+	var loop := _walk_loop(gen, start, end, loop_name)
 	if is_failing():
 		return
 	for k: int in loop.size():
 		var tile := loop[k]
 		var near_start := k + 1 <= loop.size() - k
-		var owner := start if near_start else end
+		var nearer := start if near_start else end
 		if (
 			tile.type != RoadTile.Type.DEAD_END
-			or tile.junction_index != owner.path_index
-			or tile.branch_exit != Heading.opposite(owner.expected_exit)
+			or tile.junction_index != nearer.path_index
+			or tile.branch_exit != Heading.opposite(nearer.expected_exit)
 		):
-			fail_test(name + ": its tile %d doesn't belong to the nearer end" % k)
+			fail_test(loop_name + ": its tile %d doesn't belong to the nearer end" % k)
 			return
 		# The road sheet and the props come from the tile's area: the tutorial is the City's road.
-		if tile.area_id != owner.area_id:
-			fail_test(name + ": its tile %d isn't of its junction's area" % k)
+		if tile.area_id != nearer.area_id:
+			fail_test(loop_name + ": its tile %d isn't of its junction's area" % k)
 			return
 		for h: int in Heading.VEC.size():
 			var touches := not gen.occupancy.is_free(tile.cell + Heading.VEC[h])
 			if touches != tile.has_exit(h):
-				fail_test(name + ": its tile %d touches a road at %s" % [k, Heading.NAMES[h]])
+				fail_test(loop_name + ": its tile %d touches a road at %s" % [k, Heading.NAMES[h]])
 				return
 
 
@@ -164,7 +164,7 @@ func _check_loop(gen: RoadGenerator, start: RoadTile, end: RoadTile, label: Stri
 ## breaks, comes back anywhere but into `end` heading its turn, or turns sooner after a junction or
 ## a corner than the path does.
 func _walk_loop(
-	gen: RoadGenerator, start: RoadTile, end: RoadTile, name: String
+	gen: RoadGenerator, start: RoadTile, end: RoadTile, loop_name: String
 ) -> Array[RoadTile]:
 	var loop: Array[RoadTile] = []
 	var cell := start.cell
@@ -175,24 +175,24 @@ func _walk_loop(
 		cell += Heading.VEC[step]
 		var tile := gen.occupancy.get_tile(cell)
 		if tile == null or not tile.has_exit(Heading.opposite(step)):
-			fail_test(name + " breaks at %s" % cell)
+			fail_test(loop_name + " breaks at %s" % cell)
 			return loop
 		if tile.path_index >= 0:
 			# Into `end` through its wrong exit, the opposite of its turn: so heading its turn.
 			if tile != end or step != end.expected_exit:
-				fail_test(name + " comes back at path tile %d" % tile.path_index)
+				fail_test(loop_name + " comes back at path tile %d" % tile.path_index)
 			return loop
 		loop.append(tile)
 		var onward := _only(tile.exits & ~Heading.bit(Heading.opposite(step)))
 		if onward < 0:
-			fail_test(name + " has a tile at %s with exits %d" % [cell, tile.exits])
+			fail_test(loop_name + " has a tile at %s with exits %d" % [cell, tile.exits])
 			return loop
 		if onward != step and straights < gen.current_area.min_straight:
-			fail_test(name + " turns at %s after %d straights" % [cell, straights])
+			fail_test(loop_name + " turns at %s after %d straights" % [cell, straights])
 			return loop
 		straights = straights + 1 if onward == step else 0
 		step = onward
-	fail_test(name + " doesn't come back")
+	fail_test(loop_name + " doesn't come back")
 	return loop
 
 
