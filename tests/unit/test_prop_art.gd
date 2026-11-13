@@ -48,6 +48,36 @@ func test_each_frame_is_cropped_to_its_props_pixels_apart_from_the_others() -> v
 			strips.append(strip)
 
 
+func test_each_prop_lights_its_yellow_windows_and_lamps() -> void:
+	# make_props.gd records each box that it paints yellow, a lit window or a lamp's head, as a
+	# light grown by a halo, and a lamp's pool on the ground below its head (DAYNIGHT_PLAN.md
+	# §5.12). Each light's centre is yellow in the prop's first frame.
+	var yellow := Art.pixel(Art.MakeArt.palette()["yellow"])
+	var lit: Dictionary[String, Vector2i] = {}
+	for area: StringName in AREAS:
+		for def: PropDef in _props(area):
+			var prop := "%s: %s" % [area, def.id]
+			if def.lights.is_empty() and def.light_pools.is_empty():
+				continue
+			lit[prop] = Vector2i(def.lights.size(), def.light_pools.size())
+			var image := def.texture.get_image()
+			for box: Rect2 in def.lights:
+				var centre := Vector2i((Vector2(def.foot) + box.get_center()).floor())
+				var pixel := Art.pixel(image.get_pixelv(def.region.position + centre))
+				assert_eq(pixel, yellow, "%s's light %s" % [prop, box])
+			for pool: Rect2 in def.light_pools:
+				assert_eq(pool.get_center().y, 0.0, "%s's pool is on the ground" % prop)
+				var head := def.lights[0].get_center().x if def.lights.size() > 0 else NAN
+				assert_eq(pool.get_center().x, head, "%s's pool is below its head" % prop)
+	var expected: Dictionary[String, Vector2i] = {
+		"city: building": Vector2i(8, 0),
+		"city: lamp": Vector2i(1, 1),
+		"rural: barn": Vector2i(1, 0),
+		"village: cottage": Vector2i(1, 0),
+	}
+	assert_eq(lit, expected)
+
+
 func test_the_traffic_light_changes_as_a_real_one_does() -> void:
 	# E14's Web check saw it go from yellow to green, and from green straight to red.
 	var palette := Art.MakeArt.palette()

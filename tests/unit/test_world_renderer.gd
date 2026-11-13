@@ -376,6 +376,8 @@ func test_disasters_draw_above_the_road_and_below_the_car() -> void:
 	var order: Array[StringName] = [
 		&"Ground", &"SetPieces", &"RoadLayer", &"Skids", &"Shadows", &"DisasterLayer", &"Props"
 	]
+	# The props' lights, which draw over the night's veil (DAYNIGHT_PLAN.md §5.12).
+	order.append(&"Lamps")
 	assert_eq(names, order)
 	var layer: Node2D = _world.get_node("%DisasterLayer")
 	assert_false(layer.y_sort_enabled)
@@ -389,6 +391,31 @@ func test_set_pieces_draw_above_the_ground_and_below_the_road() -> void:
 	assert_false(layer.y_sort_enabled)
 	assert_eq(layer.z_index, 0)
 	assert_eq(_world.set_piece_scenes.keys(), [&"bridge", &"tunnel"])
+
+
+func test_the_lamps_glow_over_the_veil_at_night() -> void:
+	# The props' lights add light over the night's veil, as the legends' glows do, and the world
+	# lights them as its clock does (DAYNIGHT_PLAN.md §5.12). Without a clock, and by day, they are
+	# out.
+	var lamps: Lamps = _world.get_node("%Lamps")
+	_world.build(Fixtures.schedule())
+	_world.bind(_buffer)
+	_buffer.start()
+	await wait_process_frames(1)
+	assert_gt(lamps.count(), 20, "the City's lamps and lit windows")
+	assert_false(lamps.visible, "no clock")
+	var cycle := DayCycle.new()
+	cycle.start_hour = 23.0
+	cycle.enter(120.0)
+	cycle.snap()
+	_world.cycle = cycle
+	await wait_process_frames(1)
+	assert_true(lamps.visible, "at 23:00")
+	assert_almost_eq(lamps.modulate.a, Tuning.LAMP_ALPHA, 1e-6)
+	cycle.start_hour = 12.0
+	cycle.snap()
+	await wait_process_frames(1)
+	assert_false(lamps.visible, "at noon")
 
 
 func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -> void:

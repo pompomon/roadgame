@@ -9,4 +9,6 @@ id = &"lamp"
 texture = ExtResource("2_sheet")
 region = Rect2i(68, 0, 12, 41)
 foot = Vector2i(3, 39)
+lights = Array[Rect2]([Rect2(0, -40, 12, 10)])
+light_pools = Array[Rect2]([Rect2(-26, -16, 64, 32)])
 density = 0.01

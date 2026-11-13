@@ -200,6 +200,49 @@ static func _distinct(values: Array[int]) -> int:
 	return seen.size()
 
 
+## Where each glow of `lamps` that shows is, sorted.
+static func _glowing(lamps: Lamps) -> PackedStringArray:
+	var glowing := PackedStringArray()
+	for glow: Sprite2D in lamps.get_children():
+		if glow.visible:
+			glowing.append(str(glow.position))
+	glowing.sort()
+	return glowing
+
+
+func test_each_prop_lights_its_lamps_while_it_shows() -> void:
+	# PropScatter adds a prop's glows as it shows the prop, where its lights and its pools of light
+	# are, and takes them away with the prop (DAYNIGHT_PLAN.md §5.12). A prop without lights has
+	# none.
+	var lit := _prop(&"lit", 1, 0.0, 0.3)
+	lit.lights.append(Rect2(-3, -7, 6, 4))
+	lit.light_pools.append(Rect2(-8, -2, 16, 8))
+	var props: Array[PropDef] = [lit, _prop(&"dark", 1, 0.0, 0.3)]
+	var schedule := _schedule(props)
+	var scatter := PropScatter.new(_layer, schedule)
+	var lamps: Lamps = add_child_autofree(Lamps.new())
+	scatter.lamps = lamps
+	var buffer := _buffer(1, schedule)
+	scatter.bind(buffer)
+	buffer.start()
+	var wrong := PackedStringArray()
+	var lighting := 0
+	for index: int in range(1, 120):
+		buffer.on_car_path_index(index)
+		var expected := PackedStringArray()
+		for k: int in scatter.rows():
+			for sprite: Sprite2D in scatter.sprites(k):
+				if sprite.texture == lit.texture:
+					expected.append(str(sprite.position + Vector2(0, -5)))
+					expected.append(str(sprite.position + Vector2(0, 2)))
+		expected.sort()
+		if _glowing(lamps) != expected or lamps.count() != expected.size():
+			wrong.append("car on %d" % index)
+		lighting = maxi(lighting, expected.size() >> 1)
+	assert_gt(lighting, 20, "props that light")
+	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d steps wrong" % wrong.size())
+
+
 func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	var good := _prop(&"good", 1, 0.0, 0.6)
 	var blank := _prop(&"blank", 1, 0.0, 0.1)

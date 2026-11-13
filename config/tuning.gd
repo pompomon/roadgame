@@ -48,6 +48,13 @@ const PROP_AHEAD := 24
 const PROP_SPREAD := 9
 const PROP_MAX_SIZE := Vector2i(64, 72)
 const PROP_BELOW := 8
+## The props' lights (DAYNIGHT_PLAN.md §5.12): at night they glow LAMP_COLOR over the veil, which
+## they light, LAMP_ALPHA at their centres, and the ground below a lamp LAMP_POOL_SHARE as brightly.
+## They add to no channel more than the veil takes away from it, so they come on as the light
+## fades, and nothing that they light clips to white.
+const LAMP_COLOR := Color(1.0, 0.8, 0.45)
+const LAMP_ALPHA := 0.55
+const LAMP_POOL_SHARE := 0.4
 
 ## Car (IMPLEMENTATION_PLAN.md M4.2). Speeds are in tiles/s, accelerations in tiles/s².
 const BASE_TOP_SPEED := 4.0
