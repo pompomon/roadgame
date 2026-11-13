@@ -3,17 +3,21 @@ extends RefCounted
 ## The props' sprites (IMPLEMENTATION_PLAN.md M5.2), under one layer: acquire() shows a sprite that
 ## release() hid, or makes one, so that once a run has warmed up, a new row of props makes no
 ## nodes. A sprite shows its prop's frame with the prop's foot on the sprite's position. The layer
-## frees the sprites.
+## frees the sprites. A layer whose sprites are its own parts holds them as internal children, which
+## get_children() leaves out: so does GUT's simulate(), which walks every node each frame
+## (DAYNIGHT_PLAN.md C20).
 
 ## Sprites made so far, shown or hidden.
 var made := 0
 
 var _layer: Node
+var _internal: Node.InternalMode
 var _hidden: Array[Sprite2D] = []
 
 
-func _init(layer: Node) -> void:
+func _init(layer: Node, internal := Node.INTERNAL_MODE_DISABLED) -> void:
 	_layer = layer
+	_internal = internal
 
 
 ## A sprite that shows `def`'s first frame.
@@ -23,7 +27,7 @@ func acquire(def: PropDef) -> Sprite2D:
 		sprite = Sprite2D.new()
 		sprite.centered = false
 		sprite.region_enabled = true
-		_layer.add_child(sprite)
+		_layer.add_child(sprite, false, _internal)
 		made += 1
 	else:
 		sprite = _hidden.pop_back()

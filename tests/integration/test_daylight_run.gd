@@ -323,12 +323,13 @@ func test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui() -> void:
 			assert_gt(layer.layer, 0, ui + ": over the world's canvas")
 
 
-## `node` and every canvas item under it.
+## `node` and every canvas item under it, with the nodes' own parts: their internal children, as
+## the shadows' and the lamps' sprites are (C20).
 static func _items(node: Node) -> Array[CanvasItem]:
 	var found: Array[CanvasItem] = []
 	if node is CanvasItem:
 		found.append(node)
-	for child: Node in node.get_children():
+	for child: Node in node.get_children(true):
 		found.append_array(_items(child))
 	return found
 

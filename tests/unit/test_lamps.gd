@@ -148,7 +148,7 @@ func test_each_light_and_pool_glows_where_its_prop_puts_it() -> void:
 ## The props whose silhouettes draw, in the order they draw: Lamps' children that show, in order.
 func _drawn(silhouettes: Dictionary[Sprite2D, Sprite2D]) -> Array[Sprite2D]:
 	var drawn: Array[Sprite2D] = []
-	for child: Sprite2D in _lamps.get_children():
+	for child: Sprite2D in _lamps.get_children(true):
 		if child.visible:
 			drawn.append(silhouettes[child])
 	return drawn
@@ -231,9 +231,10 @@ func test_silhouettes_are_used_again_with_their_glows() -> void:
 	assert_true(again.sprite.visible)
 	assert_eq(again.sprite.position, Vector2(10, 10))
 	assert_eq(again.sprite.get_child_count(), 2, "with its glows")
-	assert_eq(_lamps.get_child_count(), 2)
+	assert_eq(_lamps.get_child_count(true), 2)
 	assert_ne(_lamps.add(dark, _prop(dark, Vector2(0, 20))).sprite, first.sprite, "another prop's")
-	assert_eq(_lamps.get_child_count(), 3)
+	assert_eq(_lamps.get_child_count(true), 3)
+	assert_eq(_lamps.get_child_count(), 0, "its own parts, which simulate() walks past (C20)")
 
 
 func test_out_by_day_and_without_a_clock_and_on_at_night() -> void:

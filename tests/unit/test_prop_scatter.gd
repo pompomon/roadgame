@@ -352,7 +352,7 @@ func test_each_prop_casts_its_shadow_while_it_shows_in_its_frame() -> void:
 				if sprite.hframes == 4:
 					turning.append(sprite)
 		var casts: Array[Sprite2D] = []
-		casts.assign(shadows.get_children())
+		casts.assign(shadows.get_children(true))
 		if _falls(casts) != _falls(turning) or shadows.count() != turning.size():
 			wrong.append("car on %d" % index)
 		casting = maxi(casting, turning.size())
