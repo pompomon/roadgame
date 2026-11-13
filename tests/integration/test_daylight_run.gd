@@ -190,7 +190,7 @@ func test_at_night_the_disaster_plays_in_the_light_the_run_ended_in() -> void:
 
 func test_the_light_changes_nothing_but_the_view() -> void:
 	# The same run by day and by night: the road, the car and the run end the same, with the same
-	# sounds played, and the sound is the same on every frame (§5.1, N33, N40, N41). simulate()
+	# sounds played, and the sound is the same on every frame (§5.1, N33, N40–N43). simulate()
 	# steps only the main scene, so AudioDirector is stepped with it, first, as the engine steps
 	# autoloads. Each run starts in silence, and the first is freed before the second opens.
 	watch_signals(AudioDirector)
@@ -235,10 +235,12 @@ func test_the_light_changes_nothing_but_the_view() -> void:
 		assert_eq(sounds[1][same], sounds[0][same], "the first that doesn't")
 
 
-## What AudioDirector plays: each bus's volume, mute, solo, bypass and effects; each cross-fade's
-## tracks, weights and deck; the loops that are on; and the engine's pitch. Not each player's
-## stream and volume: a player keeps the last run's until AudioDirector uses it again, and on the
-## Dummy driver none plays (AudioDirector.can_play).
+## What AudioDirector plays, the one node with players: each bus's volume, mute, solo, bypass and
+## effects; each cross-fade's tracks, weights and deck; the loops that are on; and each player's
+## bus, pitch and whether it plays, with its gain and stream. Not those that AudioDirector leaves
+## from the last run until it uses the player again: a deck's with no track, and an effect
+## player's stream, as the effects played are counted. On the Dummy driver none plays
+## (AudioDirector.can_play).
 static func _sound() -> Array:
 	var sound := []
 	for bus: int in AudioServer.bus_count:
@@ -248,12 +250,30 @@ static func _sound() -> Array:
 		sound.append(AudioServer.is_bus_bypassing_effects(bus))
 		for effect: int in AudioServer.get_bus_effect_count(bus):
 			sound.append(AudioServer.is_bus_effect_enabled(bus, effect))
-	for fade: CrossFade in [AudioDirector._music, AudioDirector._ambient]:
+	var fades: Array[CrossFade] = [AudioDirector._music, AudioDirector._ambient]
+	var decks: Array[Array] = [AudioDirector._music_players, AudioDirector._ambient_players]
+	for f: int in fades.size():
+		var fade := fades[f]
 		sound.append_array([fade.tracks.duplicate(), fade.weights.duplicate(), fade.current])
+		for deck: int in 2:
+			var used := fade.tracks[deck] != null
+			sound.append_array(_player(decks[f][deck], used, used))
 	for id: StringName in AudioDirector.LOOPS:
 		sound.append(AudioDirector.is_loop_on(id))
-	sound.append(AudioDirector._loop_players[&"engine"].pitch_scale)
+		sound.append_array(_player(AudioDirector._loop_players[id], true, true))
+	for player: AudioStreamPlayer in AudioDirector._effects:
+		sound.append_array(_player(player, true, false))
 	return sound
+
+
+## `player`'s bus, pitch and whether it plays, and its gain and stream if asked.
+static func _player(player: AudioStreamPlayer, gain: bool, stream: bool) -> Array:
+	var state: Array = [player.bus, player.pitch_scale, player.playing]
+	if gain:
+		state.append(player.volume_db)
+	if stream:
+		state.append(player.stream)
+	return state
 
 
 func test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui() -> void:
