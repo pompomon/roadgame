@@ -86,7 +86,9 @@ func test_the_lamps_draw_as_one_group_that_adds_over_the_veil() -> void:
 	if adding != null:
 		assert_eq(adding.shader, Lamps.SHADER)
 	assert_eq(_render_modes(Lamps.SHADER), PackedStringArray(["unshaded", "blend_add"]))
-	assert_eq(_lamps.modulate, Color.WHITE)
+	_lamps.refresh(_cycle(22.0))
+	assert_true(_lamps.visible, "at night")
+	assert_eq(_lamps.modulate, Color.WHITE, "lit by self_modulate alone")
 	var items: Array[CanvasItem] = [lit.sprite]
 	for glow: Sprite2D in lit.sprite.get_children():
 		items.append(glow)
