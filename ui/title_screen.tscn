@@ -59,6 +59,13 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "Play"
 
+[node name="StartArea" type="Button" parent="MainPage"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(240, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+
 [node name="AtlasButton" type="Button" parent="MainPage"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 48)

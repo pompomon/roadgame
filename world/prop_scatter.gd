@@ -5,7 +5,7 @@ extends RefCounted
 ## PropLayout once the car is PROP_AHEAD path tiles before the row's path tile, so a row at a time
 ## as the car drives, and loses them when the buffer frees that tile. With BUFFER_BEHIND and
 ## BUFFER_REFILL_AT, neither shows on the reference screens (M5_PLAN.md L2). The BUFFER_BEHIND rows
-## below the first path tile get the first area's props at the start, and lose them with it.
+## below the first path tile get the props of its area at the start, and lose them with it.
 ## WorldRenderer makes it, binds it with itself and updates it every frame.
 
 
@@ -28,6 +28,8 @@ var pool: PropPool
 
 ## The props of each area of the schedule that keep the contract, by the area's id.
 var _props: Dictionary[StringName, Array] = {}
+## The area of the bound road's first path tile. A run can start in any area of the schedule
+## (ZONE_SELECT_PLAN.md Z3).
 var _first_area := &""
 var _buffer: RoadBuffer
 ## The rows that have their props, by their path tile's index.
@@ -44,8 +46,6 @@ var _clock := 0.0
 func _init(layer: Node2D, schedule: AreaSchedule) -> void:
 	pool = PropPool.new(layer)
 	for entry: AreaScheduleEntry in schedule.entries:
-		if _first_area == &"":
-			_first_area = entry.area.id
 		if not _props.has(entry.area.id):
 			_props[entry.area.id] = _valid_props(entry.area)
 
@@ -58,6 +58,7 @@ func bind(buffer: RoadBuffer) -> void:
 	for k: int in _rows.keys():
 		_hide_row(k)
 	_buffer = buffer
+	_first_area = buffer.generator.first_area().id
 	_lowest_row = -Tuning.BUFFER_BEHIND if buffer.first_index() == 0 else buffer.first_index()
 	_next_row = _lowest_row
 	_clock = 0.0
