@@ -74,6 +74,14 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.078431375, 0.07058824, 0.09411765, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_offroad"]
+bg_color = Color(0.9254902, 0.76862746, 0.2509804, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.078431375, 0.07058824, 0.09411765, 1)
+
 [resource]
 default_font = ExtResource("1_font")
 default_font_size = 16
@@ -89,6 +97,8 @@ Button/styles/normal = SubResource("StyleBoxFlat_normal")
 Button/styles/pressed = SubResource("StyleBoxFlat_pressed")
 Label/colors/font_color = Color(0.9411765, 0.9411765, 0.9098039, 1)
 Label/colors/font_outline_color = Color(0.078431375, 0.07058824, 0.09411765, 1)
+OffroadBar/base_type = &"ProgressBar"
+OffroadBar/styles/fill = SubResource("StyleBoxFlat_offroad")
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
 ProgressBar/styles/background = SubResource("StyleBoxFlat_bar")
 ProgressBar/styles/fill = SubResource("StyleBoxFlat_fill")

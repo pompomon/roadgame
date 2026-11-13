@@ -118,6 +118,7 @@ func _start_run(run_seed: int) -> void:
 	_sim.crashed.connect(_on_crashed)
 	_sim.health_changed.connect(EventBus.health_changed.emit)
 	_sim.offroad_changed.connect(EventBus.car_offroad_changed.emit)
+	_sim.offroad_room_changed.connect(EventBus.car_offroad_room_changed.emit)
 	_sim.area_changed.connect(_on_area_changed)
 	_input.autopilot = Autopilot.new(_sim) if _autopilot else null
 	_input.enabled = true

@@ -1,11 +1,13 @@
 class_name Hud
 extends Control
 ## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6): distance, turns, health and the pause button,
-## and a message while the game is paused. When the car enters an area, the area's name shows for
-## AREA_BANNER_SECONDS (M4.3). It reads GameState, listens to EventBus, starts afresh with each
-## run, and processes while the game is paused. When the run ends it hides the pause button and
-## the area's name, and the game-over screen shows why it ended (M3.3). Its text uses only
-## characters in Godot's default font: the Web build has no system font to fall back on.
+## and a message while the game is paused. While the car is off the road, a meter under the health
+## bar shows how much of the off-road limit is left (HEALTH_BAR_PLAN.md B1). When the car enters an
+## area, the area's name shows for AREA_BANNER_SECONDS (M4.3). It reads GameState, listens to
+## EventBus, starts afresh with each run, and processes while the game is paused. When the run ends
+## it hides the pause button and the area's name, and the game-over screen shows why it ended
+## (M3.3). Its text uses only characters in Godot's default font: the Web build has no system font
+## to fall back on.
 
 const PAUSED_MESSAGE := "Paused\nTap II or press Esc to go on"
 
@@ -15,6 +17,7 @@ var _banner_left := 0.0
 @onready var _distance: Label = %Distance
 @onready var _turns: Label = %Turns
 @onready var _health: ProgressBar = %Health
+@onready var _offroad: ProgressBar = %Offroad
 @onready var _pause: Button = %Pause
 @onready var _message: Label = %Message
 @onready var _info: Label = %Info
@@ -25,6 +28,8 @@ func _ready() -> void:
 	EventBus.run_started.connect(_on_run_started)
 	EventBus.turn_completed.connect(_on_turn_completed)
 	EventBus.health_changed.connect(_on_health_changed)
+	EventBus.car_offroad_changed.connect(_on_car_offroad_changed)
+	EventBus.car_offroad_room_changed.connect(_on_car_offroad_room_changed)
 	EventBus.paused_changed.connect(_on_paused_changed)
 	EventBus.run_ended.connect(_on_run_ended)
 	EventBus.area_changed.connect(_on_area_changed)
@@ -67,6 +72,7 @@ static func distance_text(tiles: float) -> String:
 func _reset() -> void:
 	_on_turn_completed(0)
 	_on_health_changed(Tuning.START_HEALTH)
+	_on_car_offroad_changed(false)
 	_message.text = ""
 	_hide_banner()
 	_pause.visible = true
@@ -84,6 +90,18 @@ func _on_turn_completed(turn_index: int) -> void:
 
 func _on_health_changed(value: float) -> void:
 	_health.value = value
+
+
+## The off-road meter shows only while the car is off the road, and is full as the car leaves it.
+## It hides by its alpha, so that the health bar above it never moves. A run that ends off the road
+## leaves it as it was until the next run: empty if the car reached the limit.
+func _on_car_offroad_changed(is_offroad: bool) -> void:
+	_offroad.value = _offroad.max_value
+	_offroad.modulate.a = 1.0 if is_offroad else 0.0
+
+
+func _on_car_offroad_room_changed(room: float) -> void:
+	_offroad.value = room
 
 
 func _on_paused_changed(paused: bool) -> void:

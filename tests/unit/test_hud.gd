@@ -99,18 +99,58 @@ func test_the_end_of_a_run_hides_the_pause_button_and_leaves_the_message_alone()
 	assert_eq(_text(hud, "Message"), "", "the game-over screen says why")
 
 
+func test_off_the_road_a_meter_under_the_health_shows_the_room_left() -> void:
+	# The off-road limit ends a run as the health does, so the HUD shows both (HEALTH_BAR_PLAN.md
+	# B1, E1). The meter hides by its alpha, so that the health bar above it never moves.
+	var hud := _hud()
+	var health: ProgressBar = hud.get_node("%Health")
+	var meter: ProgressBar = hud.get_node("%Offroad")
+	var red := (health.get_theme_stylebox("fill") as StyleBoxFlat).bg_color
+	assert_ne((meter.get_theme_stylebox("fill") as StyleBoxFlat).bg_color, red, "not the health")
+	GameState.start_run(1)
+	assert_eq(meter.modulate.a, 0.0, "hidden on the road")
+	assert_true(meter.visible, "but in its place")
+	EventBus.car_offroad_changed.emit(true)
+	assert_eq(meter.modulate.a, 1.0, "shown off the road")
+	assert_eq(meter.value, meter.max_value, "full")
+	EventBus.car_offroad_room_changed.emit(0.25)
+	assert_eq(meter.value, 0.25)
+	EventBus.car_offroad_changed.emit(false)
+	assert_eq(meter.modulate.a, 0.0, "hidden back on the road")
+	EventBus.car_offroad_changed.emit(true)
+	assert_eq(meter.value, meter.max_value, "full again for the next time")
+
+
+func test_a_run_that_ends_off_the_road_leaves_the_meter_as_it_was() -> void:
+	# With the game-over screen, it shows why a car with health left was lost (E3).
+	var hud := _hud()
+	var meter: ProgressBar = hud.get_node("%Offroad")
+	GameState.start_run(1)
+	EventBus.car_offroad_changed.emit(true)
+	EventBus.car_offroad_room_changed.emit(0.0)
+	GameState.end_run(CarSim.OFFROAD)
+	GameState.show_game_over()
+	assert_eq(meter.modulate.a, 1.0, "shown")
+	assert_eq(meter.value, 0.0, "empty")
+
+
 func test_each_run_starts_the_hud_afresh() -> void:
 	# A retry starts the next run without reloading the HUD (M3_PLAN.md J10).
 	var hud := _hud()
 	GameState.start_run(1)
 	EventBus.turn_completed.emit(5)
 	EventBus.health_changed.emit(10.0)
+	EventBus.car_offroad_changed.emit(true)
+	EventBus.car_offroad_room_changed.emit(0.0)
 	GameState.end_run(CarSim.HEALTH)
 	GameState.show_game_over()
 	GameState.start_run(2)
 	var version: String = ProjectSettings.get_setting("application/config/version")
 	assert_eq(_text(hud, "Turns"), "turns 0")
 	assert_eq((hud.get_node("%Health") as ProgressBar).value, Tuning.START_HEALTH)
+	var meter: ProgressBar = hud.get_node("%Offroad")
+	assert_eq(meter.modulate.a, 0.0, "the car starts on the road")
+	assert_eq(meter.value, meter.max_value)
 	assert_true(hud.get_node("%Pause").visible, "Pause is back")
 	assert_eq(_text(hud, "Message"), "")
 	assert_eq(_text(hud, "Info"), "Road Roguelike %s\nseed 2" % version)

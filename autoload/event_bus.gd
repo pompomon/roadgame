@@ -20,5 +20,7 @@ signal disaster_appeared(id: StringName, area: AreaDef)
 ## `cause` is one of CarSim's causes; `stats` comes from GameState.stats().
 signal run_ended(cause: StringName, stats: Dictionary)
 signal car_offroad_changed(is_offroad: bool)
+## Off the road: the share of the off-road limit left (CarSim.offroad_room_changed).
+signal car_offroad_room_changed(room: float)
 signal paused_changed(paused: bool)
 @warning_ignore_restore("unused_signal")

@@ -6,6 +6,9 @@ extends RefCounted
 
 signal health_changed(value: float)
 signal offroad_changed(is_offroad: bool)
+## Off the road, with the damage: the share of the off-road limit still to drive, from 1 with none
+## driven to 0 at the limit (HEALTH_BAR_PLAN.md B1). The HUD shows it.
+signal offroad_room_changed(room: float)
 ## The car reached the first tile of a new area.
 signal area_changed(area: AreaDef)
 ## The run ended in a crash: HEALTH or OFFROAD. Disasters come from trigger.disaster_triggered.
@@ -128,6 +131,12 @@ func is_over() -> bool:
 func distance_to_junction() -> float:
 	var junction := trigger.next_junction
 	return INF if junction == null else junction.path_index - progress
+
+
+## The share of the off-road limit of `rates` that the car can still drive off the road: 1 with
+## none driven, 0 at the limit. validate() keeps the limit above 0.
+func offroad_room(rates: AreaDef) -> float:
+	return clampf(1.0 - offroad_dist / rates.offroad_limit_tiles, 0.0, 1.0)
 
 
 ## The cells a move from `from` to `to` enters, in order: none, one, or two when the move crosses a
@@ -291,6 +300,7 @@ func _drive_off_road(seconds: float, rates: AreaDef) -> void:
 	offroad_dist += speed * seconds
 	health = maxf(0.0, health - rates.offroad_damage_per_sec * seconds)
 	health_changed.emit(health)
+	offroad_room_changed.emit(offroad_room(rates))
 	if health <= 0.0:
 		_crash(HEALTH)
 	elif offroad_dist >= rates.offroad_limit_tiles:

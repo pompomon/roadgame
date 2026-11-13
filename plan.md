@@ -52,6 +52,7 @@ An isometric pixel-art endless driving roguelike. The player steers a car along 
 - **Off-road limit:** the car cannot stay off the road for longer than **2 tiles** of travel. Reaching the limit ends the run:
   - near a junction, it counts as a missed turn and triggers a **disaster**
   - anywhere else, the car **crashes**
+- **The HUD shows both limits:** the health bar, and, while the car is off the road, a meter under it that shows how much of the off-road limit is left. The car can reach the limit with health left, so the meter is the one that warns of it (`HEALTH_BAR_PLAN.md` B1).
 - There are **no pickups** in the MVP (no health, fuel or score pickups), and health does not regenerate.
 
 ### 2.5 End conditions
@@ -200,7 +201,7 @@ Each disaster is a self-contained scene (animation, GPU particles, shaders, soun
 Shared assets:
 - Car: 16 directions at about 32×24 px, plus a crash frame.
 - Effects: dust, smoke, skid marks.
-- UI: HUD, health bar, pixel font, pause and menus.
+- UI: HUD, health bar, off-road meter, pixel font, pause and menus.
 - One master palette of 36 colours, `assets/palette.gpl`, with a sub-palette for each area. M6 added four of them for night magic (`M6_PLAN.md` S9).
 
 ### 5.4 Art pipeline
@@ -239,7 +240,7 @@ Main
 ├── DisasterLayer (Node2D)
 ├── Camera2D (follows car, look-ahead)
 └── UI (CanvasLayer)
-    ├── HUD (distance, turns, health, pause)
+    ├── HUD (distance, turns, health, off-road meter, pause)
     ├── TouchZones
     └── Overlays (pause, game over)
 ```
@@ -388,7 +389,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Meta-progression | None; Atlas and disaster collection only |
 | Pickups | None in the MVP |
 | Speed | Rises on straights and with distance; automatic braking before every junction |
-| Off-road | Corner cutting within 2 tiles is damage only; the car cannot stay off-road longer than 2 tiles |
+| Off-road | Corner cutting within 2 tiles is damage only; the car cannot stay off-road longer than 2 tiles, and the HUD shows how much of that is left |
 | Target device | Modern Android phones; Samsung Galaxy Z Fold4 is the reference device |
 | Performance | Not a blocker for the MVP |
 | Monetisation | Not a goal |

@@ -46,3 +46,23 @@ func test_a_crash_smokes_shakes_and_ends_the_game_after_crash_seconds() -> void:
 	assert_true(game_over.visible)
 	assert_eq(game_over.get_node("%Cause").text, GameOver.END_MESSAGES[GameState.end_cause])
 	assert_signal_emit_count(EventBus, "run_ended", 1)
+
+
+func test_a_car_lost_off_the_road_shows_its_health_left_and_an_empty_meter() -> void:
+	# As in the screenshot of HEALTH_BAR_PLAN.md B1, the off-road limit ends the run with health
+	# left. The HUD shows why, up to the game-over screen and under it (E3).
+	var main := MainScene.open(self, ["--seed=1"])
+	var car := MainScene.car(main)
+	var health: ProgressBar = main.get_node("%HUD/%Health")
+	var meter: ProgressBar = main.get_node("%HUD/%Offroad")
+	car.sim.angle += PI / 2.0
+	MainScene.run_while(self, main, GameState.State.RUNNING, 1200)
+	assert_eq(GameState.end_cause, CarSim.OFFROAD)
+	assert_gt(car.sim.health, Tuning.START_HEALTH / 2.0, "more than half the health left")
+	assert_almost_eq(health.value, car.sim.health, health.step, "on the health bar")
+	assert_eq(meter.modulate.a, 1.0, "the meter shows")
+	assert_eq(meter.value, 0.0, "empty")
+	MainScene.run_while(self, main, GameState.State.CRASH, 600)
+	assert_eq(GameState.state, GameState.State.GAME_OVER)
+	assert_eq(meter.modulate.a, 1.0, "under the game-over screen too")
+	assert_eq(meter.value, 0.0)

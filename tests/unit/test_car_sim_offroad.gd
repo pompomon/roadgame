@@ -97,6 +97,14 @@ func _sim_where(check: Callable) -> CarSim:
 	return null
 
 
+## The shares of the off-road limit left that the car reported, in order (HEALTH_BAR_PLAN.md B1).
+func _rooms(sim: CarSim) -> Array[float]:
+	var rooms: Array[float] = []
+	for i: int in get_signal_emit_count(sim, "offroad_room_changed"):
+		rooms.append(get_signal_parameters(sim, "offroad_room_changed", i)[0])
+	return rooms
+
+
 func test_leaving_the_road_does_damage_every_step() -> void:
 	var sim := _sim(1)
 	var damage := sim.area.offroad_damage_per_sec
@@ -110,6 +118,36 @@ func test_leaving_the_road_does_damage_every_step() -> void:
 	assert_signal_emit_count(sim, "health_changed", 60)
 	assert_signal_emitted_with_parameters(sim, "health_changed", [sim.health])
 	assert_signal_emit_count(sim, "offroad_changed", 1)
+
+
+func test_off_the_road_the_room_left_falls_with_each_step_to_none_at_the_limit() -> void:
+	# The HUD shows it beside the health, as either can end the run (HEALTH_BAR_PLAN.md B1, E2).
+	var sim := _sim(1)
+	var limit := sim.area.offroad_limit_tiles
+	_put_off_road(sim, 0)
+	sim.step(DELTA, 0.0)
+	assert_almost_eq(_rooms(sim)[0], 1.0 - sim.offroad_dist / limit, 1e-6, "after a step")
+	_drive(sim, 10.0)
+	assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.OFFROAD])
+	var rooms := _rooms(sim)
+	assert_eq(rooms.size(), get_signal_emit_count(sim, "health_changed"), "with the damage")
+	for i: int in range(1, rooms.size()):
+		assert_lt(rooms[i], rooms[i - 1], "step %d" % i)
+	assert_eq(rooms[-1], 0.0, "none at the limit")
+	assert_gt(sim.health, 0.0, "though the car has health left")
+
+
+func test_the_room_left_is_a_share_of_the_limit_of_the_area_driving_the_car() -> void:
+	# Every area's limit is 2 tiles, so only another limit shows that the room uses the area's.
+	var sim := _sim(1)
+	var far := sim.area.duplicate() as AreaDef
+	far.offroad_limit_tiles = 4.0
+	sim.area = far
+	_put_off_road(sim, 0)
+	_drive(sim, 0.5)
+	assert_eq(sim.state, CarSim.State.OFFROAD)
+	assert_gt(sim.offroad_dist, 0.5, "a quarter of the way")
+	assert_almost_eq(_rooms(sim)[-1], 1.0 - sim.offroad_dist / 4.0, 1e-6)
 
 
 func test_the_speed_drops_off_the_road() -> void:
@@ -448,6 +486,7 @@ func test_running_out_of_health_is_a_crash() -> void:
 	assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])
 	assert_eq(sim.health, 0.0)
 	assert_lt(sim.offroad_dist, sim.area.offroad_limit_tiles)
+	assert_gt(_rooms(sim)[-1], 0.0, "room left before the limit")
 
 
 func test_near_is_at_most_one_step_from_the_junction() -> void:
@@ -516,6 +555,7 @@ func test_the_offroad_limit_near_a_junction_is_a_missed_turn() -> void:
 	assert_signal_emitted_with_parameters(sim.trigger, "disaster_triggered", [junction, -1])
 	assert_signal_not_emitted(sim, "crashed")
 	assert_gte(sim.offroad_dist, sim.area.offroad_limit_tiles)
+	assert_eq(_rooms(sim)[-1], 0.0, "no room left")
 
 
 func test_rejoining_on_a_dead_end_is_a_disaster_and_the_car_stops() -> void:
