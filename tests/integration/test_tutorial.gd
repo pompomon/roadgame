@@ -28,13 +28,19 @@ static func _label(main: Node, unique_name: String) -> Label:
 	return main.get_node("%HUD/%" + unique_name)
 
 
-## The music's and the ambience's cross-fades: their tracks, their current decks and the decks'
-## weights. A track that starts again, on either deck, starts from silence.
+## The music's and the ambience's cross-fades, with their tracks, current decks and the decks'
+## weights; and their players, with each one's track, gain and whether it plays. A track that
+## starts again, on either deck, starts from silence.
 static func _audio() -> Array:
-	var fades: Array = []
+	var audio: Array = []
 	for fade: CrossFade in [AudioDirector._music, AudioDirector._ambient]:
-		fades.append([fade.tracks.duplicate(), fade.current, fade.weights.duplicate()])
-	return fades
+		audio.append([fade.tracks.duplicate(), fade.current, fade.weights.duplicate()])
+	for players: Array[AudioStreamPlayer] in [
+		AudioDirector._music_players, AudioDirector._ambient_players
+	]:
+		for player: AudioStreamPlayer in players:
+			audio.append([player.stream, player.volume_linear, player.playing])
+	return audio
 
 
 func test_play_starts_the_tutorial_until_the_player_has_finished_it() -> void:
@@ -76,6 +82,8 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	(main.get_node("%InputRouter") as InputRouter).autopilot = Autopilot.new(sim)
 	# simulate() doesn't move the autoloads on: bring the area's tracks in, as real frames would.
 	AudioDirector.advance(Tuning.CROSS_FADE_SECONDS)
+	assert_eq(AudioDirector._music_players[AudioDirector._music.current].volume_linear, 1.0)
+	assert_eq(AudioDirector._ambient_players[AudioDirector._ambient.current].volume_linear, 1.0)
 	var audio := _audio()
 	for frame: int in TUTORIAL_FRAMES:
 		if not GameState.in_tutorial:
