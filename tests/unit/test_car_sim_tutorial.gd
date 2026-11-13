@@ -1,10 +1,11 @@
 extends GutTest
 ## CarSim in the tutorial (TUTORIAL_PLAN.md §5.3), on a real tutorial road: off the road it takes
 ## damage but never crashes; it heals on the road; it is put back on the path once it has driven
-## TUTORIAL_RESCUE_TILES off the road; and it slows while the trigger has lost it. The end of the
-## tutorial starts the City's run, with its rules.
+## TUTORIAL_RESCUE_TILES off the road; and while the trigger has lost it, it brakes for the turns of
+## the road it is on. The end of the tutorial starts the City's run, with its rules.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+const RoutePilot := preload("res://tests/helpers/route_pilot.gd")
 const DELTA := 1.0 / 60.0
 
 var _sim: CarSim
@@ -22,8 +23,13 @@ func before_each() -> void:
 ## speed 1.
 func _put(index: int, heading: int) -> void:
 	_sim.path_tile = _sim.buffer.path_tile(index)
-	_sim.pos = Iso.cell_centre(_sim.path_tile.cell)
 	_sim.progress = index
+	_place(_sim.path_tile.cell, heading)
+
+
+## Puts the car on the centre of `cell`, facing `heading`, at speed 1.
+func _place(cell: Vector2i, heading: int) -> void:
+	_sim.pos = Iso.cell_centre(cell)
 	_sim.angle = heading * PI / 2.0
 	_sim.speed = 1.0
 
@@ -124,14 +130,94 @@ func test_a_rescue_from_a_junction_puts_the_car_before_it() -> void:
 	assert_eq(_sim.trigger.next_junction, junction)
 
 
-func test_the_car_slows_while_lost() -> void:
-	_sim.dist_on_straight = 4.0
-	assert_gt(_sim.target_speed(), _sim.area.junction_speed)
+## On the start straight, lost, the car has no junction to brake for, but A, the first, is a T that
+## it enters from its foot: a turn (TUTORIAL_PLAN.md §5.3).
+func test_a_lost_car_brakes_for_a_t_it_enters_from_its_foot() -> void:
+	var a := _sim.trigger.next_junction
 	_sim.trigger.on_offroad_limit()
 	assert_true(_sim.is_lost())
+	_put(a.path_index - 3, a.heading)
+	_sim.dist_on_straight = 4.0
+	assert_eq(_sim.distance_to_turn(), INF)
+	assert_gt(_sim.target_speed(), _sim.area.junction_speed, "no cap while lost")
+	_put(a.path_index - 1, a.heading)
+	assert_eq(_sim.distance_to_turn(), 1.0)
 	assert_eq(_sim.target_speed(), _sim.area.junction_speed)
+
+
+## A's loop leaves its wrong exit and turns at its third tile. From that loop, the car drives back
+## straight through A, out of A's correct exit: no turn.
+func test_a_lost_car_brakes_for_the_corners_of_a_loop() -> void:
+	var a := _sim.trigger.next_junction
+	var wrong := Heading.opposite(a.expected_exit)
+	assert_true(a.has_exit(wrong), "a T entered from its foot")
+	_sim.trigger.on_offroad_limit()
+	_place(a.cell + Heading.VEC[wrong] * 2, wrong)
+	assert_eq(_sim.distance_to_turn(), 1.0, "the corner")
+	_place(a.cell + Heading.VEC[wrong], wrong)
+	assert_eq(_sim.distance_to_turn(), INF)
+	_place(a.cell + Heading.VEC[wrong], a.expected_exit)
+	assert_eq(_sim.distance_to_turn(), INF, "straight through A")
+
+
+## A wrong exit at A loops on to C, along legs of 3, 3 and 6 tiles. The lost car speeds up along
+## them, and enters each corner at junction_speed at most, as it enters a junction. It never leaves
+## the road, and is found past C.
+func test_a_lost_car_speeds_up_along_a_loop_and_slows_for_its_corners() -> void:
+	var pilot := RoutePilot.new(_sim)
+	pilot.wrong_at = [0] as Array[int]
+	var lost_steps := 0
+	var top := 0.0
+	var cornering := 0.0
+	for i: int in roundi(20.0 / DELTA):
+		_sim.step(DELTA, pilot.steer())
+		if not _sim.is_lost():
+			if lost_steps > 0:
+				break
+			continue
+		lost_steps += 1
+		top = maxf(top, _sim.speed)
+		if _sim.distance_to_turn() <= 0.5:
+			cornering = maxf(cornering, _sim.speed)
+	assert_gt(lost_steps, 0)
+	assert_false(_sim.is_lost(), "found")
+	assert_gt(top, _sim.area.junction_speed + 1.0)
+	assert_gt(cornering, 0.0)
+	assert_lte(cornering, _sim.area.junction_speed + 1e-6)
+	assert_signal_not_emitted(_sim, "offroad_changed")
+	assert_signal_not_emitted(_sim, "rescued")
+	gut.p("lost for %.2f s, top %.3f, cornering %.6f" % [lost_steps * DELTA, top, cornering])
+
+
+## The straight starts again as the car brakes for a junction, so that a mistake starts it as a
+## correct exit does, even one that ends no streak.
+func test_the_straight_starts_again_as_the_car_brakes_for_a_junction() -> void:
+	var a := _sim.trigger.next_junction
+	_put(a.path_index - 1, a.heading)
+	_sim.dist_on_straight = 4.0
 	_sim.step(DELTA, 0.0)
+	assert_eq(_sim.state, CarSim.State.BRAKING)
+	assert_false(_sim.is_lost())
 	assert_eq(_sim.dist_on_straight, 0.0)
+
+
+## Off the road, the straight goes on, as in the City, until the car is lost. Then it starts again,
+## so that the car drives to the rescue at junction_speed, slowed, and loses all its health on the
+## way (P2d).
+func test_a_lost_car_off_the_road_heads_for_junction_speed() -> void:
+	_put(1, Heading.E)
+	_sim.dist_on_straight = 4.0
+	_drive_off(_sim.area.offroad_limit_tiles / 2.0)
+	assert_false(_sim.is_lost())
+	assert_gt(_sim.dist_on_straight, 4.0)
+	_drive_off(_sim.area.offroad_limit_tiles + 0.5)
+	assert_true(_sim.is_lost())
+	assert_eq(_sim.distance_to_turn(), INF)
+	assert_eq(_sim.dist_on_straight, 0.0)
+	var slowed := _sim.area.junction_speed * _sim.area.offroad_speed_mult
+	assert_eq(_sim.target_speed(), slowed)
+	_drive(2.0)
+	assert_almost_eq(_sim.speed, slowed, 1e-6)
 
 
 func test_the_streak_restarts_the_straight() -> void:

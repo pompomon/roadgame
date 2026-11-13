@@ -133,8 +133,8 @@ func is_over() -> bool:
 	return state == State.DISASTER or state == State.CRASHED
 
 
-## Whether the tutorial has lost the car, which then drives at junction_speed at most, so that it
-## can take the corners of the loops (TUTORIAL_PLAN.md §5.3).
+## Whether the tutorial has lost the car, which then has no junction to brake for, but the turns of
+## the road it is on (TUTORIAL_PLAN.md §5.3).
 func is_lost() -> bool:
 	return trigger.tutorial and trigger.next_junction == null
 
@@ -144,6 +144,28 @@ func is_lost() -> bool:
 func distance_to_junction() -> float:
 	var junction := trigger.next_junction
 	return INF if junction == null else junction.path_index - progress
+
+
+## Distance from the car to the centre of the turn it brakes for next: the next unresolved
+## junction's, along the path. While the tutorial has lost the car, that of the first tile ahead on
+## the road that it can't drive straight through, along the grid direction nearest its heading: a
+## loop's corner, or a T entered from its foot (TUTORIAL_PLAN.md §5.3). INF if no such tile is
+## within junction_brake_distance, or the car's cell has no tile.
+func distance_to_turn() -> float:
+	if not is_lost():
+		return distance_to_junction()
+	var heading := posmod(roundi(angle / (PI / 2.0)), 4)
+	var cell := Vector2i(pos.floor())
+	var ahead := (Iso.cell_centre(cell) - pos).dot(Vector2(Heading.VEC[heading]))
+	while ahead <= area.junction_brake_distance:
+		var tile := buffer.tile_at(cell)
+		if tile == null:
+			return INF
+		if not tile.has_exit(heading):
+			return ahead
+		cell += Heading.VEC[heading]
+		ahead += 1.0
+	return INF
 
 
 ## The cells a move from `from` to `to` enters, in order: none, one, or two when the move crosses a
@@ -193,14 +215,14 @@ func _steer(delta: float, steer: float) -> void:
 
 ## The speed the car heads for (plan.md §2.3, IMPLEMENTATION_PLAN.md M2.2): it rises along a
 ## straight, up to a cap that grows with the distance driven; it is junction_speed from
-## junction_brake_distance before the next junction, whichever exit the car will take, and while
-## the tutorial has lost the car; and it drops while the car is off the road.
+## junction_brake_distance before the next turn, a junction whichever exit the car will take, or
+## while the tutorial has lost the car, a corner; and it drops while the car is off the road.
 func target_speed() -> float:
 	var run_cap := minf(
 		Tuning.GLOBAL_SPEED_CAP, Tuning.BASE_TOP_SPEED + dist_total * Tuning.TOP_SPEED_GROWTH
 	)
 	var target := minf(run_cap, area.junction_speed + area.straight_accel * dist_on_straight)
-	if distance_to_junction() <= area.junction_brake_distance or is_lost():
+	if distance_to_turn() <= area.junction_brake_distance:
 		target = area.junction_speed
 	if state == State.OFFROAD:
 		target *= area.offroad_speed_mult
@@ -208,16 +230,16 @@ func target_speed() -> float:
 
 
 func _update_speed(delta: float) -> void:
-	var to_junction := distance_to_junction()
+	var to_turn := distance_to_turn()
 	if state != State.OFFROAD:
-		state = State.BRAKING if to_junction <= area.junction_brake_distance else State.DRIVING
+		state = State.BRAKING if to_turn <= area.junction_brake_distance else State.DRIVING
 	var target := target_speed()
 	var rate := Tuning.ACCEL if target > speed else Tuning.BRAKE
-	if to_junction <= area.junction_brake_distance and speed > target:
-		# Brake hard enough to be at the target speed on entering the junction tile, half a tile
+	if to_turn <= area.junction_brake_distance and speed > target:
+		# Brake hard enough to be at the target speed on entering the turn's tile, half a tile
 		# before its centre, from any speed: junction_speed on the road, and less off it. Off the
-		# road in the junction tile, the car slows as it does anywhere off the road.
-		var room := to_junction - 0.5
+		# road in the turn's tile, the car slows as it does anywhere off the road.
+		var room := to_turn - 0.5
 		if room > 0.0:
 			rate = maxf(rate, (speed * speed - target * target) / (2.0 * room))
 		elif state == State.BRAKING:
@@ -328,7 +350,10 @@ func _crash(cause: StringName) -> void:
 
 
 ## The end of a step in the tutorial: on the road, the car heals, over the whole step; too far off
-## it, it is put back on the path; and while it is lost, it doesn't speed up.
+## it, it is put back on the path. Its straight starts again while it brakes for a turn, as a
+## correct exit starts it, so that a mistake starts it too, even one that ends no streak, such as a
+## rejoin on a loop; and off the road while it is lost, so that it heads for junction_speed there,
+## slowed (TUTORIAL_PLAN.md §5.3).
 func _tutorial_step(delta: float) -> void:
 	if state == State.OFFROAD:
 		if offroad_dist >= Tuning.TUTORIAL_RESCUE_TILES:
@@ -337,7 +362,7 @@ func _tutorial_step(delta: float) -> void:
 		var heal := Tuning.START_HEALTH / Tuning.TUTORIAL_HEAL_SECONDS * delta
 		health = minf(Tuning.START_HEALTH, health + heal)
 		health_changed.emit(health)
-	if is_lost():
+	if state == State.BRAKING or (state == State.OFFROAD and is_lost()):
 		dist_on_straight = 0.0
 
 
