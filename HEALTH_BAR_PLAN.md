@@ -6,7 +6,7 @@ The owner asked: "Review the codebase, analyse attached screenshot and create a 
 
 **What happens.** Two limits end a run off the road, and the HUD shows only one of them. Off the road, `CarSim` takes health at the area's rate, 30 a second in the City, and counts the distance driven off the road. At the off-road limit, 2 tiles, the run ends whatever the health: as a crash on a straight, "You got lost off the road.", or as a missed turn near a junction (`plan.md` §2.4, `car/car_sim.gd`:290–300). The health bar is right, but nothing on screen shows the limit. So the screenshot shows the limit at work, not a wrong health bar. A replay of its seed that steers left off the City's first straight ends at 17 m with "You got lost off the road." and 64.9–66.2 health left (P1). From full health, no trip off the road ran out of health before the limit, in any area or at any speed (P2, P8), and none can (P9). A crash on a straight left 51.8–92.0 health. A missed turn near a junction, where the car stays slow off the road, left 35.0–82.8. The most that a trip can take is 74.3 health, and a step's 0.6 more: in the Desert, from rest by a junction, where the car is slowest off the road (P9). So health runs out first only on a trip that starts with less than that. The fix: a meter under the health bar that shows, while the car is off the road, how much of the limit is left (Q1, §5).
 
-**Verified locally and in CI.** Every file of this plan's PR was first built on branch `hb/prototype`, on top of `main` (1047e17). Its commits: 45fa976 adds the meter; 73e5012 fixes `hud.gd`'s header (B5); 7ddb234 makes two tests ask only what they mean to; d964101 adds a touch test and a layout test that were found to be missing while it was built; 71e2c9e and 4553c1b add the checks that the internal review and its follow-up found missing (§4.6). 4553c1b passed the five checks locally with Godot 4.7.2 and in CI (§6.1), every negative case (§6.2) and the editor's warnings (§6.3). After ZS merged, 4553c1b's difference, applied to `main` at 528196e, passed them all again, locally (§4.5). Probes in Godot replayed the screenshot's seed, measured the health left at the limit in each area and along the road, found the costliest trip that the rules allow, and measured the HUD and how much of a window the meter covers (§6.5). The Web build of 45fa976 was checked in Chrome (§6.4). Not done: Firefox, and the Fold4 (§7). A model of another family, gpt-6.1-sol, reviewed this plan and the prototype, and then the fixes (`AGENTS.md` §7, §4.7).
+**Verified locally and in CI.** Every file of this plan's PR was first built on branch `hb/prototype`, on top of `main` (1047e17). Its commits: 45fa976 adds the meter; 73e5012 fixes `hud.gd`'s header (B5); 7ddb234 makes two tests ask only what they mean to; d964101 adds a touch test and a layout test that were found to be missing while it was built; 71e2c9e and 4553c1b add the checks that the internal review and its follow-up found missing, and 578a030 those of the meter's size and place that Copilot's review of this plan found missing (§4.6). 578a030 passed the five checks locally with Godot 4.7.2 and in CI (§6.1), every negative case (§6.2) and the editor's warnings (§6.3). After ZS merged, 578a030's difference, applied to `main` at 528196e, passed them all again, locally (§4.5). Probes in Godot replayed the screenshot's seed, measured the health left at the limit in each area and along the road, found the costliest trip that the rules allow, and measured the HUD and how much of a window the meter covers (§6.5). The Web build of 45fa976 was checked in Chrome (§6.4). Not done: Firefox, and the Fold4 (§7). A model of another family, gpt-6.1-sol, reviewed this plan and the prototype, and then the fixes (`AGENTS.md` §7, §4.7).
 
 - Godot 4.7.2-stable, in CI's image and locally
 - GUT 9.7.1
@@ -15,7 +15,7 @@ The owner asked: "Review the codebase, analyse attached screenshot and create a 
 
 **Precedence.** For HB, this document replaces IP M2.6's HUD (`IMPLEMENTATION_PLAN.md`:320), M2.7's list of `EventBus` signals (:324) and M2_PLAN.md §5.9's HUD (:575–588), wherever it marks a difference with **Δ** and its finding (B#, §2). PR 1 folds the change into `plan.md` §2.4, §5.3, §7.1 and §13. IP and M2_PLAN.md are left as M2 left them (Q7).
 
-**Reference code.** This plan has no appendices. PR 1 applies the difference between 1047e17, `main` when the prototype was built, and 4553c1b, the head of `hb/prototype`, which never gets a PR of its own (§4.1). It applies to today's `main`, 528196e, cleanly (§4.5).
+**Reference code.** This plan has no appendices. PR 1 applies the difference between 1047e17, `main` when the prototype was built, and 578a030, the head of `hb/prototype`, which never gets a PR of its own (§4.1). It applies to today's `main`, 528196e, cleanly (§4.5).
 
 **Prerequisites.** RG is merged (#54–#57), and so is ZS, a debug-only choice of the start area on the title: its plan (#60) and its PR 1 (#61). `main` is at 528196e, and `hb/plan` has merged it. M7 hasn't started; §9 has notes for it. No repository settings change.
 
@@ -116,16 +116,16 @@ PR 1's changes are the difference between `main` and the head of `hb/prototype`:
    ```bash
    git fetch origin main '+refs/heads/hb/*:refs/remotes/origin/hb/*'
    git switch -c hb/1-offroad-meter origin/hb/plan
-   git diff 1047e17 4553c1b | git apply --index
+   git diff 1047e17 578a030 | git apply --index
    ```
    If `main` has moved on and changed the same lines, use `git apply --3way --index` and keep both.
-2. Make the changes of any row of §4.6 for PR 1 that the prototype doesn't have; 4553c1b has all of them so far. Leave `HEALTH_BAR_PLAN.md` alone on PR 1's branch until this plan's PR has merged: until then the plan changes only on `hb/plan`, which is then merged into PR 1's branch (§4.5). A change to it on PR 1's branch would make the merge of `main` after the plan's squash an add/add conflict.
+2. Make the changes of any row of §4.6 for PR 1 that the prototype doesn't have; 578a030 has all of them so far. Leave `HEALTH_BAR_PLAN.md` alone on PR 1's branch until this plan's PR has merged: until then the plan changes only on `hb/plan`, which is then merged into PR 1's branch (§4.5). A change to it on PR 1's branch would make the merge of `main` after the plan's squash an add/add conflict.
 3. Run §6.1's checks, §6.2's negative cases and §6.3's warnings, and compare the counts with the "Expect" line below.
 4. Have a model of another family review it (`AGENTS.md` §7). Then commit, push, and open the PR with base `hb/plan`.
 
 ### PR 1: UI: an off-road meter under the health bar **Δ B1–B6**
 
-Branch `hb/1-offroad-meter`, from `hb/plan`. `git diff 1047e17 4553c1b | git apply --index`, then the changes of §4.6's rows for PR 1 that 4553c1b doesn't have (§4.1).
+Branch `hb/1-offroad-meter`, from `hb/plan`. `git diff 1047e17 578a030 | git apply --index`, then the changes of §4.6's rows for PR 1 that 578a030 doesn't have (§4.1).
 
 | Area | Files |
 |---|---|
@@ -135,7 +135,7 @@ Branch `hb/1-offroad-meter`, from `hb/plan`. `git diff 1047e17 4553c1b | git app
 | Docs | `plan.md` §2.4, §5.3, §7.1 and §13 (§5.6) |
 | Tests | `tests/unit/test_car_sim_offroad.gd`: `_rooms()` and `_hear()`, 2 new tests, the last room in 2 and the signals' order in 2, and each area's limit in the area-crossing test (E2); `tests/unit/test_hud.gd`: `_contrast()`, 3 new, and the meter and the health bar in `test_each_run_starts_the_hud_afresh` (E1, E3, E5); `tests/integration/test_crash.gd`: 1 new (E3); `tests/integration/test_main_scene_boot.gd`: 1 new (E4) |
 
-11 files, +262 −15. No new script, so no `.uid` file. Expect, on `main` at 528196e: `check_scripts: loaded 142 scripts`; `GUT: 487 tests passed`, 7 more than `main`'s, in 65 test scripts (422,982 asserts, 159 more; 86.8 s locally); `autopilot: tile 165, turns 35, area rural`, as on `main`. On 1047e17, 4553c1b had 480 tests and 422,889 asserts (§6.1). Negative cases N1–N25.
+11 files, +265 −15. No new script, so no `.uid` file. Expect, on `main` at 528196e: `check_scripts: loaded 142 scripts`; `GUT: 487 tests passed`, 7 more than `main`'s, in 65 test scripts (422,982 asserts, 159 more; 86.4 s locally); `autopilot: tile 165, turns 35, area rural`, as on `main`. On 1047e17, 578a030 has 480 tests and 422,889 asserts (§6.1). Negative cases N1–N27.
 
 **Acceptance:** E1–E6, E8 and E9, and E7 on its build (§6.4).
 
@@ -157,7 +157,7 @@ git push
 
 The squash adds `HEALTH_BAR_PLAN.md` as `hb/plan` has it, and so does PR 1's branch once it has merged `hb/plan`, so the merge of `main` is clean; simulate it first with `git merge-tree`. The push then changes no file in PR 1's diff, so it may start no Copilot review: request one with `gh pr edit <PR 1> --add-reviewer @copilot` if the PR needs it. If the owner links the two PRs as a GitHub stack instead, the stack retargets PR 1 and rebases it by itself (ROADGEN_PLAN.md §4.5). PR 1's own commits change only its 11 files, none of which the plan's squash changes, so they replay cleanly.
 
-**ZS.** ZS, a debug-only choice of the start area on the title (`ZONE_SELECT_PLAN.md`), merged after the prototype was built: its plan as #60, and its PR 1 as #61, 528196e, which `hb/plan` has merged. #61 changes `ui/main.gd`, as PR 1 does, but in other lines: the header, the members, `_ready()` and `_play()`, where PR 1 adds one line to `_start_run()`, at :128 (:121 on 1047e17). So 4553c1b's difference applies to 528196e cleanly, with that hunk 7 lines lower, and 4553c1b and 528196e merge without conflict (`git merge-tree`). Applied there, it passed the five checks, adding the same 7 tests and 159 asserts as on 1047e17 (§6.1), every negative case as §6.2 says, and the editor's warnings (§6.3).
+**ZS.** ZS, a debug-only choice of the start area on the title (`ZONE_SELECT_PLAN.md`), merged after the prototype was built: its plan as #60, and its PR 1 as #61, 528196e, which `hb/plan` has merged. #61 changes `ui/main.gd`, as PR 1 does, but in other lines: the header, the members, `_ready()` and `_play()`, where PR 1 adds one line to `_start_run()`, at :128 (:121 on 1047e17). So 578a030's difference applies to 528196e cleanly, with that hunk 7 lines lower, and 578a030 and 528196e merge without conflict (`git merge-tree`). Applied there, it passed the five checks, adding the same 7 tests and 159 asserts as on 1047e17 (§6.1), every negative case as §6.2 says, and the editor's warnings (§6.3).
 
 ### 4.6 Review fixes
 
@@ -175,6 +175,7 @@ Fixes found while the prototype was built, by the internal review of this plan (
 | 1 | F5: the colour test asked only that the fill isn't the health bar's red, so an ink fill, unseen on the ink background, passed. 71e2c9e asks for 3:1 against the background and against the red (E5) | `test_hud.gd`: `test_off_the_road_a_meter_under_the_health_shows_the_room_left` | N22 |
 | 1 | The follow-up review (§4.7), F9: the tests of a run's end and of a retry checked that the meter is drawn, but not the health bar. So an end of the run that hid the health bar passed them, and left it hidden in the next run too, as `_reset()` doesn't show it. 4553c1b checks that the health bar is drawn, with the health left, at the crash and under the game-over screen, and drawn after a retry | `test_crash.gd`: `test_a_car_lost_off_the_road_shows_its_health_left_and_an_empty_meter`; `test_hud.gd`: `test_each_run_starts_the_hud_afresh` | N23 |
 | 1 | F10: the contrast checks compared the styles' colours, so a fill painted transparent, or not painted at all, passed them. 4553c1b checks that the meter's fill, its background and the health bar's fill each draw their centre, opaque (E5) | `test_hud.gd`: `test_off_the_road_a_meter_under_the_health_shows_the_room_left` | N24, N25 |
+| 1 | Copilot's review of 6ac3065, [on E1](https://github.com/pompomon/roadgame/pull/62#discussion_r4559696925): the layout test checked that the meter is under the health bar and as wide, but not E1's 8 px and 2 px. Without its minimum height the meter is 4 px high, all border and no yellow; with the box's default separation it sits 4 px under the health bar. Both passed every test. 578a030 checks that the meter starts 2 px under the health bar, at its x, and is as wide and 8 px high | `test_hud.gd`: `test_the_meter_sits_under_the_health_bar_and_never_moves_it` | N26, N27 |
 | Plan | F6: §5.2 said that with `step` 0 the meter is empty only at the limit. But a `ProgressBar` draws its fill in whole pixels, and none under half a pixel, so the meter looks empty a little before the limit. §5.2 now says so, and why `step` 0 still counts | None: wording | None |
 | Plan | F7: E2, §5.1 and §5.2 said that the room stays above 0 if the health runs out first. If both run out in the same step, the health's check comes first, as on `main`, and the room is 0. They now say so; the rule doesn't change | None: wording | None |
 | Plan | F8: some measurements were applied beyond what they measured. Q1 C used P3's costs, measured on straights only; the widths were measured with 0 turns; the most that a trip takes was the largest of a sample. P9 now bounds a trip's cost, and P7b measures the widths with the turns (B1, Q1, Q4, §5.2, §5.3, §8, §9) | None: wording | None |
@@ -265,6 +266,7 @@ func _on_car_offroad_room_changed(room: float) -> void:
 ```
 
 - **Hidden by its alpha.** With `visible = false`, the box would shrink to the health bar's 12 px, and the top bar would centre the health bar again each time the car left or rejoined the road: it would jump between y 22 and 17 (N7). At alpha 0 the meter keeps its place, and the health bar moves once, with PR 1.
+- **Its height and gap.** The meter's fill has a 2-px ink border at the top and the bottom, so its 8 px leave a yellow centre 4 px high. Without its minimum height, the meter would be only as high as the border, 4 px, and show no yellow (N26). `Bars`' `separation` keeps it 2 px under the health bar, where a `VBoxContainer`'s default is 4 (N27). `test_the_meter_sits_under_the_health_bar_and_never_moves_it` checks both.
 - **Full as the car leaves.** Each trip off the road counts from 0 (`_leave_road()` sets `offroad_dist` to 0), so the meter fills on `offroad_changed(true)`, before the first room comes. It fills on `false` too, so that it is full the next time.
 - **At the end of a run.** `_on_run_ended()` leaves the meter alone, so under the game-over screen it shows how the run ended: empty after the limit, as a crash or a missed turn; partly full if the health ran out off the road first, and empty if both ran out in the same step (§5.1); hidden if the run ended on the road, at a wrong exit. The next run's `_reset()` hides it and fills it, as a retry doesn't reload the HUD (M3_PLAN.md J10).
 - **While paused,** the car doesn't move, so the meter keeps its value under the pause message.
@@ -322,7 +324,7 @@ PR 1 changes `plan.md`:
 
 ### 6.1 Checks and counts
 
-The checks are `AGENTS.md` §4's five. `main` (1047e17) and the prototype's states ran them in CI, in runs started by hand (`workflow_dispatch`), and 7ddb234, d964101, 71e2c9e and 4553c1b ran them locally too, with Godot 4.7.2 on 2 CPUs. 528196e, `main` after ZS, ran them in this plan's PR's CI, and 4553c1b's difference applied to it ran them locally (§4.5):
+The checks are `AGENTS.md` §4's five. `main` (1047e17) and the prototype's states ran them in CI, in runs started by hand (`workflow_dispatch`), and 7ddb234, d964101, 71e2c9e, 4553c1b and 578a030 ran them locally too, with Godot 4.7.2 on 2 CPUs. 528196e, `main` after ZS, ran them in this plan's PR's CI, and 4553c1b's and 578a030's differences applied to it ran them locally (§4.5):
 
 | State | Where | Scripts loaded | Test scripts | Tests | Asserts | GUT time | Smoke |
 |---|---|---|---|---|---|---|---|
@@ -336,14 +338,17 @@ The checks are `AGENTS.md` §4's five. `main` (1047e17) and the prototype's stat
 | Prototype (71e2c9e) | Run 43350939501 | 142 | 65 | 480 | 422,879 | 84.6 s | The same |
 | Prototype (4553c1b) | Local | 142 | 65 | 480 | 422,889 | 86.8 s | The same |
 | Prototype (4553c1b) | Run 43355628358 | 142 | 65 | 480 | 422,889 | 87.6 s | The same |
+| Prototype (578a030) | Local | 142 | 65 | 480 | 422,889 | 85.4 s | The same |
+| Prototype (578a030) | Run 43367492001 | 142 | 65 | 480 | 422,889 | 55.0 s | The same |
 | `main` (528196e) | Run 43360902414 | 142 | 65 | 480 | 422,823 | 54.4 s | The same |
 | 4553c1b's difference on 528196e | Local | 142 | 65 | 487 | 422,982 | 86.8 s | The same |
+| 578a030's difference on 528196e | Local | 142 | 65 | 487 | 422,982 | 86.4 s | The same |
 
-45fa976 adds 5 tests and d964101 2 (§4.6); 73e5012 changes a comment, 7ddb234 a check and a message, 71e2c9e adds 12 checks to 7 tests, and 4553c1b 10 to 3 (§4.6). ZS adds 7 tests and 93 asserts to `main`, and the difference adds the same 7 tests and 159 asserts to 528196e as to 1047e17. The `test` job took 2 min 19 s on 7ddb234, 2 min 07 s on d964101, 2 min 27 s on 71e2c9e, 2 min 27 s on 4553c1b, and 2 min 06 s on 528196e. Locally, every check passed, `smoke.sh` printed no error line, and `git status --porcelain` printed nothing after them. GUT's time varies by tens of seconds from run to run, and more on the local machine than in CI.
+45fa976 adds 5 tests and d964101 2 (§4.6); 73e5012 changes a comment, 7ddb234 a check and a message, 71e2c9e adds 12 checks to 7 tests, 4553c1b 10 to 3, and 578a030 makes 2 of a test's checks exact, so the counts stay (§4.6). ZS adds 7 tests and 93 asserts to `main`, and the difference adds the same 7 tests and 159 asserts to 528196e as to 1047e17. The `test` job took 2 min 19 s on 7ddb234, 2 min 07 s on d964101, 2 min 27 s on 71e2c9e, 2 min 27 s on 4553c1b, 2 min 10 s on 578a030, and 2 min 06 s on 528196e. Locally, every check passed, `smoke.sh` printed no error line, and `git status --porcelain` printed nothing after them. GUT's time varies by tens of seconds from run to run, and more on the local machine than in CI.
 
 ### 6.2 Negative cases
 
-Each change below makes the tests named fail. A script, not committed, applied each change to a clean worktree of `hb/prototype`, ran `tools/ci/run_tests.sh`, read GUT's JUnit report, and restored the file. Each case took 87–95 s (87–90 s on 4553c1b, 87–91 s on 528196e). N1–N12 ran on 7ddb234, N1–N16 on d964101, N1–N25 on 71e2c9e, and all 25 on 4553c1b, whose results the table gives. All 25 ran again on a worktree of 528196e with 4553c1b's difference applied (§4.5), and each failed the same tests as on 4553c1b. Each failed as below, and nothing else did; N14 fails nothing, as expected (§5.4). On 71e2c9e, N23–N25 failed nothing: they are the follow-up review's F9 and F10 (§4.7). After the run, `git status --porcelain` printed nothing.
+Each change below makes the tests named fail. A script, not committed, applied each change to a clean worktree of `hb/prototype`, ran `tools/ci/run_tests.sh`, read GUT's JUnit report, and restored the file. Each case took 86–105 s (86–90 s on 578a030, 88–105 s on 528196e). N1–N12 ran on 7ddb234, N1–N16 on d964101, N1–N25 on 71e2c9e and 4553c1b, and all 27 on 578a030, whose results the table gives. All 27 ran again on a worktree of 528196e with 578a030's difference applied (§4.5), as all 25 had with 4553c1b's, and each failed the same tests as on the prototype. Each failed as below, and nothing else did; N14 fails nothing, as expected (§5.4). On 71e2c9e, N23–N25 failed nothing: they are the follow-up review's F9 and F10 (§4.7). On 4553c1b, N26 and N27 failed nothing: they are Copilot's finding on E1 (§4.6). After the run, `git status --porcelain` printed nothing.
 
 | N# | Change | Fails |
 |---|---|---|
@@ -372,10 +377,12 @@ Each change below makes the tests named fail. A script, not committed, applied e
 | N23 | `hud.gd`: `_on_run_ended()` hides the health bar | N5's, and `test_each_run_starts_the_hud_afresh` |
 | N24 | `theme.tres`: the meter's yellow is transparent | `test_off_the_road_a_meter_under_the_health_shows_the_room_left` |
 | N25 | `theme.tres`: the meter's fill draws no centre, `draw_center = false` | `test_off_the_road_a_meter_under_the_health_shows_the_room_left` |
+| N26 | `hud.tscn`: the meter has no minimum height, so it is 4 px high, all border | `test_the_meter_sits_under_the_health_bar_and_never_moves_it` |
+| N27 | `hud.tscn`: `Bars` has the default separation, 4 px | `test_the_meter_sits_under_the_health_bar_and_never_moves_it` |
 
 ### 6.3 Editor warnings
 
-None of the five checks reports GDScript warnings, and shadowing shows only in the editor (`AGENTS.md` §3). As in M2–M6 (M2_PLAN.md §6.3), a probe asked the editor's language server for them: it starts `godot --headless --editor --lsp-port <port>` and opens every `.gd` file outside `addons/` and `.godot/`. The shadowing warnings are on, at level 1, as `project.godot` raises only `untyped_declaration` (:22). On `main` (1047e17), on d964101, on 4553c1b, and on 4553c1b's difference applied to 528196e, it reports the same 5 warnings in 142 scripts, and no error. They are M5's (ROADGEN_PLAN.md §6.3): `INTEGER_DIVISION` in `test_greybox_atlas.gd`:15, `test_iso.gd`:42, `ui/main.gd`:46 and `world/greybox_atlas.gd`:135, and `UNUSED_VARIABLE` `junctions` in `test_road_generator_occupancy.gd`:30. None comes from HB: `ui/main.gd`:46 is in `_ready()`, and PR 1 adds only :121; on 528196e they are :52 and :128. So no name that HB adds shadows a member or a built-in. The editor changed no file.
+None of the five checks reports GDScript warnings, and shadowing shows only in the editor (`AGENTS.md` §3). As in M2–M6 (M2_PLAN.md §6.3), a probe asked the editor's language server for them: it starts `godot --headless --editor --lsp-port <port>` and opens every `.gd` file outside `addons/` and `.godot/`. The shadowing warnings are on, at level 1, as `project.godot` raises only `untyped_declaration` (:22). On `main` (1047e17), on d964101, 4553c1b and 578a030, and on 4553c1b's and 578a030's differences applied to 528196e, it reports the same 5 warnings in 142 scripts, and no error. They are M5's (ROADGEN_PLAN.md §6.3): `INTEGER_DIVISION` in `test_greybox_atlas.gd`:15, `test_iso.gd`:42, `ui/main.gd`:46 and `world/greybox_atlas.gd`:135, and `UNUSED_VARIABLE` `junctions` in `test_road_generator_occupancy.gd`:30. None comes from HB: `ui/main.gd`:46 is in `_ready()`, and PR 1 adds only :121; on 528196e they are :52 and :128. So no name that HB adds shadows a member or a built-in. The editor changed no file.
 
 ### 6.4 Verified only in CI or on devices
 
@@ -418,7 +425,7 @@ The probes ran headless with Godot 4.7.2, on `main`'s rules; they aren't committ
 | When | Action | How |
 |---|---|---|
 | Now | Answer Q1–Q7, or accept the defaults | A comment on this plan's PR. Without an answer, PR 1 follows the defaults (§3) |
-| Now, if wanted | Try the prototype on the Fold4 | Until 2026-11-14 02:57 UTC: `gh run download 43355628358 -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`. After that, `gh workflow run ci.yml -R pompomon/roadgame --ref hb/prototype -f upload-builds=true` makes a new one. Then `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`, and §6.4 |
+| Now, if wanted | Try the prototype on the Fold4 | Until 2026-11-14 04:44 UTC: `gh run download 43367492001 -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`. After that, `gh workflow run ci.yml -R pompomon/roadgame --ref hb/prototype -f upload-builds=true` makes a new one. Then `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`, and §6.4 |
 | Before PR 1 merges | E7 on the Fold4 | On PR 1's build: the run that PR 1's body gives, as above (§6.4) |
 | To land HB | Merge this plan's PR. Retarget PR 1 to `main` before `hb/plan` is deleted. Once PR 1 has merged `main` and its checks pass, merge it | §4.5 |
 | After | Delete the `hb/` branches | `git push origin --delete hb/plan hb/1-offroad-meter hb/prototype`, less any already deleted |
