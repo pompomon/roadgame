@@ -2,9 +2,9 @@ extends GutTest
 ## The tutorial in the game (TUTORIAL_PLAN.md §5.4 to §5.6). Play starts a run in the City with it
 ## until the player has finished it, and --tutorial always does. The HUD shows the streak, and the
 ## goal for the distance and the area's name. The streak's end starts the City's run there: its
-## distance, turns and areas count from the junction, and the save marks the tutorial done. A car
-## left alone is put back on the path with the camera on it at once. SaveService keeps the save in
-## memory.
+## distance, turns, areas and day count from the junction, and the save marks the tutorial done. A
+## car left alone is put back on the path with the camera on it at once. SaveService keeps the save
+## in memory.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const RoutePilot := preload("res://tests/helpers/route_pilot.gd")
@@ -231,3 +231,40 @@ func test_only_a_run_that_starts_in_the_city_has_the_tutorial() -> void:
 		assert_eq(GameState.area_id, &"rural", why)
 		main.get_parent().free()
 		GameState.quit_to_title()
+
+
+## DAYNIGHT_PLAN.md §5.4 (TUTORIAL_PLAN.md Q18): the City's clock runs in the tutorial, and the
+## switch starts it again, as it does the City's distance and turns. From the evening, the light
+## then goes back to the day's at the rate, with no jump.
+func test_the_city_day_starts_at_the_switch() -> void:
+	var main := MainScene.open(self, ["--seed=1", "--tutorial", "--hour=16"])
+	var sim := MainScene.car(main).sim
+	var cycle := (main.get_node("%Daylight") as Daylight).cycle
+	(main.get_node("%InputRouter") as InputRouter).autopilot = Autopilot.new(sim)
+	var seconds := 0.0
+	var light := cycle.light
+	var fastest := 0.0
+	for frame: int in TUTORIAL_FRAMES:
+		if not GameState.in_tutorial:
+			break
+		seconds = cycle.seconds
+		simulate(main, 1, MainScene.DELTA)
+		fastest = maxf(fastest, _farthest(light, cycle.light))
+		light = cycle.light
+	assert_false(GameState.in_tutorial)
+	assert_gt(seconds, 10.0, "the clock ran in the tutorial")
+	assert_eq(cycle.seconds, 0.0, "the City's day starts at the switch")
+	assert_eq(cycle.hour(), 16.0)
+	assert_gt(_farthest(cycle.light, cycle.target()), 0.1, "the evening's light goes back slowly")
+	for frame: int in 60 * 5:
+		simulate(main, 1, MainScene.DELTA)
+		fastest = maxf(fastest, _farthest(light, cycle.light))
+		light = cycle.light
+	assert_eq(cycle.light, cycle.target(), "and catches up")
+	assert_almost_eq(cycle.seconds, 5.0, 1e-6, "the City's clock runs on")
+	assert_lte(fastest, Tuning.LIGHT_MAX_RATE * MainScene.DELTA + 1e-6, "no jump")
+
+
+## The largest change between `a` and `b` in a channel.
+static func _farthest(a: Color, b: Color) -> float:
+	return maxf(maxf(absf(a.r - b.r), absf(a.g - b.g)), absf(a.b - b.b))

@@ -265,6 +265,8 @@ func _on_tutorial_completed(junction: RoadTile) -> void:
 	_buffer.generator.end_tutorial(_turn_base)
 	SaveService.complete_tutorial()
 	GameState.end_tutorial()
+	# The City's day starts here too, as its distance and turns do (DAYNIGHT_PLAN.md §5.4).
+	_daylight.cycle.enter(_sim.area.day_seconds)
 	EventBus.tutorial_completed.emit()
 	EventBus.area_changed.emit(_sim.area)
 
