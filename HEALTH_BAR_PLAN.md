@@ -119,13 +119,13 @@ PR 1's changes are the difference between `main` and the head of `hb/prototype`:
    git diff 1047e17 4553c1b | git apply --index
    ```
    If `main` has moved on and changed the same lines, use `git apply --3way --index` and keep both.
-2. Add §4.6's rows for PR 1 that the prototype doesn't have.
+2. Make the changes of any row of §4.6 for PR 1 that the prototype doesn't have; 4553c1b has all of them so far. Leave `HEALTH_BAR_PLAN.md` alone on PR 1's branch until this plan's PR has merged: until then the plan changes only on `hb/plan`, which is then merged into PR 1's branch (§4.5). A change to it on PR 1's branch would make the merge of `main` after the plan's squash an add/add conflict.
 3. Run §6.1's checks, §6.2's negative cases and §6.3's warnings, and compare the counts with the "Expect" line below.
 4. Have a model of another family review it (`AGENTS.md` §7). Then commit, push, and open the PR with base `hb/plan`.
 
 ### PR 1: UI: an off-road meter under the health bar **Δ B1–B6**
 
-Branch `hb/1-offroad-meter`, from `hb/plan`. `git diff 1047e17 4553c1b | git apply --index`, then §4.6's rows for PR 1.
+Branch `hb/1-offroad-meter`, from `hb/plan`. `git diff 1047e17 4553c1b | git apply --index`, then the changes of §4.6's rows for PR 1 that 4553c1b doesn't have (§4.1).
 
 | Area | Files |
 |---|---|
@@ -179,6 +179,7 @@ Fixes found while the prototype was built, by the internal review of this plan (
 | Plan | F7: E2, §5.1 and §5.2 said that the room stays above 0 if the health runs out first. If both run out in the same step, the health's check comes first, as on `main`, and the room is 0. They now say so; the rule doesn't change | None: wording | None |
 | Plan | F8: some measurements were applied beyond what they measured. Q1 C used P3's costs, measured on straights only; the widths were measured with 0 turns; the most that a trip takes was the largest of a sample. P9 now bounds a trip's cost, and P7b measures the widths with the turns (B1, Q1, Q4, §5.2, §5.3, §8, §9) | None: wording | None |
 | Plan | F11: §5.3 said that the meter covers under 1.25% of any screen, as the view is at least 640 px high. But the game scales the view by whole numbers, and a window smaller than the base size shows it at scale 1, cut off. §5.3 and §8 now say so, with P10's measures | None: wording | None |
+| Plan | Copilot's review of 9f7690c, [on §4.1](https://github.com/pompomon/roadgame/pull/62#discussion_r4559391537): step 2, "Add §4.6's rows for PR 1", read as adding rows to this plan on PR 1's branch before the plan lands. §4.5 keeps the plan on `hb/plan` until then, as merging `main` after the plan's squash would otherwise be an add/add conflict; `git merge-tree` shows it. Step 2 and PR 1's section now say to make the rows' changes, and to leave the plan alone on PR 1's branch until it lands | None: wording | None |
 
 ### 4.7 Internal review
 
