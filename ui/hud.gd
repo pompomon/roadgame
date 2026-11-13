@@ -6,8 +6,8 @@ extends Control
 ## area, the area's name shows for AREA_BANNER_SECONDS (M4.3). It reads GameState, listens to
 ## EventBus, starts afresh with each run, and processes while the game is paused. When the run ends
 ## it hides the pause button and the area's name, and the game-over screen shows why it ended
-## (M3.3). Its text uses only characters in Godot's default font: the Web build has no system font
-## to fall back on.
+## (M3.3). Its text uses only characters in the game's font: the Web build has no system font to
+## fall back on.
 
 const PAUSED_MESSAGE := "Paused\nTap II or press Esc to go on"
 
