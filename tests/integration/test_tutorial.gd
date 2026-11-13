@@ -40,6 +40,18 @@ func test_play_starts_the_tutorial_until_the_player_has_finished_it() -> void:
 		GameState.quit_to_title()
 
 
+## Tests and checks start runs with --play or --autopilot: those get no tutorial, even with a fresh
+## save, so they drive the road that they always have.
+func test_the_play_and_autopilot_arguments_skip_the_tutorial() -> void:
+	for arg: String in ["--play", "--autopilot"]:
+		SaveService.use_memory()
+		var main := MainScene.open(self, ["--seed=1", arg], false)
+		assert_eq(GameState.state, RUNNING, arg)
+		assert_false(GameState.in_tutorial, arg)
+		main.get_parent().free()
+		GameState.quit_to_title()
+
+
 func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> void:
 	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--seed=1", "--tutorial"])
@@ -89,6 +101,9 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	areas = GameState.stats()["areas"]
 	assert_eq(areas[&"city"]["turns"], rural, "the City's turns")
 	assert_eq(areas[&"rural"]["turns"], 1, "Rural's first")
+	var distance_sum: float = areas[&"city"]["distance"] + areas[&"rural"]["distance"]
+	assert_almost_eq(distance_sum, GameState.distance, 1e-6, "the areas' distances")
+	assert_gt(areas[&"rural"]["distance"], 0.0, "Rural's distance")
 	assert_eq(GameState.state, RUNNING)
 	# The stats count the turns that the road has: check the road too.
 	var first_rural: RoadTile = null
