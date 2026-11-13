@@ -28,11 +28,19 @@ func _put(index: int, heading: int) -> void:
 	_sim.speed = 1.0
 
 
-## Steps straight on for `seconds`, or until the car is rescued.
-func _drive(seconds: float) -> void:
+## Steps for `seconds`, or until the car is rescued: straight on, or as `pilot` steers.
+func _drive(seconds: float, pilot: Autopilot = null) -> void:
 	for i: int in roundi(seconds / DELTA):
-		_sim.step(DELTA, 0.0)
+		_sim.step(DELTA, 0.0 if pilot == null else pilot.steer())
 		if get_signal_emit_count(_sim, "rescued") > 0:
+			return
+
+
+## Steps straight on until the car has driven `tiles` off the road, for at most 10 s.
+func _drive_off(tiles: float) -> void:
+	for i: int in roundi(10.0 / DELTA):
+		_sim.step(DELTA, 0.0)
+		if _sim.offroad_dist >= tiles:
 			return
 
 
@@ -43,10 +51,12 @@ func _take_next() -> void:
 	_sim.trigger.on_cell_crossed(junction.cell, exit, true)
 
 
-## East of the start straight, no road is nearer than the rescue's distance.
+## East of the start straight, no road is nearer than the rescue's distance. With a little health,
+## the car comes to 0 well before the rescue, whatever TUTORIAL_RESCUE_TILES is (P2d).
 func test_the_car_drives_on_with_no_health() -> void:
+	_sim.health = 1.0
 	_put(1, Heading.E)
-	_drive(4.0)
+	_drive_off(_sim.area.offroad_limit_tiles + 0.5)
 	assert_eq(_sim.health, 0.0)
 	assert_eq(_sim.state, CarSim.State.OFFROAD)
 	assert_gt(_sim.speed, 0.0)
@@ -58,21 +68,23 @@ func test_the_car_drives_on_with_no_health() -> void:
 func test_the_offroad_limit_ends_the_streak() -> void:
 	_sim.trigger.streak = 3
 	_put(1, Heading.E)
-	_drive(4.0)
+	_drive_off(_sim.area.offroad_limit_tiles)
 	assert_eq(_sim.trigger.streak, 0)
 	assert_signal_emit_count(_sim.trigger, "streak_changed", 1)
 	assert_true(_sim.is_lost())
 
 
-## Within TUTORIAL_HEAL_SECONDS, and a frame, for the sum of steps falls a little short.
+## Within TUTORIAL_HEAL_SECONDS, and a frame, for the sum of steps falls a little short. The
+## autopilot keeps the car on the road through the junctions, however long the heal takes (P2c).
 func test_the_car_heals_on_the_road() -> void:
+	var pilot := Autopilot.new(_sim)
 	_sim.health = 0.0
-	_drive(Tuning.TUTORIAL_HEAL_SECONDS / 2.0)
+	_drive(Tuning.TUTORIAL_HEAL_SECONDS / 2.0, pilot)
 	assert_almost_eq(_sim.health, Tuning.START_HEALTH / 2.0, 1e-3)
-	_drive(Tuning.TUTORIAL_HEAL_SECONDS / 2.0 + DELTA)
+	_drive(Tuning.TUTORIAL_HEAL_SECONDS / 2.0 + DELTA, pilot)
 	assert_eq(_sim.health, Tuning.START_HEALTH)
 	assert_signal_emitted_with_parameters(_sim, "health_changed", [Tuning.START_HEALTH])
-	assert_ne(_sim.state, CarSim.State.OFFROAD, "on the road all along")
+	assert_signal_not_emitted(_sim, "offroad_changed", "on the road all along")
 
 
 func test_a_rescue_puts_the_car_back_on_its_path_tile() -> void:

@@ -98,18 +98,19 @@ func test_the_autopilot_finishes_the_tutorial_and_drives_on_through_the_schedule
 	gut.p("P1: %.1f s to path tile %d, with %d tiles and %d turns laid past it" % measured)
 
 
-## TUTORIAL_PLAN.md §5.2: a wrong exit at A (turn 0) or B (5) loops on to C or D, and the streak
+## TUTORIAL_PLAN.md §5.2: a wrong exit at A (turn 0) or B (1, 5) loops on to C or D, and the streak
 ## starts again at the junction after it. One at C (2) or D (3) loops back to A or B, and the streak
-## starts again at the junction after that one. The car never leaves the road.
+## starts again at the junction after that one. The car never leaves the road. No streak before a
+## mistake reaches 4, so the cases hold for a TUTORIAL_STREAK of 4 or more (P2a).
 func test_a_wrong_turn_starts_the_streak_again_where_its_loop_comes_back() -> void:
-	# The turns it goes wrong at, the streaks before the last streak, and the turn that ends that.
-	# A wrong turn at 0 ends no streak; the streak after one at 5 starts at 8, and ends at 9.
+	# The turns it goes wrong at, the streaks before the last streak, and the turn that starts that.
+	# A wrong turn at 0 ends no streak; the last streak after ones at 1 and 5 starts at 8.
 	var cases: Array[Array] = [
-		[[0], [], 14],
-		[[5], [1, 2, 3, 4, 5, 0], 19],
-		[[2], [1, 2, 0], 12],
-		[[3], [1, 2, 3, 0], 13],
-		[[5, 9], [1, 2, 3, 4, 5, 0, 1, 0], 23],
+		[[0], [], 3],
+		[[1], [1, 0], 4],
+		[[2], [1, 2, 0], 1],
+		[[3], [1, 2, 3, 0], 2],
+		[[1, 5], [1, 0, 1, 0], 8],
 	]
 	for case: Array in cases:
 		_start(1)
@@ -117,7 +118,7 @@ func test_a_wrong_turn_starts_the_streak_again_where_its_loop_comes_back() -> vo
 		pilot.wrong_at.assign(case[0])
 		_drive(pilot, TUTORIAL_STEPS, _tutorial_over)
 		var at := str(case[0])
-		assert_eq(_ended_at, case[2], at)
+		assert_eq(_ended_at, case[2] + Tuning.TUTORIAL_STREAK - 1, at)
 		assert_eq(_streaks(), case[1] + range(1, Tuning.TUTORIAL_STREAK + 1), at)
 		assert_false(_sim.is_over(), at)
 		assert_signal_not_emitted(_sim, "offroad_changed", at)
