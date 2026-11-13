@@ -115,17 +115,27 @@ func test_the_light_shown_never_changes_faster_than_the_max_rate() -> void:
 func test_after_a_reset_the_light_catches_up_and_then_follows_exactly() -> void:
 	# From the night at 22:00, a new zone's clock is back at 07:00: the light shown takes the
 	# largest channel difference over the rate to get there. A sum of 1/60 s may fall short of it,
-	# so it may take a frame more.
+	# so it may take a frame more. It goes the straight way, within float rounding, so that every
+	# light shown is a blend of the key lights, where the smoke shows (DAYNIGHT_PLAN.md §5.7).
 	var cycle := _cycle(120.0, 22.0)
 	var from := cycle.light
 	cycle.start_hour = Tuning.DAY_START_HOUR
 	cycle.enter(120.0)
 	var steps := _distance(from, Color.WHITE) / (Tuning.LIGHT_MAX_RATE * DELTA)
 	var frames := 0
+	var astray := 0.0
 	while cycle.light != Color.WHITE and frames <= ceili(steps) + 1:
 		cycle.advance(DELTA)
 		frames += 1
+		var low := INF
+		var high := -INF
+		for c: int in 3:
+			var share: float = (cycle.light[c] - from[c]) / (1.0 - from[c])
+			low = minf(low, share)
+			high = maxf(high, share)
+		astray = maxf(astray, high - low)
 	assert_between(frames, floori(steps), ceili(steps) + 1, "frames to the morning's light")
+	assert_almost_eq(astray, 0.0, 1e-4, "off the straight way")
 	var off := 0
 	for _frame: int in ceili(120.0 / DELTA):
 		cycle.advance(DELTA)
