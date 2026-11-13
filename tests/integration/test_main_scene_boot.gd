@@ -200,6 +200,20 @@ func test_a_tap_on_the_pause_button_pauses_without_steering() -> void:
 	assert_eq(_router(main).steer(), -1.0, "a touch on the left half")
 
 
+func test_a_touch_on_the_health_bar_or_the_off_road_meter_steers() -> void:
+	# The meter hides by its alpha, so it is under the touch even when it can't be seen
+	# (HEALTH_BAR_PLAN.md B6). Only the Pause button keeps a touch.
+	var main := _main(["--seed=1"])
+	await wait_process_frames(2)
+	var middle := main.get_viewport().get_visible_rect().get_center().x
+	for bar: String in ["Health", "Offroad"]:
+		var at := (main.get_node("%HUD/%" + bar) as Control).get_global_rect().get_center()
+		_push(main, [_touch(at, true)])
+		assert_eq(_router(main).steer(), -1.0 if at.x < middle else 1.0, bar)
+		_push(main, [_touch(at, false)])
+		assert_eq(_router(main).steer(), 0.0, bar)
+
+
 func test_a_click_works_like_a_tap_and_leaves_enter_alone() -> void:
 	assert_true(ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse"))
 	var main := _main(["--seed=1"])
