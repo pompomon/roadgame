@@ -223,13 +223,14 @@ func test_each_prop_lights_its_lamps_while_it_shows() -> void:
 	# PropScatter adds a prop's silhouette as it shows the prop, shows it in the prop's frame, with
 	# the prop's glows where its lights and its pools of light are, and takes them away with the
 	# prop (DAYNIGHT_PLAN.md §5.12). A prop without lights has none. One that lies flat and has none
-	# neither hides nor lights.
-	var lit := _prop(&"lit", 1, 0.0, 0.3)
+	# neither hides nor lights. As sparse as the props of the other tests, as it checks each one at
+	# each step (C20).
+	var lit := _prop(&"lit", 1, 0.0, 0.03)
 	lit.lights.append(Rect2(-3, -7, 6, 4))
 	lit.light_pools.append(Rect2(-8, -2, 16, 8))
-	var flat := _prop(&"flat", 1, 0.0, 0.2)
+	var flat := _prop(&"flat", 1, 0.0, 0.02)
 	flat.shadow = PropDef.Shadow.NONE
-	var props: Array[PropDef] = [lit, _prop(&"turning", 4, 4.0, 0.3), flat]
+	var props: Array[PropDef] = [lit, _prop(&"turning", 4, 4.0, 0.03), flat]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
 	var lamps: Lamps = add_child_autofree(Lamps.new())
