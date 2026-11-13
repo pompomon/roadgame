@@ -267,10 +267,11 @@ static func _falls(sprites: Array[Sprite2D]) -> PackedStringArray:
 
 func test_each_prop_casts_its_shadow_while_it_shows_in_its_frame() -> void:
 	# PropScatter lays a prop's shadow as it shows the prop, shows it in the prop's frame, and takes
-	# it away with the prop (DAYNIGHT_PLAN.md §5.11). A flat prop casts none.
-	var flat := _prop(&"flat", 1, 0.0, 0.2)
+	# it away with the prop (DAYNIGHT_PLAN.md §5.11). A flat prop casts none. As sparse as the props
+	# of the other tests, as it checks each one at each step (C20).
+	var flat := _prop(&"flat", 1, 0.0, 0.02)
 	flat.shadow = PropDef.Shadow.NONE
-	var props: Array[PropDef] = [_prop(&"turning", 4, 4.0, 0.3), flat]
+	var props: Array[PropDef] = [_prop(&"turning", 4, 4.0, 0.03), flat]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
 	var shadows: Shadows = add_child_autofree(Shadows.new())
