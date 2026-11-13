@@ -16,7 +16,7 @@ enum Veil { NONE, DUSK, NIGHT }
 
 ## Its physics steps come after those at the default priority, 0, such as the camera's, so the veil
 ## follows the view of the same frame: main.tscn steps World, with the legend, before the camera.
-const PHYSICS_PRIORITY := 1
+const PHYSICS_PRIORITY := ViewVeil.PHYSICS_PRIORITY
 
 ## How dark the world gets while it plays (Q5).
 @export var veil_kind := Veil.NONE
@@ -30,15 +30,15 @@ var _clock: Beats
 var _count := 0
 ## What play() and take_car() put on the stage, which _exit_tree() frees.
 var _staged: Array[Sprite2D] = []
-var _veil: Polygon2D
-var _shown := false
+var _veil: ViewVeil
 var _done := false
 
 
 func _ready() -> void:
 	process_physics_priority = PHYSICS_PRIORITY
 	if veil_kind != Veil.NONE:
-		_veil = _made_veil()
+		_veil = ViewVeil.new()
+		_veil.name = "Veil"
 		add_child(_veil)
 
 
@@ -97,16 +97,12 @@ func _physics_process(delta: float) -> void:
 	var now := _clock.index()
 	if now < 0:
 		return
-	if not _shown:
-		_shown = true
-		if _veil != null:
-			_veil.modulate.a = 1.0
 	for beat: int in _clock.ended():
 		_pose(beat, 1.0)
 	if now < _count:
 		_pose(now, _clock.progress(now))
 	if _veil != null:
-		_veil.self_modulate = Color.WHITE.lerp(_veil_color(), _clock.progress(0))
+		_veil.shade(Color.WHITE.lerp(_veil_color(), _clock.progress(0)))
 	if _clock.done():
 		_done = true
 		if car != null and car.modulate.a > 0.0:
@@ -121,29 +117,28 @@ func _exit_tree() -> void:
 	_staged.clear()
 
 
-## A white square that multiplies what is under it by its colour. It waits transparent, which the
-## canvas skips: a multiply ignores the alpha it draws with (P10).
-func _made_veil() -> Polygon2D:
-	var half := Tuning.VEIL_HALF_SIZE
-	var made := Polygon2D.new()
-	made.name = "Veil"
-	made.polygon = PackedVector2Array(
-		[Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half)]
-	)
-	var multiply := CanvasItemMaterial.new()
-	multiply.blend_mode = CanvasItemMaterial.BLEND_MODE_MUL
-	made.material = multiply
-	made.z_index = Tuning.VEIL_Z
-	made.z_as_relative = false
-	made.modulate.a = 0.0
-	return made
-
-
+## What the veil multiplies the world by at the end of the first beat. The world shows the legend's
+## own colour where the ambient light is brighter, and the ambient's where it is as dark already, so
+## at night the two veils never darken a channel past either (DAYNIGHT_PLAN.md §5.6). By day it is
+## the legend's own colour.
 func _veil_color() -> Color:
+	var own := _own_color()
+	return Color(_share(own.r, ambient.r), _share(own.g, ambient.g), _share(own.b, ambient.b))
+
+
+## The legend's own colour, which its veil darkens the world to by day.
+func _own_color() -> Color:
 	return Tuning.VEIL_DUSK if veil_kind == Veil.DUSK else Tuning.VEIL_NIGHT
+
+
+## The share of a channel that the veil leaves: what takes the ambient light `p_ambient` down to the
+## legend's own `p_own`, and 1 where it is no brighter. It divides only by a value above `p_own`,
+## which is at least 0.
+static func _share(p_own: float, p_ambient: float) -> float:
+	return 1.0 if p_ambient <= p_own else p_own / p_ambient
 
 
 ## Centres the veil on the view, also after the end: the camera may still shake.
 func _follow_camera() -> void:
 	if _veil != null and camera != null:
-		_veil.global_position = camera.global_position + camera.offset
+		_veil.follow(camera)

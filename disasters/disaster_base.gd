@@ -34,6 +34,9 @@ var camera: CameraRig
 ## Where a legend stands its parts, so that they sort with the props and the car: World's Props
 ## (M6_PLAN.md S2). Null in tests that need no stage.
 var stage: Node2D
+## The light that the run ended in, under the night's veil (DAYNIGHT_PLAN.md §5.6). The director
+## sets it before play(). White by day, and in tests that need no other.
+var ambient := Color.WHITE
 
 @abstract func play(params: DisasterParams) -> void
 
