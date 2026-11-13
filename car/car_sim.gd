@@ -133,8 +133,8 @@ func is_over() -> bool:
 	return state == State.DISASTER or state == State.CRASHED
 
 
-## Whether the tutorial has lost the car, which then has no junction to brake for, but the turns of
-## the road it is on (TUTORIAL_PLAN.md §5.3).
+## Whether the tutorial has lost the car, which then has no next junction to brake for, but the
+## junctions and corners of the road it is on (TUTORIAL_PLAN.md §5.3).
 func is_lost() -> bool:
 	return trigger.tutorial and trigger.next_junction == null
 
@@ -148,9 +148,9 @@ func distance_to_junction() -> float:
 
 ## Distance from the car to the centre of the turn it brakes for next: the next unresolved
 ## junction's, along the path. While the tutorial has lost the car, that of the first tile ahead on
-## the road that it can't drive straight through, along the grid direction nearest its heading: a
-## loop's corner, or a T entered from its foot (TUTORIAL_PLAN.md §5.3). INF if no such tile is
-## within junction_brake_distance, or the car's cell has no tile.
+## the road, along the grid direction nearest its heading, that is a junction, whichever exit the
+## car will take, or that it can't drive straight through: a loop's corner (TUTORIAL_PLAN.md §5.3).
+## INF if no such tile is within junction_brake_distance, or the car's cell has no tile.
 func distance_to_turn() -> float:
 	if not is_lost():
 		return distance_to_junction()
@@ -161,7 +161,7 @@ func distance_to_turn() -> float:
 		var tile := buffer.tile_at(cell)
 		if tile == null:
 			return INF
-		if not tile.has_exit(heading):
+		if tile.is_junction() or not tile.has_exit(heading):
 			return ahead
 		cell += Heading.VEC[heading]
 		ahead += 1.0
@@ -216,7 +216,7 @@ func _steer(delta: float, steer: float) -> void:
 ## The speed the car heads for (plan.md §2.3, IMPLEMENTATION_PLAN.md M2.2): it rises along a
 ## straight, up to a cap that grows with the distance driven; it is junction_speed from
 ## junction_brake_distance before the next turn, a junction whichever exit the car will take, or
-## while the tutorial has lost the car, a corner; and it drops while the car is off the road.
+## while the tutorial has lost the car, a corner too; and it drops while the car is off the road.
 func target_speed() -> float:
 	var run_cap := minf(
 		Tuning.GLOBAL_SPEED_CAP, Tuning.BASE_TOP_SPEED + dist_total * Tuning.TOP_SPEED_GROWTH

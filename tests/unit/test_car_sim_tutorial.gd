@@ -1,8 +1,9 @@
 extends GutTest
 ## CarSim in the tutorial (TUTORIAL_PLAN.md §5.3), on a real tutorial road: off the road it takes
 ## damage but never crashes; it heals on the road; it is put back on the path once it has driven
-## TUTORIAL_RESCUE_TILES off the road; and while the trigger has lost it, it brakes for the turns of
-## the road it is on. The end of the tutorial starts the City's run, with its rules.
+## TUTORIAL_RESCUE_TILES off the road; and while the trigger has lost it, it brakes for the
+## junctions and corners of the road it is on. The end of the tutorial starts the City's run, with
+## its rules.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const RoutePilot := preload("res://tests/helpers/route_pilot.gd")
@@ -55,6 +56,16 @@ func _take_next() -> void:
 	var junction := _sim.trigger.next_junction
 	var exit := junction.cell + Heading.VEC[junction.expected_exit]
 	_sim.trigger.on_cell_crossed(junction.cell, exit, true)
+
+
+## Whether a car can't drive straight through `tile`: a junction, or a corner. Read from the tile's
+## exits, not from distance_to_turn(), so that a turn which that misses shows.
+static func _turns(tile: RoadTile) -> bool:
+	var straight := (
+		tile.exits == Heading.bit(Heading.N) | Heading.bit(Heading.S)
+		or tile.exits == Heading.bit(Heading.E) | Heading.bit(Heading.W)
+	)
+	return tile.is_junction() or not straight
 
 
 ## East of the start straight, no road is nearer than the rescue's distance. With a little health,
@@ -130,9 +141,9 @@ func test_a_rescue_from_a_junction_puts_the_car_before_it() -> void:
 	assert_eq(_sim.trigger.next_junction, junction)
 
 
-## On the start straight, lost, the car has no junction to brake for, but A, the first, is a T that
-## it enters from its foot: a turn (TUTORIAL_PLAN.md §5.3).
-func test_a_lost_car_brakes_for_a_t_it_enters_from_its_foot() -> void:
+## On the start straight, lost, the car has no next junction to brake for, but A, the first, is a
+## junction ahead on its road (TUTORIAL_PLAN.md §5.3).
+func test_a_lost_car_brakes_for_a_junction_that_it_enters_from_its_foot() -> void:
 	var a := _sim.trigger.next_junction
 	_sim.trigger.on_offroad_limit()
 	assert_true(_sim.is_lost())
@@ -145,9 +156,9 @@ func test_a_lost_car_brakes_for_a_t_it_enters_from_its_foot() -> void:
 	assert_eq(_sim.target_speed(), _sim.area.junction_speed)
 
 
-## A's loop leaves its wrong exit and turns at its third tile. From that loop, the car drives back
-## straight through A, out of A's correct exit: no turn.
-func test_a_lost_car_brakes_for_the_corners_of_a_loop() -> void:
+## A's loop leaves its wrong exit and turns at its third tile. From that loop, the car comes back
+## into A by an arm: it brakes for A, from where it can drive straight on or turn down A's foot.
+func test_a_lost_car_brakes_for_the_corners_of_a_loop_and_a_junction_entered_by_an_arm() -> void:
 	var a := _sim.trigger.next_junction
 	var wrong := Heading.opposite(a.expected_exit)
 	assert_true(a.has_exit(wrong), "a T entered from its foot")
@@ -157,36 +168,67 @@ func test_a_lost_car_brakes_for_the_corners_of_a_loop() -> void:
 	_place(a.cell + Heading.VEC[wrong], wrong)
 	assert_eq(_sim.distance_to_turn(), INF)
 	_place(a.cell + Heading.VEC[wrong], a.expected_exit)
-	assert_eq(_sim.distance_to_turn(), INF, "straight through A")
+	assert_eq(_sim.distance_to_turn(), 1.0, "A, entered by an arm")
 
 
 ## A wrong exit at A loops on to C, along legs of 3, 3 and 6 tiles. The lost car speeds up along
-## them, and enters each corner at junction_speed at most, as it enters a junction. It never leaves
-## the road, and is found past C.
+## them, and enters each corner, and C, at junction_speed at most, as it enters a junction. It never
+## leaves the road, and is found past C.
 func test_a_lost_car_speeds_up_along_a_loop_and_slows_for_its_corners() -> void:
 	var pilot := RoutePilot.new(_sim)
 	pilot.wrong_at = [0] as Array[int]
 	var lost_steps := 0
 	var top := 0.0
 	var cornering := 0.0
+	var turns := {}
+	var cell := Vector2i(_sim.pos.floor())
 	for i: int in roundi(20.0 / DELTA):
 		_sim.step(DELTA, pilot.steer())
+		var entered := Vector2i(_sim.pos.floor()) != cell
+		cell = Vector2i(_sim.pos.floor())
 		if not _sim.is_lost():
 			if lost_steps > 0:
 				break
 			continue
 		lost_steps += 1
 		top = maxf(top, _sim.speed)
-		if _sim.distance_to_turn() <= 0.5:
+		var tile := _sim.buffer.tile_at(cell)
+		if entered and tile != null and _turns(tile):
+			turns[cell] = true
 			cornering = maxf(cornering, _sim.speed)
 	assert_gt(lost_steps, 0)
 	assert_false(_sim.is_lost(), "found")
 	assert_gt(top, _sim.area.junction_speed + 1.0)
-	assert_gt(cornering, 0.0)
+	assert_eq(turns.size(), 3, "the loop's two corners, and C")
 	assert_lte(cornering, _sim.area.junction_speed + 1e-6)
 	assert_signal_not_emitted(_sim, "offroad_changed")
 	assert_signal_not_emitted(_sim, "rescued")
 	gut.p("lost for %.2f s, top %.3f, cornering %.6f" % [lost_steps * DELTA, top, cornering])
+
+
+## Lost round A's loop, the car comes into C by an arm and turns down C's foot, back along the path.
+## It brakes for C as for any junction, so it makes the turn on the road (TUTORIAL_PLAN.md §4.6).
+func test_a_lost_car_can_turn_down_the_foot_of_a_junction_that_it_enters_by_an_arm() -> void:
+	var c := _sim.trigger.next_junction
+	while c.turn_number != 2:
+		c = _sim.buffer.path_tile(c.path_index + 1)
+	var pilot := RoutePilot.new(_sim)
+	pilot.wrong_at = [0] as Array[int]
+	pilot.back_at = [2] as Array[int]
+	var into_c := -1.0
+	var cell := Vector2i(_sim.pos.floor())
+	for i: int in roundi(20.0 / DELTA):
+		_sim.step(DELTA, pilot.steer())
+		if Vector2i(_sim.pos.floor()) == c.cell and cell != c.cell:
+			into_c = maxf(into_c, _sim.speed)
+		cell = Vector2i(_sim.pos.floor())
+		if _sim.path_tile.path_index == c.path_index - 2:
+			break
+	assert_eq(_sim.path_tile.path_index, c.path_index - 2, "down C's foot")
+	assert_true(_sim.is_lost())
+	assert_between(into_c, 0.0, _sim.area.junction_speed + 1e-6, "into C")
+	assert_signal_not_emitted(_sim, "offroad_changed")
+	assert_signal_not_emitted(_sim, "rescued")
 
 
 ## The straight starts again as the car brakes for a junction, so that a mistake starts it as a

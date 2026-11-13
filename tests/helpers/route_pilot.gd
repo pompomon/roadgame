@@ -1,16 +1,21 @@
 extends Autopilot
 ## Drives like the autopilot, but takes the wrong exit at each junction whose turn number is in
 ## `wrong_at`, and follows the road from there: in the tutorial, round the loop and back onto the
-## path, through the junction where the loop comes back (TUTORIAL_PLAN.md §5.7). No class_name:
-## tests/ is not exported.
+## path, through the junction where the loop comes back, or down its foot if it is in `back_at`
+## (TUTORIAL_PLAN.md §5.7). No class_name: tests/ is not exported.
 
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
 
 ## The turn numbers of the junctions where it goes wrong. Each goes once the car has gone wrong
 ## there: a loop can bring the car back to the junction before.
 var wrong_at: Array[int] = []
+## The turn numbers of the junctions where a loop comes back at which the car turns down the
+## junction's foot, back along the path, to the second path tile before it, instead of driving
+## through. Each goes once used.
+var back_at: Array[int] = []
 ## The cell centres the car follows off the path: from the path tile before the junction, round
-## the loop, to the path tile after the junction it comes back to. Empty while it follows the path.
+## the loop, to the path tile after the junction it comes back to, or the second before it. Empty
+## while it follows the path.
 var _route: Array[Vector2] = []
 ## The route's segment the car is on.
 var _segment := 0
@@ -45,8 +50,13 @@ func _plan() -> void:
 		heading = _onward(tile, heading)
 		cell += Heading.VEC[heading]
 		tile = _sim.buffer.tile_at(cell)
-	# Straight through the junction the loop comes back to, out of its correct exit.
-	cells.append_array([cell, cell + Heading.VEC[heading]] as Array[Vector2i])
+	if tile != null and tile.turn_number in back_at:
+		back_at.erase(tile.turn_number)
+		var back := Heading.VEC[tile.heading]
+		cells.append_array([cell, cell - back, cell - back * 2] as Array[Vector2i])
+	else:
+		# Straight through the junction the loop comes back to, out of its correct exit.
+		cells.append_array([cell, cell + Heading.VEC[heading]] as Array[Vector2i])
 	var last := _sim.buffer.tile_at(cells[-1])
 	_end_index = -1 if last == null else last.path_index
 	_route.clear()
