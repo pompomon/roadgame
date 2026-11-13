@@ -1,9 +1,9 @@
 extends GutTest
 ## Day and night in the game (DAYNIGHT_PLAN.md §5.4–§5.9): each run starts in the morning at once;
-## each zone starts its clock again, and the light catches up no faster than the rate; the clock
-## runs only with the run; --hour= sets the hour that zones start at; a disaster plays in the light
-## that the run ended in; the night's veil darkens the world but not the glows or the UI; and the
-## light changes nothing but the view.
+## each zone starts its clock again, runs it at its own pace, and the light catches up no faster
+## than the rate; the clock runs only with the run; --hour= sets the hour that zones start at; a
+## disaster plays in the light that the run ended in; the night's veil darkens the world but not
+## the glows or the UI; and the light changes nothing but the view.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
@@ -14,6 +14,7 @@ const GAME_OVER := GameState.State.GAME_OVER
 
 func after_each() -> void:
 	GameState.quit_to_title()
+	AudioDirector.stop_all()
 
 
 static func _daylight(main: Node) -> Daylight:
@@ -110,6 +111,22 @@ func test_each_new_zone_starts_its_clock_again() -> void:
 	assert_eq(Disasters.veil_tint(daylight), Color.WHITE, "the veil hides")
 
 
+func test_each_zone_runs_its_clock_at_its_own_pace() -> void:
+	# Every zone's day lasts 120 s for now, so the car enters one of 60 s here. From 17:00, 600
+	# frames are 10 s of it: four hours, into the night, where 120 s would give two (N39).
+	var main := MainScene.open(self, ["--seed=1", "--autopilot", "--hour=17"])
+	var sim := MainScene.car(main).sim
+	var quick := sim.buffer.generator.find_area(&"rural").duplicate() as AreaDef
+	quick.day_seconds = 60.0
+	sim.area_changed.emit(quick)
+	var cycle := _daylight(main).cycle
+	assert_eq(cycle.day_seconds, 60.0, "the zone's day")
+	simulate(main, 600, MainScene.DELTA)
+	assert_eq(GameState.state, RUNNING)
+	assert_almost_eq(cycle.hour(), 21.0, 24.0 * MainScene.DELTA / 60.0, "the hour")
+	assert_eq(cycle.light, Tuning.LIGHT_NIGHT, "the night's light")
+
+
 func test_the_clock_stops_when_the_run_ends_and_while_paused() -> void:
 	# simulate() steps a paused tree too, so here only the state can stop the clock (N25). The
 	# engine doesn't step a paused tree: real frames.
@@ -172,16 +189,29 @@ func test_at_night_the_disaster_plays_in_the_light_the_run_ended_in() -> void:
 
 
 func test_the_light_changes_nothing_but_the_view() -> void:
-	# The same run by day and by night: the road, the car, the run and the sound end the same
-	# (§5.1, N33). The first is freed before the second opens.
+	# The same run by day and by night: the road, the car and the run end the same, with the same
+	# sounds played, and the sound is the same on every frame (§5.1, N33, N40, N41). simulate()
+	# steps only the main scene, so AudioDirector is stepped with it, first, as the engine steps
+	# autoloads. Each run starts in silence, and the first is freed before the second opens.
+	watch_signals(AudioDirector)
 	var ends: Array[Dictionary] = []
+	var sounds: Array[Array] = []
 	for hour: String in ["--hour=7", "--hour=19"]:
+		AudioDirector.stop_all()
+		var before: int = get_signal_emit_count(AudioDirector, "effect_played")
 		var main := MainScene.open(self, ["--seed=1", "--autopilot", hour])
-		simulate(main, 1200, MainScene.DELTA)
+		var frames: Array[Array] = []
+		for _frame: int in 1200:
+			AudioDirector._physics_process(MainScene.DELTA)
+			simulate(main, 1, MainScene.DELTA)
+			AudioDirector.advance(MainScene.DELTA)
+			var sound := _sound()
+			sound.append(get_signal_emit_count(AudioDirector, "effect_played") - before)
+			frames.append(sound)
+		var heard: Array[StringName] = []
+		for k: int in range(before, get_signal_emit_count(AudioDirector, "effect_played")):
+			heard.append(get_signal_parameters(AudioDirector, "effect_played", k)[0])
 		var sim := MainScene.car(main).sim
-		var volumes: Array[float] = []
-		for bus: int in AudioServer.bus_count:
-			volumes.append(AudioServer.get_bus_volume_db(bus))
 		var end := {
 			"tile": sim.buffer.path_tile(sim.buffer.car_index()).path_index,
 			"turns": GameState.turn_index,
@@ -189,13 +219,41 @@ func test_the_light_changes_nothing_but_the_view() -> void:
 			"health": sim.health,
 			"area": GameState.area_id,
 			"state": GameState.state,
-			"tracks": AudioDirector.tracks(),
-			"volumes": volumes,
+			"heard": heard,
 		}
 		ends.append(end)
+		sounds.append(frames)
 		main.get_parent().free()
 	assert_ne(ends[0]["area"], &"", "a run")
+	assert_gt((ends[0]["heard"] as Array).size(), 0, "with sounds")
 	assert_eq(ends[1], ends[0])
+	var same := 0
+	while same < sounds[0].size() and sounds[1][same] == sounds[0][same]:
+		same += 1
+	assert_eq(same, sounds[0].size(), "the frames that sound the same")
+	if same < sounds[0].size():
+		assert_eq(sounds[1][same], sounds[0][same], "the first that doesn't")
+
+
+## What AudioDirector plays: each bus's volume, mute, solo, bypass and effects; each cross-fade's
+## tracks, weights and deck; the loops that are on; and the engine's pitch. Not each player's
+## stream and volume: a player keeps the last run's until AudioDirector uses it again, and on the
+## Dummy driver none plays (AudioDirector.can_play).
+static func _sound() -> Array:
+	var sound := []
+	for bus: int in AudioServer.bus_count:
+		sound.append(AudioServer.get_bus_volume_db(bus))
+		sound.append(AudioServer.is_bus_mute(bus))
+		sound.append(AudioServer.is_bus_solo(bus))
+		sound.append(AudioServer.is_bus_bypassing_effects(bus))
+		for effect: int in AudioServer.get_bus_effect_count(bus):
+			sound.append(AudioServer.is_bus_effect_enabled(bus, effect))
+	for fade: CrossFade in [AudioDirector._music, AudioDirector._ambient]:
+		sound.append_array([fade.tracks.duplicate(), fade.weights.duplicate(), fade.current])
+	for id: StringName in AudioDirector.LOOPS:
+		sound.append(AudioDirector.is_loop_on(id))
+	sound.append(AudioDirector._loop_players[&"engine"].pitch_scale)
+	return sound
 
 
 func test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui() -> void:
