@@ -228,21 +228,23 @@ func _on_crashed(cause: StringName) -> void:
 
 ## The car reached `area`. GameState counts the area's distance and turns from its first tile, which
 ## the car may have passed, off the road. In the step that reaches it, CarSim reports the area
-## before the trigger judges the turn behind it (M5_PLAN.md L8). The tutorial counts for no area.
+## before the trigger judges the turn behind it (M5_PLAN.md L8). After a tutorial, both count from
+## where the City's run began.
 func _on_area_changed(area: AreaDef) -> void:
-	if not GameState.in_tutorial:
-		var first := _buffer.car_index()
-		while first > _buffer.first_index() and _buffer.path_tile(first - 1).area_id == area.id:
-			first -= 1
-		# A run starts at the centre of its first tile, at distance 0.
-		var start := maxf(first - 0.5 - _origin, 0.0)
-		GameState.enter_area(area.id, start, _turns_before(first) - _turn_base)
+	var first := _buffer.car_index()
+	while first > _buffer.first_index() and _buffer.path_tile(first - 1).area_id == area.id:
+		first -= 1
+	# A run starts at the centre of its first tile, at distance 0.
+	var start := maxf(first - 0.5 - _origin, 0.0)
+	GameState.enter_area(area.id, start, _turns_before(first) - _turn_base)
 	EventBus.area_changed.emit(area)
 
 
 ## The tutorial's streak is done at `junction` (TUTORIAL_PLAN.md §5.5): the run goes on in the City,
 ## under its rules, from where the car left the junction, and the tutorial is done for good. The
-## road ahead is still the tutorial's, to the end of its group of four junctions.
+## road ahead is still the tutorial's, to the end of its group of four junctions. The City's entry
+## in GameState, from the run's start, is at distance 0 and turn 0, which the tutorial never passed:
+## it counts from here.
 func _on_tutorial_completed(junction: RoadTile) -> void:
 	_origin = junction.path_index + 0.5
 	_turn_base = junction.turn_number + 1
@@ -250,7 +252,6 @@ func _on_tutorial_completed(junction: RoadTile) -> void:
 	SaveService.complete_tutorial()
 	GameState.end_tutorial()
 	EventBus.tutorial_completed.emit()
-	GameState.enter_area(_sim.area.id, 0.0, 0)
 	EventBus.area_changed.emit(_sim.area)
 
 
