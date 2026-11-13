@@ -243,6 +243,14 @@ func test_each_turn_made_chimes() -> void:
 	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"junction"])
 
 
+func test_each_turn_of_the_tutorials_streak_chimes_and_a_mistake_is_silent() -> void:
+	watch_signals(_audio)
+	EventBus.streak_changed.emit(1)
+	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"junction"])
+	EventBus.streak_changed.emit(0)
+	assert_signal_emit_count(_audio, "effect_played", 1, "the streak ended")
+
+
 func test_damage_thumps_each_time_the_health_falls_past_a_step() -> void:
 	watch_signals(_audio)
 	EventBus.run_started.emit(1)

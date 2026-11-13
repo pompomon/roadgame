@@ -84,6 +84,7 @@ Reviewers check these too. The IDs say where each rule comes from.
 - **No shadowing.** Don't name a parameter or variable after a built-in or a member: `seed` became `run_seed`, and `start_run(p_run_seed)` (M1 G13, M2 H22, H24). Only the editor warns about it, not CI (M2 §6.3).
 - **Values.** Tuning values live only in the `AreaDef` `.tres` files and `config/tuning.gd`. No magic numbers in logic (D11).
 - **Nodes.** No node lookups by string path outside scene roots: use `@export`, or `@onready` with `%UniqueName` (IP §1.3). A node that must work while the tree is paused, such as input handling, needs `process_mode = PROCESS_MODE_ALWAYS` (H3).
+- **The tutorial** (TUTORIAL_PLAN.md §5.6). Until the save says it's done, Play starts a run in the City with the tutorial, which has no disasters. `--play` and `--autopilot` skip it, and `--tutorial` forces it. A test that presses Play for a run without it marks it done first, in a save in memory: `SaveService.use_memory()`, then `SaveService.complete_tutorial()`, as `test_title.gd` does.
 - **Web.**
   - The Web export has no system font fallback. UI text may use only glyphs of the game's font, Pixel Operator 8 (`ui/theme.tres:3`): no arrows such as ↑. `test_smoke.gd` checks the main scene's text, with the disasters' names, fates and lore (M6 §5.8).
   - In Godot 4.7.2, each redraw of a `Polygon2D` after its first raises WebGL errors on the Web (godotengine/godot#124726, fixed in 4.8). Tint through `self_modulate`, not `color` (M2 §5.7).
