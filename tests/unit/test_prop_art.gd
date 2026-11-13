@@ -71,3 +71,58 @@ func test_the_traffic_light_changes_as_a_real_one_does() -> void:
 	assert_eq(tops.size(), lamps.size())
 	for k: int in range(1, tops.size()):
 		assert_lt(tops[k], tops[k - 1], "frame %d's lamp is above frame %d's" % [k, k - 1])
+
+
+## The lowest opaque pixel of each column of `image`, or -1 where a column has none.
+static func _bottoms(image: Image) -> PackedInt32Array:
+	var bottoms := PackedInt32Array()
+	for x: int in image.get_width():
+		var bottom := -1
+		for y: int in image.get_height():
+			if image.get_pixel(x, y).a > 0.0:
+				bottom = y
+		bottoms.append(bottom)
+	return bottoms
+
+
+func test_each_shadow_falls_from_where_its_prop_meets_the_ground() -> void:
+	# A wall's shadow falls from its base, a line up-right across its frame that crosses the foot's
+	# column shadow_rise above the foot: the posts in each half of it stand on that line, and the
+	# rails between them above it. A box's falls from its footprint's centre, shadow_rise above
+	# the foot and level with the footprint's side corners, where its walls' lower edges, rising
+	# from the foot, end (DAYNIGHT_PLAN.md §5.11). Within PIXELS: an odd footprint's centre is
+	# half a pixel off the grid, and its edges are drawn in whole pixels.
+	const PIXELS := 1.5
+	var walls := 0
+	var boxes := 0
+	for area: StringName in AREAS:
+		for def: PropDef in _props(area):
+			var bottoms := _bottoms(def.texture.get_image().get_region(def.region))
+			var prop := "%s: %s" % [area, def.id]
+			if def.shadow == PropDef.Shadow.WALL:
+				walls += 1
+				var middle := bottoms.size() >> 1
+				for half: Vector2i in [Vector2i(0, middle), Vector2i(middle, bottoms.size())]:
+					var lowest := -INF
+					for x: int in range(half.x, half.y):
+						var base := def.foot.y - def.shadow_rise - (x - def.foot.x) / 2.0
+						lowest = maxf(lowest, bottoms[x] - base)
+					assert_almost_eq(lowest, 0.0, PIXELS, "%s's posts from %d" % [prop, half.x])
+			elif def.shadow == PropDef.Shadow.UPRIGHT and def.shadow_rise > 0:
+				boxes += 1
+				for step: int in [-1, 1]:
+					var x := def.foot.x
+					while _on_edge(bottoms, def.foot, x + step):
+						x += step
+					var corner := absf(x - def.foot.x) / 2.0
+					assert_almost_eq(corner, float(def.shadow_rise), PIXELS, "%s's corner" % prop)
+	assert_eq(walls, 2, "the fences")
+	assert_eq(boxes, 5, "the building, the barn and the village's houses")
+
+
+## Whether column `x` of a frame whose columns' lowest pixels are `bottoms` is on the lower edge of
+## a footprint whose front corner is `foot`.
+static func _on_edge(bottoms: PackedInt32Array, foot: Vector2i, x: int) -> bool:
+	if x < 0 or x >= bottoms.size():
+		return false
+	return absf(bottoms[x] - (foot.y - absf(x - foot.x) / 2.0)) <= 1.0

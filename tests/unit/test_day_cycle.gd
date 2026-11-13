@@ -181,3 +181,121 @@ func test_a_day_of_no_seconds_is_an_error_and_stops_the_clock() -> void:
 		assert_push_error("DayCycle: a day of %.2f s" % day)
 		cycle.advance(10.0)
 		assert_eq(cycle.hour(), Tuning.DAY_START_HOUR, "%.0f s: the clock stands still" % day)
+
+
+## How far a pixel of height casts its shadow on the ground, in pixels of height: the screen
+## foreshortens the ground, so measured in tiles.
+static func _ground_length(shadow: Vector2) -> float:
+	return Iso.world_to_tile(shadow).length() * Iso.HEIGHT_PX
+
+
+func test_shadows_sweep_from_the_right_to_the_left_in_front_of_what_casts_them() -> void:
+	# The sun by day and the moon by night cross the sky from the screen's left, through its top, to
+	# its right (DAYNIGHT_PLAN.md §5.11). So the shadows sweep from the right, through straight
+	# down, to the left, and never fall up the screen, behind what casts them, where they'd hide.
+	var rises: Array[float] = [Tuning.SUN_RISE_HOUR, Tuning.SUN_SET_HOUR]
+	var sets: Array[float] = [Tuning.SUN_SET_HOUR, Tuning.SUN_RISE_HOUR + 24.0]
+	for i: int in 2:
+		var span := sets[i] - rises[i]
+		var was := INF
+		var astray := PackedStringArray()
+		for step: int in range(1, 96):
+			var hour := rises[i] + span * step / 96.0
+			var shadow := DayCycle.shadow_at(hour)
+			if shadow.y < 0.0 or shadow.x >= was:
+				astray.append("%.2f" % hour)
+			was = shadow.x
+		assert_eq(astray, PackedStringArray(), "hours that turn back or fall behind")
+		assert_gt(DayCycle.shadow_at(rises[i] + 1.0).x, 0.0, "an hour after %.0f, right" % rises[i])
+		assert_almost_eq(DayCycle.shadow_at(rises[i] + span / 2.0).x, 0.0, 1e-6, "highest, down")
+		assert_lt(DayCycle.shadow_at(sets[i] - 1.0).x, 0.0, "an hour before %.0f, left" % sets[i])
+
+
+func test_a_shadow_is_as_long_as_the_light_is_low_up_to_the_longest() -> void:
+	# A pixel of height casts its shadow 1 / tan(h) pixels away, h being how high the sun or the
+	# moon stands: at its highest at noon and midnight, and SHADOW_LONGEST as it rises and sets.
+	var noon := (Tuning.SUN_RISE_HOUR + Tuning.SUN_SET_HOUR) / 2.0
+	var noon_length := _ground_length(DayCycle.shadow_at(noon))
+	assert_almost_eq(noon_length, 1.0 / tan(Tuning.SUN_HIGHEST), 1e-5, "at noon")
+	var midnight_length := _ground_length(DayCycle.shadow_at(noon + 12.0))
+	assert_almost_eq(midnight_length, 1.0 / tan(Tuning.MOON_HIGHEST), 1e-5, "at midnight")
+	var longest := 0.0
+	for step: int in 24 * 16:
+		longest = maxf(longest, _ground_length(DayCycle.shadow_at(step / 16.0)))
+	assert_almost_eq(longest, Tuning.SHADOW_LONGEST, 1e-5, "the longest")
+	for hour: float in [Tuning.SUN_RISE_HOUR + 0.1, Tuning.SUN_SET_HOUR + 0.1]:
+		var low := _ground_length(DayCycle.shadow_at(hour))
+		assert_almost_eq(low, Tuning.SHADOW_LONGEST, 1e-5, "%.1f" % hour)
+
+
+func test_shadows_fade_out_as_the_sun_sets_and_in_as_the_moon_rises() -> void:
+	# Where the moon takes over from the sun, and back, both stand on the ground and cast none, so
+	# the shadows jump from the left to the right unseen. The moon's are fainter.
+	var noon := (Tuning.SUN_RISE_HOUR + Tuning.SUN_SET_HOUR) / 2.0
+	assert_almost_eq(DayCycle.shadow_alpha_at(noon), Tuning.SUN_SHADOW_ALPHA, 1e-6, "noon")
+	assert_almost_eq(DayCycle.shadow_alpha_at(noon + 12.0), Tuning.MOON_SHADOW_ALPHA, 1e-6)
+	for hour: float in [Tuning.SUN_RISE_HOUR, Tuning.SUN_SET_HOUR]:
+		for near: float in [-0.1, 0.0, 0.1]:
+			assert_eq(DayCycle.shadow_alpha_at(hour + near), 0.0, "at %.1f" % (hour + near))
+	assert_gt(DayCycle.shadow_alpha_at(Tuning.SUN_RISE_HOUR + 1.0), 0.0, "an hour after sunrise")
+	assert_gt(DayCycle.shadow_alpha_at(Tuning.SUN_SET_HOUR + 1.0), 0.0, "an hour after moonrise")
+
+
+func test_the_shadows_shown_follow_the_hour_exactly_in_the_least_day_too() -> void:
+	# In a day of least_day_seconds() too, the sun and the moon move them by no more than
+	# SHADOW_MAX_RATE a frame, and their alpha by no more than SHADOW_ALPHA_RATE, so the shadows
+	# shown are the hour's from the snap on. They jump only where they are unseen.
+	var sweep := Tuning.SHADOW_MAX_RATE * DELTA
+	for day: float in [120.0, DayCycle.least_day_seconds()]:
+		var cycle := _cycle(day)
+		var off := 0
+		var seen_jumps := 0
+		for _frame: int in ceili(day / DELTA):
+			var was := cycle.shadow
+			var was_alpha := cycle.shadow_alpha
+			cycle.advance(DELTA)
+			var hour := cycle.hour()
+			var fall := DayCycle.shadow_at(hour)
+			off += int(cycle.shadow != fall or cycle.shadow_alpha != DayCycle.shadow_alpha_at(hour))
+			seen_jumps += int(was.distance_to(cycle.shadow) > sweep and was_alpha > 0.0)
+		assert_eq(off, 0, "frames off the hour's shadows, in %.2f s" % day)
+		assert_eq(seen_jumps, 0, "jumps that show, in %.2f s" % day)
+
+
+func test_after_a_reset_the_shadows_fade_out_jump_unseen_and_fade_in() -> void:
+	# At 17:00 the shadows fall far to the left. A new zone's clock is back at 07:00, where they
+	# fall far to the right: too far to sweep. They fade out at SHADOW_ALPHA_RATE as they turn
+	# toward the hour's at SHADOW_MAX_RATE, jump to it unseen, fade in, and then follow it.
+	var start := 7.0
+	var cycle := _cycle(120.0, start)
+	for _frame: int in ceili(120.0 * 10.0 / 24.0 / DELTA):
+		cycle.advance(DELTA)
+	assert_lt(cycle.shadow.x, -1.0, "at 17:00, far to the left")
+	cycle.enter(120.0)
+	assert_gt(DayCycle.shadow_at(cycle.hour()).x, 1.0, "at 07:00, far to the right")
+	var fade := Tuning.SHADOW_ALPHA_RATE * DELTA + 1e-9
+	# Vector2 is single precision: a shadow 2.7 pixels long is stored to within 2.4e-7.
+	var sweep := Tuning.SHADOW_MAX_RATE * DELTA + 1e-5
+	var frames := 0
+	var unseen := false
+	var too_fast := 0
+	while frames < 600:
+		var hour := cycle.hour()
+		if cycle.shadow == DayCycle.shadow_at(hour) and unseen:
+			if cycle.shadow_alpha == DayCycle.shadow_alpha_at(hour):
+				break
+		var was := cycle.shadow
+		var was_alpha := cycle.shadow_alpha
+		cycle.advance(DELTA)
+		frames += 1
+		too_fast += int(absf(cycle.shadow_alpha - was_alpha) > fade)
+		too_fast += int(was.distance_to(cycle.shadow) > sweep and was_alpha > 0.0)
+		unseen = unseen or cycle.shadow_alpha == 0.0
+	assert_true(unseen, "they faded out")
+	assert_eq(too_fast, 0, "frames that change too fast, or jump where they show")
+	assert_lt(frames, ceili(2.0 * Tuning.SUN_SHADOW_ALPHA / fade) + 1, "frames to catch up")
+	var off := 0
+	for _frame: int in ceili(120.0 / DELTA):
+		cycle.advance(DELTA)
+		off += int(cycle.shadow != DayCycle.shadow_at(cycle.hour()))
+	assert_eq(off, 0, "frames off the hour's shadow, a day long")

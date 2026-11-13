@@ -39,6 +39,9 @@ class Band:
 ## The run's car, which the set pieces follow, or null. bind() clears it.
 var car: Node2D:
 	set = set_car
+## The zone's clock, whose shadows the props and the car cast (DAYNIGHT_PLAN.md §5.11), or null for
+## none. main.gd sets it to Daylight's.
+var cycle: DayCycle
 
 ## The schedule's areas, and the source of each one's road sheet in the tileset, by id.
 var _areas: Dictionary[StringName, AreaDef] = {}
@@ -57,6 +60,7 @@ var _set_pieces_by_end: Dictionary[int, SetPiece] = {}
 var _scatter: PropScatter
 
 @onready var _ground: Node2D = %Ground
+@onready var _shadows: Shadows = %Shadows
 @onready var _road: TileMapLayer = %RoadLayer
 @onready var _set_pieces: Node2D = %SetPieces
 
@@ -82,6 +86,7 @@ func build(schedule: AreaSchedule) -> void:
 		if entry.set_piece != &"" and set_piece_scenes.get(entry.set_piece) == null:
 			push_error("WorldRenderer: no scene for set piece %s" % entry.set_piece)
 	_scatter = PropScatter.new(%Props as Node2D, schedule)
+	_scatter.shadows = _shadows
 
 
 ## Draws the tiles `buffer` has now and every later change, instead of the last buffer's, which it
@@ -115,6 +120,7 @@ func set_car(value: Node2D) -> void:
 
 
 func _process(delta: float) -> void:
+	_shadows.refresh(cycle, car as CarController)
 	if _scatter != null:
 		_scatter.update(delta)
 

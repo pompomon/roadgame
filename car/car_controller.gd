@@ -51,6 +51,16 @@ func double() -> Sprite2D:
 	return made
 
 
+## The car's sheet, and the frame of it that the body shows, which its shadow shows too
+## (DAYNIGHT_PLAN.md §5.11).
+func body_texture() -> Texture2D:
+	return _body.texture
+
+
+func body_frame() -> int:
+	return _body.frame
+
+
 func _update_view() -> void:
 	position = Iso.tile_to_world(sim.pos)
 	var crashed := sim.state == CarSim.State.CRASHED

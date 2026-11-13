@@ -368,12 +368,13 @@ func test_layers_line_up_with_tile_space() -> void:
 
 func test_disasters_draw_above_the_road_and_below_the_car() -> void:
 	# World draws its children in order, and only Props sorts by y (M3_PLAN.md J5). Skid marks lie
-	# on the road, under the disasters (M5_PLAN.md §5.7).
+	# on the road, under the disasters (M5_PLAN.md §5.7), and the shadows on both, under the
+	# disasters too (DAYNIGHT_PLAN.md §5.11).
 	var names: Array[StringName] = []
 	for node: Node in _world.get_children():
 		names.append(node.name)
 	var order: Array[StringName] = [
-		&"Ground", &"SetPieces", &"RoadLayer", &"Skids", &"DisasterLayer", &"Props"
+		&"Ground", &"SetPieces", &"RoadLayer", &"Skids", &"Shadows", &"DisasterLayer", &"Props"
 	]
 	assert_eq(names, order)
 	var layer: Node2D = _world.get_node("%DisasterLayer")
@@ -504,3 +505,25 @@ func test_an_empty_set_piece_scene_is_an_error() -> void:
 	# It has no root to instantiate, and so nothing to free.
 	assert_push_error("the scene for set piece ferris_wheel isn't a SetPiece")
 	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
+
+
+func test_the_shadows_follow_the_clock_and_the_props() -> void:
+	# The world lays each prop's shadow and the car's, and shows them as its clock does
+	# (DAYNIGHT_PLAN.md §5.11). Without a clock it shows none.
+	var shadows: Shadows = _world.get_node("%Shadows")
+	assert_false(shadows.y_sort_enabled)
+	assert_eq(shadows.z_index, 0)
+	_world.build(Fixtures.schedule())
+	_world.bind(_buffer)
+	_buffer.start()
+	await wait_process_frames(1)
+	assert_gt(shadows.count(), 20, "the props' shadows")
+	assert_false(shadows.visible, "no clock")
+	var cycle := DayCycle.new()
+	cycle.start_hour = 9.0
+	cycle.enter(120.0)
+	cycle.snap()
+	_world.cycle = cycle
+	await wait_process_frames(1)
+	assert_true(shadows.visible, "at 09:00")
+	assert_almost_eq(shadows.self_modulate.a, cycle.shadow_alpha, 1e-6)
