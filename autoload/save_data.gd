@@ -1,15 +1,16 @@
 class_name SaveData
 extends RefCounted
 ## What the save file holds (plan.md §9, IMPLEMENTATION_PLAN.md M5.4): the atlas of areas, the best
-## run, the disaster collection and the settings. SaveService reads and writes the file; this class
-## only turns text into data and back, and records runs. load_json() takes any text and keeps what
-## it can: it migrates an older version, and a value of the wrong type or out of range falls back to
-## its default with a note in problems (M5_PLAN.md L5). Distances are in tiles, as in GameState.
+## run, the disaster collection, the settings and whether the tutorial is done. SaveService reads
+## and writes the file; this class only turns text into data and back, and records runs.
+## load_json() takes any text and keeps what it can: it migrates an older version, and a value of
+## the wrong type or out of range falls back to its default with a note in problems (M5_PLAN.md
+## L5). Distances are in tiles, as in GameState.
 
 ## What load_json() made of the text.
 enum Status { LOADED, CORRUPT, NEWER }
 
-const VERSION := 1
+const VERSION := 2
 const ORIENTATIONS: Array[String] = ["sensor", "portrait", "landscape"]
 const DEFAULT_SETTINGS := {
 	"music": 0.8,
@@ -27,6 +28,9 @@ const ATLAS_ENTRY := {"discovered": false, "best_distance": 0.0, "best_turns": 0
 ## seen (plan.md §2.6).
 const DISASTER_ENTRY := {"seen": 0, "first_area": "", "first_distance": 0.0, "first_turns": 0}
 const BEST := {"distance": 0.0, "turns": 0}
+## Whether the player has finished the tutorial, which runs start with until then
+## (TUTORIAL_PLAN.md §5.6).
+const TUTORIAL := {"done": false}
 ## The largest number a count or an amount can be: 2^53 - 1, the largest whole number that a JSON
 ## number holds exactly. Past it, int() can't hold a count, and the HUD's metres overflow (L5). An
 ## int: Godot reads the float literal 9007199254740991.0 as 9007199254740990.0.
@@ -38,6 +42,7 @@ var best: Dictionary = BEST.duplicate()
 ## By disaster id.
 var disasters: Dictionary[String, Dictionary] = {}
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate()
+var tutorial: Dictionary = TUTORIAL.duplicate()
 ## What load_json() could not read and replaced with defaults.
 var problems := PackedStringArray()
 
@@ -45,12 +50,29 @@ var problems := PackedStringArray()
 ## How each older version of the file becomes the next: {from_version: Callable(Dictionary) ->
 ## Dictionary}. migrate() then sets the version.
 static func migrations() -> Dictionary[int, Callable]:
-	return {0: _v0_to_v1}
+	return {0: _v0_to_v1, 1: _v1_to_v2}
 
 
 ## Version 0 is a file with no "version" (M5_PLAN.md Q8). It has plan.md §9's keys, and the keys
 ## version 1 adds come from the defaults, so it needs no change.
 static func _v0_to_v1(data: Dictionary) -> Dictionary:
+	return data
+
+
+## Version 2 adds the tutorial (TUTORIAL_PLAN.md §5.6). A player whose save has a run has played
+## without it, and doesn't get it: a run leaves a best distance above 0, and marks each area it
+## reaches discovered in the atlas (record_run()). A value of the wrong type counts as no run:
+## _read() then reports it.
+static func _v1_to_v2(data: Dictionary) -> Dictionary:
+	var old_best: Variant = data.get("best")
+	var old_atlas: Variant = data.get("atlas")
+	var ran: bool = old_best is Dictionary and _is_amount(old_best.get("distance"))
+	ran = ran and old_best["distance"] > 0
+	if old_atlas is Dictionary:
+		for entry: Variant in old_atlas.values():
+			var discovered: Variant = entry.get("discovered") if entry is Dictionary else null
+			ran = ran or discovered is bool and discovered
+	data["tutorial"] = {"done": ran}
 	return data
 
 
@@ -77,6 +99,7 @@ func load_json(text: String) -> Status:
 	best = BEST.duplicate()
 	disasters = {}
 	settings = DEFAULT_SETTINGS.duplicate()
+	tutorial = TUTORIAL.duplicate()
 	problems = PackedStringArray()
 	var json := JSON.new()
 	# Not JSON.parse_string(), which logs an error for bad text (M5_PLAN.md L6).
@@ -105,6 +128,7 @@ func to_json() -> String:
 		"best": best,
 		"disasters": disasters,
 		"settings": settings,
+		"tutorial": tutorial,
 	}
 	return JSON.stringify(data, "\t")
 
@@ -156,6 +180,9 @@ func _read(root: Dictionary) -> void:
 		var entry := _entry(root["disasters"][id], DISASTER_ENTRY, "disasters." + id)
 		if not entry.is_empty():
 			disasters[id] = entry
+	tutorial = _entry(root.get("tutorial", {}), TUTORIAL, "tutorial")
+	if tutorial.is_empty():
+		tutorial = TUTORIAL.duplicate()
 	var stored: Variant = root.get("settings", {})
 	if not stored is Dictionary:
 		problems.append("settings")

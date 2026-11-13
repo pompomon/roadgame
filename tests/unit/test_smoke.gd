@@ -29,6 +29,9 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	shown.append_array(main.find_children("*", "Button", true, false))
 	assert_gt(shown.size(), 8, "labels and buttons")
 	var texts: Array[String] = ["-0123456789", Hud.PAUSED_MESSAGE, GameOver.FALLBACK_MESSAGE]
+	# The tutorial's (TUTORIAL_PLAN.md §5.4).
+	texts.append(Hud.TUTORIAL_BANNER % Tuning.TUTORIAL_STREAK)
+	texts.append(Hud.STREAK_TEXT % [Tuning.TUTORIAL_STREAK, Tuning.TUTORIAL_STREAK])
 	texts.append_array(GameOver.END_MESSAGES.values())
 	texts.append_array([AtlasScreen.UNKNOWN, AtlasScreen.NOT_REACHED, CollectionScreen.NOT_SEEN])
 	texts.append_array(SettingsScreen.ORIENTATION_NAMES)

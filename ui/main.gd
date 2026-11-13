@@ -9,7 +9,9 @@ extends Node
 ## --play; --area=<id> starts every run in that area, for tests and manual checks (M4_PLAN.md K10).
 ## --hour=<h> starts every zone's clock at hour h instead of the morning (DAYNIGHT_PLAN.md §5.9).
 ## A phone can't take them (M4_PLAN.md P4), so in debug builds the title's Start button chooses the
-## area that Play starts in instead, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6).
+## area that Play starts in instead, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6). --tutorial
+## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
+## until the player has finished it (TUTORIAL_PLAN.md §5.6).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
@@ -24,6 +26,11 @@ var _autopilot := false
 var _whole_schedule: AreaSchedule
 ## The run's: the game's, or a copy that starts in --area's area or the title's choice.
 var _schedule: AreaSchedule
+## In a run with the tutorial, where the City's run began (TUTORIAL_PLAN.md §5.5): the path distance
+## where the car left the tutorial's last junction, and the turns before the next junction. The
+## run's distance and turns count from there. 0 in a run without the tutorial.
+var _origin := 0.0
+var _turn_base := 0
 var _buffer: RoadBuffer
 var _sim: CarSim
 var _car: CarController
@@ -89,9 +96,10 @@ func _exit_tree() -> void:
 
 func _physics_process(delta: float) -> void:
 	if GameState.state == GameState.State.RUNNING:
-		GameState.distance = maxf(GameState.distance, _sim.progress)
-		# The zone's clock runs with the run, and stops when it ends or pauses (DAYNIGHT_PLAN.md
-		# §5.4). Daylight shows the light after the camera has moved.
+		if not GameState.in_tutorial:
+			GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
+		# The zone's clock runs with the run, the tutorial's too, and stops when it ends or pauses
+		# (DAYNIGHT_PLAN.md §5.4). Daylight shows the light after the camera has moved.
 		_daylight.cycle.advance(delta)
 
 
@@ -122,7 +130,10 @@ func go_back() -> void:
 ## Builds a run: a road from `run_seed`, a car on it, and a fresh start for the world, the input,
 ## the camera, the director and GameState. The first run and every retry come through here.
 func _start_run(run_seed: int) -> void:
-	_buffer = RoadBuffer.new(RoadGenerator.new(run_seed, _schedule))
+	var tutorial := _tutorial_wanted()
+	_origin = 0.0
+	_turn_base = 0
+	_buffer = RoadBuffer.new(RoadGenerator.new(run_seed, _schedule, tutorial))
 	_buffer.tiles_generated.connect(EventBus.tiles_generated.emit)
 	_buffer.tiles_freed.connect(EventBus.tiles_freed.emit)
 	_world.bind(_buffer)
@@ -130,6 +141,8 @@ func _start_run(run_seed: int) -> void:
 	_sim = CarSim.new(_buffer)
 	_sim.trigger.turn_completed.connect(_on_turn_completed)
 	_sim.trigger.disaster_triggered.connect(_on_disaster_triggered)
+	_sim.trigger.streak_changed.connect(EventBus.streak_changed.emit)
+	_sim.trigger.tutorial_completed.connect(_on_tutorial_completed)
 	_sim.crashed.connect(_on_crashed)
 	_sim.health_changed.connect(EventBus.health_changed.emit)
 	_sim.offroad_changed.connect(EventBus.car_offroad_changed.emit)
@@ -143,10 +156,12 @@ func _start_run(run_seed: int) -> void:
 	_world.get_node("%Props").add_child(_car)
 	_camera.car = _car
 	_camera.snap_to_target()
+	# Deferred: the car's node moves to the rescued car after the step that rescued it.
+	_sim.rescued.connect(_camera.snap_to_target, CONNECT_DEFERRED)
 	_world.car = _car
 	AudioDirector.follow(_sim)
 	_director.start_run(run_seed)
-	GameState.start_run(run_seed)
+	GameState.start_run(run_seed, tutorial)
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
 	_on_area_changed(_sim.area)
 	# A new run is a cut: it shows the morning, or --hour's light, at once (DAYNIGHT_PLAN.md §5.4).
@@ -225,16 +240,33 @@ func _on_crashed(cause: StringName) -> void:
 
 ## The car reached `area`. GameState counts the area's distance and turns from its first tile, which
 ## the car may have passed, off the road. In the step that reaches it, CarSim reports the area
-## before the trigger judges the turn behind it (M5_PLAN.md L8).
+## before the trigger judges the turn behind it (M5_PLAN.md L8). After a tutorial, both count from
+## where the City's run began.
 func _on_area_changed(area: AreaDef) -> void:
 	var first := _buffer.car_index()
 	while first > _buffer.first_index() and _buffer.path_tile(first - 1).area_id == area.id:
 		first -= 1
 	# A run starts at the centre of its first tile, at distance 0.
-	GameState.enter_area(area.id, maxf(first - 0.5, 0.0), _turns_before(first))
+	var start := maxf(first - 0.5 - _origin, 0.0)
+	GameState.enter_area(area.id, start, _turns_before(first) - _turn_base)
 	# Each zone starts its clock again, at its own pace (DAYNIGHT_PLAN.md §5.4).
 	_daylight.cycle.enter(area.day_seconds)
 	EventBus.area_changed.emit(area)
+
+
+## The tutorial's streak is done at `junction` (TUTORIAL_PLAN.md §5.5): the run goes on in the City,
+## under its rules, from where the car left the junction, and the tutorial is done for good. The
+## road ahead is still the tutorial's, to the end of its group of four junctions. The City's entry
+## in GameState, from the run's start, is at distance 0 and turn 0, which the tutorial never passed:
+## it counts from here.
+func _on_tutorial_completed(junction: RoadTile) -> void:
+	_origin = junction.path_index + 0.5
+	_turn_base = junction.turn_number + 1
+	_buffer.generator.end_tutorial(_turn_base)
+	SaveService.complete_tutorial()
+	GameState.end_tutorial()
+	EventBus.tutorial_completed.emit()
+	EventBus.area_changed.emit(_sim.area)
 
 
 ## The turns before path index `index`: the turn number of the first junction from there on, as a
@@ -261,7 +293,7 @@ func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
 ## The run is over the moment it ends (M3_PLAN.md J1): the input stops, and GameState reports the
 ## cause and the stats. The director then plays the disaster or the crash.
 func _end_run(cause: StringName) -> void:
-	GameState.distance = maxf(GameState.distance, _sim.progress)
+	GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
 	_input.enabled = false
 	GameState.end_run(cause)
 	if _autopilot:
@@ -272,6 +304,20 @@ func _end_run(cause: StringName) -> void:
 func _on_sequence_finished() -> void:
 	GameState.show_game_over()
 	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id), _fate)
+
+
+## Whether the next run starts with the tutorial (TUTORIAL_PLAN.md §5.6): only one that starts in
+## the City, the whole schedule's first area, also when --area or the title's Start button chooses
+## it. --tutorial asks for it. Otherwise Play does, until the player has finished it, but not --play
+## or --autopilot, which tests and checks use.
+func _tutorial_wanted() -> bool:
+	if _schedule.entries[0].area != _whole_schedule.entries[0].area:
+		return false
+	if args.has("--tutorial"):
+		return true
+	if _autopilot or args.has("--play"):
+		return false
+	return not SaveService.data().tutorial["done"]
 
 
 static func _parse_seed(p_args: PackedStringArray) -> int:
