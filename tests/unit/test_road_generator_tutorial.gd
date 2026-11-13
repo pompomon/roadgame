@@ -4,7 +4,8 @@ extends GutTest
 ## its area, a loop turns no sooner than the path does, no road touches a loop's side, and a loop
 ## stays within DEAD_END_MAX_TILES rows of the junction that frees it, as a dead end does. After
 ## end_tutorial(), the group's last junctions close their loops, and the road goes on as the seed's
-## road does from its first junction, with the schedule counted from the turn base (§5.5).
+## road does from its first junction, with the schedule counted from the turn base; an entry due on
+## the tutorial's road comes after it (§5.5).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 100
@@ -58,6 +59,20 @@ func test_the_tutorial_ends_with_its_group_and_the_seed_road_follows() -> void:
 		assert_eq(got, want, label + ": the road after the tutorial is the seed's")
 		if is_failing():
 			return
+
+
+## The road that the tutorial laid past the streak's end counts toward the schedule, but is laid in
+## the tutorial's shape. An entry that falls due on it comes with the City's first junction after
+## it, rather than never (TUTORIAL_PLAN.md §5.5).
+func test_an_entry_due_on_the_tutorials_road_comes_after_its_last_group() -> void:
+	var gen := RoadGenerator.new(1, Fixtures.set_piece_schedule(2, &"tunnel", 3), true)
+	Fixtures.path_until_turn(gen, 10)
+	gen.end_tutorial(5)
+	var tile := gen.next_tile()
+	while tile.type != RoadTile.Type.SET_PIECE and gen.turn_count < 40:
+		tile = gen.next_tile()
+	assert_eq(tile.type, RoadTile.Type.SET_PIECE, "the entry came")
+	assert_eq(gen.turn_count, 13, "with the City's first turn, turn 12, after the group of 8 to 11")
 
 
 ## `tile` from `origin`: its cells, indices and turn relative to origin's.
