@@ -158,6 +158,7 @@ func test_the_title_page_fits_a_portrait_screen_with_each_start_area() -> void:
 	title.area_choice = true
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
 	var start := _button(title, "StartArea")
+	var widths: Array[float] = []
 	for area: AreaDef in title.schedule.areas():
 		title.start_area = area
 		title.open()
@@ -166,7 +167,9 @@ func test_the_title_page_fits_a_portrait_screen_with_each_start_area() -> void:
 			if control.is_visible_in_tree():
 				var rect := control.get_global_rect()
 				assert_true(bounds.encloses(rect), "%s: %s at %s" % [area.id, control.name, rect])
-		assert_eq(start.size.x, start.custom_minimum_size.x, "%s: the button's width" % area.id)
+		assert_eq(start.size.x, start.custom_minimum_size.x, "%s: no text widens it" % area.id)
+		widths.append(start.size.x)
+	assert_eq(widths.count(widths[0]), widths.size(), "one width for each area: %s" % [widths])
 
 
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:

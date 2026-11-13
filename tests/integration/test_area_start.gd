@@ -37,12 +37,17 @@ static func _tap(main: Node, button: Button) -> void:
 	MainScene.push(main, [MainScene.touch(at, true), MainScene.touch(at, false)])
 
 
-## The sheets of the props that World's Props layer shows. Each area has its own (Z2, Z3).
+## The sheets of the props that World's Props layer shows. Each area has its own (Z2, Z3). A hidden
+## World or Props layer shows none.
 static func _prop_sheets(main: Node) -> Array[String]:
 	var sheets: Array[String] = []
 	for node: Node in main.get_node("%World/%Props").get_children():
 		var sprite := node as Sprite2D
-		if sprite != null and sprite.visible and not sheets.has(sprite.texture.resource_path):
+		if (
+			sprite != null
+			and sprite.is_visible_in_tree()
+			and not sheets.has(sprite.texture.resource_path)
+		):
 			sheets.append(sprite.texture.resource_path)
 	return sheets
 
