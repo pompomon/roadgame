@@ -144,15 +144,18 @@ func test_off_the_road_a_meter_under_the_health_shows_the_room_left() -> void:
 
 
 func test_the_meter_sits_under_the_health_bar_and_never_moves_it() -> void:
-	# Hidden by `visible`, the meter would leave the health bar to be centred anew each time (E1).
+	# E1's place: 8 px high, so that its 2-px border leaves a yellow centre, 2 px under the health
+	# bar and as wide. Hidden by `visible`, the meter would leave the health bar to be centred anew
+	# each time.
 	var hud := _hud()
 	var health: ProgressBar = hud.get_node("%Health")
 	var meter: ProgressBar = hud.get_node("%Offroad")
 	GameState.start_run(1)
 	await wait_process_frames(1)
 	var bar := health.get_global_rect()
-	assert_gt(meter.get_global_rect().position.y, bar.end.y, "under the health bar")
-	assert_eq(meter.get_global_rect().size.x, bar.size.x, "as wide")
+	var rect := meter.get_global_rect()
+	assert_eq(rect.position, Vector2(bar.position.x, bar.end.y + 2.0), "2 px under the health bar")
+	assert_eq(rect.size, Vector2(bar.size.x, 8.0), "as wide, and 8 px high")
 	EventBus.car_offroad_changed.emit(true)
 	await wait_process_frames(1)
 	assert_eq(health.get_global_rect(), bar, "shown, the meter moves nothing")
