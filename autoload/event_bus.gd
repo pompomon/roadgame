@@ -21,4 +21,9 @@ signal disaster_appeared(id: StringName, area: AreaDef)
 signal run_ended(cause: StringName, stats: Dictionary)
 signal car_offroad_changed(is_offroad: bool)
 signal paused_changed(paused: bool)
+## The tutorial's correct turns in a row are now `streak`: one more, or none after a mistake
+## (TUTORIAL_PLAN.md §5.4).
+signal streak_changed(streak: int)
+## The tutorial is over, and the run goes on in the City under its rules (TUTORIAL_PLAN.md §5.5).
+signal tutorial_completed
 @warning_ignore_restore("unused_signal")

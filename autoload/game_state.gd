@@ -24,14 +24,18 @@ var distance := 0.0
 var area_id := &""
 ## Why the run ended, or empty while it goes on.
 var end_cause := &""
+## Whether the run is in its tutorial, whose distance and turns count for nothing: the stats start
+## when it ends (TUTORIAL_PLAN.md §5.5).
+var in_tutorial := false
 
 ## Where each area the run entered begins, in order: [area id, distance, turns], the path distance
 ## to the area's first tile and the turns at the junctions before it (M5_PLAN.md L8).
 var _entries: Array[Array] = []
 
 
-## Starts a run from TITLE or GAME_OVER. A paused run must be resumed or quit first.
-func start_run(p_run_seed: int) -> void:
+## Starts a run from TITLE or GAME_OVER, with the tutorial if `tutorial`. A paused run must be
+## resumed or quit first.
+func start_run(p_run_seed: int, tutorial := false) -> void:
 	if state == State.PAUSED:
 		push_error("GameState: start_run() in PAUSED is not allowed")
 		return
@@ -42,8 +46,14 @@ func start_run(p_run_seed: int) -> void:
 	distance = 0.0
 	area_id = &""
 	end_cause = &""
+	in_tutorial = tutorial
 	_entries = []
 	EventBus.run_started.emit(run_seed)
+
+
+## The run's tutorial is over: from now on, the run counts as one that started in the City.
+func end_tutorial() -> void:
+	in_tutorial = false
 
 
 ## The car reached the area `id`, whose first tile begins `start_distance` tiles along the path,
