@@ -98,16 +98,18 @@ func test_between_keys_the_light_eases_in_and_out() -> void:
 
 func test_the_light_shown_never_changes_faster_than_the_max_rate() -> void:
 	# Zones of every length from half an hour to 23 and a half, so that the clock goes back to the
-	# morning from every hour of the day, in days of 120 s and of the least.
+	# morning from every hour of the day, in days of 120 s and of the least. Each frame's light is
+	# compared with the last frame's, across each new zone's enter() too (N4, N5).
 	var reach := Tuning.LIGHT_MAX_RATE * DELTA
 	for day: float in [120.0, DayCycle.least_day_seconds()]:
 		var cycle := _cycle(day)
+		var was := cycle.light
 		var worst := 0.0
 		for zone: int in 24:
 			for _frame: int in ceili((zone + 0.5) / 24.0 * day / DELTA):
-				var was := cycle.light
 				cycle.advance(DELTA)
 				worst = maxf(worst, _distance(was, cycle.light))
+				was = cycle.light
 			cycle.enter(day)
 		assert_lte(worst, reach + 1e-6, "days of %.2f s" % day)
 
