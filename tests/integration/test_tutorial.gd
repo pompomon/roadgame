@@ -90,6 +90,18 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	assert_eq(areas[&"city"]["turns"], rural, "the City's turns")
 	assert_eq(areas[&"rural"]["turns"], 1, "Rural's first")
 	assert_eq(GameState.state, RUNNING)
+	# The stats count the turns that the road has: check the road too.
+	var first_rural: RoadTile = null
+	for i: int in range(sim.buffer.first_index(), sim.buffer.last_index() + 1):
+		var tile := sim.buffer.path_tile(i)
+		if tile.is_junction() and tile.area_id == &"rural":
+			first_rural = tile
+			break
+	assert_not_null(first_rural, "Rural's first junction")
+	if first_rural != null:
+		assert_eq(
+			first_rural.turn_number - (junction.turn_number + 1), rural, "the City's junctions"
+		)
 
 
 ## TUTORIAL_PLAN.md §5.3: with no input, the car drives on off the road at the first junction, with
