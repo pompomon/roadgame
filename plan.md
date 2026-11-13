@@ -213,6 +213,7 @@ Shared assets:
 - Effects: dust, smoke, skid marks.
 - UI: HUD, health bar, pixel font, pause and menus.
 - One master palette of 36 colours, `assets/palette.gpl`, with a sub-palette for each area. M6 added four of them for night magic (`M6_PLAN.md` S9).
+- Lights (`DAYNIGHT_PLAN.md` §5.12): at night the windows painted the palette's yellow glow, and so do the street lamps' heads, each over a pool of light on the ground. `make_props.gd` finds them as it paints the props.
 
 ### 5.4 Art pipeline
 - Drawn in Aseprite and exported as PNG sprite sheets into `assets/<area>/`.
@@ -266,6 +267,8 @@ Main
     └── Overlays (pause, game over)
 ```
 
+World's last child, `Lamps`, is a `CanvasGroup` above `Daylight` that lights the windows and the lamps at night (§5.3).
+
 ### 7.2 Modules
 | Module | Type | Responsibility |
 |---|---|---|
@@ -274,6 +277,7 @@ Main
 | `WorldRenderer` | `Node` | Turns `RoadTile`s into tilemap cells and props; erases freed tiles |
 | `Shadows` | `CanvasGroup` | Draws the props' and the car's shadows, laid by `DayCycle`'s sun or moon |
 | `PropPool` | `Node` | Reuses prop sprites instead of creating and destroying them |
+| `Lamps` | `CanvasGroup` | Lights the windows and the street lamps at night, above `Daylight` |
 | `CarController` | `CharacterBody2D`-like custom movement | Steering, speed model (straight acceleration, junction auto-braking), off-road detection (from tile lookup), off-road limit, health |
 | `InputRouter` | `Node` | Turns keyboard, touch and scripted input into a steering intent from -1 to 1 |
 | `JunctionTrigger` | `Node` | Exit-zone detection and checking against the L/R pattern |
