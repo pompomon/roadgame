@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://disasters/disaster_director.gd" id="6_director"]
 [ext_resource type="PackedScene" path="res://ui/game_over.tscn" id="7_game_over"]
 [ext_resource type="PackedScene" path="res://ui/title_screen.tscn" id="8_title"]
+[ext_resource type="Script" path="res://world/daylight.gd" id="9_daylight"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -18,6 +19,10 @@ unique_name_in_owner = true
 [node name="Camera" type="Camera2D" parent="."]
 unique_name_in_owner = true
 script = ExtResource("4_camera")
+
+[node name="Daylight" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("9_daylight")
 
 [node name="InputRouter" type="Node" parent="."]
 unique_name_in_owner = true
