@@ -158,9 +158,7 @@ func test_the_smoke_shows_through_a_tunnel() -> void:
 	# A tunnel draws over the car (z_index 1), at TUNNEL_SEE_THROUGH while the car is in it
 	# (Tunnel.opacity()): what it lets through of the smoke must still show, in every light.
 	var smoke: CPUParticles2D = _car().get_node("%Smoke")
-	var covers: Array[Color] = []
-	for polygon: Polygon2D in _polygons(load("res://setpieces/tunnel.tscn")):
-		covers.append(Color(polygon.color, polygon.color.a * Tuning.TUNNEL_SEE_THROUGH))
+	var covers := _tunnel_covers()
 	assert_eq(covers.size(), 4)
 	for light: Color in _lights():
 		for background: Color in _backgrounds():
@@ -230,6 +228,42 @@ func _polygons(scene: PackedScene) -> Array[Polygon2D]:
 	for polygon: Node in piece.find_children("*", "Polygon2D"):
 		polygons.append(polygon)
 	return polygons
+
+
+## The tunnel's polygons, as the car sees them while it's in the tunnel: at TUNNEL_SEE_THROUGH.
+func _tunnel_covers() -> Array[Color]:
+	var covers: Array[Color] = []
+	for polygon: Polygon2D in _polygons(load("res://setpieces/tunnel.tscn")):
+		covers.append(Color(polygon.color, polygon.color.a * Tuning.TUNNEL_SEE_THROUGH))
+	return covers
+
+
+func test_the_smoke_shows_in_a_shadow() -> void:
+	# A shadow dims what the smoke shows over, but not the smoke, which draws above it. The eye takes
+	# a shadow as a dimmer light, so there the smoke needs SMOKE_CONTRAST times the luminance of the
+	# light that the shadow lets through, in the open and through a tunnel (DAYNIGHT_PLAN.md C22,
+	# N103). The shadows are black, at the sun's or the moon's alpha, and the wreck's colours are
+	# checked too, though the car draws above the shadows.
+	var smoke: CPUParticles2D = _car().get_node("%Smoke")
+	var covers: Array[Color] = [Color.TRANSPARENT]
+	covers.append_array(_tunnel_covers())
+	for alpha: float in [Tuning.SUN_SHADOW_ALPHA, Tuning.MOON_SHADOW_ALPHA]:
+		for light: Color in _lights():
+			var let_through := light.darkened(alpha)
+			for background: Color in _backgrounds():
+				var shaded := background.blend(Color(Color.BLACK, alpha))
+				var puff := shaded.blend(smoke.color)
+				for cover: Color in covers:
+					var through := puff.blend(cover) * light
+					var bare := shaded.blend(cover) * light
+					assert_gte(
+						absf(through.get_luminance() - bare.get_luminance()),
+						SMOKE_CONTRAST * let_through.get_luminance(),
+						(
+							"a puff in a shadow of %s over %s, through %s, in %s"
+							% [alpha, background, cover, light]
+						)
+					)
 
 
 func test_only_a_crash_smokes() -> void:
