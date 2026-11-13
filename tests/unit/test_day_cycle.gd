@@ -212,8 +212,9 @@ func test_shadows_sweep_from_the_right_to_the_left_in_front_of_what_casts_them()
 
 
 func test_a_shadow_is_as_long_as_the_light_is_low_up_to_the_longest() -> void:
-	# A pixel of height casts its shadow 1 / tan(h) pixels away, h being how high the sun or the
-	# moon stands: at its highest at noon and midnight, and SHADOW_LONGEST as it rises and sets.
+	# On the ground a shadow is 1 / tan(h) times as long as what casts it is tall, h being how high
+	# the sun or the moon stands: shortest at noon and midnight, and SHADOW_LONGEST as it rises and
+	# sets. On the screen it is shorter or longer by the way it falls (DAYNIGHT_PLAN.md §5.11).
 	var noon := (Tuning.SUN_RISE_HOUR + Tuning.SUN_SET_HOUR) / 2.0
 	var noon_length := _ground_length(DayCycle.shadow_at(noon))
 	assert_almost_eq(noon_length, 1.0 / tan(Tuning.SUN_HIGHEST), 1e-5, "at noon")
