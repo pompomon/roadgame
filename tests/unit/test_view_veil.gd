@@ -1,6 +1,7 @@
 extends GutTest
 ## ViewVeil (DAYNIGHT_PLAN.md §5.5): the square over the view that a legend's veil and the night's
-## share. test_legend.gd checks that a legend's veil follows the view, and darkens the world.
+## share. It multiplies what is drawn under it, at VEIL_Z, and starts hidden. test_legend.gd checks
+## that a legend's veil follows the view, and darkens the world.
 
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const ViewTest := preload("res://tests/integration/test_props_in_view.gd")
@@ -30,3 +31,18 @@ func test_the_veil_covers_every_view() -> void:
 				covered.encloses(Rect2(centre - size / 2.0, size)),
 				"%s at zoom %.1f" % [screen, zoom]
 			)
+
+
+func test_the_veil_multiplies_at_veil_z_and_starts_hidden() -> void:
+	# Under a parent drawn at a z of its own, as a legend may be, the veil stays at VEIL_Z: over the
+	# world and under the glows (N13, N14, N15).
+	var parent: Node2D = add_child_autofree(Node2D.new())
+	parent.z_index = 3
+	var veil := ViewVeil.new()
+	parent.add_child(veil)
+	var multiply := veil.material as CanvasItemMaterial
+	assert_not_null(multiply, "a CanvasItemMaterial")
+	if multiply != null:
+		assert_eq(multiply.blend_mode, CanvasItemMaterial.BLEND_MODE_MUL, "it multiplies")
+	assert_eq(Disasters.z(veil), Tuning.VEIL_Z, "at VEIL_Z, whatever its parent's z")
+	assert_eq(veil.modulate.a, 0.0, "hidden until shown")
