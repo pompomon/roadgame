@@ -120,7 +120,7 @@ func test_flat_props_cast_none() -> void:
 	assert_null(_shadows.add(_prop(PropDef.Shadow.NONE), FOOT))
 	_shadows.remove(null)
 	assert_eq(_shadows.count(), 0)
-	assert_eq(_shadows.get_child_count(), 0, "no sprite")
+	assert_eq(_shadows.get_child_count(true), 0, "no sprite")
 
 
 func test_the_shadows_show_at_the_clocks_alpha_as_one() -> void:
@@ -166,7 +166,8 @@ func test_removed_shadows_give_their_sprites_back() -> void:
 	assert_false(casts[1].sprite.visible, "hidden")
 	var again := _shadows.add(def, FOOT)
 	assert_same(again.sprite, casts[1].sprite, "the same sprite again")
-	assert_eq(_shadows.get_child_count(), 3)
+	assert_eq(_shadows.get_child_count(true), 3)
+	assert_eq(_shadows.get_child_count(), 0, "its own parts, which simulate() walks past (C20)")
 
 
 func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:

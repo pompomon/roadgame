@@ -33,7 +33,8 @@ class Cast:
 	var basis := Transform2D.IDENTITY
 
 
-var _pool := PropPool.new(self)
+## Its sprites are its own parts, so internal children (C20).
+var _pool := PropPool.new(self, Node.INTERNAL_MODE_BACK)
 var _casts: Dictionary[Cast, bool] = {}
 ## The clock's shadow that the casts lie along.
 var _fall := Vector2.ZERO
