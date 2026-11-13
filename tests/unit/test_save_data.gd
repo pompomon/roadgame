@@ -23,10 +23,12 @@ func test_new_data_has_the_defaults() -> void:
 	assert_eq(data.best, {"distance": 0.0, "turns": 0})
 	assert_eq(data.disasters, {} as Dictionary[String, Dictionary])
 	assert_eq(data.settings, SaveData.DEFAULT_SETTINGS)
+	assert_eq(data.tutorial, {"done": false})
 
 
 func test_json_round_trip() -> void:
 	var data := SaveData.new()
+	data.tutorial["done"] = true
 	data.record_run(_stats(40.5, 9, {&"city": {"distance": 30.25, "turns": 7}}))
 	data.record_disaster(&"tornado", &"city", _stats(40.5, 9, {}))
 	data.set_setting("music", 0.3)
@@ -38,9 +40,10 @@ func test_json_round_trip() -> void:
 	assert_eq(again.best, data.best)
 	assert_eq(again.disasters, data.disasters)
 	assert_eq(again.settings, data.settings)
+	assert_eq(again.tutorial, {"done": true})
 	assert_typeof(again.best["turns"], TYPE_INT, "JSON reads every number as a float")
 	assert_typeof(again.atlas["city"]["best_turns"], TYPE_INT)
-	assert_true(data.to_json().contains('"version": 1'))
+	assert_true(data.to_json().contains('"version": 2'))
 
 
 func test_a_v0_file_is_migrated_and_keeps_its_values() -> void:
@@ -54,6 +57,7 @@ func test_a_v0_file_is_migrated_and_keeps_its_values() -> void:
 	assert_eq(data.settings["music"], 0.5)
 	assert_eq(data.settings["haptics"], false)
 	assert_eq(data.settings["orientation"], "portrait")
+	assert_eq(data.tutorial, {"done": true}, "it has a run (TUTORIAL_PLAN.md §5.6)")
 
 
 ## Copilot's review of #39: a load that read less than the last kept the last one's data, and its
@@ -63,7 +67,7 @@ func test_each_load_starts_from_the_defaults() -> void:
 	var loads := {
 		"{}": SaveData.Status.LOADED,
 		"not json": SaveData.Status.CORRUPT,
-		'{"version": 2}': SaveData.Status.NEWER,
+		'{"version": 3}': SaveData.Status.NEWER,
 		'{"settings": {"music": 2}}': SaveData.Status.LOADED,
 	}
 	for text: String in loads:
@@ -73,6 +77,7 @@ func test_each_load_starts_from_the_defaults() -> void:
 		assert_eq(data.best, SaveData.BEST, text)
 		assert_eq(data.disasters, {} as Dictionary[String, Dictionary], text)
 		assert_eq(data.settings, SaveData.DEFAULT_SETTINGS, text)
+		assert_eq(data.tutorial, SaveData.TUTORIAL, text)
 	assert_eq(data.problems, PackedStringArray(["settings.music"]), "only the last load's")
 
 
@@ -94,6 +99,37 @@ func test_every_older_version_has_a_migration() -> void:
 func test_a_missing_migration_is_an_error() -> void:
 	assert_eq(SaveData.migrate({"a": 1}, 0, 1, {} as Dictionary[int, Callable]), {})
 	assert_push_error("no migration from version 0")
+
+
+## TUTORIAL_PLAN.md §5.6: a version 1 save with a run, in the best distance or the atlas, has
+## played without the tutorial and skips it; one with none gets it. A value of the wrong type
+## counts as no run, and is no error.
+func test_a_v1_file_has_done_the_tutorial_if_it_has_a_run() -> void:
+	var files := {
+		'{"version": 1}': false,
+		'{"version": 1, "settings": {"music": 0.5}}': false,
+		'{"version": 1, "best": {"distance": 0, "turns": 0}, "atlas": {}}': false,
+		'{"version": 1, "best": {"distance": 0.5, "turns": 0}}': true,
+		'{"version": 1, "atlas": {"city": {"discovered": true}}}': true,
+		'{"version": 1, "best": {"distance": "far"}, "atlas": []}': false,
+		'{"version": 1, "best": [12], "atlas": "city"}': false,
+	}
+	for text: String in files:
+		var data := SaveData.new()
+		assert_eq(data.load_json(text), SaveData.Status.LOADED, text)
+		assert_eq(data.tutorial, {"done": files[text]}, text)
+
+
+func test_a_tutorial_of_the_wrong_type_is_not_done() -> void:
+	var files := {
+		'{"version": 2, "tutorial": "yes"}': "tutorial",
+		'{"version": 2, "tutorial": {"done": 1}}': "tutorial.done",
+	}
+	for text: String in files:
+		var data := SaveData.new()
+		assert_eq(data.load_json(text), SaveData.Status.LOADED, text)
+		assert_eq(data.tutorial, SaveData.TUTORIAL, text)
+		assert_eq(data.problems, PackedStringArray([files[text]]), text)
 
 
 func test_text_that_is_not_a_save_is_corrupt_without_errors() -> void:
@@ -162,7 +198,7 @@ func test_numbers_past_the_largest_exact_whole_number_get_their_defaults() -> vo
 
 func test_a_later_version_is_read_as_far_as_it_is_known() -> void:
 	var data := SaveData.new()
-	var text := JSON.stringify({"version": 2, "best": {"distance": 5, "turns": 1}, "new": 1})
+	var text := JSON.stringify({"version": 3, "best": {"distance": 5, "turns": 1}, "new": 1})
 	assert_eq(data.load_json(text), SaveData.Status.NEWER)
 	assert_eq(data.best, {"distance": 5.0, "turns": 1})
 

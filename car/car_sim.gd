@@ -3,6 +3,10 @@ extends RefCounted
 ## The car, in tile space (IMPLEMENTATION_PLAN.md D1, D2, M2.2): steering, the speed model and
 ## off-road damage. Pure logic, stepped at a fixed delta. It moves the road buffer along, reports
 ## cell crossings and rejoins to its JunctionTrigger, and CarController draws it.
+##
+## In the tutorial (TUTORIAL_PLAN.md §5.3), the car takes damage off the road but never crashes: it
+## drives on at 0 health, heals on the road, and is put back on the path once it has driven
+## TUTORIAL_RESCUE_TILES off the road.
 
 signal health_changed(value: float)
 signal offroad_changed(is_offroad: bool)
@@ -10,6 +14,8 @@ signal offroad_changed(is_offroad: bool)
 signal area_changed(area: AreaDef)
 ## The run ended in a crash: HEALTH or OFFROAD. Disasters come from trigger.disaster_triggered.
 signal crashed(cause: StringName)
+## The tutorial put the car back on the path.
+signal rescued
 
 enum State { DRIVING, BRAKING, OFFROAD, DISASTER, CRASHED }
 
@@ -58,6 +64,8 @@ func _init(p_buffer: RoadBuffer) -> void:
 	trigger = JunctionTrigger.new(buffer)
 	trigger.turn_completed.connect(_on_turn_completed)
 	trigger.disaster_triggered.connect(_on_disaster_triggered)
+	trigger.streak_changed.connect(_on_streak_changed)
+	trigger.tutorial_completed.connect(_on_tutorial_completed)
 	path_tile = buffer.path_tile(buffer.first_index())
 	pos = Iso.cell_centre(path_tile.cell)
 	angle = path_tile.heading * PI / 2.0
@@ -108,6 +116,8 @@ func step(delta: float, steer: float) -> void:
 		done = at
 	if _follow_road(from, cell, done, 1.0, delta, area) and state == State.OFFROAD:
 		_drive_off_road((1.0 - _offroad_since) * delta, area)
+	if trigger.tutorial:
+		_tutorial_step(delta)
 
 
 func velocity() -> Vector2:
@@ -124,10 +134,16 @@ func is_over() -> bool:
 
 
 ## Path distance from the car to the centre of the next unresolved junction, or INF after a
-## disaster.
+## disaster, or while the tutorial has lost the car.
 func distance_to_junction() -> float:
 	var junction := trigger.next_junction
 	return INF if junction == null else junction.path_index - progress
+
+
+## Whether the tutorial has lost the car, which then drives at junction_speed at most, so that it
+## can take the corners of the loops (TUTORIAL_PLAN.md §5.3).
+func is_lost() -> bool:
+	return trigger.tutorial and trigger.next_junction == null
 
 
 ## The cells a move from `from` to `to` enters, in order: none, one, or two when the move crosses a
@@ -177,14 +193,14 @@ func _steer(delta: float, steer: float) -> void:
 
 ## The speed the car heads for (plan.md §2.3, IMPLEMENTATION_PLAN.md M2.2): it rises along a
 ## straight, up to a cap that grows with the distance driven; it is junction_speed from
-## junction_brake_distance before the next junction, whichever exit the car will take; and it drops
-## while the car is off the road.
+## junction_brake_distance before the next junction, whichever exit the car will take, and while
+## the tutorial has lost the car; and it drops while the car is off the road.
 func target_speed() -> float:
 	var run_cap := minf(
 		Tuning.GLOBAL_SPEED_CAP, Tuning.BASE_TOP_SPEED + dist_total * Tuning.TOP_SPEED_GROWTH
 	)
 	var target := minf(run_cap, area.junction_speed + area.straight_accel * dist_on_straight)
-	if distance_to_junction() <= area.junction_brake_distance:
+	if distance_to_junction() <= area.junction_brake_distance or is_lost():
 		target = area.junction_speed
 	if state == State.OFFROAD:
 		target *= area.offroad_speed_mult
@@ -286,11 +302,17 @@ func _rejoin_road(tile: RoadTile, t: float, delta: float, rates: AreaDef) -> boo
 	return not is_over()
 
 
-## Damage and the off-road limit for `seconds` driven off the road, at the rates of `rates`.
+## Damage and the off-road limit for `seconds` driven off the road, at the rates of `rates`. In the
+## tutorial, the limit costs the streak, wherever the car left the road, and nothing ends the run.
 func _drive_off_road(seconds: float, rates: AreaDef) -> void:
 	offroad_dist += speed * seconds
 	health = maxf(0.0, health - rates.offroad_damage_per_sec * seconds)
 	health_changed.emit(health)
+	if trigger.tutorial:
+		# Once the trigger has lost the car, only the road finds it again, so this repeats nothing.
+		if offroad_dist >= rates.offroad_limit_tiles:
+			trigger.on_offroad_limit()
+		return
 	if health <= 0.0:
 		_crash(HEALTH)
 	elif offroad_dist >= rates.offroad_limit_tiles:
@@ -305,12 +327,58 @@ func _crash(cause: StringName) -> void:
 	crashed.emit(cause)
 
 
+## The end of a step in the tutorial: on the road, the car heals, over the whole step; too far off
+## it, it is put back on the path; and while it is lost, it doesn't speed up.
+func _tutorial_step(delta: float) -> void:
+	if state == State.OFFROAD:
+		if offroad_dist >= Tuning.TUTORIAL_RESCUE_TILES:
+			_rescue()
+	elif health < Tuning.START_HEALTH:
+		var heal := Tuning.START_HEALTH / Tuning.TUTORIAL_HEAL_SECONDS * delta
+		health = minf(Tuning.START_HEALTH, health + heal)
+		health_changed.emit(health)
+	if is_lost():
+		dist_on_straight = 0.0
+
+
+## Puts the car at rest on the centre of the path tile it was on last, facing along the path, or of
+## the tile before it if that one is a junction, so that the car can take its turn again.
+func _rescue() -> void:
+	var tile := path_tile
+	if tile.is_junction():
+		var before := buffer.path_tile(tile.path_index - 1)
+		tile = before if before != null else buffer.path_tile(tile.path_index + 1)
+	pos = Iso.cell_centre(tile.cell)
+	angle = tile.heading * PI / 2.0
+	speed = 0.0
+	state = State.DRIVING
+	offroad_dist = 0.0
+	offroad_junction = null
+	path_tile = tile
+	progress = path_progress(tile, pos)
+	offroad_changed.emit(false)
+	trigger.on_rescued(tile)
+	rescued.emit()
+
+
 func _on_turn_completed(_turn_index: int) -> void:
 	dist_on_straight = 0.0
 
 
 func _on_disaster_triggered(_junction: RoadTile, _choice: int) -> void:
 	state = State.DISASTER
+
+
+func _on_streak_changed(_streak: int) -> void:
+	dist_on_straight = 0.0
+
+
+## The City's run starts at the junction where the tutorial ended (TUTORIAL_PLAN.md §5.5): with
+## full health, and its speed cap from BASE_TOP_SPEED.
+func _on_tutorial_completed(_junction: RoadTile) -> void:
+	health = Tuning.START_HEALTH
+	health_changed.emit(health)
+	dist_total = 0.0
 
 
 ## Grid steps between two cells (Manhattan distance).

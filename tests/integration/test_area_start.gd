@@ -2,7 +2,8 @@ extends GutTest
 ## Each run starts by naming its area (IMPLEMENTATION_PLAN.md M4.3, M4_PLAN.md K4): main reports
 ## the first area as it reports each later one, to GameState and on EventBus, and the HUD shows its
 ## name. --area=<id> starts every run in that area (K10), and so does the title's Start button in
-## debug builds, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6).
+## debug builds, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6). SaveService keeps the save in
+## memory.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -10,8 +11,15 @@ const RUNNING := GameState.State.RUNNING
 const DISASTER := GameState.State.DISASTER
 
 
+func before_each() -> void:
+	SaveService.use_memory()
+	# Play would start a run in the City with the tutorial (TUTORIAL_PLAN.md §5.6).
+	SaveService.complete_tutorial()
+
+
 func after_each() -> void:
 	GameState.quit_to_title()
+	SaveService.use_memory()
 
 
 static func _banner(main: Node) -> Label:
