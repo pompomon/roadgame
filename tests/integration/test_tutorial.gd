@@ -7,7 +7,10 @@ extends GutTest
 ## memory.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
+const RoutePilot := preload("res://tests/helpers/route_pilot.gd")
 const RUNNING := GameState.State.RUNNING
+const DISASTER := GameState.State.DISASTER
+const GAME_OVER := GameState.State.GAME_OVER
 ## The autopilot finishes the tutorial in about 18 s (§6.5, P1).
 const TUTORIAL_FRAMES := 60 * 40
 
@@ -23,6 +26,15 @@ func after_each() -> void:
 
 static func _label(main: Node, unique_name: String) -> Label:
 	return main.get_node("%HUD/%" + unique_name)
+
+
+## The music's and the ambience's cross-fades: their tracks, their current decks and the decks'
+## weights. A track that starts again, on either deck, starts from silence.
+static func _audio() -> Array:
+	var fades: Array = []
+	for fade: CrossFade in [AudioDirector._music, AudioDirector._ambient]:
+		fades.append([fade.tracks.duplicate(), fade.current, fade.weights.duplicate()])
+	return fades
 
 
 func test_play_starts_the_tutorial_until_the_player_has_finished_it() -> void:
@@ -62,12 +74,16 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	assert_eq(_label(main, "Turns").text, "turns 0/%d" % Tuning.TUTORIAL_STREAK)
 	assert_eq(_label(main, "AreaBanner").text, Hud.TUTORIAL_BANNER % Tuning.TUTORIAL_STREAK)
 	(main.get_node("%InputRouter") as InputRouter).autopilot = Autopilot.new(sim)
+	# simulate() doesn't move the autoloads on: bring the area's tracks in, as real frames would.
+	AudioDirector.advance(Tuning.CROSS_FADE_SECONDS)
+	var audio := _audio()
 	for frame: int in TUTORIAL_FRAMES:
 		if not GameState.in_tutorial:
 			break
 		simulate(main, 1, MainScene.DELTA)
 	assert_false(GameState.in_tutorial)
 	assert_true(SaveService.data().tutorial["done"], "done for good")
+	assert_eq(_audio(), audio, "the music and the ambience play on")
 	assert_signal_emit_count(EventBus, "streak_changed", Tuning.TUTORIAL_STREAK)
 	assert_signal_emit_count(EventBus, "tutorial_completed", 1)
 	assert_signal_not_emitted(EventBus, "turn_completed")
@@ -117,6 +133,50 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 		assert_eq(
 			first_rural.turn_number - (junction.turn_number + 1), rural, "the City's junctions"
 		)
+
+
+## TUTORIAL_PLAN.md §5.5, §5.6: the run that the tutorial started ends as any run does, with its
+## distance and turns counted from the streak's end, in the save too. Retry then starts a run with
+## no tutorial, which counts from its own start.
+func test_the_city_run_after_the_tutorial_ends_and_retries_without_it() -> void:
+	var main := MainScene.open(self, ["--seed=1"], false)
+	MainScene.press_key(main, KEY_ENTER)
+	assert_true(GameState.in_tutorial, "a fresh save")
+	var sim := MainScene.car(main).sim
+	watch_signals(sim.trigger)
+	var pilot := RoutePilot.new(sim)
+	# The City's second junction, on the road that the tutorial laid.
+	pilot.wrong_at = [Tuning.TUTORIAL_STREAK + 1] as Array[int]
+	(main.get_node("%InputRouter") as InputRouter).autopilot = pilot
+	MainScene.run_while(self, main, RUNNING, TUTORIAL_FRAMES * 2)
+	assert_eq(GameState.state, DISASTER)
+	assert_signal_emit_count(sim.trigger, "tutorial_completed", 1)
+	var junction: RoadTile = get_signal_parameters(sim.trigger, "tutorial_completed")[0]
+	var distance := sim.progress - (junction.path_index + 0.5)
+	assert_almost_eq(GameState.distance, distance, 1e-6)
+	assert_eq(GameState.turn_index, 1)
+	MainScene.run_while(self, main, DISASTER, 60 * 20)
+	assert_eq(GameState.state, GAME_OVER)
+	var saved := SaveService.data()
+	assert_almost_eq(saved.best["distance"], distance, 1e-6)
+	assert_eq(saved.best["turns"], 1)
+	assert_eq(saved.atlas.keys(), ["city"])
+	assert_almost_eq(saved.atlas["city"]["best_distance"], distance, 1e-6)
+	assert_eq(saved.atlas["city"]["best_turns"], 1)
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(GameState.state, RUNNING, "retried")
+	assert_false(GameState.in_tutorial)
+	assert_true(_label(main, "Distance").visible)
+	assert_eq(_label(main, "Turns").text, "turns 0")
+	sim = MainScene.car(main).sim
+	simulate(main, 30, MainScene.DELTA)
+	var expected := sim.progress
+	simulate(main, 1, MainScene.DELTA)
+	assert_gt(expected, 0.0)
+	assert_almost_eq(GameState.distance, expected, 1e-6, "from the run's start")
+	var areas: Dictionary = GameState.stats()["areas"]
+	assert_eq(areas.size(), 1, "only the City")
+	assert_eq(areas.get(&"city"), {"distance": GameState.distance, "turns": 0})
 
 
 ## TUTORIAL_PLAN.md §5.3: with no input, the car drives on off the road at the first junction, with

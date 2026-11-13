@@ -1,11 +1,12 @@
 extends GutTest
 ## The tutorial's road over many seeds (TUTORIAL_PLAN.md §5.1): its junctions are T-junctions whose
 ## wrong exits loop round to the junction two on, each loop tile belongs to the nearer end and is of
-## its area, a loop turns no sooner than the path does, no road touches a loop's side, and a loop
-## stays within DEAD_END_MAX_TILES rows of the junction that frees it, as a dead end does. After
-## end_tutorial(), the group's last junctions close their loops, and the road goes on as the seed's
-## road does from its first junction, with the schedule counted from the turn base; an entry due on
-## the tutorial's road comes after it (§5.5).
+## its area, a loop turns no sooner than the path does, no road touches a loop's side, a loop stays
+## within DEAD_END_MAX_TILES rows of the junction that frees it, as a dead end does, and the buffer
+## holds a group's first junction while the car can loop back to it (§5.2). After end_tutorial(),
+## the group's last junctions close their loops, and the road goes on as the seed's road does from
+## its first junction, with the schedule counted from the turn base; an entry due on the tutorial's
+## road comes after it (§5.5).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 100
@@ -142,6 +143,14 @@ func _check_tutorial(gen: RoadGenerator, path: Array[RoadTile], end: int, label:
 			_check_loop(gen, junction, junctions.get(turn + 2), label)
 			if is_failing():
 				return
+		# A car that has reached D can loop back to B, then from C to A, along A's half of that
+		# loop: the buffer must still hold A, so D can be no more than BUFFER_BEHIND past it.
+		if (
+			turn % 4 == 3
+			and junction.path_index - junctions[turn - 3].path_index > Tuning.BUFFER_BEHIND
+		):
+			fail_test("%s: turn %d is too far past its group's first" % [label, turn])
+			return
 
 
 ## Walks the loop from `start`'s wrong exit to `end`'s, and checks each of its tiles.
