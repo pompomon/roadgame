@@ -280,6 +280,7 @@ Fixes found by the internal review of this plan (`AGENTS.md` §7) and by the PRs
 | Plan | F5: §1, Q2 and §5.5 said that up to 3 junctions close the group after the switch, and that the seed's road comes as much sooner. In P1, 12 of the tutorial's junctions follow the switch: the 9 laid, and the 3 that close the group (§5.1). The plan says so, and that on the seed's road Rural comes as many junctions sooner (Q15) | — | None: wording |
 | 2 | The follow-up review (§4.7), F6: a lost car braked only for a tile that it couldn't drive straight through. So it came into a T by an arm without braking, from a loop or driving back along the path, and as the player only steers (`plan.md`:27), it couldn't turn down the T's foot on the road: the review's probe, at speed 4, left the road. And the test of the speeds at the corners sampled them only where `distance_to_turn()` saw a turn, so it couldn't see one missed. 3cc0b5e brakes a lost car for each junction ahead too, whichever exit it will take, as a car on the path brakes for each junction. The tests find the corners and junctions from the tiles' exits, and `RoutePilot`'s new `back_at` turns down a T's foot (§5.3, Q9) | `test_car_sim_tutorial.gd`: `test_a_lost_car_brakes_for_the_corners_of_a_loop_and_a_junction_entered_by_an_arm`, `test_a_lost_car_speeds_up_along_a_loop_and_slows_for_its_corners`, `test_a_lost_car_can_turn_down_the_foot_of_a_junction_that_it_enters_by_an_arm` | N58 |
 | 3 | F7: the switch's test compared the cross-fades' tracks, decks and weights, but not the players. A `fade_to()` that gave the deck of a track that a deck still has passed it, while `AudioDirector` then set that deck's player to silence and started it again. 44bb3de compares each player's track, gain and play state too, and checks that the City's music and ambience are at full gain before the switch (§5.4) | `test_tutorial.gd`: `test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there` | N66 |
+| Plan | Copilot's review of 487d345: §6.2's N58 described F6's fix, not the case, which drops `tile.is_junction()` from `distance_to_turn()`'s test, so that a lost car brakes only for a tile that it can't drive straight through. The row says so, and N1's and N26's say what their cases change: a loop's one leg, and any change of the streak | — | None: wording |
 
 ### 4.7 Internal review
 
@@ -456,7 +457,7 @@ The probes P2a–P2d (§6.5) ran the same way, and must fail no test. In the fir
 
 | # | Change | Tests that fail |
 |---|---|---|
-| N1 | A loop's first leg is 1 cell, not `min_straight` + 1 | `test_road_generator_tutorial.gd`: `test_wrong_exits_loop_round_to_the_junction_two_on` and 5 more |
+| N1 | A loop's leg is 1 cell, not `min_straight` + 1 | `test_road_generator_tutorial.gd`: `test_wrong_exits_loop_round_to_the_junction_two_on` and 5 more |
 | N2 | The tutorial's straights come from the road's stream, `_rng_road` | `test_road_generator_tutorial.gd`: `test_the_tutorial_ends_with_its_group_and_the_seed_road_follows` |
 | N3 | `end_tutorial()` ends the tutorial at the next junction, mid-group | `test_road_generator_tutorial.gd`: `test_the_tutorial_ends_with_its_group_and_the_seed_road_follows` and 1 more |
 | N4 | The schedule counts the tutorial's turns: `entry.turn > turn_count` | `test_road_generator_tutorial.gd`: `test_the_tutorial_ends_with_its_group_and_the_seed_road_follows` and 2 more |
@@ -481,7 +482,7 @@ The probes P2a–P2d (§6.5) ran the same way, and must fail no test. In the fir
 | N23 | The rescue sends no `offroad_changed(false)` | `test_car_sim_tutorial.gd`: `test_a_rescue_puts_the_car_back_on_its_path_tile` |
 | N24 | `distance_to_turn()` is `distance_to_junction()` while lost too: INF | `test_car_sim_tutorial.gd`: `test_a_lost_car_brakes_for_a_junction_that_it_enters_from_its_foot` and 4 more |
 | N25 | `_tutorial_step()` never sets `dist_on_straight` to 0 | `test_car_sim_tutorial.gd`: `test_the_straight_starts_again_as_the_car_brakes_for_a_junction` and 1 more |
-| N26 | A new streak keeps the straight | `test_car_sim_tutorial.gd`: `test_the_streak_restarts_the_straight` |
+| N26 | A change of the streak keeps the straight | `test_car_sim_tutorial.gd`: `test_the_streak_restarts_the_straight` |
 | N27 | No full health at the switch | `test_car_sim_tutorial.gd`: `test_the_end_of_the_tutorial_starts_the_city_run` |
 | N28 | `dist_total` goes on at the switch | The same as N27 |
 | N29 | The camera snaps to the rescued car at once, not deferred | `test_tutorial.gd`: `test_a_car_left_alone_is_put_back_with_the_camera_on_it` |
@@ -513,7 +514,7 @@ The probes P2a–P2d (§6.5) ran the same way, and must fail no test. In the fir
 | N55 | No chime for a correct turn in the tutorial | `test_audio_director.gd`: `test_each_turn_of_the_tutorials_streak_chimes_and_a_mistake_is_silent` |
 | N56 | The straight starts again while the car is lost and not `DRIVING`, a04151a's rule | `test_car_sim_tutorial.gd`: `test_the_straight_starts_again_as_the_car_brakes_for_a_junction` |
 | N57 | The straight starts again off the road, lost or not | `test_car_sim_tutorial.gd`: `test_a_lost_car_off_the_road_heads_for_junction_speed` |
-| N58 | A lost car brakes for any junction ahead, also a T that it can drive straight through | `test_car_sim_tutorial.gd`: `test_a_lost_car_brakes_for_the_corners_of_a_loop_and_a_junction_entered_by_an_arm` and 2 more |
+| N58 | A lost car brakes only for a tile that it can't drive straight through, and so not for a T that it enters by an arm (F6) | `test_car_sim_tutorial.gd`: `test_a_lost_car_brakes_for_the_corners_of_a_loop_and_a_junction_entered_by_an_arm` and 2 more |
 | N59 | A lost car is held to `junction_speed`, a04151a's cap | `test_car_sim_tutorial.gd`: `test_a_lost_car_brakes_for_a_junction_that_it_enters_from_its_foot` and 1 more |
 | N60 | `BUFFER_BEHIND` 9: the buffer frees A before the car can loop back to it | `test_road_generator_tutorial.gd`: `test_wrong_exits_loop_round_to_the_junction_two_on` and 6 more |
 | N61 | Any area in a version 1 save's atlas counts as a run, a04151a's migration | `test_save_data.gd`: `test_a_v1_file_has_done_the_tutorial_if_it_has_a_run` |
