@@ -24,7 +24,7 @@ var light := Color.WHITE
 func enter(p_day_seconds: float) -> void:
 	seconds = 0.0
 	day_seconds = p_day_seconds
-	if p_day_seconds <= 0.0:
+	if not is_finite(p_day_seconds) or p_day_seconds <= 0.0:
 		push_error("DayCycle: a day of %.2f s; the clock stands still" % p_day_seconds)
 		day_seconds = 0.0
 

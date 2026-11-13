@@ -174,7 +174,9 @@ func test_least_day_seconds_is_the_shortest_day_the_rate_can_follow() -> void:
 
 
 func test_a_day_of_no_seconds_is_an_error_and_stops_the_clock() -> void:
-	for day: float in [0.0, -5.0]:
+	# Nor of seconds that aren't finite: with NaN the light would be NaN, and with INF the clock
+	# would stand still unreported (N8, N36).
+	for day: float in [0.0, -5.0, NAN, INF, -INF]:
 		var cycle := _cycle(day)
 		assert_push_error("DayCycle: a day of %.2f s" % day)
 		cycle.advance(10.0)

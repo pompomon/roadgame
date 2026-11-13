@@ -65,8 +65,8 @@ extends Resource
 
 @export_group("Light")
 ## Seconds for a full day of 24 hours in this area, whose clock starts again as the car enters it
-## (DAYNIGHT_PLAN.md §5.1). At least DayCycle.least_day_seconds(), so that the light never changes
-## faster than Tuning.LIGHT_MAX_RATE.
+## (DAYNIGHT_PLAN.md §5.1). Finite, and at least DayCycle.least_day_seconds(), so that the light
+## never changes faster than Tuning.LIGHT_MAX_RATE.
 @export_range(10.0, 600.0, 0.5, "or_greater") var day_seconds := 120.0
 
 
@@ -101,8 +101,12 @@ func validate() -> PackedStringArray:
 		problems.append("%s: offroad_damage_per_sec is negative" % id)
 	if offroad_limit_tiles <= 0.0:
 		problems.append("%s: offroad_limit_tiles must be above 0" % id)
-	if day_seconds < DayCycle.least_day_seconds():
-		problems.append("%s: day_seconds is below %.2f" % [id, DayCycle.least_day_seconds()])
+	if not is_finite(day_seconds):
+		problems.append("%s: day_seconds isn't finite" % id)
+	elif day_seconds < DayCycle.least_day_seconds():
+		# In hundredths, rounded up, so that the day the message names is long enough.
+		var least := ceilf(DayCycle.least_day_seconds() * 100.0) / 100.0
+		problems.append("%s: day_seconds is below %.2f" % [id, least])
 	return problems
 
 
