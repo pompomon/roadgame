@@ -1,7 +1,8 @@
 class_name RoadTile
 extends RefCounted
 ## One road cell (IMPLEMENTATION_PLAN.md M1.2). Correct-path tiles have a path_index; dead-end
-## tiles belong to a junction, which owns them in `branches` and frees them with itself.
+## tiles belong to a junction, which owns them in `branches` and frees them with itself. The
+## tutorial's loops are dead-end tiles too, which lead back to the path (TUTORIAL_PLAN.md §5.1).
 
 enum Type { STRAIGHT, CORNER, T_JUNCTION, CROSS_JUNCTION, DEAD_END, SET_PIECE }
 
@@ -20,12 +21,14 @@ var turn_number := -1
 ## Junctions only: the heading of the correct exit, which is the next turn, or straight on at a
 ## decoy.
 var expected_exit := -1
-## Dead-end tiles only: path_index of their junction. An index, not a reference, so tiles never
-## form a reference cycle (RefCounted cycles are never freed).
+## Dead-end tiles only: path_index of the junction whose wrong exit they continue: on a tutorial's
+## loop, the nearer of the two it joins, which needn't own it. An index, not a reference, so tiles
+## never form a reference cycle (RefCounted cycles are never freed).
 var junction_index := -1
 ## Dead-end tiles only: the junction exit this branch continues.
 var branch_exit := -1
-## Junctions only: the dead-end tiles of every wrong exit, nearest first.
+## Junctions only: the dead-end tiles of every wrong exit, nearest first. In the tutorial, also the
+## rest of the loop from the junction before it, which it lays, from that junction on.
 var branches: Array[RoadTile] = []
 ## &"tunnel", &"bridge" or &"".
 var set_piece := &""
