@@ -7,6 +7,10 @@ const TILE_W := 128
 const TILE_H := 64
 ## Ground cells per road tile along each axis: 32×16 ground diamonds (plan.md §5.2).
 const GROUND_PER_TILE := 4
+## Screen pixels that a tile of length shows as across the screen, where the 2:1 view shortens
+## nothing, and upright, where it shortens heights by cos 30° (DAYNIGHT_PLAN.md §5.11).
+const WIDTH_PX := TILE_W * sqrt(0.5)
+const HEIGHT_PX := sqrt((TILE_W * TILE_W - TILE_H * TILE_H) * 0.5)
 
 
 static func tile_to_world(p: Vector2) -> Vector2:

@@ -12,3 +12,4 @@ frames = 3
 fps = 2.0
 foot = Vector2i(17, 11)
 density = 0.003
+shadow = 2

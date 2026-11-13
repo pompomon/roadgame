@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://world/world_renderer.gd" id="1_renderer"]
+[ext_resource type="Script" path="res://world/shadows.gd" id="4_shadows"]
 [ext_resource type="PackedScene" path="res://setpieces/tunnel.tscn" id="2_tunnel"]
 [ext_resource type="PackedScene" path="res://setpieces/bridge.tscn" id="3_bridge"]
 
@@ -22,6 +23,11 @@ unique_name_in_owner = true
 
 [node name="Skids" type="Node2D" parent="."]
 unique_name_in_owner = true
+
+[node name="Shadows" type="CanvasGroup" parent="."]
+unique_name_in_owner = true
+visible = false
+script = ExtResource("4_shadows")
 
 [node name="DisasterLayer" type="Node2D" parent="."]
 unique_name_in_owner = true

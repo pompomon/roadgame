@@ -68,8 +68,21 @@ const PROPS := {
 }
 ## Props drawn without an ink outline: flat ones, which it would make look like holes.
 const FLAT: Array[StringName] = [&"flowers", &"pond"]
+## How the props' shadows fall (DAYNIGHT_PLAN.md §5.11), where not as an upright prop's: the fence
+## is a wall, whose base line rises WALL_RISE pixels above its foot where it crosses the foot's
+## column, and the props that lie flat cast none. A box's shadow falls from the centre of its
+## footprint, which _box() records.
+const SHADOWS := {
+	&"fence": PropDef.Shadow.WALL,
+	&"flowers": PropDef.Shadow.NONE,
+	&"pond": PropDef.Shadow.NONE,
+	&"bones": PropDef.Shadow.NONE,
+}
+const WALL_RISE := 2
 
 var _palette: Dictionary[String, Color] = {}
+## The half-width of the box that the last prop painted stands on, or 0.
+var _box_half := 0
 
 
 func _initialize() -> void:
@@ -96,6 +109,7 @@ func _make_area(area: StringName) -> void:
 	var props: Dictionary = PROPS[area]
 	for id: StringName in props:
 		var spec: Array = props[id]
+		_box_half = 0
 		var frames := _frames(id, spec)
 		var used := frames[0].get_used_rect()
 		for frame: Image in frames:
@@ -110,6 +124,8 @@ func _make_area(area: StringName) -> void:
 		def.frames = spec[0]
 		def.fps = spec[1]
 		def.density = spec[2]
+		def.shadow = SHADOWS.get(id, PropDef.Shadow.UPRIGHT)
+		def.shadow_rise = WALL_RISE if def.shadow == PropDef.Shadow.WALL else _box_half >> 1
 		def.region = Rect2i(Vector2i.ZERO, used.size)
 		def.foot = canvas_foot() - used.position
 		defs.append(def)
@@ -189,6 +205,10 @@ static func _write_def(def: PropDef, sheet_path: String, path: String) -> void:
 		lines.append("fps = %s" % str(def.fps))
 	lines.append("foot = Vector2i(%d, %d)" % [def.foot.x, def.foot.y])
 	lines.append("density = %s" % str(def.density))
+	if def.shadow != PropDef.Shadow.UPRIGHT:
+		lines.append("shadow = %d" % def.shadow)
+	if def.shadow_rise != 0:
+		lines.append("shadow_rise = %d" % def.shadow_rise)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		push_error("make_props: can't write %s" % path)
@@ -498,7 +518,9 @@ func _house(image: Image, c: Array[Color], half: int, height: int, roof: int) ->
 
 
 ## The walls of a box whose footprint's front corner is on the foot: its left face, then its right.
+## Its footprint's centre is `half` / 2 above the foot.
 func _box(image: Image, half: int, height: int, left: Color, right: Color) -> void:
+	_box_half = half
 	var side := Vector2(half, -half * 0.5)
 	var up := Vector2(0, -height)
 	_poly(image, [Vector2(-side.x, side.y), Vector2.ZERO, up, Vector2(-side.x, side.y) + up], left)

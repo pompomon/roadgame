@@ -50,6 +50,7 @@ func _ready() -> void:
 	var start := Time.get_ticks_usec()
 	# Every area's, whichever a run starts in (ZONE_SELECT_PLAN.md Z2).
 	_world.build(_whole_schedule)
+	_world.cycle = _daylight.cycle
 	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
 	print("grey box: tilesets built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	_director.layer = _world.get_node("%DisasterLayer")

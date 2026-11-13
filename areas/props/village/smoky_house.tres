@@ -12,3 +12,4 @@ frames = 4
 fps = 4.0
 foot = Vector2i(18, 69)
 density = 0.004
+shadow_rise = 8
