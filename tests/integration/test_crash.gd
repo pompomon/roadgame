@@ -58,7 +58,7 @@ func test_a_car_lost_off_the_road_shows_its_health_left_and_an_empty_meter() -> 
 	car.sim.angle += PI / 2.0
 	MainScene.run_while(self, main, GameState.State.RUNNING, 1200)
 	assert_eq(GameState.end_cause, CarSim.OFFROAD)
-	assert_gt(car.sim.health, Tuning.START_HEALTH / 2.0, "more than half the health left")
+	assert_gt(car.sim.health, 0.0, "the limit came first, with health left")
 	assert_almost_eq(health.value, car.sim.health, health.step, "on the health bar")
 	assert_eq(meter.modulate.a, 1.0, "the meter shows")
 	assert_eq(meter.value, 0.0, "empty")

@@ -146,7 +146,7 @@ func test_the_room_left_is_a_share_of_the_limit_of_the_area_driving_the_car() ->
 	_put_off_road(sim, 0)
 	_drive(sim, 0.5)
 	assert_eq(sim.state, CarSim.State.OFFROAD)
-	assert_gt(sim.offroad_dist, 0.5, "a quarter of the way")
+	assert_gt(sim.offroad_dist, 0.5, "far enough to tell a 4-tile limit from a 2-tile one")
 	assert_almost_eq(_rooms(sim)[-1], 1.0 - sim.offroad_dist / 4.0, 1e-6)
 
 
