@@ -20,13 +20,15 @@ static func _daylight(main: Node) -> Daylight:
 	return main.get_node("%Daylight")
 
 
-## Sets the clock of `main`'s zone to `hour`, with the light of that hour shown at once.
-static func _set_hour(main: Node, hour: float) -> void:
+## Sets the clock of `main`'s zone to `hour`, with the light of that hour shown at once. A clock
+## that no zone has started stands at the start hour, so this checks that it moved (N26).
+func _set_hour(main: Node, hour: float) -> void:
 	var daylight := _daylight(main)
 	var cycle := daylight.cycle
 	cycle.seconds = fposmod(hour - cycle.start_hour, 24.0) / 24.0 * cycle.day_seconds
 	cycle.snap()
 	daylight.refresh()
+	assert_almost_eq(cycle.hour(), hour, 1e-9, "the zone's clock is at %.1f" % hour)
 
 
 ## The largest change in a channel from `a` to `b`.
@@ -52,7 +54,7 @@ func _assert_still(main: Node, frames: int, when: String) -> void:
 
 
 func test_each_run_starts_at_once_in_the_morning() -> void:
-	# A new run is a cut, also after a night (N23).
+	# A new run is a cut, also after a night (N27, N28).
 	var main := MainScene.open(self, ["--seed=1"])
 	_assert_morning(main, "the first run")
 	MainScene.run_while(self, main, RUNNING, 3600)
@@ -67,7 +69,7 @@ func test_each_run_starts_at_once_in_the_morning() -> void:
 
 
 func test_the_light_follows_the_clock_while_the_car_drives() -> void:
-	# From 17:00, 600 frames are 10 s of the City's 120 s day: two hours, into the dusk (N22).
+	# From 17:00, 600 frames are 10 s of the City's 120 s day: two hours, into the dusk (N24).
 	var main := MainScene.open(self, ["--seed=1", "--autopilot", "--hour=17"])
 	var daylight := _daylight(main)
 	var camera: CameraRig = main.get_node("%Camera")
@@ -85,7 +87,7 @@ func test_the_light_follows_the_clock_while_the_car_drives() -> void:
 
 func test_each_new_zone_starts_its_clock_again() -> void:
 	# At 22:00 the car reaches Rural, as test_area_start.gd sends it: its clock starts at 07:00,
-	# and the light catches up with the morning's at the rate, without a jump (N22).
+	# and the light catches up with the morning's at the rate, without a jump (N26).
 	var main := MainScene.open(self, ["--seed=1", "--autopilot"])
 	var daylight := _daylight(main)
 	_set_hour(main, 22.0)
@@ -109,7 +111,7 @@ func test_each_new_zone_starts_its_clock_again() -> void:
 
 
 func test_the_clock_stops_when_the_run_ends_and_while_paused() -> void:
-	# simulate() steps a paused tree too, so here only the state can stop the clock (N21). The
+	# simulate() steps a paused tree too, so here only the state can stop the clock (N25). The
 	# engine doesn't step a paused tree: real frames.
 	var main := MainScene.open(self, ["--seed=1", "--hour=19"])
 	simulate(main, 60, MainScene.DELTA)
@@ -129,6 +131,8 @@ func test_the_clock_stops_when_the_run_ends_and_while_paused() -> void:
 
 
 func test_the_hour_argument_starts_every_zone_at_that_hour() -> void:
+	# Any finite hour, round the clock; anything else is an error, and zones start at 07:00 (N30,
+	# N31).
 	var hours: Dictionary[String, float] = {
 		"--hour=22": 22.0, "--hour=26": 2.0, "--hour=-1.5": 22.5
 	}
@@ -152,7 +156,7 @@ func test_the_hour_argument_starts_every_zone_at_that_hour() -> void:
 
 
 func test_at_night_the_disaster_plays_in_the_light_the_run_ended_in() -> void:
-	# The clock stops with the run, and the director gives the disaster its light (§5.6, N24).
+	# The clock stops with the run, and the director gives the disaster its light (§5.6, N29).
 	var main := MainScene.open(self, ["--seed=1", "--hour=22"])
 	var director: DisasterDirector = main.get_node("%Director")
 	MainScene.run_while(self, main, RUNNING, 3600)
@@ -169,7 +173,7 @@ func test_at_night_the_disaster_plays_in_the_light_the_run_ended_in() -> void:
 
 func test_the_light_changes_nothing_but_the_view() -> void:
 	# The same run by day and by night: the road, the car, the run and the sound end the same
-	# (§5.1). The first is freed before the second opens.
+	# (§5.1, N33). The first is freed before the second opens.
 	var ends: Array[Dictionary] = []
 	for hour: String in ["--hour=7", "--hour=19"]:
 		var main := MainScene.open(self, ["--seed=1", "--autopilot", hour])
@@ -196,7 +200,7 @@ func test_the_light_changes_nothing_but_the_view() -> void:
 
 func test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui() -> void:
 	# Once seed 1's disaster shows, at night: nothing in World but a glow draws above the night's
-	# veil, and a legend's veil draws at its z, since two multiplies commute (§5.5, P1, N26). The
+	# veil, and a legend's veil draws at its z, since two multiplies commute (§5.5, P1, N32). The
 	# set pieces are checked under World's SetPieces. The HUD and the menus are on the UI's layer.
 	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--seed=1", "--hour=22"])

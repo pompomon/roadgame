@@ -24,7 +24,7 @@ static func _show_hour(daylight: Daylight, hour: float) -> void:
 
 
 func test_by_day_the_veil_is_transparent_and_by_night_it_shows_the_light() -> void:
-	# At each key hour, and halfway to the next.
+	# At each key hour, and halfway to the next (N35).
 	var daylight := _daylight()
 	var keys := Tuning.LIGHT_HOURS
 	var days := 0
@@ -46,7 +46,7 @@ func test_by_day_the_veil_is_transparent_and_by_night_it_shows_the_light() -> vo
 
 func test_in_the_games_frames_the_veil_follows_the_view_of_the_same_frame() -> void:
 	# main.tscn steps Daylight after the camera, but its priority alone must do: here it enters the
-	# tree first, so the tree's order would step it a frame late. Real frames (N20).
+	# tree first, so the tree's order would step it a frame late. Real frames (N23).
 	var daylight := _daylight()
 	var camera := Disasters.camera(self)
 	daylight.camera = camera
@@ -70,7 +70,8 @@ func test_in_the_games_frames_the_veil_follows_the_view_of_the_same_frame() -> v
 
 
 func test_daylight_is_never_redrawn() -> void:
-	# Each redraw of a Polygon2D after its first raises WebGL errors on the Web (M2_PLAN.md §5.7).
+	# Each redraw of a Polygon2D after its first raises WebGL errors on the Web (M2_PLAN.md §5.7,
+	# N34).
 	# Over a day, a tenth of an hour each frame, it shows, changes its light at dusk and dawn, and
 	# hides again, by its modulates alone. Headless, a frame sleeps as if it had drawn nothing: not
 	# here.
