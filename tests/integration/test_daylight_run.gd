@@ -69,6 +69,26 @@ func test_each_run_starts_at_once_in_the_morning() -> void:
 	_assert_morning(main, "the retry")
 
 
+func test_the_title_keeps_the_night_and_play_starts_the_morning() -> void:
+	# Game over at night, then Title: behind the title the clock and the light stay as the run left
+	# them, and Play starts the next run in the morning at once (N104, N105).
+	var main := MainScene.open(self, ["--seed=1"])
+	MainScene.run_while(self, main, RUNNING, 3600)
+	_set_hour(main, 22.0)
+	MainScene.run_while(self, main, DISASTER, 600)
+	assert_eq(GameState.state, GAME_OVER)
+	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
+	assert_eq(GameState.state, GameState.State.TITLE, "on the title")
+	_assert_still(main, 120, "behind the title")
+	var daylight := _daylight(main)
+	assert_almost_eq(daylight.cycle.hour(), 22.0, 1e-9, "the night's hour")
+	assert_eq(daylight.cycle.light, Tuning.LIGHT_NIGHT, "the night's light")
+	assert_eq(daylight.modulate.a, 1.0, "under the night's veil")
+	(main.get_node("%Title/%Play") as Button).pressed.emit()
+	assert_eq(GameState.state, RUNNING, "played")
+	_assert_morning(main, "the run from the title")
+
+
 func test_the_light_follows_the_clock_while_the_car_drives() -> void:
 	# From 17:00, 600 frames are 10 s of the City's 120 s day: two hours, into the dusk (N24).
 	var main := MainScene.open(self, ["--seed=1", "--autopilot", "--hour=17"])
