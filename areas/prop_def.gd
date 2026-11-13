@@ -21,6 +21,11 @@ enum Shadow { UPRIGHT, WALL, NONE }
 @export_range(0.0, 30.0, 0.5) var fps := 0.0
 ## The pixel of a frame that stands on the ground, from the frame's top left.
 @export var foot := Vector2i()
+## Where it gives light at night (DAYNIGHT_PLAN.md §5.12), in pixels from its foot: boxes that a
+## glow fills, such as a lamp's head or a lit window, and boxes of the ground that its light falls
+## on, which glow more faintly.
+@export var lights: Array[Rect2] = []
+@export var light_pools: Array[Rect2] = []
 ## The chance that a ground cell beside the road shows it.
 @export_range(0.0, 1.0, 0.001) var density := 0.0
 @export var shadow := Shadow.UPRIGHT

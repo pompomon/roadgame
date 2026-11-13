@@ -63,6 +63,7 @@ var _scatter: PropScatter
 @onready var _shadows: Shadows = %Shadows
 @onready var _road: TileMapLayer = %RoadLayer
 @onready var _set_pieces: Node2D = %SetPieces
+@onready var _lamps: Lamps = %Lamps
 
 
 func _physics_process(_delta: float) -> void:
@@ -109,6 +110,7 @@ func bind(buffer: RoadBuffer) -> void:
 	buffer.tiles_generated.connect(_on_tiles_generated)
 	buffer.tiles_freed.connect(_on_tiles_freed)
 	_on_tiles_generated(buffer.tiles())
+	_scatter.lamps = _lamps
 	_scatter.bind(buffer)
 
 
@@ -123,6 +125,7 @@ func _process(delta: float) -> void:
 	_shadows.refresh(cycle, car as CarController)
 	if _scatter != null:
 		_scatter.update(delta)
+	_lamps.refresh(cycle)
 
 
 ## The props beside the road, or null before build().

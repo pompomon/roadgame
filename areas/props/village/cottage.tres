@@ -9,5 +9,6 @@ id = &"cottage"
 texture = ExtResource("2_sheet")
 region = Rect2i(37, 0, 28, 31)
 foot = Vector2i(14, 30)
+lights = Array[Rect2]([Rect2(5, -16, 7, 9)])
 density = 0.008
 shadow_rise = 6

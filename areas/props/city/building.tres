@@ -9,5 +9,6 @@ id = &"building"
 texture = ExtResource("2_sheet")
 region = Rect2i(0, 0, 42, 58)
 foot = Vector2i(21, 57)
+lights = Array[Rect2]([Rect2(-8, -31, 7, 9), Rect2(-14, -18, 7, 9), Rect2(-14, -42, 7, 9), Rect2(-20, -29, 7, 9), Rect2(2, -23, 7, 9), Rect2(8, -34, 7, 9), Rect2(14, -21, 7, 9), Rect2(14, -45, 7, 9)])
 density = 0.01
 shadow_rise = 10
