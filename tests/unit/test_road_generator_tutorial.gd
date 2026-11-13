@@ -1,10 +1,10 @@
 extends GutTest
 ## The tutorial's road over many seeds (TUTORIAL_PLAN.md §5.1): its junctions are T-junctions whose
-## wrong exits loop round to the junction two on, each loop tile belongs to the nearer end, a loop
-## turns no sooner than the path does, no road touches a loop's side, and a loop stays within
-## DEAD_END_MAX_TILES rows of the junction that frees it, as a dead end does. After end_tutorial(),
-## the group's last junctions close their loops, and the road goes on as the seed's road does from
-## its first junction, with the schedule counted from the turn base (§5.5).
+## wrong exits loop round to the junction two on, each loop tile belongs to the nearer end and is of
+## its area, a loop turns no sooner than the path does, no road touches a loop's side, and a loop
+## stays within DEAD_END_MAX_TILES rows of the junction that frees it, as a dead end does. After
+## end_tutorial(), the group's last junctions close their loops, and the road goes on as the seed's
+## road does from its first junction, with the schedule counted from the turn base (§5.5).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 100
@@ -148,6 +148,10 @@ func _check_loop(gen: RoadGenerator, start: RoadTile, end: RoadTile, label: Stri
 			or tile.branch_exit != Heading.opposite(owner.expected_exit)
 		):
 			fail_test(name + ": its tile %d doesn't belong to the nearer end" % k)
+			return
+		# The road sheet and the props come from the tile's area: the tutorial is the City's road.
+		if tile.area_id != owner.area_id:
+			fail_test(name + ": its tile %d isn't of its junction's area" % k)
 			return
 		for h: int in Heading.VEC.size():
 			var touches := not gen.occupancy.is_free(tile.cell + Heading.VEC[h])

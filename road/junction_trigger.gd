@@ -62,9 +62,10 @@ func on_cell_crossed(from_cell: Vector2i, to_cell: Vector2i, on_road: bool) -> v
 			_lose()
 		elif next_junction == null:
 			next_junction = _junction_after(from.path_index)
-	elif from != null and not on_path and junction != null:
+	elif not on_path and junction != null:
 		# Only a tutorial's loop leads from a branch to a path tile past its own junction, so only
-		# the road just after the tutorial can come here (TUTORIAL_PLAN.md §5.5).
+		# the road just after the tutorial can come here (TUTORIAL_PLAN.md §5.5). A car is on the
+		# road at a crossing only within a road tile, so `from` is one.
 		if to.path_index >= junction.path_index:
 			_fail(-1)
 
@@ -76,8 +77,6 @@ func on_cell_crossed(from_cell: Vector2i, to_cell: Vector2i, on_road: bool) -> v
 func on_rejoin(tile: RoadTile) -> void:
 	if tutorial and next_junction != null and tile.path_index < 0:
 		_lose()
-	if tutorial and next_junction == null:
-		return
 	while next_junction != null:
 		var index := next_junction.path_index
 		if tile.junction_index == index:
