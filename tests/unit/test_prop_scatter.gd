@@ -74,6 +74,21 @@ func test_the_rows_below_the_start_show_first_and_the_roads_rows_with_it() -> vo
 	assert_eq(scatter.pool.made, _shown(scatter))
 
 
+func test_the_rows_below_the_start_show_the_area_the_road_starts_in() -> void:
+	# The world scatters the whole schedule's props, and a run can start in any of its areas
+	# (ZONE_SELECT_PLAN.md Z3): the rows below a Desert start, after a City run, show the Desert's
+	# props, as a scatter of the Desert's schedule alone shows them.
+	var schedule := Fixtures.schedule()
+	var desert := schedule.starting_at(&"desert")
+	var scatter := PropScatter.new(_layer, schedule)
+	scatter.bind(_buffer(1, schedule))
+	scatter.bind(_buffer(1, desert))
+	var alone := PropScatter.new(add_child_autofree(Node2D.new()), desert)
+	alone.bind(_buffer(1, desert))
+	assert_gt(_shown(scatter), 0, "the desert's props")
+	assert_eq(_described(scatter), _described(alone))
+
+
 func test_rows_show_props_ahead_of_the_car_and_lose_them_with_their_path_tile() -> void:
 	var schedule := Fixtures.schedule()
 	var scatter := PropScatter.new(_layer, schedule)

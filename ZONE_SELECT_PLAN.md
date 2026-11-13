@@ -1,14 +1,16 @@
 # Zone Selection: Choosing the Start Area on a Phone — Detailed Plan
 
-Status: plan, in review. This plan's PR comes first, and one implementation PR follows it (§4) · 2026-11-13 · Q1–Q6 wait for the owner, and their defaults apply until the owner answers (§3) · Scope: an option on the title screen of debug builds that chooses the area a run starts in, so that each area can be checked on a phone without driving to it. The game calls zones *areas*: the City, Rural, Meadows, the Village and the Desert. This plan calls the work ZS. It comes after RG (#54–#57) and before M7.
+Status: the plan is merged (#60), and PR 1, which implements it, is in review (§4) · 2026-11-13 · Q1–Q6 had no answers when #60 landed, so PR 1 follows their defaults; the owner may still answer them (§3) · Scope: an option on the title screen of debug builds that chooses the area a run starts in, so that each area can be checked on a phone without driving to it. The game calls zones *areas*: the City, Rural, Meadows, the Village and the Desert. This plan calls the work ZS. It comes after RG (#54–#57) and before M7.
 
 The owner asked: "Explore the codebase and create a detailed implementation plan for a 'zone selection' start option, for manual testing on phone."
 
 **Verified locally.** Every file that this plan changes was first built on branch `zs/prototype`, on top of `main` (1047e17), as one commit, d4300a8 (§4.1). It passed the five checks with Godot 4.7.2 (§6.1). Each of its 12 negative cases made the tests it names fail, in a run of the whole suite (§6.2), and the editor's warnings didn't change (§6.3). Probes settled how Android's back button meets a dropdown and how wide each text is, and a throwaway test timed each area's first legend, also on the seeds with the most decoys (§6.5). Not done yet: the release builds' default, which only a release build shows (§6.4), and the Fold4 (§7). A model of another family, gpt-6.1-sol, reviewed this plan and the prototype (`AGENTS.md` §7). Its one finding, that decoys can put a legend off past E8's 9 s, changed E8, P4 and §7, not the code (§4.6).
 
+**PR 1.** It ported the prototype, and passed the same checks with the same counts. The same model then reviewed PR 1's diff, and found two tests weaker than §5.4 says, which PR 1 fixes; each fix has a negative case, N13 and N14 (§4.6, §6.2). PR 1's head then passed the checks again, with one more assert. Its 14 negative cases failed the tests they name, and its warnings were the prototype's (§6.1–§6.3). Its release Web build showed `main`'s title, with no Start button, in Chrome and Firefox (§6.4). Not done yet: the Fold4 (§7).
+
 - Godot 4.7.2-stable
 - GUT 9.7.1
-- gdtoolkit 4.5.0 on Python 3.12.3. shellcheck isn't installed locally, so `lint.sh` skipped it; no shell script changes
+- gdtoolkit 4.5.0 on Python 3.12.3. shellcheck isn't installed locally, so `lint.sh` skipped it; no shell script changes. PR 1's checks ran with shellcheck 0.9.0
 - git 2.51.1
 
 **Precedence.** For ZS, this document replaces M4_PLAN.md Q6's way of checking each area on the Fold4 (the Web build in the phone's Chrome over `adb reverse`, with `?arg=--area=<id>` in a patched `index.html`), wherever it marks a difference with **Δ** and its finding (Z#, §2). `--area` stays as M4 K10 and Q5 made it. IP and `plan.md` don't change: players never see the option (Z4), and a run still starts in the City (`plan.md`:26).
@@ -111,8 +113,8 @@ ZS is small: one implementation PR, after this plan's PR. Branches and commits f
 
 | PR | Branch | Base | What |
 |---|---|---|---|
-| Plan | `zs/plan` | `main` | This document only |
-| 1 | `zs/1-start-area` | `zs/plan` | The Start button, the world for every area, and their tests (§5) |
+| Plan | `zs/plan` | `main` | This document only: #60, merged as fba6034 |
+| 1 | `zs/1-start-area` | `main`, since #60 had landed (§4.5); planned on `zs/plan` | The Start button, the world for every area, and their tests (§5) |
 
 ### 4.1 Porting from the prototype
 
@@ -126,6 +128,8 @@ git commit    # ui: choose the start area on the title in debug builds (ZS PR 1)
 ```
 
 If `main` has moved, merge it into `zs/plan` first and apply with `--3way`; then run §6.1's checks again, since the counts may change. PR 1 also adds `AGENTS.md` §6's line (E9, §5.5), which the prototype doesn't need.
+
+As it happened, #60 had landed as fba6034 when PR 1 began. That commit's parent is 1047e17, and it adds only this plan, so PR 1's branch started from `origin/main`, and the difference applied as it is, without `--3way`.
 
 ### PR 1: The title chooses the start area in debug builds **Δ M4 Q6; Z1–Z9**
 
@@ -148,7 +152,7 @@ Steps:
 6. Check the Web build of a dispatch run with `upload-builds`: it's a release export, so its title must look as `main`'s does (§6.4).
 7. Watch Copilot's reviews with `tools/agent/watch_pr.sh` (`AGENTS.md` §8, §9).
 
-Expected: 142 scripts loaded; 65 test scripts, 480 tests, 422,822 asserts; `smoke.sh` prints `main`'s lines (§6.1).
+Expected: 142 scripts loaded; 65 test scripts, 480 tests, 422,822 asserts; `smoke.sh` prints `main`'s lines (§6.1). After the review's fix (§4.6, 3), 422,823 asserts.
 
 Acceptance: E1–E7 and E9 on the PR, and E8 by the owner (§7).
 
@@ -160,11 +164,15 @@ Acceptance: E1–E7 and E9 on the PR, and E8 by the owner (§7).
 
 Until the plan PR lands, PR 1 doesn't change this plan, so the merge of `main` has no add/add conflict (`AGENTS.md` §5): the plan's status and §4.6 change on `zs/plan`, and merge up into PR 1. After that they change on PR 1's branch, which can carry the final sync, as M2's PR 4 did.
 
+As it happened, the owner merged #60 before PR 1 began, so steps 1 and 2 were done: PR 1 started from `main`, targets it, and carries this plan's sync.
+
 ### 4.6 Review fixes
 
 | # | Review | Finding | Fix |
 |---|---|---|---|
 | 1 | Internal review by gpt-6.1-sol (`AGENTS.md` §7) of this plan and d4300a8 | E8 expected each legend "within about 9 s", but P4 timed seeds 1–10 only. Decoys put the legend off: the Desert's seed 2277 has 5 before its first turn, at path tile 42 | Confirmed: that run's legend ends 17.3 s after Play. P4 now gives how often each area's runs start with a decoy, and times each area's worst seed of 1–3000; E8 and §7 give the times as a guide, not a limit. The generator doesn't change, so each seed keeps its road (Z6). No code changed |
+| 2 | Internal review by gpt-6.1-sol of PR 1's f0ace53 | `test_area_start.gd`'s `_prop_sheets()` took each sprite's own `visible`, so a hidden World or Props layer still showed the area's props (E4) | Confirmed: N13, `_show_title()` hiding World, which no run from the title shows again, failed no test. The helper now takes `is_visible_in_tree()` (6d9dd2b), and N13 fails E3's test and `--area`'s preset test |
+| 3 | The same review | `test_the_title_page_fits_a_portrait_screen_with_each_start_area` compared the button's width with its current minimum, so a minimum fitted to each text, which Z9 rules out, passed (E6) | Confirmed: N14, `open()` setting the minimum width to the text's, failed no test. The test now also checks that the button has one width for every area (6d9dd2b), and N14 fails it. One more assert |
 
 ---
 
@@ -256,14 +264,14 @@ With the world built from the whole schedule, `WorldRenderer` makes the road til
 |---|---|---|
 | `test_title_screen.gd`: `test_the_start_button_shows_in_debug_builds_only` | `area_choice` defaults to `OS.is_debug_build()`; `open()` shows the button with it and hides it without; the text names the schedule's first area; Play keeps the focus | Z4 |
 | `test_title_screen.gd`: `test_the_start_button_steps_through_the_areas_and_open_keeps_the_last` | 6 taps step Rural, Meadows, Village, Desert, City, Rural; no `play_requested`; `close()` and `open()` keep the choice; an `AreaDef` that the schedule lacks becomes the City | Z1, Z6 |
-| `test_title_screen.gd`: `test_the_title_page_fits_a_portrait_screen_with_each_start_area` | At 360 × 640, with each area chosen and a long best, every visible control is on screen, and the button is 240 px wide | Z9 |
+| `test_title_screen.gd`: `test_the_title_page_fits_a_portrait_screen_with_each_start_area` | At 360 × 640, with each area chosen and a long best, every visible control is on screen, and the button keeps one width, its minimum of 240 px, which no text widens | Z9 |
 | `test_area_start.gd`: `test_the_title_starts_the_runs_in_the_chosen_area_as_the_area_argument_does` | Taps, as a phone sends them, choose the Desert and play. The car, `GameState.area_id` and the banner say Desert, and only the Desert's props show. Retry keeps the area and the forced seed's road. After game over the title keeps the choice, and one more tap then starts in the City, with the City's props. The Desert's road equals `--seed=1 --area=desert`'s | Z2, Z3, Z6 |
 | `test_area_start.gd`: `test_the_area_argument_presets_the_choice_and_the_world_has_every_area` | `--area=village` shows "Start in: Village"; two taps reach the City, whose run has the City's banner and props | Z2, Z6 |
 | `test_area_start.gd`: `test_a_hidden_start_button_leaves_the_run_to_the_area_argument` | With `area_choice` false and a choice left from before, Enter plays in the City, or in the Village with `--area=village` | Z4, Z6 |
 | `test_prop_scatter.gd`: `test_the_rows_below_the_start_show_the_area_the_road_starts_in` | A scatter of the whole schedule, bound to a City road and then a Desert one, shows what a scatter of the Desert's schedule alone shows | Z3 |
 | `test_smoke.gd`: `test_main_scene_text_has_every_glyph_in_the_default_font` | Also `START_TEXT` with each area's name | Z8 |
 
-The integration tests open the main scene without `--play` (`MainScene.open(self, args, false)`), set `area_choice` to true, as a debug build has it, and tap the buttons' centres with touch events. `_prop_sheets()` lists the textures of the visible sprites on World's Props layer: each area's props have their own sheet (`assets/<area>/props.png`).
+The integration tests open the main scene without `--play` (`MainScene.open(self, args, false)`), set `area_choice` to true, as a debug build has it, and tap the buttons' centres with touch events. `_prop_sheets()` lists the textures of the sprites on World's Props layer that are visible in the tree, so a hidden World or layer shows none: each area's props have their own sheet (`assets/<area>/props.png`).
 
 ### 5.5 Documents and comments
 
@@ -278,22 +286,22 @@ The integration tests open the main scene without `--play` (`MainScene.open(self
 
 ### 6.1 Checks and counts
 
-Run from the repository root with Godot 4.7.2 (`AGENTS.md` §4), on `main` and on the prototype:
+Run from the repository root with Godot 4.7.2 (`AGENTS.md` §4), on `main`, on the prototype and on PR 1's code (6d9dd2b; the commits after it change only documents):
 
-| Check | `main` (1047e17) | Prototype (d4300a8) |
-|---|---|---|
-| `lint.sh` | Exit 0 (shellcheck skipped) | Exit 0 |
-| `import.sh` | Exit 0 | Exit 0 |
-| `check_scripts.sh` | 142 scripts loaded | 142 (no new scripts, so no new `.uid` files) |
-| `run_tests.sh` | 65 scripts, 473 tests, 422,730 asserts, 86.8 s | 65 scripts, 480 tests, 422,822 asserts, 94.3 s |
-| `smoke.sh` | `grey box: tilesets built in 1 ms`; `autopilot: tile 165, turns 35, area rural` | The same |
-| `git status --porcelain` | Empty | Empty |
+| Check | `main` (1047e17) | Prototype (d4300a8) | PR 1 (6d9dd2b) |
+|---|---|---|---|
+| `lint.sh` | Exit 0 (shellcheck skipped) | Exit 0 | Exit 0, with shellcheck 0.9.0 |
+| `import.sh` | Exit 0 | Exit 0 | Exit 0 |
+| `check_scripts.sh` | 142 scripts loaded | 142 (no new scripts, so no new `.uid` files) | 142 |
+| `run_tests.sh` | 65 scripts, 473 tests, 422,730 asserts, 86.8 s | 65 scripts, 480 tests, 422,822 asserts, 94.3 s | 65 scripts, 480 tests, 422,823 asserts (§4.6, 3), 63.5 s |
+| `smoke.sh` | `grey box: tilesets built in 1 ms`; `autopilot: tile 165, turns 35, area rural` | The same | The same autopilot line; `tilesets built in 0 ms`, which varies by machine |
+| `git status --porcelain` | Empty | Empty | Empty |
 
-Per script on the prototype: `test_title_screen.gd` 9 tests (+3), 198 asserts; `test_area_start.gd` 9 tests (+3), 56 asserts, 4.9 s; `test_prop_scatter.gd` 8 tests (+1); `test_smoke.gd` 3 tests (one changed). GUT's time varies by several seconds from run to run.
+Per script on the prototype: `test_title_screen.gd` 9 tests (+3), 198 asserts; `test_area_start.gd` 9 tests (+3), 56 asserts, 4.9 s; `test_prop_scatter.gd` 8 tests (+1); `test_smoke.gd` 3 tests (one changed). PR 1 has the same tests, and one more assert in `test_title_screen.gd`. GUT's time varies by several seconds from run to run.
 
 ### 6.2 Negative cases
 
-Each case changes the prototype for a moment, runs the whole suite, and must fail the tests named; every other test must pass. A script, not committed, applies each change, runs GUT on all 65 scripts and restores the file. On d4300a8, all 12 failed exactly the tests below, and no others. Run them again on PR 1's head.
+Each case changes the prototype for a moment, runs the whole suite, and must fail the tests named; every other test must pass. A script, not committed, applies each change, runs GUT on all 65 scripts and restores the file. On d4300a8, all 12 failed exactly the tests below, and no others, and so they did on PR 1's f0ace53. N13 and N14 come from PR 1's review (§4.6): on f0ace53 they failed no test. On 6d9dd2b, which makes the two tests stricter, all 14 failed exactly the tests below.
 
 | # | Change | Tests that fail |
 |---|---|---|
@@ -309,15 +317,17 @@ Each case changes the prototype for a moment, runs the whole suite, and must fai
 | N10 | `START_TEXT` has an arrow, "Start in → %s" | `test_smoke.gd`: `test_main_scene_text_has_every_glyph_in_the_default_font`; and, since the text itself changes, the 5 tests that compare it: `test_title_screen.gd`'s 3 new ones, and `test_area_start.gd`: `test_the_title_starts_the_runs_in_the_chosen_area_as_the_area_argument_does`, `test_the_area_argument_presets_the_choice_and_the_world_has_every_area` |
 | N11 | The steps stop at the Desert instead of wrapping (`mini(find + 1, size - 1)`) | `test_title_screen.gd`: `test_the_start_button_steps_through_the_areas_and_open_keeps_the_last`; `test_area_start.gd`: `test_the_title_starts_the_runs_in_the_chosen_area_as_the_area_argument_does`, `test_the_area_argument_presets_the_choice_and_the_world_has_every_area` |
 | N12 | `open()` always resets the choice to the first area | The same as N11 |
+| N13 | `_show_title()` hides World, and no run from the title shows it again (§4.6, 2) | `test_area_start.gd`: `test_the_title_starts_the_runs_in_the_chosen_area_as_the_area_argument_does`, `test_the_area_argument_presets_the_choice_and_the_world_has_every_area` |
+| N14 | `open()` sets the button's minimum width to its text's: `_start.custom_minimum_size.x = _start.get_minimum_size().x` (§4.6, 3) | `test_title_screen.gd`: `test_the_title_page_fits_a_portrait_screen_with_each_start_area` |
 
 ### 6.3 Editor warnings
 
-The editor warns about more than CI does (M2 §6.3). A temporary `override.cfg` in the project root, which Godot reads at start, raised the 37 `debug/gdscript/warnings/*` settings at level 1 (warn) to 2 (error), and `check_scripts.sh` ran on `main` and on the prototype. Both reported the same 5: `INTEGER_DIVISION` in `world/greybox_atlas.gd`, `ui/main.gd`, `tests/unit/test_greybox_atlas.gd` and `tests/unit/test_iso.gd`, and `UNUSED_VARIABLE` (`junctions`) in `tests/unit/test_road_generator_occupancy.gd`. None is on a line that PR 1 changes. With those two warnings left at 1, both trees loaded all 142 scripts with none. The file was then removed.
+The editor warns about more than CI does (M2 §6.3). A temporary `override.cfg` in the project root, which Godot reads at start, raised the 37 `debug/gdscript/warnings/*` settings at level 1 (warn) to 2 (error), and `check_scripts.sh` ran on `main` and on the prototype. Both reported the same 5: `INTEGER_DIVISION` in `world/greybox_atlas.gd`, `ui/main.gd`, `tests/unit/test_greybox_atlas.gd` and `tests/unit/test_iso.gd`, and `UNUSED_VARIABLE` (`junctions`) in `tests/unit/test_road_generator_occupancy.gd`. None is on a line that PR 1 changes. With those two warnings left at 1, both trees loaded all 142 scripts with none. The file was then removed. PR 1's f0ace53 and 6d9dd2b gave the same 5, at the same lines (`ui/main.gd`:52, `main`'s :46), and none with those two at 1.
 
 ### 6.4 Verified only in CI or on devices
 
-- **CI.** The five required checks on PR 1's head, with §6.1's counts; `test`'s time.
-- **The release default** (E1). GUT runs a debug build, so `OS.is_debug_build()` is never false there. CI's Web build is a release export (`ci.yml`:76): from a dispatch run with `upload-builds`, serve it with `python3 -m http.server` and open it in Chrome and Firefox with Playwright under Xvfb, as #28 did. Its title must show Play, Atlas, Disasters and Settings and no Start button, laid out as `main`'s build lays them out: compare screenshots of both at 360 × 640.
+- **CI.** The five required checks on PR 1's head, with §6.1's counts; `test`'s time. The dispatch run 43352712023 of 6d9dd2b passed them all: `test` took 2 min 15 s, with 142 scripts, 480 tests, 422,823 asserts and `main`'s smoke line.
+- **The release default** (E1). GUT runs a debug build, so `OS.is_debug_build()` is never false there. CI's Web build is a release export (`ci.yml`:76): from a dispatch run with `upload-builds`, serve it with `python3 -m http.server` and open it in Chrome and Firefox with Playwright under Xvfb, as #28 did. Its title must show Play, Atlas, Disasters and Settings and no Start button, laid out as `main`'s build lays them out: compare screenshots of both at 360 × 640. Done for PR 1 with dispatch run 43352712023 of 6d9dd2b, against `main`'s run 43293662593 of 1047e17. In Chrome 157 and Firefox 159, the title showed the four buttons and no Start button, and its screenshot matched `main`'s in every pixel. Enter played a City run in both builds. The consoles had no errors. Chrome logged its 4 `GPU stall due to ReadPixels` notes for both builds and, for PR 1's only, a `CONTEXT_LOST_WEBGL` before Godot started, as M4's builds did in 5 of 9 sessions on software GL (M4_PLAN.md:730). Firefox logged its deprecation of WebAssembly's `try` for both.
 - **The debug APK** (E8). CI exports it as debug (`ci.yml`:113), so the button shows. The owner checks it on the Fold4 (§7).
 - **Touch.** The integration tests tap with touch events at the buttons' centres, as `MainScene.push()` sends them; a finger's tap and the phone's hit areas need the device.
 
