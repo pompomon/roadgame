@@ -1,6 +1,6 @@
 # Day and Night: Sun and Moon Light in the Zones — Detailed Plan
 
-Status: the owner answered Q4 and Q5 and kept the other defaults (§3); the five PRs are open for review · 2026-11-13 · Step 0 and the internal reviews done (§4.1, §4.6, §6) · Scope: a light that follows the sun and the moon through a 24-hour day in each zone, with the clock reset as the car enters each zone; the shadows that the sun and the moon cast; lamps and windows that glow at night; visual only. This plan calls the work DN. It comes after RG (#54–#57), ZS (#60, #61) and TUT (#65–#68), and doesn't depend on M7 (Ship), which may land before or after it (§4.5).
+Status: the owner answered Q4 and Q5 and kept the other defaults (§3); the five PRs are in review · 2026-11-13 · Step 0 and the internal reviews done (§4.1, §4.6) · Scope: a light that follows the sun and the moon through a 24-hour day in each zone, with the clock reset as the car enters each zone; the shadows that the sun and the moon cast; lamps and windows that glow at night; visual only. This plan calls the work DN. It comes after RG (#54–#57), ZS (#60, #61) and TUT (#65–#68), and doesn't depend on M7 (Ship), which may land before or after it (§4.5).
 
 The owner asked: "create a detailed implementation plan for sun/moon light movement in the zones. Each zone resets the clock, and sunlight / moonlight cadence is zone-specific, starting with 2 minute for full 24h cycle in each zone. Sun/moon only affects visual part of the scene, audio remains separate. Current visuals could be used as the sunlight version without additional changes. The transition from sun to moon is gradual, not abrupt." On the first draft, which had three PRs: "Adjust the plan, Q4 implement shadows in pr4, Q5 glow lamps at night. Keep the rest of the default decisions and proceed with the implementation using stacked PRs".
 
@@ -95,7 +95,7 @@ Nothing in the game has a time of day, and the tools that Godot offers for one w
 | C5 | **Zones differ in length.** At 120 s a day the night begins 65 s into a zone. With the autopilot, the City lasts 56–61 s and ends at dusk, and the Village 33–46 s and ends by day; Rural and Meadows show the night, and the Desert is endless. So a run's first night comes in Rural, ≈ 122 s in | `areas/schedule.tres` (the City at turn 0, Rural 34, Meadows 100, the Village 200, the Desert 220); step 0's times over 20 seeds (§5.8) | `day_seconds` per zone, 120 s by default as asked. Q3 asks whether the City and the Village get shorter days |
 | C6 | **A reset would jump.** When the car enters a zone at 22:00, the clock goes back to 07:00. Showing the clock's light at once would turn the night into day in one frame: abrupt, against the request, and a 0.58 jump in red | §5.2's lights | The light shown follows the clock's light at no more than `LIGHT_MAX_RATE` (§5.3) |
 | C7 | **A short day would change fast.** At 30 s a day, dusk to night takes 1.9 s | §5.3 | The rate caps it. `validate()` reports days shorter than the rate can follow: just over 55.68 s with §5.2's keys (§5.3) |
-| C8 | **The clock after the run.** `main.gd` counts the distance only while the run is on (`_physics_process`, :92–94). If the clock ran on, the scene would change under game over and under a legend that took the light at its start | `ui/main.gd`:92–94; `disasters/disaster_director.gd`: `_start_disaster()` | The clock advances only while the run is on. The director takes the light when the run ends (§5.4, §5.6) |
+| C8 | **The clock after the run.** `main.gd` counts the distance only while the run is on. If the clock ran on, the scene would change under game over and under a legend that took the light at its start | `ui/main.gd`:92–94; `disasters/disaster_director.gd`: `_start_disaster()` | The clock advances only while the run is on. The director takes the light when the run ends (§5.4, §5.6) |
 | C9 | **The Web's Polygon2D bug.** In Godot 4.7.2 each redraw of a `Polygon2D` after its first raises WebGL errors (godotengine/godot#124726) | `AGENTS.md` §3; M6 S6, P2, P10 | Draw the veil once. Tint it by `self_modulate`, show it by `modulate.a`, move it by its position (§5.5) |
 | C10 | **Physics order.** The camera pans and shakes in its physics step, at priority 0. A veil that moves before it is a frame behind (M6 N41) | `disasters/legend.gd`:19; `tests/unit/test_legend.gd`:94 | Daylight steps at `ViewVeil.PHYSICS_PRIORITY`, 1, as the legends do (§5.5) |
 | C11 | **The veil is the legend's.** `Legend._made_veil()` and `_follow_camera()` are private. The name `Veil` is taken by Legend's enum | `disasters/legend.gd`:15, :126, :147 | `ViewVeil` in `world/` (PR 2). Legend and Daylight both use it (§5.5) |
@@ -157,13 +157,11 @@ Step 0 is done (§4.1). Five stacked PRs follow (`AGENTS.md` §5). Each passes t
 
 On `dn/prototype`, from `main` at 1047e17:
 1. **The constants' place.** In `config/tuning.gd`, PR 1's block after `CRASH_SHAKE_SECONDS` and PR 4's after it, both before `# The City's legends.`, the first of M6's per-area comments (M6_PLAN.md §5.10); PR 5's three after `PROP_BELOW`, with the props'. No name is taken, and none ends in `_HZ`, which `test_disasters.gd` checks.
-2. **The states.** Each PR's state was built and committed (the header's table), and the stack's branches hold the same files.
-3. **The checks.** The five checks pass on each PR's head, with a clean tree (§6.1).
-4. **The negative cases.** A script runs them (§6.2): 43 for the first draft's three PRs, 105 now. Its runs found five gaps, each now closed by a test: N5, a jump inside `enter()`, which the rate test didn't see (78cc8ae); N13 and N14, a veil that mixed or had a relative z (7e752bf); N26, a test helper that set no hour without `enter()` (7982976); and N81, the lamps lit by the group's `modulate`, which what it holds takes too (1e97dd7).
-5. **The probes.** P1–P4, P6 and P8–P11 ran (§6.5), the Web's in Chrome and Firefox. P5 needs the Fold4 (§6.4). P7, a test of the first draft's Q4 default, went with Q4's answer.
-6. **The measurements.** The autopilot's seconds in each zone, over 20 seeds (§5.8); the smoke's margins in each light (§5.7); the editor's warnings (§6.3); the frames' cost (C20).
-7. **The new `main`.** 257af7a merges ZS, where `--hour` went in after `--area`; 5c724ad #63; and c38f01c TUT, with `ui/main.gd`'s two conflicts resolved as TUTORIAL_PLAN.md §4.5 says, and 5e20b2d C21. The checks, the cases and the warnings ran again after each.
-8. **The internal reviews** (`AGENTS.md` §7), by gpt-6.1-sol (§4.6).
+2. **The checks.** The five checks pass on each PR's head, with a clean tree (§6.1).
+3. **The negative cases.** A script runs them (§6.2): 43 for the first draft's three PRs, 105 now. Its runs found five gaps, each now closed by a test: N5, a jump inside `enter()`, which the rate test didn't see (78cc8ae); N13 and N14, a veil that mixed or had a relative z (7e752bf); N26, a test helper that set no hour without `enter()` (7982976); and N81, the lamps lit by the group's `modulate`, which what it holds takes too (1e97dd7).
+4. **The probes.** P1–P4, P6 and P8–P11 ran (§6.5), the Web's in Chrome and Firefox. P5 needs the Fold4 (§6.4). P7, a test of the first draft's Q4 default, went with Q4's answer.
+5. **The new `main`.** 257af7a merges ZS, where `--hour` went in after `--area`; 5c724ad #63; and c38f01c TUT, with `ui/main.gd`'s two conflicts resolved as TUTORIAL_PLAN.md §4.5 says, and 5e20b2d C21. The checks, the cases and the warnings ran again after each.
+6. **The internal reviews** (`AGENTS.md` §7), by gpt-6.1-sol (§4.6).
 
 ### 4.2 PR 1 — The clock (`dn/1-cycle` → `dn/plan`)
 
@@ -236,7 +234,7 @@ Legends learn the light they play in, and the smoke's tests check every light. T
 | Area | Files | Change |
 |---|---|---|
 | Props | `areas/prop_def.gd` | `enum Shadow { UPRIGHT, WALL, NONE }`, `shadow` and `shadow_rise`, which `validate()` checks (C16) |
-| | `tools/art/make_props.gd`; 10 props' `.tres` | `SHADOWS`: the fences are walls, their base `WALL_RISE` (2) above the foot, and the flowers, the pond and the bones lie flat. A box casts from its footprint's centre, which `_box()` records. Each `.tres` gets the lines that differ from the defaults; the art doesn't change |
+| | `tools/art/make_props.gd`; 10 props' `.tres` | `SHADOWS`: the walls, the flat props and the boxes' centres (§5.11). Each `.tres` gets the lines that differ from the defaults; the art doesn't change |
 | Clock | `world/day_cycle.gd` | `shadow` and `shadow_alpha`, shown, which `snap()` and `advance()` set; `static shadow_at()` and `shadow_alpha_at()` (§5.11) |
 | Tuning | `config/tuning.gd` | `SUN_RISE_HOUR` to `SHADOW_ALPHA_RATE`, after PR 1's block |
 | Shadows | `world/shadows.gd`, `world/shadows.gdshader` (+ `.uid`s) | New `Shadows extends CanvasGroup` and its `Cast`: `add()`, `remove()`, `count()`, `refresh()`, `car_cast()`, `static laid()` and `reach()`. The shader lays a frame along `lay_x` and `lay_y` (§5.11) |
@@ -247,7 +245,7 @@ Legends learn the light they play in, and the smoke's tests check every light. T
 | Tests | `tests/unit/test_shadows.gd` (+ `.uid`) | 10 tests (below) |
 | | `tests/integration/test_shadows_run.gd` (+ `.uid`) | `test_the_props_and_the_car_cast_shadows_by_the_zones_clock`: at 09:00, World has Daylight's clock, the group its alpha, and the car's shadow lies under the car |
 | | `tests/unit/test_day_cycle.gd` | 5 tests (below) |
-| | `tests/unit/test_car_controller.gd` | `test_the_smoke_shows_in_a_shadow`: at both shadows' alphas, in each key light, over each background and through each cover, the smoke keeps `SMOKE_CONTRAST` × the luminance of the shadow's light (C22). The tunnel's covers come from `_tunnel_covers()` |
+| | `tests/unit/test_car_controller.gd` | `test_the_smoke_shows_in_a_shadow`: at both shadows' alphas, in each key light, over each background and through each cover, the smoke keeps `SMOKE_CONTRAST` × the luminance of the shadow's light (C22) |
 | | `test_prop_art.gd`, `test_prop_scatter.gd`, `test_world_renderer.gd` | `test_each_shadow_falls_from_where_its_prop_meets_the_ground`: the fences' posts stand on their base lines, and a box's side corners are level with its footprint's centre. `test_each_prop_casts_its_shadow_while_it_shows_in_its_frame`, on sparse props (C20). `test_the_shadows_follow_the_clock_and_the_props`; World's children with Shadows |
 | Docs | `plan.md`, `AGENTS.md` | **Δ** §5.2: the shadows; §7.1 and §7.2: Shadows. `AGENTS.md` §3: a rule for the shadows (§5.11) |
 
@@ -287,13 +285,13 @@ Legends learn the light they play in, and the smoke's tests check every light. T
 
 1. This plan's PR (#64, `dn/plan` → `main`), docs only, lands first.
 2. PR 1 targets `dn/plan`, as M6's first PR did `m6/plan` (#46), and each next PR the previous one's branch, so that each diff shows only its own files. Only PRs whose base is `main` are merged. After #64's squash, PR 1 merges `origin/dn/plan` and `origin/main`, and is retargeted to `main` before `dn/plan` is deleted: deleting `m6/plan` closed #46 (ROADGEN_PLAN.md:195). After each later squash, the next PR merges its base's final state and `main` (`AGENTS.md` §5).
-3. **Lines apart.** After a PR's squash, the next PR conflicts wherever its lines touch the lines that the squashed PR added. So in each file that neighbouring PRs both change, an unchanged line of `main` stands between their lines. In `tuning.gd`, PR 5's lines go with the props'; in `world_renderer.gd`, PR 4's are in `build()` and PR 5's in `bind()`; in `plan.md` and `AGENTS.md` too, so PR 5 notes Lamps after §7.1's tree: a line in it would change the Props line, next to PR 4's Shadows (C14). No PR changes a file that the PR before it adds, and only PR 5 changes this plan. Simulated with `git merge-tree`, the landing merges clean, squash by squash, and ends with `dn/5-lamps`'s tree.
+3. **Lines apart.** After a squash, the next PR conflicts where its lines touch the squashed PR's, so in each file that neighbouring PRs both change, a line of `main` stands between theirs. In `tuning.gd`, PR 5's lines go with the props'; in `world_renderer.gd`, PR 4's are in `build()` and PR 5's in `bind()`; in `plan.md` and `AGENTS.md` too, so PR 5 notes Lamps after §7.1's tree: a line in it would change the Props line, next to PR 4's Shadows (C14). No PR changes a file that the PR before it adds, and only PR 5 changes this plan. Simulated with `git merge-tree`, the landing merges clean, squash by squash, and ends with `dn/5-lamps`'s tree.
 4. A review fix goes on the branch of the PR that adds or changes the file, and is merged up (`AGENTS.md` §5).
 5. M7. Whichever lands first, the other merges `main` as usual, after `git merge-tree` shows the conflicts. Both may change `ui/main.gd`, `ui/main.tscn`, `config/tuning.gd`, `plan.md` and `AGENTS.md`, where DN's lines are in blocks of their own.
 
 ### 4.6 Review fixes
 
-The internal reviews (`AGENTS.md` §7) and the PRs' reviews add their fixes here, each with its tests and its negative case. gpt-6.1-sol reviewed the first draft and the prototype at 7982976 (seven findings, one declined, below), c9b65ed (two), PRs 4 and 5 at 1400a3e (three), the lamps' redesign at 5e8d4c8 (one), the code since then at 39be8d7 (one) and this plan (two). None was blocking, and the rest are fixed.
+The internal reviews (`AGENTS.md` §7) and the PRs' reviews add their fixes here, each with its tests and its negative case. gpt-6.1-sol reviewed the first draft and the prototype at 7982976 (seven findings, one declined, below), c9b65ed (two), PRs 4 and 5 at 1400a3e (three), the lamps' redesign at 5e8d4c8 (one), the code since then at 39be8d7 (one), this plan (two) and the PRs' docs (none). None was blocking, and the rest are fixed.
 
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
@@ -309,6 +307,7 @@ The internal reviews (`AGENTS.md` §7) and the PRs' reviews add their fixes here
 | 5 | Where two glows overlapped they added twice, past white. The lamps are now one group that adds (C18). Redesigned so, the group also holds the props' silhouettes, so that a lamp behind a building no longer lights its face (C19) | `test_the_lamps_draw_as_one_group_that_adds_over_the_veil`, `test_the_silhouettes_draw_in_the_order_props_draws_the_props` | N75–N80, N84 |
 | 5 | `_blends()` took the outermost group's material for every item under it, but Godot groups only what draws at the group's z, and nothing if it y-sorts (P10b). So a y-sorted Lamps, or a glow at another z, drew plain over the veil and passed. It now takes a group's material only for what the group holds | `test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui`, `test_the_lamps_draw_as_one_group_that_adds_over_the_veil` | N86–N88 |
 | Plan | E1 now says that after a reset the light shown takes 140 frames to catch up (E4), and §5.10 that its fallback would dim the phantom bus's lamps, so it breaks E8 and C2 | — | — |
+| Plan | §5.11 gave the shadow's length on the ground, 1 / tan(height), as its length on the screen. It now gives both ([#64](https://github.com/pompomon/roadgame/pull/64#discussion_r4568564611)) | — | — |
 
 Declined: `day_seconds = 120.0` in each area's `.tres`. Godot saves there only what differs from the script's default, so no area's sets `offroad_limit_tiles` either. A zone that Q3 changes gets its line.
 
@@ -469,12 +468,12 @@ With D seconds a day from 07:00, dusk begins 10/24 D into the zone, the night 13
 Q4's answer: the props and the car cast shadows that turn with the sun and the moon (PR 4, E15, E16).
 
 **The sky.** The sun is up from `SUN_RISE_HOUR`, 06:00, to `SUN_SET_HOUR`, 18:00, and the moon the rest of the day. Each rises on the screen's left, `SKY_RISE_ANGLE` (135° in tile space) being the way toward it, crosses the top of the screen at its highest, `SUN_HIGHEST` 60° and `MOON_HIGHEST` 45° above the ground, and sets on the right: its height is the highest × sin(π × the share of its time up). So a shadow falls to the right in the morning, toward the viewer at noon and to the left in the evening: always in front of what casts it, where it shows, never behind it.
-- `DayCycle.shadow_at(hour)` is where a pixel of height casts its shadow, in screen pixels from its foot: 1 / tan(height) long, at most `SHADOW_LONGEST`, 2.5, away from the light. At noon it is 0.58 times the height, at midnight 1.
+- `DayCycle.shadow_at(hour)` is where a pixel of height casts its shadow, in screen pixels from its foot. On the ground a shadow is 1 / tan(height) times as long as what casts it is tall, at most `SHADOW_LONGEST`, 2.5, away from the light. On the screen a tile of height stands `Iso.HEIGHT_PX` high, and `Iso.tile_to_world()` lays a tile of ground, so at noon a shadow falls straight down the screen, 0.33 pixels a pixel of height, at midnight 0.58, and sideways at most 2.89, `Shadows.FALL_MOST`.
 - `shadow_alpha_at(hour)` is `SUN_SHADOW_ALPHA`, 0.3, by day and `MOON_SHADOW_ALPHA`, 0.15, by night, × `smoothstep()` of the height from `SHADOW_FADE_FROM`, 3°, to `SHADOW_FADE_TO`, 20°. At 120 s a day the sun's shadows fade in from 06:11 to 07:18 and out from 16:42 to 17:49, and the moon's in from 18:15 to 19:46 and out from 04:14 to 05:45: the sun's are gone before the moon's come, at both ends of the night.
 - **Gradual.** `advance()` moves the shadow shown to the hour's while that moves no faster than `SHADOW_MAX_RATE`, 1.5 screen pixels a second per pixel of height, or while the alpha is 0: all day, and at the handovers, where both lights are on the ground. A shadow that would have to move faster, after a reset, turns toward the hour's while its alpha falls at `SHADOW_ALPHA_RATE`, 0.25 a second, jumps unseen at 0, and fades in again. In the least day the shadows shown follow the hour exactly (E16). `snap()` sets both at once.
 - **Nothing flashes.** The alpha changes by at most 0.25 a second, and turns only at fades, so a shadow darkens or lightens the ground by a tenth of white in no less than 0.4 s, as the light does. Shadows turn by half a turn in 12 hours of the clock.
 
-**What casts** (C16). `PropDef.shadow` is `UPRIGHT`, `WALL` or `NONE`, and `shadow_rise` the pixels above the foot that the shadow falls from. `make_props.gd` sets them: the fence is a wall whose base line is `WALL_RISE`, 2 px, above its foot; the flowers, the pond and the bones lie flat; a box falls from its footprint's centre, which `_box()` records; and the rest are upright from the foot. Ten props' `.tres` files get lines; the art doesn't change.
+**What casts** (C16). `PropDef.shadow` is `UPRIGHT`, `WALL` or `NONE`, and `shadow_rise` the pixels above the foot that the shadow falls from. `make_props.gd` sets them: the fence is a wall whose base line is `WALL_RISE`, 2 px, above its foot; the flowers, the pond and the bones lie flat; a box falls from its footprint's centre, which `_box()` records; and the rest are upright from the foot.
 - An upright prop's rows above that point lie on the ground: a texel h px above it lies at h × the clock's shadow, and its width across the shadow, so the shadow is as wide whichever way the light comes from. The frame's left stays on the left: the shadow is the frame turned down, never round (N44).
 - A wall's pixels each fall from the wall's base below them, so its shadow starts along its base line.
 - The car casts its body's frame, `body_frame()` of `body_texture()`, as an upright prop does, scaled and turned as the car is, and as clear as the car: a legend that fades the car fades its shadow (M6_PLAN.md §5.4). A hidden car casts none.
@@ -557,15 +556,15 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 | N23 | 3 | Daylight's `_ready()` doesn't set its priority | `in_the_games_frames_the_veil_follows_the_view_of_the_same_frame` |
 | N24 | 3 | Daylight's `_physics_process()` does nothing | `in_the_games_frames_the_veil_follows_the_view_of_the_same_frame`, `the_light_follows_the_clock_while_the_car_drives`, `each_new_zone_starts_its_clock_again` |
 | N25 | 3 | `main.gd` advances the clock in every state | `the_clock_stops_when_the_run_ends_and_while_paused`, `the_title_keeps_the_night_and_play_starts_the_morning` |
-| N26 | 3 | `_on_area_changed()` without `enter()` | `each_new_zone_starts_its_clock_again`, `the_title_keeps_the_night_and_play_starts_the_morning`, `each_run_starts_at_once_in_the_morning` |
+| N26 | 3 | `_on_area_changed()` without `enter()` | `each_new_zone_starts_its_clock_again`, `the_title_keeps_the_night_and_play_starts_the_morning`, `each_run_starts_at_once_in_the_morning`, `each_zone_runs_its_clock_at_its_own_pace`, `the_city_day_starts_at_the_switch` |
 | N27 | 3 | `_start_run()` without `snap()` | `each_run_starts_at_once_in_the_morning`, `the_title_keeps_the_night_and_play_starts_the_morning`, `the_hour_argument_starts_every_zone_at_that_hour` |
 | N28 | 3 | `_start_run()` without `refresh()` | `each_run_starts_at_once_in_the_morning`, `the_title_keeps_the_night_and_play_starts_the_morning` |
 | N29 | 3 | `play_disaster()` without the light | `at_night_the_disaster_plays_in_the_light_the_run_ended_in` |
-| N30 | 3 | `_ready()` doesn't set `start_hour` | `the_hour_argument_starts_every_zone_at_that_hour`, `at_night_the_disaster_plays_in_the_light_the_run_ended_in`, `the_light_follows_the_clock_while_the_car_drives` |
+| N30 | 3 | `_ready()` doesn't set `start_hour` | `the_hour_argument_starts_every_zone_at_that_hour`, `at_night_the_disaster_plays_in_the_light_the_run_ended_in`, `the_light_follows_the_clock_while_the_car_drives`, `each_zone_runs_its_clock_at_its_own_pace`, `the_city_day_starts_at_the_switch` |
 | N31 | 3 | `_parse_hour()` without `is_finite()` | `the_hour_argument_starts_every_zone_at_that_hour` |
 | N32 | 3 | Daylight at `VEIL_Z + 1` | `the_veil_darkens_the_world_but_not_the_glows_or_the_ui` |
 | N33 | 3 | `main.gd` lowers bus 0 by 6 dB while the light isn't white | `the_light_changes_nothing_but_the_view` |
-| N34 | 3 | Daylight's `shade()` sets `color` | `daylight_is_never_redrawn` |
+| N34 | 3 | Daylight's `shade()` sets `color` | `daylight_is_never_redrawn`, `none_redraws_a_polygon` |
 | N35 | 3 | Daylight's `shade()` never hides | `by_day_the_veil_is_transparent_and_by_night_it_shows_the_light`, `each_run_starts_at_once_in_the_morning`, `the_title_keeps_the_night_and_play_starts_the_morning`, `daylight_is_never_redrawn`, `the_hour_argument_starts_every_zone_at_that_hour` |
 | N36 | 1 | `enter()` checks only `p_day_seconds <= 0.0`, so NaN and INF pass | As N8 |
 | N37 | 1 | `validate()` names the least day to the hundredth, not rounded up: 55.68 | As N10 |
@@ -641,7 +640,7 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 
 ### 6.3 Editor warnings
 
-Only the editor warns about shadowing (M2_PLAN.md §6.3). A script asked the editor's language server (`godot --headless --editor --lsp-port`) for the warnings of every script outside `addons/`, on `main` and on each PR's head. Each has only `main`'s 5, none in DN's lines: four integer divisions, one in `ui/main.gd`:59 (:61 on PR 3, :62 on PRs 4 and 5), and an unused variable. A local `var seconds` in `DayCycle.snap()` made it report `SHADOWED_VARIABLE`, so it sees shadowing.
+Only the editor warns about shadowing (M2_PLAN.md §6.3). A script asked the editor's language server (`godot --headless --editor --lsp-port`) for the warnings of every script outside `addons/`, on `main` and on each PR's head. Each has only `main`'s 5, none in DN's lines: four integer divisions, one in `ui/main.gd`, and an unused variable. A local `var seconds` in `DayCycle.snap()` made it report `SHADOWED_VARIABLE`, so it sees shadowing.
 
 ### 6.4 CI, the Web and the Fold4
 
@@ -665,7 +664,7 @@ Only the editor warns about shadowing (M2_PLAN.md §6.3). A script asked the edi
   gh run download <run-id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk
   adb install -r /tmp/roadgame-apk/roadgame-debug.apk
   ```
-  Then, on the cover screen and unfolded: dusk about 50 s into the run, and in Rural the day back in about 2 s; the night about 2 minutes in, sooner from the title's "Start in: Rural" (debug builds, ZS), 65 s after Play. At night the road, its edges, the junctions and the car read (Q10), and so does a crash's smoke in a shadow (C22); the shadows turn smoothly; the lamps glow warm, never white; a legend looks right, and a game over keeps the night on the title (Q6); and the night plays as smoothly as the day (P5). If it doesn't, an APK with `debug/settings/stdout/print_fps` prints the frame rate to `adb logcat`. For the night at once, serve the Web copy above, run `adb reverse tcp:8000 tcp:8000`, and open http://localhost:8000/?arg=--hour=20 in the Fold4's Chrome.
+  Then, on the cover screen and unfolded: dusk about 50 s into the run, and in Rural the day back in about 2 s; the night about 2 minutes in, sooner from the title's "Start in: Rural" (debug builds, ZS), 65 s after Play. At night the road, its edges, the junctions and the car read (Q10), and so does a crash's smoke in a shadow (C22); the shadows turn smoothly; the lamps glow warm, never white; a legend looks right, and a game over keeps the night on the title (Q6); and the night plays as smoothly as the day (P5). If not, an APK with `debug/settings/stdout/print_fps` prints the frame rate to `adb logcat`. For the night at once, serve the Web copy above, run `adb reverse tcp:8000 tcp:8000`, and open http://localhost:8000/?arg=--hour=20 in the Fold4's Chrome.
 
 ### 6.5 Probes and measurements
 
