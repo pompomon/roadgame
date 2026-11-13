@@ -131,11 +131,11 @@ git status --porcelain     # must print nothing
 **Seeing the game.** No game code checks the platform: only debug builds add extras, the title's area choice and the game-over seed, and only some platforms send the notifications for focus, pause and Back (M2 H4, M5 L10, L13). So a desktop run plays as the builds do, but for the Web's limits (§3) and what only the Fold4 has (§6). It also takes the user arguments that the builds don't: `--play`, `--autopilot`, `--seed=<int>` and `--area=<id>` (`ui/main.gd`:7–11). Under Xvfb, Movie Maker writes each frame as a PNG for you to look at, and the sound as a WAV:
 
 ```bash
-mkdir -p /tmp/movie && XDG_DATA_HOME=$(mktemp -d) xvfb-run -a -s "-screen 0 1280x1024x24" \
+rm -rf /tmp/movie && mkdir -p /tmp/movie/data && XDG_DATA_HOME=/tmp/movie/data xvfb-run -a -s "-screen 0 1280x1024x24" \
   godot --path . --write-movie /tmp/movie/f.png --fixed-fps 60 --quit-after 600 -- --autopilot --seed=12345
 ```
 
-- That's 10 s of play in 18 s. The scratch `XDG_DATA_HOME` keeps your save out of it. `xvfb-run` is in the `xvfb` package.
+- That's 10 s of play in 18 s. Each run starts afresh, with a scratch save in `/tmp/movie/data` that keeps yours out of it. `xvfb-run` is in the `xvfb` package.
 - The frames are always the project's 360×640 (Godot 4.7.2's `main/main.cpp`:4840–4855): with another `--resolution`, they show its middle, cut to that shape and scaled. For the Fold4's sizes (M2_PLAN.md §6.5), save the viewport's image from a probe script, as M1_PLAN.md §6.3 did.
 - Without Movie Maker, add `--audio-driver Dummy`, or Godot prints an `ERR_CANT_OPEN` error (M1 G16).
 
