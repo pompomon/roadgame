@@ -105,6 +105,18 @@ func _rooms(sim: CarSim) -> Array[float]:
 	return rooms
 
 
+## The car's health, room and end signals from now on, by name, in the order they come.
+static func _hear(sim: CarSim) -> Array:
+	var heard := []
+	sim.health_changed.connect(func(_value: float) -> void: heard.append("health"))
+	sim.offroad_room_changed.connect(func(_room: float) -> void: heard.append("room"))
+	sim.crashed.connect(func(_cause: StringName) -> void: heard.append("crashed"))
+	sim.trigger.disaster_triggered.connect(
+		func(_junction: RoadTile, _choice: int) -> void: heard.append("disaster")
+	)
+	return heard
+
+
 func test_leaving_the_road_does_damage_every_step() -> void:
 	var sim := _sim(1)
 	var damage := sim.area.offroad_damage_per_sec
@@ -123,6 +135,7 @@ func test_leaving_the_road_does_damage_every_step() -> void:
 func test_off_the_road_the_room_left_falls_with_each_step_to_none_at_the_limit() -> void:
 	# The HUD shows it beside the health, as either can end the run (HEALTH_BAR_PLAN.md B1, E2).
 	var sim := _sim(1)
+	var heard := _hear(sim)
 	var limit := sim.area.offroad_limit_tiles
 	_put_off_road(sim, 0)
 	sim.step(DELTA, 0.0)
@@ -134,6 +147,7 @@ func test_off_the_road_the_room_left_falls_with_each_step_to_none_at_the_limit()
 	for i: int in range(1, rooms.size()):
 		assert_lt(rooms[i], rooms[i - 1], "step %d" % i)
 	assert_eq(rooms[-1], 0.0, "none at the limit")
+	assert_eq(heard.slice(-3), ["health", "room", "crashed"], "both bars before the end")
 	assert_gt(sim.health, 0.0, "though the car has health left")
 
 
@@ -334,9 +348,12 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 	# old area's rate, so with health for a whole step in the new area but not for this one, the
 	# car still runs out. Whether it runs out after the new area or before it, the end of the run
 	# sees the car where the step ends: on the exit tile, in the new area, with progress past any
-	# the junction's tile can give.
-	var old_area := DESERT
-	var new_area := MEADOWS
+	# the junction's tile can give. The two areas' off-road limits differ too, so that the room
+	# left shows whose limit counts each part of the step (HEALTH_BAR_PLAN.md E2).
+	var old_area := DESERT.duplicate() as AreaDef
+	var new_area := MEADOWS.duplicate() as AreaDef
+	old_area.offroad_limit_tiles = 4.0
+	new_area.offroad_limit_tiles = 3.0
 	var old_damage := old_area.offroad_damage_per_sec
 	var new_damage := new_area.offroad_damage_per_sec
 	assert_gt(old_damage, new_damage)
@@ -381,6 +398,12 @@ func test_off_the_road_the_time_before_a_new_area_counts_at_the_old_areas_rates(
 			assert_eq(sim.area.id, new_area.id, why)
 			assert_eq(sim.state, CarSim.State.OFFROAD, why)
 			assert_eq(seen, [], why)
+			var rooms := _rooms(sim)
+			var old_limit := old_area.offroad_limit_tiles
+			var new_limit := new_area.offroad_limit_tiles
+			assert_eq(rooms.size(), 2, why + ": a room for each area's part of the step")
+			assert_almost_eq(rooms[0], 1.0 - sim.offroad_dist * t / old_limit, 1e-9, why)
+			assert_almost_eq(rooms[1], 1.0 - sim.offroad_dist / new_limit, 1e-9, why)
 		else:
 			assert_eq(sim.state, CarSim.State.CRASHED, why)
 			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])
@@ -547,6 +570,7 @@ func test_the_offroad_limit_near_a_junction_is_a_missed_turn() -> void:
 			return true
 	)
 	var junction := sim.trigger.next_junction
+	var heard := _hear(sim)
 	sim.pos = Iso.cell_centre(junction.cell)
 	sim.angle = junction.heading * PI / 2.0
 	sim.speed = sim.area.junction_speed
@@ -556,6 +580,7 @@ func test_the_offroad_limit_near_a_junction_is_a_missed_turn() -> void:
 	assert_signal_not_emitted(sim, "crashed")
 	assert_gte(sim.offroad_dist, sim.area.offroad_limit_tiles)
 	assert_eq(_rooms(sim)[-1], 0.0, "no room left")
+	assert_eq(heard.slice(-3), ["health", "room", "disaster"], "both bars before the end")
 
 
 func test_rejoining_on_a_dead_end_is_a_disaster_and_the_car_stops() -> void:

@@ -30,6 +30,13 @@ static func _area(display_name: String) -> AreaDef:
 	return area
 
 
+## The contrast ratio of two colours, as WCAG 2.2 defines it: from 1 to 21.
+static func _contrast(a: Color, b: Color) -> float:
+	var light_a := a.srgb_to_linear().get_luminance()
+	var light_b := b.srgb_to_linear().get_luminance()
+	return (maxf(light_a, light_b) + 0.05) / (minf(light_a, light_b) + 0.05)
+
+
 static func _key(keycode: Key, pressed: bool) -> InputEventKey:
 	var event := InputEventKey.new()
 	event.keycode = keycode
@@ -106,7 +113,12 @@ func test_off_the_road_a_meter_under_the_health_shows_the_room_left() -> void:
 	var health: ProgressBar = hud.get_node("%Health")
 	var meter: ProgressBar = hud.get_node("%Offroad")
 	var red := (health.get_theme_stylebox("fill") as StyleBoxFlat).bg_color
-	assert_ne((meter.get_theme_stylebox("fill") as StyleBoxFlat).bg_color, red, "not the health")
+	var fill := (meter.get_theme_stylebox("fill") as StyleBoxFlat).bg_color
+	var ink := (meter.get_theme_stylebox("background") as StyleBoxFlat).bg_color
+	# WCAG 2.2's 1.4.11 asks 3:1 of a control's parts. Against the red too, so that the two bars
+	# differ in lightness, not only in hue (E5).
+	assert_gte(_contrast(fill, ink), 3.0, "the fill against the meter's background")
+	assert_gte(_contrast(fill, red), 3.0, "the fill against the health's")
 	GameState.start_run(1)
 	assert_eq(meter.modulate.a, 0.0, "hidden on the road")
 	assert_true(meter.visible, "but in its place")
@@ -115,6 +127,9 @@ func test_off_the_road_a_meter_under_the_health_shows_the_room_left() -> void:
 	assert_eq(meter.value, meter.max_value, "full")
 	EventBus.car_offroad_room_changed.emit(0.25)
 	assert_eq(meter.value, 0.25)
+	assert_eq(meter.get_as_ratio(), 0.25, "a quarter of the meter")
+	EventBus.car_offroad_room_changed.emit(0.004)
+	assert_eq(meter.value, 0.004, "the room as the car sent it, not rounded to a step")
 	EventBus.car_offroad_changed.emit(false)
 	assert_eq(meter.modulate.a, 0.0, "hidden back on the road")
 	EventBus.car_offroad_changed.emit(true)
@@ -149,6 +164,7 @@ func test_a_run_that_ends_off_the_road_leaves_the_meter_as_it_was() -> void:
 	GameState.end_run(CarSim.OFFROAD)
 	GameState.show_game_over()
 	assert_eq(meter.modulate.a, 1.0, "shown")
+	assert_true(meter.is_visible_in_tree(), "and drawn")
 	assert_eq(meter.value, 0.0, "empty")
 
 
@@ -168,6 +184,7 @@ func test_each_run_starts_the_hud_afresh() -> void:
 	assert_eq((hud.get_node("%Health") as ProgressBar).value, Tuning.START_HEALTH)
 	var meter: ProgressBar = hud.get_node("%Offroad")
 	assert_eq(meter.modulate.a, 0.0, "the car starts on the road")
+	assert_true(meter.visible, "but the meter is in its place")
 	assert_eq(meter.value, meter.max_value)
 	assert_true(hud.get_node("%Pause").visible, "Pause is back")
 	assert_eq(_text(hud, "Message"), "")
