@@ -59,15 +59,19 @@ static func _v0_to_v1(data: Dictionary) -> Dictionary:
 	return data
 
 
-## Version 2 adds the tutorial (TUTORIAL_PLAN.md §5.6). A player whose save has a run, in the best
-## distance or in the atlas, has played without it, and doesn't get it. A value of the wrong type
-## counts as no run: _read() then reports it.
+## Version 2 adds the tutorial (TUTORIAL_PLAN.md §5.6). A player whose save has a run has played
+## without it, and doesn't get it: a run leaves a best distance above 0, and marks each area it
+## reaches discovered in the atlas (record_run()). A value of the wrong type counts as no run:
+## _read() then reports it.
 static func _v1_to_v2(data: Dictionary) -> Dictionary:
 	var old_best: Variant = data.get("best")
 	var old_atlas: Variant = data.get("atlas")
 	var ran: bool = old_best is Dictionary and _is_amount(old_best.get("distance"))
 	ran = ran and old_best["distance"] > 0
-	ran = ran or old_atlas is Dictionary and not old_atlas.is_empty()
+	if old_atlas is Dictionary:
+		for entry: Variant in old_atlas.values():
+			var discovered: Variant = entry.get("discovered") if entry is Dictionary else null
+			ran = ran or discovered is bool and discovered
 	data["tutorial"] = {"done": ran}
 	return data
 

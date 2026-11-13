@@ -101,9 +101,9 @@ func test_a_missing_migration_is_an_error() -> void:
 	assert_push_error("no migration from version 0")
 
 
-## TUTORIAL_PLAN.md §5.6: a version 1 save with a run, in the best distance or the atlas, has
-## played without the tutorial and skips it; one with none gets it. A value of the wrong type
-## counts as no run, and is no error.
+## TUTORIAL_PLAN.md §5.6: a version 1 save with a run, in the best distance or an area the atlas
+## has discovered, has played without the tutorial and skips it; one with none gets it. A value of
+## the wrong type counts as no run, and is no error.
 func test_a_v1_file_has_done_the_tutorial_if_it_has_a_run() -> void:
 	var files := {
 		'{"version": 1}': false,
@@ -111,6 +111,10 @@ func test_a_v1_file_has_done_the_tutorial_if_it_has_a_run() -> void:
 		'{"version": 1, "best": {"distance": 0, "turns": 0}, "atlas": {}}': false,
 		'{"version": 1, "best": {"distance": 0.5, "turns": 0}}': true,
 		'{"version": 1, "atlas": {"city": {"discovered": true}}}': true,
+		'{"version": 1, "atlas": {"city": {}, "rural": {"discovered": true}}}': true,
+		'{"version": 1, "atlas": {"city": {"discovered": false}}}': false,
+		'{"version": 1, "atlas": {"city": {"discovered": "yes"}}}': false,
+		'{"version": 1, "atlas": {"city": []}}': false,
 		'{"version": 1, "best": {"distance": "far"}, "atlas": []}': false,
 		'{"version": 1, "best": [12], "atlas": "city"}': false,
 	}
