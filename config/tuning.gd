@@ -107,6 +107,14 @@ const METRES_PER_TILE := 10
 ## while the game is paused doesn't count (IMPLEMENTATION_PLAN.md M4.3).
 const AREA_BANNER_SECONDS := 2.0
 
+## The tutorial (TUTORIAL_PLAN.md §5): a road in the City's look, where every wrong exit loops back
+## to the path and nothing ends the run. It ends after TUTORIAL_STREAK correct turns in a row. In
+## it, the car heals to START_HEALTH in TUTORIAL_HEAL_SECONDS of driving on the road, and once it
+## drives TUTORIAL_RESCUE_TILES off the road in one go, it is put back on the path.
+const TUTORIAL_STREAK := 12
+const TUTORIAL_HEAL_SECONDS := 2.0
+const TUTORIAL_RESCUE_TILES := 6.0
+
 ## The save file (IMPLEMENTATION_PLAN.md M5.4): a changed setting is written this many seconds
 ## after the last change.
 const SETTINGS_SAVE_DELAY := 0.5
