@@ -13,8 +13,8 @@ extends RefCounted
 class Shown:
 	extends RefCounted
 	var sprite: Sprite2D
-	## Its glows at night (DAYNIGHT_PLAN.md §5.12).
-	var lights: Array[Sprite2D] = []
+	## Its silhouette and its glows at night (DAYNIGHT_PLAN.md §5.12), or null.
+	var lit: Lamps.Lit
 	var def: PropDef
 	var phase: float
 	## Its shadow (DAYNIGHT_PLAN.md §5.11), or null.
@@ -153,7 +153,7 @@ func _show_row(k: int) -> void:
 			shown.cast = shadows.add(placement.def, placement.foot)
 		row.shown.append(shown)
 		if lamps != null:
-			shown.lights = lamps.add(placement.def, placement.foot)
+			shown.lit = lamps.add(placement.def, shown.sprite)
 		if placement.def.frames > 1:
 			row.animated.append(shown)
 			_set_frame(shown)
@@ -164,7 +164,7 @@ func _hide_row(k: int) -> void:
 	if _rows.has(k):
 		for shown: Shown in _rows[k].shown:
 			if lamps != null:
-				lamps.remove(shown.lights)
+				lamps.remove(shown.lit)
 			pool.release(shown.sprite)
 			if shadows != null:
 				shadows.remove(shown.cast)
@@ -175,6 +175,8 @@ func _set_frame(shown: Shown) -> void:
 	var cycle := _clock * shown.def.fps / shown.def.frames + shown.phase
 	var frame := int((cycle - floorf(cycle)) * shown.def.frames) % shown.def.frames
 	if shown.sprite.frame != frame:
+		if shown.lit != null:
+			shown.lit.sprite.frame = frame
 		shown.sprite.frame = frame
 		if shown.cast != null:
 			shown.cast.sprite.frame = frame

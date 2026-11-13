@@ -203,21 +203,33 @@ static func _distinct(values: Array[int]) -> int:
 ## Where each glow of `lamps` that shows is, sorted.
 static func _glowing(lamps: Lamps) -> PackedStringArray:
 	var glowing := PackedStringArray()
-	for glow: Sprite2D in lamps.get_children():
-		if glow.visible:
-			glowing.append(str(glow.position))
+	for lit: Lamps.Lit in lamps.shown():
+		for glow: Sprite2D in lit.sprite.get_children():
+			glowing.append(str(lit.sprite.position + glow.position))
 	glowing.sort()
 	return glowing
 
 
+## Where each silhouette of `lamps` that shows is, and its frame, sorted.
+static func _silhouettes(lamps: Lamps) -> PackedStringArray:
+	var silhouettes := PackedStringArray()
+	for lit: Lamps.Lit in lamps.shown():
+		silhouettes.append("%s %d" % [lit.sprite.position, lit.sprite.frame])
+	silhouettes.sort()
+	return silhouettes
+
+
 func test_each_prop_lights_its_lamps_while_it_shows() -> void:
-	# PropScatter adds a prop's glows as it shows the prop, where its lights and its pools of light
-	# are, and takes them away with the prop (DAYNIGHT_PLAN.md §5.12). A prop without lights has
-	# none.
+	# PropScatter adds a prop's silhouette as it shows the prop, shows it in the prop's frame, with
+	# the prop's glows where its lights and its pools of light are, and takes them away with the
+	# prop (DAYNIGHT_PLAN.md §5.12). A prop without lights has none. One that lies flat and has none
+	# neither hides nor lights.
 	var lit := _prop(&"lit", 1, 0.0, 0.3)
 	lit.lights.append(Rect2(-3, -7, 6, 4))
 	lit.light_pools.append(Rect2(-8, -2, 16, 8))
-	var props: Array[PropDef] = [lit, _prop(&"dark", 1, 0.0, 0.3)]
+	var flat := _prop(&"flat", 1, 0.0, 0.2)
+	flat.shadow = PropDef.Shadow.NONE
+	var props: Array[PropDef] = [lit, _prop(&"turning", 4, 4.0, 0.3), flat]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
 	var lamps: Lamps = add_child_autofree(Lamps.new())
@@ -227,19 +239,27 @@ func test_each_prop_lights_its_lamps_while_it_shows() -> void:
 	buffer.start()
 	var wrong := PackedStringArray()
 	var lighting := 0
+	var turning := 0
 	for index: int in range(1, 120):
 		buffer.on_car_path_index(index)
-		var expected := PackedStringArray()
+		scatter.update(0.1)
+		var glows := PackedStringArray()
+		var standing := PackedStringArray()
 		for k: int in scatter.rows():
 			for sprite: Sprite2D in scatter.sprites(k):
 				if sprite.texture == lit.texture:
-					expected.append(str(sprite.position + Vector2(0, -5)))
-					expected.append(str(sprite.position + Vector2(0, 2)))
-		expected.sort()
-		if _glowing(lamps) != expected or lamps.count() != expected.size():
+					glows.append(str(sprite.position + Vector2(0, -5)))
+					glows.append(str(sprite.position + Vector2(0, 2)))
+				if sprite.texture != flat.texture:
+					standing.append("%s %d" % [sprite.position, sprite.frame])
+				turning += int(sprite.frame > 0)
+		glows.sort()
+		standing.sort()
+		if _glowing(lamps) != glows or _silhouettes(lamps) != standing:
 			wrong.append("car on %d" % index)
-		lighting = maxi(lighting, expected.size() >> 1)
+		lighting = maxi(lighting, glows.size() >> 1)
 	assert_gt(lighting, 20, "props that light")
+	assert_gt(turning, 100, "frames past the first")
 	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d steps wrong" % wrong.size())
 
 

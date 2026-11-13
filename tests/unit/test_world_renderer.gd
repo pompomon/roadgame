@@ -398,11 +398,17 @@ func test_the_lamps_glow_over_the_veil_at_night() -> void:
 	# lights them as its clock does (DAYNIGHT_PLAN.md §5.12). Without a clock, and by day, they are
 	# out.
 	var lamps: Lamps = _world.get_node("%Lamps")
+	assert_eq(lamps.z_index, Tuning.GLOW_Z)
+	assert_false(lamps.z_as_relative)
+	assert_eq((lamps.material as ShaderMaterial).shader, Lamps.SHADER, "a group that adds")
 	_world.build(Fixtures.schedule())
 	_world.bind(_buffer)
 	_buffer.start()
 	await wait_process_frames(1)
-	assert_gt(lamps.count(), 20, "the City's lamps and lit windows")
+	var glows := 0
+	for lit: Lamps.Lit in lamps.shown():
+		glows += lit.sprite.get_child_count()
+	assert_gt(glows, 20, "the City's lamps and lit windows")
 	assert_false(lamps.visible, "no clock")
 	var cycle := DayCycle.new()
 	cycle.start_hour = 23.0
@@ -411,7 +417,7 @@ func test_the_lamps_glow_over_the_veil_at_night() -> void:
 	_world.cycle = cycle
 	await wait_process_frames(1)
 	assert_true(lamps.visible, "at 23:00")
-	assert_almost_eq(lamps.modulate.a, Tuning.LAMP_ALPHA, 1e-6)
+	assert_almost_eq(lamps.self_modulate.a, Tuning.LAMP_ALPHA, 1e-6)
 	cycle.start_hour = 12.0
 	cycle.snap()
 	await wait_process_frames(1)

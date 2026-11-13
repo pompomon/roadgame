@@ -37,6 +37,6 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 y_sort_enabled = true
 
-[node name="Lamps" type="Node2D" parent="."]
+[node name="Lamps" type="CanvasGroup" parent="."]
 unique_name_in_owner = true
 script = ExtResource("5_lamps")

@@ -277,9 +277,10 @@ static func _player(player: AudioStreamPlayer, gain: bool, stream: bool) -> Arra
 
 
 func test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui() -> void:
-	# Once seed 1's disaster shows, at night: nothing in World but a glow draws above the night's
-	# veil, and a legend's veil draws at its z, since two multiplies commute (§5.5, P1, N32). The
-	# set pieces are checked under World's SetPieces. The HUD and the menus are on the UI's layer.
+	# Once seed 1's disaster shows, at night: nothing in World but what adds, a glow or the lamps'
+	# group, draws above the night's veil, and a legend's veil draws at its z, since two multiplies
+	# commute (§5.5, §5.12, P1, N32). The set pieces are checked under World's SetPieces. The HUD
+	# and the menus are on the UI's layer.
 	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--seed=1", "--hour=22"])
 	var daylight := _daylight(main)
@@ -332,7 +333,19 @@ static func _items(node: Node) -> Array[CanvasItem]:
 	return found
 
 
+## Whether `item` blends by `mode`, by its material. A canvas group draws what it holds as one, by
+## its own material, as the lamps' group adds (DAYNIGHT_PLAN.md §5.12).
 static func _blends(item: CanvasItem, mode: CanvasItemMaterial.BlendMode) -> bool:
+	var node: Node = item
+	while node is CanvasItem:
+		if node is CanvasGroup:
+			item = node
+		node = node.get_parent()
+	if item.material is ShaderMaterial:
+		var modes := ["blend_mix", "blend_add", "blend_sub", "blend_mul", "blend_premul_alpha"]
+		var pattern := "render_mode[^;]*\\b%s\\b" % modes[mode]
+		var code := (item.material as ShaderMaterial).shader.code
+		return RegEx.create_from_string(pattern).search(code) != null
 	var material := item.material as CanvasItemMaterial
 	return material != null and material.blend_mode == mode
 
@@ -347,3 +360,25 @@ static func _z_under(item: CanvasItem, parent: CanvasItem) -> int:
 			return total
 		node = node.get_parent()
 	return total + Disasters.z(parent)
+
+
+func test_the_lamps_light_by_the_zones_clock() -> void:
+	# World lights the props' lamps by the clock that Daylight keeps for the zone
+	# (DAYNIGHT_PLAN.md §5.12): in the City at night they glow, and by day they are out.
+	var main := MainScene.open(self, ["--area=city", "--hour=22"])
+	simulate(main, 2, MainScene.DELTA)
+	var world: WorldRenderer = main.get_node("%World")
+	var daylight := _daylight(main)
+	assert_same(world.cycle, daylight.cycle, "the zone's clock")
+	var lamps: Lamps = world.get_node("%Lamps")
+	var glows := 0
+	for lit: Lamps.Lit in lamps.shown():
+		glows += lit.sprite.get_child_count()
+	assert_gt(glows, 20, "the City's lit windows and lamps")
+	assert_true(lamps.visible, "at night")
+	var strength := Lamps.strength(daylight.cycle.light)
+	assert_gt(strength, 0.0)
+	assert_almost_eq(lamps.self_modulate.a, Tuning.LAMP_ALPHA * strength, 1e-6)
+	_set_hour(main, 12.0)
+	simulate(main, 1, MainScene.DELTA)
+	assert_false(lamps.visible, "by day")
