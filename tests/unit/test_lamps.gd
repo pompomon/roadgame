@@ -76,6 +76,7 @@ func test_the_lamps_draw_as_one_group_that_adds_over_the_veil() -> void:
 	# A group that y-sorts draws what it holds on its own (P10b).
 	var def := _lamp()
 	var lit := _lamps.add(def, _prop(def, Vector2(100, 50)))
+	assert_is(_lamps, CanvasGroup)
 	assert_eq(_lamps.z_index, Tuning.GLOW_Z)
 	assert_false(_lamps.z_as_relative)
 	assert_gt(Tuning.GLOW_Z, Tuning.VEIL_Z)
