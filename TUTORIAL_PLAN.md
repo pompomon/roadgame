@@ -1,6 +1,6 @@
 # Tutorial: Learning the Pattern Before the City — Detailed Plan
 
-Status: plan, in review (§4) · 2026-11-13 · The owner hasn't answered Q1–Q18 yet, so the plan and the prototype follow their defaults (§3) · Scope: a tutorial at the start of a new player's runs: a road with the City's look, with no disasters and no death, whose wrong exits loop back to the road. After 12 correct turns in a row the run goes on in the City, on the same road, with no break. This plan calls the work TUT. It comes after ZS (#60, #61), beside HB (#62), and before M7.
+Status: plan in review, #65; PRs 1–3 in review, #66–#68 (§4) · 2026-11-13 · The owner hasn't answered Q1–Q18 yet, so the plan, the prototype and the PRs follow their defaults (§3) · Scope: a tutorial at the start of a new player's runs: a road with the City's look, with no disasters and no death, whose wrong exits loop back to the road. After 12 correct turns in a row the run goes on in the City, on the same road, with no break. This plan calls the work TUT. It comes after ZS (#60, #61), beside HB (#62), and before M7.
 
 The owner asked: "Explore the codebase and create a detailed implementation plan for a tutorial zone, which would visually mimic the city, but won't have any disasters, and no death penalty for wrong turn. Instead all the roads in the tutorial city are possible, but only after making 12 correct left-right turns (make it configurable for future tuning), the player seamlessly is transitioned to the proper city. If the player makes a wrong turn in the tutorial city, the counter resets, but no other penalties applied. Road damage still occurs in the tutorial zone, but car still drives with 0 health and health is auto-healed in 2 seconds of driving on the road. Ask any clarifying questions if needed."
 
@@ -156,10 +156,10 @@ TUT is three PRs, after this plan's PR, stacked as `AGENTS.md` §5 says. Each PR
 
 | PR | Branch | Base | What |
 |---|---|---|---|
-| Plan | `tut/plan` | `main` | This document only |
-| 1 | `tut/1-road` | `main`, once the plan has landed | The tutorial's road: groups of four T's whose wrong exits loop back, its end, and the schedule's turn base (§5.1, §5.5) |
-| 2 | `tut/2-rules` | `tut/1-road` | The rules: the trigger's streak and the lost car; the car's damage, heal, rescue and speed; the tuning (§5.2, §5.3) |
-| 3 | `tut/3-game` | `tut/2-rules` | The game: who gets the tutorial, the save, the switch and the stats, the HUD, the chime, and `plan.md` (§5.4–§5.6) |
+| Plan, #65 | `tut/plan` | `main` | This document only |
+| 1, #66 | `tut/1-road` | `tut/plan`, then `main` once the plan has landed | The tutorial's road: groups of four T's whose wrong exits loop back, its end, and the schedule's turn base (§5.1, §5.5) |
+| 2, #67 | `tut/2-rules` | `tut/1-road` | The rules: the trigger's streak and the lost car; the car's damage, heal, rescue and speed; the tuning (§5.2, §5.3) |
+| 3, #68 | `tut/3-game` | `tut/2-rules` | The game: who gets the tutorial, the save, the switch and the stats, the HUD, the chime, and `plan.md` (§5.4–§5.6) |
 
 ### 4.1 Porting from the prototype
 
@@ -172,7 +172,7 @@ pr1=(road/road_generator.gd road/road_tile.gd 'tests/unit/test_road_generator_tu
 pr2=(road/junction_trigger.gd car/car_sim.gd config/tuning.gd 'tests/helpers/route_pilot.gd*'
   'tests/unit/test_junction_trigger_tutorial.gd*' 'tests/unit/test_car_sim_tutorial.gd*'
   'tests/sim/test_tutorial_run.gd*')
-git switch -c tut/1-road origin/main
+git switch -c tut/1-road origin/tut/plan    # origin/main once the plan has landed
 git diff $base $proto -- "${pr1[@]}" | git apply --index --3way
 git commit    # road: a tutorial before the City, whose wrong exits loop back (TUT PR 1)
 git switch -c tut/2-rules
@@ -232,17 +232,17 @@ Acceptance: E2, E3's streak, E5, and E8 for PR 2.
 
 Steps:
 1. Port the rest (§4.1).
-2. Run the five checks, N29–N55 and N61–N66 (§6.2).
+2. Run the five checks, N29–N55 and N61–N67 (§6.2).
 3. Check the Web build in Chrome and Firefox (§6.4), and post the results on the PR.
 4. Ask the owner to check the debug APK on the Fold4 (§7).
 
-Expected counts: 148 scripts load; 70 test scripts, 524 tests, 423,533 asserts. `smoke.sh` prints `main`'s lines.
+Expected counts: 148 scripts load; 70 test scripts, 524 tests, 423,545 asserts, with F8's fix (§4.6). `smoke.sh` prints `main`'s lines.
 
 Acceptance: E1, E3, E4, E6, E9, E10, and E8 for PR 3.
 
 ### 4.5 Landing
 
-- **Order.** The plan PR first, then PRs 1, 2 and 3, each squash-merged by the owner once its base is `main` (`AGENTS.md` §5). A review fix goes on the branch of the PR that adds the file, and is merged up.
+- **Order.** The plan PR first, then PRs 1, 2 and 3, each squash-merged by the owner once its base is `main` (`AGENTS.md` §5). A review fix goes on the branch of the PR that adds the file, and is merged up. Retarget the next PR to `main` before deleting a merged branch, #66 before `tut/plan`: deleting a branch closes the open PRs based on it, unless GitHub retargets them first (ROADGEN_PLAN.md:195).
 - **HB (#62).** HB's PR changes `car/car_sim.gd`, `ui/hud.gd`, `ui/main.gd`, `autoload/event_bus.gd`, `tests/unit/test_hud.gd` and `plan.md`, as TUT's PRs 2 and 3 do. Git merges all but one function without a conflict: `git merge-tree` of the prototype with `hb/prototype` (578a030) lists one conflict, in `_drive_off_road()`. Both add a line after `health_changed.emit(health)`. Whichever lands second keeps both, HB's first:
 
   ```gdscript
@@ -281,12 +281,17 @@ Fixes found by the internal review of this plan (`AGENTS.md` §7) and by the PRs
 | 2 | The follow-up review (§4.7), F6: a lost car braked only for a tile that it couldn't drive straight through. So it came into a T by an arm without braking, from a loop or driving back along the path, and as the player only steers (`plan.md`:27), it couldn't turn down the T's foot on the road: the review's probe, at speed 4, left the road. And the test of the speeds at the corners sampled them only where `distance_to_turn()` saw a turn, so it couldn't see one missed. 3cc0b5e brakes a lost car for each junction ahead too, whichever exit it will take, as a car on the path brakes for each junction. The tests find the corners and junctions from the tiles' exits, and `RoutePilot`'s new `back_at` turns down a T's foot (§5.3, Q9) | `test_car_sim_tutorial.gd`: `test_a_lost_car_brakes_for_the_corners_of_a_loop_and_a_junction_entered_by_an_arm`, `test_a_lost_car_speeds_up_along_a_loop_and_slows_for_its_corners`, `test_a_lost_car_can_turn_down_the_foot_of_a_junction_that_it_enters_by_an_arm` | N58 |
 | 3 | F7: the switch's test compared the cross-fades' tracks, decks and weights, but not the players. A `fade_to()` that gave the deck of a track that a deck still has passed it, while `AudioDirector` then set that deck's player to silence and started it again. 44bb3de compares each player's track, gain and play state too, and checks that the City's music and ambience are at full gain before the switch (§5.4) | `test_tutorial.gd`: `test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there` | N66 |
 | Plan | Copilot's review of 487d345: §6.2's N58 described F6's fix, not the case, which drops `tile.is_junction()` from `distance_to_turn()`'s test, so that a lost car brakes only for a tile that it can't drive straight through. The row says so, and N1's and N26's say what their cases change: a loop's one leg, and any change of the streak | — | None: wording |
+| 3 | The PRs' internal review (§4.7), F8: the chime's test sent the streaks 1 and 0 only, so an `AudioDirector` that chimed for the streak's first turn alone passed it. f6c384c sends each streak from 1 to `TUTORIAL_STREAK` and counts the chimes after each, then checks that the mistake adds none (§5.4) | `test_audio_director.gd`: `test_each_turn_of_the_tutorials_streak_chimes_and_a_mistake_is_silent` | N67 |
+
+Copilot's reviews of the heads, 3fc47dc on #65 and 8e98879, 2505ec9 and ee57db7 on #66–#68, found no open issues. On #66 it asked for the owner's answer to Q17, and on #68 for the Web and Fold4 checks (§6.4).
 
 ### 4.7 Internal review
 
 Before the plan's PR, a model of another family, gpt-6.1-sol, reviewed this plan and `tut/prototype` at a04151a (`AGENTS.md` §7). It found 5: F1, which it took to block, that the buffer frees a loop in two parts, so that a car can reach a loop whose far end is gone; F2, a choice for the owner, that a lost car was held to the junction speed, a penalty beyond the counter's reset; F3, that no test played a game over and a retry after the tutorial, and that nothing checked the claim that the music plays on at the switch; F4, that the migration took any atlas for a run; and F5, a claim about the road past the switch that went further than P1. It found the rest sound. Each finding was checked before it was fixed: F1 in `road/road_buffer.gd` and with P6, which showed that a car that only drives forward never meets a cut loop while a group's last junction is within `BUFFER_BEHIND` of its first, which a test now checks (N60), and that one that drives back 9 tiles or more can, and is put back on the path (Q17); F2 by Q9's new default; F3 and F4 with tests (N61–N65); and F5 with P1. §4.6 gives the fixes.
 
 After F1–F5 were fixed, the same model reviewed the fixes, a04151a to 989b387, the one review after fixes that `AGENTS.md` §7 allows. It found nothing that blocks, and 2 more: F6, that a lost car didn't brake for a T that it came into by an arm, and that the test of the corners' speeds sampled them only where `distance_to_turn()` saw a turn; and F7, that the switch's test passed a `fade_to()` that gave back the deck that already had the track, while `AudioDirector` then silenced that deck's player and started it again. It noted that `test_cross_fade.gd` catches that change too. It confirmed that it found no way for a car that only drives forward to meet a cut loop, that F3's test catches a run whose progress counts the tutorial's road, and F4's fix. F6 was checked with the review's probe, which left the road at speed 4, and F7 with that change to `fade_to()`. Both are fixed, and N58 and N66 fail on 44bb3de (§6.2). F6's fix brakes for every junction, the straight ones too, as a car on the path does (§5.3).
+
+Before the PRs were opened, the same model reviewed all three at 516a426 (`git diff origin/tut/plan...tut/3-game`, with `AGENTS.md` §3 and §4–§6 of this plan). It found one issue, in PR 3: F8, that the chime's test sent the streaks 1 and 0 only. It was confirmed with N67, `streak == 1` for `streak > 0` in `_on_streak_changed()`, with which the 159 tests of the scripts that TUT adds or changes and `test_cross_fade.gd` passed, and fixed in f6c384c (§4.6). The fix changes only a test, so it had no second review (`AGENTS.md` §7).
 
 ---
 
@@ -426,7 +431,7 @@ The trigger's, the car's and the generator's tests of `main` pass unchanged: a r
 ### 5.8 Documents and comments
 
 - **`plan.md`** (PR 3): a new §2.7, the tutorial: who gets it, its road, the streak, the heal and the rescue, the switch, the HUD and the save. §1.1's first pillar and §2.1's first step mention it. §3.5 says that with the tutorial the road also depends on where the streak ends. §7.4 lists the two signals; §9's example has `"tutorial"` and version 2, and says when it is written; §13's table has a row for it.
-- **`AGENTS.md`** (PR 3): §3 gets a rule, *The tutorial*: Play starts it until the save says it's done, `--play` and `--autopilot` skip it, and a test that presses Play for a run without it marks it done in a save in memory.
+- **`AGENTS.md`** (PR 3): §3 gets a rule, *The tutorial*: Play starts it until the save says it's done, `--play` and `--autopilot` skip it, and a test that presses Play for a run without it marks it done in a save in memory. §4's list of the arguments that a desktop run takes, which `main`'s #63 added, gets `--tutorial` (ee57db7).
 - **Code comments.** Each changed class's header says what the tutorial changes, and cites this plan's section: `road_generator.gd` §5.1, `junction_trigger.gd` §5.2, `car_sim.gd` §5.3, `hud.gd` §5.4, `main.gd` and `game_state.gd` §5.5 and §5.6, `save_data.gd` §5.6, `tuning.gd` §5. The tests cite the sections that they check. No comment cites a T#, which the code can't show.
 - **This plan.** Its status line, §4.6 and the counts stay current as the PRs are reviewed (`AGENTS.md` §2).
 
@@ -449,11 +454,15 @@ Run from the repository root with Godot 4.7.2 (`AGENTS.md` §4), on `main`, on t
 
 Per script on the prototype: `test_road_generator_tutorial.gd` 3 tests, 403 asserts, 5.7 s; `test_junction_trigger_tutorial.gd` 12 tests, 72 asserts; `test_car_sim_tutorial.gd` 13, 69; `test_tutorial_run.gd` 4, 42, 0.8 s; `test_tutorial.gd` 6, 70, 6.8 s; `test_save_data.gd` 16 (+2), `test_game_state.gd` 17 (+1), `test_hud.gd` 12 (+1), `test_audio_director.gd` 29 (+1) and `test_save_service.gd` 15 (+1). `test_smoke.gd`, `test_area_start.gd` and `test_title.gd` keep `main`'s counts. GUT's time varies by several seconds from run to run, and PRs 1 and 2 ran beside §6.2's runs, on 2 CPUs, so their times aren't given.
 
+On the PRs' heads, with `main`'s #63 (413829a) merged in and F8 fixed (§4.6), the checks passed with the same counts, but for PR 3's 423,545 asserts, as F8's test counts each chime of the streak. PR 1, 8e98879: 143 scripts; 66 test scripts, 483 tests, 423,226 asserts, 75.3 s. PR 2, 2505ec9: 147; 69, 512, 423,409, 75.2 s. PR 3, ee57db7: 148; 70, 524, 423,545, 82.5 s. `lint.sh` ran shellcheck 0.9.0. PR 3's tree is the prototype's but for F8's test, #63's `AGENTS.md` and `tools/ci/run_tests.sh`, ee57db7's line in `AGENTS.md` (§5.8), and this plan.
+
 ### 6.2 Negative cases
 
-Each case changes the prototype for a moment and runs the whole suite, which must fail. A script, not committed, applies each change, runs GUT on all 70 test scripts, records the tests that fail and restores the file. N1–N7 change `road/road_generator.gd`; N8–N16 `road/junction_trigger.gd`, and N16 `config/tuning.gd` too, so that the hard-coded 12 shows; N17–N28 `car/car_sim.gd`; N29–N43 `ui/main.gd`; N44 `autoload/game_state.gd`; N45–N47 `autoload/save_data.gd`; N48 `autoload/save_service.gd`; N49–N54 `ui/hud.gd`; N55 `autoload/audio_director.gd`; N56–N59 `car/car_sim.gd`; N60 `config/tuning.gd`, a `BUFFER_BEHIND` of 9; N61 `autoload/save_data.gd`; N62–N64 `ui/main.gd`; N65 and N66 `audio/cross_fade.gd`. On 44bb3de, each case failed the tests that its row counts, with no leaks. A row names one of them, and the plan's PR lists them all. In N6, N16, N30, N32, N39, N47 and N60, some of the tests that failed also stopped on a script error, 15 in all, as they read a value that the change left null or missing, or in N47 in `SaveData._read()`, which the case breaks. GUT counts those as failures too. e64d381 changes one test, the one that P2d failed (below). Run alone in each of the 70 cases and probes, it failed in the same 4 as on 44bb3de, N10, N17, N25 and N57, and in no other.
+Each case changes the prototype for a moment and runs the whole suite, which must fail. A script, not committed, applies each change, runs GUT on all 70 test scripts, records the tests that fail and restores the file. N1–N7 change `road/road_generator.gd`; N8–N16 `road/junction_trigger.gd`, and N16 `config/tuning.gd` too, so that the hard-coded 12 shows; N17–N28 `car/car_sim.gd`; N29–N43 `ui/main.gd`; N44 `autoload/game_state.gd`; N45–N47 `autoload/save_data.gd`; N48 `autoload/save_service.gd`; N49–N54 `ui/hud.gd`; N55 `autoload/audio_director.gd`; N56–N59 `car/car_sim.gd`; N60 `config/tuning.gd`, a `BUFFER_BEHIND` of 9; N61 `autoload/save_data.gd`; N62–N64 `ui/main.gd`; N65 and N66 `audio/cross_fade.gd`; N67 `autoload/audio_director.gd`. On 44bb3de, each case failed the tests that its row counts, with no leaks. A row names one of them, and the plan's PR lists them all. In N6, N16, N30, N32, N39, N47 and N60, some of the tests that failed also stopped on a script error, 15 in all, as they read a value that the change left null or missing, or in N47 in `SaveData._read()`, which the case breaks. GUT counts those as failures too. e64d381 changes one test, the one that P2d failed (below). Run alone in each of the 70 cases and probes, it failed in the same 4 as on 44bb3de, N10, N17, N25 and N57, and in no other.
 
 The probes P2a–P2d (§6.5) ran the same way, and must fail no test. In the first run, on 7bb28c7, they failed four tests that assumed the default tuning: P2a and P2b `test_tutorial_run.gd`'s `test_a_wrong_turn_starts_the_streak_again_where_its_loop_comes_back`, which named the turns where its streaks end; P2c `test_car_sim_tutorial.gd`'s `test_the_car_heals_on_the_road`, whose car drove off the road at the first junction; P2d its `test_the_car_drives_on_with_no_health` and `test_the_offroad_limit_ends_the_streak`, which drove 4 s, past a rescue at 4 tiles. a04151a reads the tuning in those tests, steers the heal test's car with the autopilot, and drives the others until they are as far off the road as they need. On 44bb3de, P2d failed one more, `test_car_sim_tutorial.gd`'s `test_a_lost_car_off_the_road_heads_for_junction_speed`, which 034e721, F2's fix, added after a04151a: it drove on for 2 s from 2.5 tiles off the road, and so reached a rescue at 4 tiles, which stops the car. e64d381 drives it to half a tile short of the rescue, and on it P2a–P2d failed no test.
+
+On the PRs' heads, 8e98879, 2505ec9 and ee57db7, each PR's cases and the probes ran again on the whole suite (`AGENTS.md` §2.4). On PR 3, each case failed the tests that #65 lists for it, and N67 only its row's. On PRs 1 and 2, each failed those that the head has, as the rest are in later PRs' tests: N1 2 of its 6, N4 1 of 3, N6 2 of 8, N16 6 of 8, N17 5 of 6, N20 2 of 3, N21 3 of 4 and N60 6 of 7, and the other cases all of theirs. P2a–P2d failed no test, and no run leaked.
 
 | # | Change | Tests that fail |
 |---|---|---|
@@ -523,6 +532,7 @@ The probes P2a–P2d (§6.5) ran the same way, and must fail no test. In the fir
 | N64 | `_start_run()` keeps the last run's `_turn_base` | The same as N62 |
 | N65 | `CrossFade.fade_to()` starts a track again on the other deck, though a deck has it | `test_tutorial.gd`: `test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there` and 3 more |
 | N66 | `CrossFade.fade_to()` gives the deck that still has the track, not -1 (F7) | The same as N65 |
+| N67 | Only the streak's first turn chimes: `streak == 1` for `streak > 0` (F8) | `test_audio_director.gd`: `test_each_turn_of_the_tutorials_streak_chimes_and_a_mistake_is_silent` |
 
 ### 6.3 Editor warnings
 
@@ -530,11 +540,14 @@ The editor warns about more than CI does (M2 §6.3). A temporary `override.cfg` 
 
 ### 6.4 Verified only in CI or on devices
 
-- **CI.** The five required checks on each PR's head. The dispatch run 43389628804 of e64d381 passed them all: `lint`, with shellcheck and actionlint, in 21 s; `test` in 2 min 49 s, with 148 scripts, 70 test scripts, 524 tests, 423,533 asserts, 104.2 s of GUT and `main`'s smoke lines; `export-web` in 58 s; and `export-android`'s APK in 1 min 25 s and AAB in 2 min 58 s. So did run 43380649191 of 44bb3de, with 82.5 s of GUT, whose Web build the next item ran.
-- **The Web** (E1, E9). For PR 3, from a dispatch run with `upload-builds`: serve the Web build with `python3 -m http.server`, and drive Chrome and Firefox with Playwright under Xvfb, as #28 did, each with an empty profile and so an empty save. Play must show the City's road with the banner "Tutorial" and "12 turns in a row", and "turns 0/12" with no distance, in the game's font. Then M4's copy of the build that takes `?arg=` (M4_PLAN.md §4, PR 3 step 3), with `?arg=--tutorial&arg=--autopilot`: the autopilot drives the tutorial, the turns count up to "turns 11/12", and at the 12th, about 18 s in (P1), with no pause, the banner says "City", the distance shows and the turns read "turns 0" (§5.4). The consoles must show nothing but the notes that M4's builds logged on software GL (M4_PLAN.md:730). So far, in Chrome only, with Playwright on software GL, the build of 44bb3de from run 43380649191, which is e64d381's, since the exports leave out `tests/`, at about 8 frames a second beside §6.2's runs, so the times weren't measured:
-  - With `?arg=--tutorial&arg=--autopilot&arg=--seed=1`: the banner "Tutorial" and "12 turns in a row", "turns 0/12", no distance and full health; the turns counted up; past the switch, the City's road with "134 m", "turns 2" and full health, with no pause and no game over. The console showed Godot's 5 lines and the 4 `GPU stall due to ReadPixels` notes, and no error.
-  - With the save emptied, IndexedDB's `/userfs` and the page's localStorage deleted, and no arguments: Play started the tutorial. Left alone, the car left the road, fell to 0 health and drove on with no game over, was put back on the road, and its health filled again. The console showed Godot's 4 lines and nothing else.
-- **The debug APK** (E9). The owner checks PR 3's on the Fold4 (§7): the tutorial's feel, its sounds, both screens, and the save across starts of the app.
+- **CI.** The five required checks on each PR's head. The dispatch run 43389628804 of e64d381 passed them all: `lint`, with shellcheck and actionlint, in 21 s; `test` in 2 min 49 s, with 148 scripts, 70 test scripts, 524 tests, 423,533 asserts, 104.2 s of GUT and `main`'s smoke lines; `export-web` in 58 s; and `export-android`'s APK in 1 min 25 s and AAB in 2 min 58 s. So did run 43380649191 of 44bb3de, with 82.5 s of GUT. On the PRs, the runs of the four heads passed all five, with `test` in 2 min 6 s to 2 min 38 s and §6.1's counts. So did the dispatch run 43433926350 of 516a426, PR 3 before F8, whose builds the next two items use: since then, only tests, docs and `tools/ci/run_tests.sh` changed (§6.1).
+- **The Web** (E1, E9). For PR 3, from a dispatch run with `upload-builds`: serve the Web build with `python3 -m http.server`, and drive Chrome and Firefox with Playwright under Xvfb, as #28 did, each with an empty profile and so an empty save. Play must show the City's road with the banner "Tutorial" and "12 turns in a row", and "turns 0/12" with no distance, in the game's font. Then M4's copy of the build that takes `?arg=` (M4_PLAN.md §4, PR 3 step 3), with `?arg=--tutorial&arg=--autopilot`: the autopilot drives the tutorial, the turns count up to "turns 11/12", and at the 12th, about 18 s in (P1), with no pause, the banner says "City", the distance shows and the turns read "turns 0" (§5.4). The consoles must show nothing but the notes that M4's builds logged on software GL (M4_PLAN.md:730). The build of 516a426 passed in Chrome 157 and Firefox 156, headed under Xvfb at 1280×720 ([#68](https://github.com/pompomon/roadgame/pull/68#issuecomment-6855581900)):
+  - With `?arg=--tutorial&arg=--autopilot&arg=--seed=1`: the banner, "turns 0/12", no distance and full health. The counter rose to 11/12, and at 20.8 s in Chrome and 22.0 s in Firefox, with no pause, the banner said "City", the distance showed and the turns read "turns 0". The car drove on at full health.
+  - With an empty profile and no arguments, left alone: Play started the tutorial. The car left the road, fell to 0 health and drove on, and was put back every 10 to 13 s, with no game over. After each rescue its health rose only to about 40%: put back at rest before the T, the car leaves the road again within about 1 s, before the 2 s heal is done (§5.3). A player who steers stays on the road, and the bar fills.
+  - The chime (E3), counted by a hook on `AudioBufferSourceNode.start()`, as in M5's P10: one with each step of the counter, the 12th with the switch, then one with each City turn. Firefox, with no sound device, held its audio clock still, but started every chime.
+  - A version 1 save, written by `main` (413829a) and put in the game's file's place in IndexedDB: the title read "Best: 40 m, 0 turns", Play started the City with no tutorial, and the run's end wrote version 2 with the tutorial done and the best kept (E6).
+  - The consoles: Chrome's notes on software GL; Firefox's notice that wasm's 'try' instruction is deprecated, from the engine template, and the autoplay policy's where the game started before any gesture. No errors.
+- **The debug APK** (E9). The owner checks PR 3's on the Fold4 (§7), with #68's checklist: the tutorial's feel, its sounds, both screens, and the save across starts of the app.
 - **Feel.** The tests check the loops' geometry, the heal's rate and the rescue, but not whether a loop's corners can be driven by hand at the junction speed, or whether 2 s of healing reads on the health bar. The Fold4 check does.
 
 ### 6.5 Measurements
@@ -555,7 +568,7 @@ The editor warns about more than CI does (M2 §6.3). A temporary `override.cfg` 
 
 1. **Answer Q1–Q18** in the plan PR, or let the defaults stand (§3). Q1, Q2, Q3 and Q12 shape the most code.
 2. **Merge the plan PR**, then PRs 1, 2 and 3, in order, each once its base is `main` and its checks pass (§4.5).
-3. **Check PR 3 on the Fold4** (E9). The agent posts PR 3's dispatch run; then:
+3. **Check PR 3 on the Fold4** (E9). The agent posted PR 3's dispatch run on #68, 43433926350, whose artifacts are kept until 2026-11-14 13:28 UTC. Use its id, or make a newer run with the first two lines:
 
    ```bash
    gh workflow run ci.yml -R pompomon/roadgame --ref tut/3-game -f upload-builds=true
@@ -599,3 +612,4 @@ The editor warns about more than CI does (M2 §6.3). A temporary `override.cfg` 
 - **Other areas.** `_tutorial_wanted()` gives the tutorial only to a run that starts in the City. The generator lays it in the run's first area, so a tutorial in another area's look would need only that rule to change, and that area's straights to fit the loops (§5.1).
 - **The save.** A later version keeps `_v1_to_v2()` in the chain of migrations, after `_v0_to_v1()`.
 - **Tuning.** `TUTORIAL_STREAK`, `TUTORIAL_HEAL_SECONDS` and `TUTORIAL_RESCUE_TILES` are in `config/tuning.gd`. The game and the tests read them, and the tests pass with a streak of 4 or 13, a heal of 3.5 s and a rescue at 4 tiles (P2a–P2d). The tests of the mistakes need a streak of 4 or more. A rescue under about 3.9 tiles would put a car with full health back before it showed 0 health (P5).
+- **After a rescue** (§6.4). Put back at rest before a T, a car left alone leaves the road again within about 1 s, so its bar shows about 40%. If that reads badly on the Fold4, `_rescue()` could give full health, as the switch does (§5.5).
