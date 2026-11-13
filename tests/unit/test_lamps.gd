@@ -114,32 +114,40 @@ func test_a_glow_never_adds_more_than_the_veil_takes_away() -> void:
 	assert_false(_lamps.visible, "out by day after the reset")
 
 
-## How often the glows' alpha turns from rising to falling or back, over `steps` steps of `cycle`.
-func _turns(cycle: DayCycle, steps: int) -> int:
+## How often the glows' alpha turns from rising to falling or back over `steps` steps of `cycle`,
+## and how often it changes faster than the light shown lets it: by LIGHT_MAX_RATE a second over
+## the faintest channel of the lamps' colour (§5.12).
+func _turns(cycle: DayCycle, steps: int) -> Vector2i:
+	var color := Tuning.LAMP_COLOR
+	var most := Tuning.LIGHT_MAX_RATE * DELTA / minf(color.r, minf(color.g, color.b)) + 1e-6
 	_lamps.refresh(cycle)
 	var last := _lamps.modulate.a
 	var rising := 0
-	var turns := 0
+	var turns := Vector2i.ZERO
 	for step: int in steps:
 		cycle.advance(DELTA)
 		_lamps.refresh(cycle)
 		var change := int(signf(_lamps.modulate.a - last))
 		if change != 0 and rising != 0 and change != rising:
-			turns += 1
+			turns.x += 1
 		if change != 0:
 			rising = change
+		turns.y += int(absf(_lamps.modulate.a - last) > most)
 		last = _lamps.modulate.a
 	return turns
 
 
-func test_the_lamps_come_on_once_a_day_and_go_out_once() -> void:
-	# Nothing flashes (WCAG 2.3.1, M6_PLAN.md §5.6): through the least day and the reference one,
-	# the glows' alpha rises at dusk and falls at dawn, and turns only then. As a zone sets the
-	# clock back at night, it falls, and turns at dusk.
+func test_the_lamps_fade_on_once_a_day_and_out_once() -> void:
+	# Nothing flashes (WCAG 2.3.1, M6_PLAN.md §5.6), and nothing pops: through the least day and the
+	# reference one, the glows' alpha rises at dusk and falls at dawn, turning only then, and no
+	# faster than the light shown changes. As a zone sets the clock back at night, it falls, and
+	# turns at dusk.
 	for day_seconds: float in [DayCycle.least_day_seconds(), 120.0]:
 		var cycle := _cycle(Tuning.DAY_START_HOUR, day_seconds)
-		assert_eq(_turns(cycle, ceili(day_seconds / DELTA)), 1, "a day of %.1f s" % day_seconds)
+		var day := "a day of %.1f s: turns, jumps" % day_seconds
+		assert_eq(_turns(cycle, ceili(day_seconds / DELTA)), Vector2i(1, 0), day)
 	var night := _cycle(23.0)
 	night.start_hour = Tuning.DAY_START_HOUR
 	night.enter(120.0)
-	assert_eq(_turns(night, ceili(120.0 / DELTA)), 2, "out as the clock goes back, on, out")
+	var back := "out as the clock goes back, on, out: turns, jumps"
+	assert_eq(_turns(night, ceili(120.0 / DELTA)), Vector2i(2, 0), back)
