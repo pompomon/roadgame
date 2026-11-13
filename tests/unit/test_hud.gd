@@ -112,9 +112,16 @@ func test_off_the_road_a_meter_under_the_health_shows_the_room_left() -> void:
 	var hud := _hud()
 	var health: ProgressBar = hud.get_node("%Health")
 	var meter: ProgressBar = hud.get_node("%Offroad")
-	var red := (health.get_theme_stylebox("fill") as StyleBoxFlat).bg_color
-	var fill := (meter.get_theme_stylebox("fill") as StyleBoxFlat).bg_color
-	var ink := (meter.get_theme_stylebox("background") as StyleBoxFlat).bg_color
+	var red_style := health.get_theme_stylebox("fill") as StyleBoxFlat
+	var fill_style := meter.get_theme_stylebox("fill") as StyleBoxFlat
+	var ink_style := meter.get_theme_stylebox("background") as StyleBoxFlat
+	# The contrasts below are what shows only if each style paints its colour, opaque.
+	for style: StyleBoxFlat in [fill_style, ink_style, red_style]:
+		assert_true(style.draw_center, "%s is drawn" % style.bg_color)
+		assert_eq(style.bg_color.a, 1.0, "opaque")
+	var red := red_style.bg_color
+	var fill := fill_style.bg_color
+	var ink := ink_style.bg_color
 	# WCAG 2.2's 1.4.11 asks 3:1 of a control's parts. Against the red too, so that the two bars
 	# differ in lightness, not only in hue (E5).
 	assert_gte(_contrast(fill, ink), 3.0, "the fill against the meter's background")
@@ -181,7 +188,9 @@ func test_each_run_starts_the_hud_afresh() -> void:
 	GameState.start_run(2)
 	var version: String = ProjectSettings.get_setting("application/config/version")
 	assert_eq(_text(hud, "Turns"), "turns 0")
-	assert_eq((hud.get_node("%Health") as ProgressBar).value, Tuning.START_HEALTH)
+	var health: ProgressBar = hud.get_node("%Health")
+	assert_eq(health.value, Tuning.START_HEALTH)
+	assert_true(health.is_visible_in_tree(), "and drawn")
 	var meter: ProgressBar = hud.get_node("%Offroad")
 	assert_eq(meter.modulate.a, 0.0, "the car starts on the road")
 	assert_true(meter.visible, "but the meter is in its place")
