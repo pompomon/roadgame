@@ -7,6 +7,8 @@ extends Node
 ## User arguments (after "--"): --play starts a run at once, without the title screen;
 ## --seed=<int> picks the road (D8); --autopilot drives by itself (the CI smoke run), and implies
 ## --play; --area=<id> starts every run in that area, for tests and manual checks (M4_PLAN.md K10).
+## A phone can't take them (M4_PLAN.md P4), so in debug builds the title's Start button chooses the
+## area that Play starts in instead, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
@@ -17,6 +19,9 @@ const CAR_SCENE := preload("res://car/car.tscn")
 var args := OS.get_cmdline_user_args()
 
 var _autopilot := false
+## The game's schedule. The world, the Atlas and the collection show all of its areas.
+var _whole_schedule: AreaSchedule
+## The run's: the game's, or a copy that starts in --area's area or the title's choice.
 var _schedule: AreaSchedule
 var _buffer: RoadBuffer
 var _sim: CarSim
@@ -35,13 +40,14 @@ var _fate := ""
 
 func _ready() -> void:
 	_autopilot = args.has("--autopilot")
-	var schedule: AreaSchedule = load("res://areas/schedule.tres")
-	_schedule = schedule
+	_whole_schedule = load("res://areas/schedule.tres")
+	_schedule = _whole_schedule
 	var area := _parse_area(args)
 	if area != &"":
-		_schedule = schedule.starting_at(area)
+		_schedule = _whole_schedule.starting_at(area)
 	var start := Time.get_ticks_usec()
-	_world.build(_schedule)
+	# Every area's, whichever a run starts in (ZONE_SELECT_PLAN.md Z2).
+	_world.build(_whole_schedule)
 	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
 	print("grey box: tilesets built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	_director.layer = _world.get_node("%DisasterLayer")
@@ -52,7 +58,8 @@ func _ready() -> void:
 	_game_over.retry_requested.connect(_retry)
 	_game_over.title_requested.connect(_to_title)
 	# The Atlas and the collection show the whole schedule, also with --area.
-	_title.schedule = schedule
+	_title.schedule = _whole_schedule
+	_title.start_area = _schedule.areas()[0]
 	_title.play_requested.connect(_play)
 	quit_requested.connect(get_tree().quit)
 	if _autopilot or args.has("--play"):
@@ -157,12 +164,15 @@ func _to_title() -> void:
 	_show_title()
 
 
-## Play on the title screen: a run, as with --play.
+## Play on the title screen: a run, as with --play. With the title's choice of area, it starts in
+## that area, as --area would start it, and so do its retries (ZONE_SELECT_PLAN.md Z6).
 func _play() -> void:
 	if GameState.state != GameState.State.TITLE:
 		push_error("main: Play is only allowed on the title screen")
 		return
 	_title.close()
+	if _title.area_choice:
+		_schedule = _whole_schedule.starting_at(_title.start_area.id)
 	_start_run(_parse_seed(args))
 
 

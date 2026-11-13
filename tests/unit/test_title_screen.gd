@@ -107,6 +107,71 @@ func test_close_closes_the_open_screen() -> void:
 	assert_null(title.open_screen())
 
 
+func test_the_start_button_shows_in_debug_builds_only() -> void:
+	# ZONE_SELECT_PLAN.md Z4: GUT runs a debug build, so the release default is a device check.
+	var title := _title()
+	assert_eq(title.area_choice, OS.is_debug_build())
+	var start := _button(title, "StartArea")
+	for choice: bool in [true, false]:
+		title.area_choice = choice
+		title.open()
+		assert_eq(start.visible, choice)
+		assert_eq(start.text, "Start in: City", "the schedule's first area")
+		assert_true(_button(title, "Play").has_focus())
+
+
+func test_the_start_button_steps_through_the_areas_and_open_keeps_the_last() -> void:
+	var title := _title()
+	title.area_choice = true
+	title.open()
+	var start := _button(title, "StartArea")
+	watch_signals(title)
+	var texts: Array[String] = []
+	for _press: int in 6:
+		start.pressed.emit()
+		texts.append(start.text)
+	assert_eq(
+		texts,
+		[
+			"Start in: Rural",
+			"Start in: Meadows",
+			"Start in: Village",
+			"Start in: Desert",
+			"Start in: City",
+			"Start in: Rural",
+		]
+	)
+	assert_eq(title.start_area.id, &"rural")
+	assert_signal_not_emitted(title, "play_requested")
+	title.close()
+	title.open()
+	assert_eq(start.text, "Start in: Rural")
+	title.start_area = AreaDef.new()
+	title.open()
+	assert_eq(title.start_area.id, &"city", "an area the schedule lacks: its first")
+
+
+func test_the_title_page_fits_a_portrait_screen_with_each_start_area() -> void:
+	# The Start button keeps its width as it steps, so that each tap lands on it (Z9).
+	SaveService.data().record_run({"distance": 9999.9, "turn_index": 999})
+	var title := _title()
+	title.area_choice = true
+	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
+	var start := _button(title, "StartArea")
+	var widths: Array[float] = []
+	for area: AreaDef in title.schedule.areas():
+		title.start_area = area
+		title.open()
+		await wait_process_frames(2)
+		for control: Control in title.find_children("*", "Control", true, false):
+			if control.is_visible_in_tree():
+				var rect := control.get_global_rect()
+				assert_true(bounds.encloses(rect), "%s: %s at %s" % [area.id, control.name, rect])
+		assert_eq(start.size.x, start.custom_minimum_size.x, "%s: no text widens it" % area.id)
+		widths.append(start.size.x)
+	assert_eq(widths.count(widths[0]), widths.size(), "one width for each area: %s" % [widths])
+
+
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings). Every
 	# disaster of the pools is seen, so that each card shows its lore (M6_PLAN.md S15).
