@@ -258,7 +258,8 @@ func test_a_lost_car_off_the_road_heads_for_junction_speed() -> void:
 	assert_eq(_sim.dist_on_straight, 0.0)
 	var slowed := _sim.area.junction_speed * _sim.area.offroad_speed_mult
 	assert_eq(_sim.target_speed(), slowed)
-	_drive(2.0)
+	# Short of the rescue, which stops the car, whatever the tuning (P2d).
+	_drive_off(Tuning.TUTORIAL_RESCUE_TILES - 0.5)
 	assert_almost_eq(_sim.speed, slowed, 1e-6)
 
 
