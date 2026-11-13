@@ -109,7 +109,7 @@ func test_pick_draws_every_scene_of_the_pool_with_the_stream() -> void:
 
 func test_a_disaster_waits_for_the_car_to_stop() -> void:
 	_new_car(CarSim.State.DISASTER, 2.0)
-	_director.play_disaster(_timed(), _car, _camera)
+	_director.play_disaster(_timed(), _car, _camera, Tuning.LIGHT_NIGHT)
 	assert_eq(_director.sequence, DisasterDirector.Sequence.STOPPING)
 	var early := false
 	var frames := 0
@@ -126,6 +126,7 @@ func test_a_disaster_waits_for_the_car_to_stop() -> void:
 	assert_eq(disaster.car, _car)
 	assert_eq(disaster.camera, _camera)
 	assert_eq(disaster.stage, _stage, "with the stage for a legend's parts")
+	assert_eq(disaster.ambient, Tuning.LIGHT_NIGHT, "in the light the run ended in")
 	assert_eq(disaster.params, _director.params, "played with the params")
 	assert_eq(_director.params.origin_world, _car.position, "where the car stopped")
 

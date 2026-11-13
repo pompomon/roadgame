@@ -29,6 +29,8 @@ var _rng := RandomNumberGenerator.new()
 var _area: AreaDef
 var _car: CarController
 var _camera: CameraRig
+## The light that the run ended in, for the disaster (DAYNIGHT_PLAN.md §5.6).
+var _ambient := Color.WHITE
 ## Seconds since the run ended.
 var _time := 0.0
 ## Seconds since play(), as the disaster counts them, and whether disaster_appeared came.
@@ -50,10 +52,14 @@ static func stream(run_seed: int) -> RandomNumberGenerator:
 	return rng
 
 
-## After a wrong or missed turn: a disaster from `area`'s pool, once `car` has stopped.
-func play_disaster(area: AreaDef, car: CarController, camera: CameraRig) -> void:
+## After a wrong or missed turn: a disaster from `area`'s pool, once `car` has stopped, in the
+## `ambient` light that the run ended in.
+func play_disaster(
+	area: AreaDef, car: CarController, camera: CameraRig, ambient := Color.WHITE
+) -> void:
 	if _begin(car, camera):
 		_area = area
+		_ambient = ambient
 		sequence = Sequence.STOPPING
 
 
@@ -75,6 +81,7 @@ func clear() -> void:
 	_area = null
 	_car = null
 	_camera = null
+	_ambient = Color.WHITE
 	_time = 0.0
 	_play_time = 0.0
 	_shown = false
@@ -128,6 +135,7 @@ func _start_disaster() -> void:
 	disaster.car = _car
 	disaster.camera = _camera
 	disaster.stage = stage
+	disaster.ambient = _ambient
 	disaster.finished.connect(_on_disaster_finished)
 	layer.add_child(disaster)
 	sequence = Sequence.PLAYING
