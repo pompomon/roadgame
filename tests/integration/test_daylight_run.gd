@@ -334,19 +334,23 @@ static func _items(node: Node) -> Array[CanvasItem]:
 
 
 ## Whether `item` blends by `mode`, by its material. A canvas group draws what it holds as one, by
-## its own material, as the lamps' group adds (DAYNIGHT_PLAN.md §5.12).
+## its own material, as the lamps' group adds (DAYNIGHT_PLAN.md §5.12). But only what draws at its
+## own z, and nothing if it y-sorts (P10b): Godot 4.7.2 groups the items that its children add to
+## its z's list (servers/rendering/renderer_canvas_cull.cpp:197–257 and :438–492).
 static func _blends(item: CanvasItem, mode: CanvasItemMaterial.BlendMode) -> bool:
-	var node: Node = item
+	var by := item
+	var node := item.get_parent()
 	while node is CanvasItem:
-		if node is CanvasGroup:
-			item = node
+		var group := node as CanvasGroup
+		if group != null and not group.y_sort_enabled and Disasters.z(group) == Disasters.z(item):
+			by = group
 		node = node.get_parent()
-	if item.material is ShaderMaterial:
+	if by.material is ShaderMaterial:
 		var modes := ["blend_mix", "blend_add", "blend_sub", "blend_mul", "blend_premul_alpha"]
 		var pattern := "render_mode[^;]*\\b%s\\b" % modes[mode]
-		var code := (item.material as ShaderMaterial).shader.code
+		var code := (by.material as ShaderMaterial).shader.code
 		return RegEx.create_from_string(pattern).search(code) != null
-	var material := item.material as CanvasItemMaterial
+	var material := by.material as CanvasItemMaterial
 	return material != null and material.blend_mode == mode
 
 

@@ -401,6 +401,7 @@ func test_the_lamps_glow_over_the_veil_at_night() -> void:
 	assert_eq(lamps.z_index, Tuning.GLOW_Z)
 	assert_false(lamps.z_as_relative)
 	assert_eq((lamps.material as ShaderMaterial).shader, Lamps.SHADER, "a group that adds")
+	assert_false(lamps.y_sort_enabled, "a group that y-sorts holds nothing (P10b)")
 	_world.build(Fixtures.schedule())
 	_world.bind(_buffer)
 	_buffer.start()
