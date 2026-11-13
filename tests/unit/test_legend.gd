@@ -1,12 +1,13 @@
 extends GutTest
-## The legend kit (M6_PLAN.md §5.3–§5.5), on the sample legend: the veil covers every view, follows
-## it and darkens the world through the first beat; the car, the props and the parts sort under
-## it, and the glows over it; the standing parts and the car's double stand on the stage and leave
-## it with the legend; and no frame shows both the car and its double, nor neither until it goes.
+## The legend kit (M6_PLAN.md §5.3–§5.5), on the sample legend: the veil follows the view and
+## darkens the world through the first beat, at night only what the night hasn't
+## (DAYNIGHT_PLAN.md §5.6); the car, the props and the parts sort under it, and the glows over it;
+## the standing parts and the car's double stand on the stage and leave it with the legend; and no
+## frame shows both the car and its double, nor neither until it goes. test_view_veil.gd checks
+## that the veil covers every view.
 
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const Sample := preload("res://tests/helpers/sample_legend.gd")
-const ViewTest := preload("res://tests/integration/test_props_in_view.gd")
 const DELTA := 1.0 / 60.0
 
 var _stage: Node2D
@@ -36,38 +37,12 @@ static func _veil(legend: Legend) -> Polygon2D:
 	return legend.get_node("Veil") as Polygon2D
 
 
-## The World rect that `veil` covers.
-static func _cover(veil: Polygon2D) -> Rect2:
-	var box := Rect2(veil.polygon[0], Vector2.ZERO)
-	for point: Vector2 in veil.polygon:
-		box = box.expand(point)
-	box.position += veil.offset
-	return veil.get_global_transform() * box
-
-
 ## The car's double, once `legend` has taken the car, on the stage or else in the legend.
 static func _double(legend: Legend) -> Sprite2D:
 	for part: Sprite2D in legend.staged():
 		if part.name == "Double":
 			return part
 	return legend.get_node_or_null("Double") as Sprite2D
-
-
-func test_the_veil_covers_every_view() -> void:
-	# Every reference screen at every step of the zoom (N26).
-	var legend := _legend()
-	legend.play(Disasters.params())
-	_camera.position = Vector2(-700.0, 900.0)
-	simulate(legend, 1, DELTA)
-	var covered := _cover(_veil(legend))
-	var centre := _camera.global_position + _camera.offset
-	for screen: Vector2i in ViewTest.SCREENS:
-		for zoom: float in Tuning.CAMERA_ZOOMS:
-			var size := Vector2(screen) / zoom
-			assert_true(
-				covered.encloses(Rect2(centre - size / 2.0, size)),
-				"%s at zoom %.1f" % [screen, zoom]
-			)
 
 
 func test_the_veil_follows_the_view_as_it_pans_and_shakes_also_after_the_end() -> void:
@@ -163,6 +138,46 @@ func test_the_veil_darkens_the_world_through_the_first_beat() -> void:
 			worst = off
 			at = frame
 	assert_almost_eq(worst, 0.0, 1e-3, "the veil's colour, worst on frame %d" % at)
+
+
+func test_at_night_a_veil_darkens_only_what_the_night_hasnt() -> void:
+	# Under the night's veil, the world shows the darker of the light and the legend's own colour
+	# in each channel at the end of the first beat. A veil with nothing left to darken isn't drawn
+	# (DAYNIGHT_PLAN.md §5.6).
+	var params := Disasters.params()
+	var frames := ceili((params.delay + Sample.BEATS[0]) / DELTA) + 1
+	var lights: Array[Color] = [
+		Color.WHITE,
+		Tuning.LIGHT_DAWN,
+		Tuning.LIGHT_DUSK,
+		Tuning.LIGHT_NIGHT,
+		Tuning.LIGHT_DUSK.lerp(Tuning.LIGHT_NIGHT, 0.5),
+	]
+	for kind: Legend.Veil in [Legend.Veil.DUSK, Legend.Veil.NIGHT]:
+		var own := Tuning.VEIL_DUSK if kind == Legend.Veil.DUSK else Tuning.VEIL_NIGHT
+		for light: Color in lights:
+			var why := "%s veil in %s" % [Legend.Veil.keys()[kind], light]
+			var legend := _legend()
+			legend.veil_kind = kind
+			legend.ambient = light
+			legend.play(params)
+			var veil := _veil(legend)
+			var drawn := 0
+			for _frame: int in frames:
+				simulate(legend, 1, DELTA)
+				drawn += int(veil.modulate.a > 0.0)
+			var tint := Disasters.veil_tint(veil)
+			var world := light * tint
+			var darker := Color(minf(light.r, own.r), minf(light.g, own.g), minf(light.b, own.b))
+			var off := maxf(
+				absf(world.r - darker.r), maxf(absf(world.g - darker.g), absf(world.b - darker.b))
+			)
+			assert_almost_eq(off, 0.0, 1e-6, why + ": the world shows the darker")
+			assert_lte(maxf(tint.r, maxf(tint.g, tint.b)), 1.0, why + ": the veil only darkens")
+			if light.r <= own.r and light.g <= own.g and light.b <= own.b:
+				assert_eq(drawn, 0, why + ": frames with the veil drawn")
+			else:
+				assert_gt(drawn, 0, why + ": frames with the veil drawn")
 
 
 func test_play_stands_the_standing_parts_on_the_stage_where_they_were() -> void:
