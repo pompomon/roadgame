@@ -272,3 +272,42 @@ func test_each_props_shadow_is_drawn_wherever_it_falls() -> void:
 					wrong.append("%s, %s: %s" % [cast.def.id, cycle.shadow, corner])
 	assert_gt(casts.size(), 20, "the props that cast")
 	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d corners out" % wrong.size())
+
+
+func test_the_shader_lays_each_corner_where_laid_puts_it() -> void:
+	# The other tests measure the shadows by laid(), and no test can draw: headless, the shader never
+	# runs. So its vertex() runs here, as written, in each kind's material as the clock turns. Drawn,
+	# the shader and laid() lay every prop alike within 1 px (P11).
+	var code := Shadows.LAY.code
+	var start := code.find("VERTEX =", code.find("void vertex()"))
+	var lay := "VERTEX"
+	if start >= 0:
+		start += "VERTEX =".length()
+		lay = code.substr(start, code.find(";", start) - start)
+	var vertex := Expression.new()
+	var names := PackedStringArray(["lay_x", "lay_y", "VERTEX"])
+	assert_eq(vertex.parse(lay.replace("vec2(", "Vector2("), names), OK, lay)
+	var casts: Array[Shadows.Cast] = [
+		_shadows.add(_prop(PropDef.Shadow.UPRIGHT), FOOT),
+		_shadows.add(_prop(PropDef.Shadow.WALL, 2), FOOT),
+	]
+	var wrong := PackedStringArray()
+	for hour: int in 24:
+		_shadows.refresh(_clock(hour), null)
+		for cast: Shadows.Cast in casts:
+			var material := cast.sprite.material as ShaderMaterial
+			var lays: Array = [
+				material.get_shader_parameter(&"lay_x"), material.get_shader_parameter(&"lay_y")
+			]
+			for corner: Vector2 in _corners(cast.sprite.get_rect()):
+				var drawn: Variant = vertex.execute(lays + [corner])
+				if (
+					vertex.has_execute_failed()
+					or not drawn is Vector2
+					or not (cast.sprite.transform * (drawn as Vector2)).is_equal_approx(
+						Shadows.laid(cast) * corner
+					)
+				):
+					var kind: String = PropDef.Shadow.find_key(cast.def.shadow)
+					wrong.append("%s at %d h: %s" % [kind, hour, corner])
+	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d corners laid elsewhere" % wrong.size())
