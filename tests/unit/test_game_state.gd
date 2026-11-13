@@ -4,6 +4,8 @@ extends GutTest
 const GameStateScript := preload("res://autoload/game_state.gd")
 
 var _state: GameStateScript
+## test_a_run_can_start_in_the_tutorial's: in_tutorial at each run_started.
+var _tutorial_at_start: Array[bool] = []
 
 
 func before_each() -> void:
@@ -93,6 +95,27 @@ func test_game_over_then_retry() -> void:
 	_state.start_run(2)
 	assert_eq(_state.state, GameStateScript.State.RUNNING)
 	assert_eq(_state.run_seed, 2)
+
+
+## TUTORIAL_PLAN.md §5.5: in_tutorial is set before run_started, on which the HUD reads it, and
+## each run starts with it or without.
+func test_a_run_can_start_in_the_tutorial() -> void:
+	EventBus.run_started.connect(_record_tutorial)
+	_state.start_run(1, true)
+	_state.end_tutorial()
+	_state.end_run(CarSim.HEALTH)
+	_state.show_game_over()
+	_state.start_run(2, true)
+	_state.end_run(CarSim.HEALTH)
+	_state.show_game_over()
+	_state.start_run(3)
+	EventBus.run_started.disconnect(_record_tutorial)
+	assert_eq(_tutorial_at_start, [true, true, false] as Array[bool])
+	assert_false(_state.in_tutorial)
+
+
+func _record_tutorial(_run_seed: int) -> void:
+	_tutorial_at_start.append(_state.in_tutorial)
 
 
 func test_quit_to_title_unpauses() -> void:
