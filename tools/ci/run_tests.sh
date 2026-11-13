@@ -2,6 +2,9 @@
 # Run every GUT test and write build/reports/gut-junit.xml. GUT exits 0 when a test script does
 # not parse or the project was never imported, so the log and the JUnit total are checked too.
 # The post-run hook tests/gut_post_run.gd makes GUT exit 1 on errors in setup/teardown hooks.
+# Extra arguments go to GUT, to run fewer tests with the same checks (AGENTS.md §4):
+# -gselect=test_hud runs each script whose file name contains test_hud, and
+# -gdir= -gtest=res://tests/unit/test_hud.gd,res://tests/integration/test_crash.gd runs just those.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
@@ -14,7 +17,7 @@ rm -f "$junit"
 scratch_save
 rc=0
 run_godot 900 "$log" --headless --path . -s res://addons/gut/gut_cmdln.gd \
-  -gconfig=res://.gutconfig.json -gjunit_xml_file="$junit" -gexit || rc=$?
+  -gconfig=res://.gutconfig.json -gjunit_xml_file="$junit" -gexit "$@" || rc=$?
 
 fail_on "$SCRIPT_ERROR_RE|have not been imported|\\[GUT ERROR\\]" "$log" "GUT could not load every test"
 [ "$rc" -eq 0 ] || { echo "::error::GUT reported failures (exit $rc)"; exit "$rc"; }

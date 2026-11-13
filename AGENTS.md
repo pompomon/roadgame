@@ -56,7 +56,7 @@ Contents:
 Each milestone started from a written plan, and the code followed in stacked PRs. M0's plan came with #2; M1's and M2's were plan PRs of their own, #19 and #24. Do the same:
 
 1. **Review IP's milestone against the code on `main`.** Write down what is wrong, missing or ambiguous as findings, each with its evidence and its fix (M2 had H1–H31). The IDs are cited everywhere after that: in the plan, code comments, tests, commits and PRs.
-2. **Verify, don't just review.** Build every file the plan adds or changes on a branch `m<n>/prototype` and run the five checks (§4) on it. Back each claim about Godot with a probe or a test. Where Godot's behaviour isn't documented, cite its source by file and line (H16 cites `GDScriptLambdaSelfCallable`). The prototype is only a reference: it never gets a PR.
+2. **Verify, don't just review.** Build every file the plan adds or changes on a branch `m<n>/prototype` and run the five checks (§4) on it, locally: they take about 2 minutes there, and a CI run started by hand 5–6 minutes for the same results. Start one only for a build that you will check (§6). Back each claim about Godot with a probe or a test. Where Godot's behaviour isn't documented, cite its source by file and line (H16 cites `GDScriptLambdaSelfCallable`). To see or hear the game, run it on the desktop (§4). The prototype is only a reference: it never gets a PR.
 3. **Write `M<n>_PLAN.md`** on branch `m<n>/plan`, in M2_PLAN.md's shape:
    - a header with the status, date and scope; the tool versions it was verified with; the precedence (Δ); the reference code; the prerequisites;
    - §1 the goal and exit criteria E#, each with how it is checked;
@@ -64,7 +64,11 @@ Each milestone started from a written plan, and the code followed in stacked PRs
    - §3 decisions and open questions Q#, each with a default;
    - §4 the work breakdown: one PR per reviewable piece, with its files, steps and expected test counts; how the stack lands (§4.5); a table of review fixes, filled in later (§4.6);
    - §5 the design; §6 verification: local checks with counts (§6.1), negative cases (§6.2), editor warnings (§6.3), what only CI or a device can check (§6.4), measurements; §7 owner actions; §8 risks; §9 notes for later milestones.
-4. **Negative cases.** For each rule and each fix, write the temporary change that breaks it and the check that must then fail (M2 has N1–N69). Run them with a script, on the prototype and again on the final PR heads.
+4. **Negative cases.** For each rule and each fix, write the temporary change that breaks it and the check that must then fail (M2 has N1–N69). Run them with a script that applies each change, runs the check and restores the file:
+   - While the code changes, run only the new cases and those whose files or tests changed, each with just the check that it names: for GUT, its test scripts (§4). The five scripts that HB's cases name run in 3 s; the whole suite takes 75–110 s. A case that must fail nothing needs the whole suite.
+   - With the whole suite, run every case twice: on the prototype state that the plan reports, and on each PR's head once its reviews are done. That shows that each fails what the plan says and nothing else. Run them side by side in worktrees (§4). Start a PR's run as you push what should be its last round, while Copilot reviews it (§9). If a later commit changes more than docs, run them again.
+
+   HB ran its 25 cases with the whole suite on 5 states: 103 runs of 87–95 s, about 2.6 hours (#62, HEALTH_BAR_PLAN.md §6.2). So run, they would take a few minutes on the 3 states between, and about 20 minutes, two at a time, on each of the other two.
 5. **Open the plan PR**: docs only, base `main`. Have a different model review it first (§7). The owner answers the Q#s or accepts the defaults. If nobody answers, go on with the defaults and say so.
 6. **Keep the plan current** while the PRs are reviewed: its status line, the review-fix table, the counts and the device results. The stack's last PR can carry the final sync, as M2 PR 4 did in aac0b4b.
 
@@ -120,6 +124,20 @@ git status --porcelain     # must print nothing
 - **shellcheck.** `lint.sh` only warns if it's missing. The plans were verified with shellcheck 0.11.0 and actionlint 1.7.12; the `lint` job runs actionlint too.
 - **The tree.** CI's `test` job runs the last check too, after the others, and fails if it prints anything (M5 L28).
 - **Results.** Reports go to `build/reports/`. Put the counts in the PR, as M2_PLAN.md §6.1 does: scripts loaded, tests, asserts, GUT time, and `smoke.sh`'s `autopilot: tile …, turns …, area …` line.
+- **Time**, on 2 CPUs: `lint.sh` 9 s, `import.sh` 14 s, `check_scripts.sh` 2 s, `run_tests.sh` 75–110 s, `smoke.sh` 1 s.
+- **Fewer tests.** Arguments to `run_tests.sh` go to GUT, and its checks for errors, leaks and the save still apply. `tools/ci/run_tests.sh -gselect=test_hud` runs each script whose file name contains `test_hud`, in 2 s. `tools/ci/run_tests.sh -gdir= -gtest=res://tests/unit/test_hud.gd,res://tests/integration/test_crash.gd` runs just those two: `-gtest` alone adds them to the whole suite. Run the whole suite before each push.
+- **Side by side.** Two whole suites in two worktrees took 77 s each on 2 CPUs, as long as one alone, so run one worktree per CPU (`nproc`). Each needs its own import: `git worktree add --detach /tmp/n1 HEAD && (cd /tmp/n1 && tools/ci/import.sh)`. Remove it after with `git worktree remove /tmp/n1`.
+
+**Seeing the game.** No game code checks the platform: only debug builds add extras, the title's area choice and the game-over seed, and only some platforms send the notifications for focus, pause and Back (M2 H4, M5 L10, L13). So a desktop run plays as the builds do, but for the Web's limits (§3) and what only the Fold4 has (§6). It also takes the user arguments that the builds don't: `--play`, `--autopilot`, `--seed=<int>` and `--area=<id>` (`ui/main.gd`:7–11). Under Xvfb, Movie Maker writes each frame as a PNG for you to look at, and the sound as a WAV:
+
+```bash
+mkdir -p /tmp/movie && XDG_DATA_HOME=$(mktemp -d) xvfb-run -a -s "-screen 0 1280x1024x24" \
+  godot --path . --write-movie /tmp/movie/f.png --fixed-fps 60 --quit-after 600 -- --autopilot --seed=12345
+```
+
+- That's 10 s of play in 18 s. The scratch `XDG_DATA_HOME` keeps your save out of it. `xvfb-run` is in the `xvfb` package.
+- The frames are always the project's 360×640 (Godot 4.7.2's `main/main.cpp`:4840–4855): with another `--resolution`, they show its middle, cut to that shape and scaled. For the Fold4's sizes (M2_PLAN.md §6.5), save the viewport's image from a probe script, as M1_PLAN.md §6.3 did.
+- Without Movie Maker, add `--audio-driver Dummy`, or Godot prints an `ERR_CANT_OPEN` error (M1 G16).
 
 ## 5. Branches, commits and stacked PRs
 
@@ -156,17 +174,43 @@ There is no PR template. #25–#28 used this shape, and the body stays current a
 - `## Manual checks (E#)`: what a browser or the owner must check, and the results so far.
 - **Acceptance:** the E#s that this PR meets.
 
-The owner checks the debug APK on the Fold4. Give the run and the commands, as #28 did:
+**Where to check what.** Check each thing where it's quickest to check faithfully. Leave the owner only what needs the Fold4, in one list in the PR body:
+
+| What | Where | Who |
+|---|---|---|
+| Rules, numbers, layouts at a given size, the font's glyphs | GUT, headless (§4) | Agent |
+| How the game looks, sounds and plays | A desktop run, with Movie Maker's frames (§4) | Agent |
+| What only the Web does: WebGL errors (§3), the canvas's blur (M2 H4), sound, which browsers start only after a gesture (M5_PLAN.md §9), the save in IndexedDB (M5 L11), touch in the browser | The Web build in Chrome and Firefox | Agent |
+| What only Android or the Fold4 does: Back (M5 L13), leaving and resuming the app, both screens and folding, the frame rate on its GPU, haptics, how touch feels | The debug APK on the Fold4 | Owner |
+
+**No Android emulator.** The Web and desktop runs play the same game as the APK (§4), and an emulator can't stand in for the Fold4. The APK holds only ARM code (`export_presets.cfg`:32–35), which an x86_64 emulator must translate. Where there's no `/dev/kvm`, as on the 2-CPU machine that the times in §4 come from, it isn't accelerated either. And it has neither the Fold4's GPU, nor its two screens, nor haptics.
+
+**Builds.** CI uploads them only from a run started by hand, and keeps them 1 day. Start one only when you have something to check in it, and reuse it while nothing reaches it. The exports leave out `tests/`, `addons/gut/` and Markdown, so the build is current if `git diff --name-only <built> HEAD -- . ':!tests' ':!addons/gut' ':!*.md'` prints nothing. They leave out `tools/` too (`export_presets.cfg`), but `tools/ci/export.sh` makes them. Of the 6 builds of HB's prototype, the last 5 had nothing new but a comment.
 
 ```bash
 gh workflow run ci.yml -R pompomon/roadgame --ref <branch> -f upload-builds=true   # Web and Android artifacts, kept 1 day
+rm -rf /tmp/roadgame-web /tmp/roadgame-apk                                        # gh won't overwrite an earlier download
+gh run download <run-id> -R pompomon/roadgame -n web -D /tmp/roadgame-web
 gh run download <run-id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk
-adb install -r /tmp/roadgame-apk/roadgame-debug.apk
+adb install -r /tmp/roadgame-apk/roadgame-debug.apk                               # the owner, as #28 gave it
 ```
 
 In debug builds, the title's Start button chooses the area that Play starts in, so a device can check each area without `--area` (ZONE_SELECT_PLAN.md).
 
-Agents can check the Web build themselves: serve it with `python3 -m http.server` and drive Chrome and Firefox with Playwright (#28 ran them headed under Xvfb). Post the results as a table in a PR comment, one row per check. Mention @pompomon when the owner must act.
+**The Web build** is a release build, without the debug extras. It takes no arguments until you patch its `index.html` (M4_PLAN.md §4, PR 3 step 3); then `?arg=` passes them:
+
+```bash
+sed -i 's/"args":\[\]/"args":["--"].concat(new URLSearchParams(location.search).getAll("arg"))/' /tmp/roadgame-web/index.html
+python3 -m http.server -d /tmp/roadgame-web 8000   # http://localhost:8000/?arg=--play&arg=--seed=12345
+```
+
+- Drive Chrome and Firefox with Playwright, headed under Xvfb (#28). If Firefox is missing, install Playwright's, with the version of Playwright that drives it: `npx -y playwright@<version> install --with-deps firefox` took 47 s.
+- They draw in software, so their frame rate depends on the browser and the page's size: on 2 CPUs, Chrome drew 49 fps at 360×640 and 21 at 1280×720 (22 in #44), and Firefox 59 and 55. Judge the frame rate only on the Fold4. Chrome's `GPU stall due to ReadPixels` notes, and an early `CONTEXT_LOST_WEBGL`, come from software GL too (M4_PLAN.md §6.6).
+- With touch emulation on, Chrome takes touches of several fingers over the DevTools protocol (#23).
+- Playwright keeps its pages focused, so a blur needs a browser without it, such as Chrome driven over the DevTools protocol, with real X input from `xdotool` under a window manager (#28, #33).
+- The owner can play the same copy in the Fold4's Chrome, with arguments: `adb reverse tcp:8000 tcp:8000`, then the same address (M4_PLAN.md Q6).
+
+Post the results as a table in a PR comment, one row per check. Mention @pompomon when the owner must act.
 
 ## 7. Internal review by a different model
 
@@ -176,6 +220,7 @@ Before you open a PR, and before you push non-trivial fixes, have a subagent tha
 - `agent_type`: `code-review` for a diff; `rubber-duck` for a plan or a design.
 - `model`: one from another family. If you are a Claude model, pick a GPT or Gemini model (for example `gpt-6.1-sol` or `gemini-4-argon` as of 2026-11); if you are a GPT model, pick Claude. The `model` parameter lists the models available.
 - If no other family is available, use the default model, and say so in the PR.
+- `mode`: `background`, so that you can go on meanwhile, such as with a run of negative cases (§2). Read its result before you push.
 
 **The prompt.** The subagent starts with no context. Give it:
 - the goal, with the plan's sections and IDs;
@@ -218,7 +263,7 @@ tools/agent/watch_pr.sh <n>    # polls every 60 s, for up to 15 min
 
 It first prints the feedback posted since the head commit. Then it prints each new review, inline comment and PR comment as it arrives, and stops one poll after Copilot's review of the head commit. The summary gives the review's verdict and the checks. `--minutes 0` prints the current state and exits; `--minutes`, `--interval` (at least 10 s) and `--repo` change the defaults.
 
-In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, such as `initial_wait: 600`. If the tool returns before the script ends, the script keeps running: read the rest with `read_bash`, after the completion notice or with a `delay` of a few minutes. Don't poll with `sleep`.
+In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, such as `initial_wait: 600`. If the tool returns before the script ends, the script keeps running: read the rest with `read_bash`, after the completion notice or with a `delay` of a few minutes. Don't poll with `sleep`. If you have other work meanwhile, such as Web checks or negative cases (§2), start the script in async mode instead, and read it when you're told that it has ended.
 
 | Exit | Meaning | Do |
 |---|---|---|
