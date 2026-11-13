@@ -13,7 +13,7 @@ Input: Touch and keyboard
 An isometric pixel-art endless driving roguelike. The player steers a car along a procedurally generated road through a series of hand-designed areas. At every junction the player must follow a hidden **Left → Right → Left → Right…** pattern. One wrong or missed turn ends the run with a procedural disaster. The goal is to drive as far as possible and discover every area and disaster.
 
 ### 1.1 Core pillars
-- **One rule, learned through failure.** The L/R pattern is never explained. Players discover it by dying.
+- **One rule, learned through failure.** The L/R pattern is never explained. Players discover it by failing: in the tutorial a wrong turn only ends a streak (§2.7), and after it, by dying.
 - **Familiar journey, fresh road.** The areas always appear in the same order, but each road is different.
 - **Spectacular failure.** Every run ends with a varied, area-specific disaster that is worth watching.
 - **Pure skill.** No meta-progression changes gameplay.
@@ -23,7 +23,7 @@ An isometric pixel-art endless driving roguelike. The player steers a car along 
 ## 2. Game Rules
 
 ### 2.1 Run flow
-1. The run starts in the **City**, heading north.
+1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7).
 2. The car controls its speed automatically (§2.3). The player only steers.
 3. The road has straights and **junctions**. At each junction the player must take the next turn in the global pattern `L, R, L, R, …`. The first turn is always **Left**. A **decoy** junction doesn't offer that turn, only straight on and the other turn: there straight on is correct, and the turn waits for a later junction.
 4. Taking the wrong exit, or continuing straight through a junction that offers the turn (a "missed turn"), triggers a **disaster** and ends the run.
@@ -66,6 +66,14 @@ None that affects gameplay. Persisted between runs:
 - **Disaster collection:** each disaster type witnessed, with its area and run stats.
 - Settings (volume, orientation lock, haptics).
 
+### 2.7 Tutorial
+Until the player has finished it, Play starts the run with a tutorial: the City's look, with no disasters and no death (`TUTORIAL_PLAN.md`).
+- Every junction is a T, and its wrong exit loops round to the path two junctions on, so every road leads on. Correct turns build a **streak**. A wrong exit, a U-turn or the off-road limit ends it, and costs nothing else.
+- Off the road the car takes damage as in the City, but drives on at 0 health, and heals to full within **2 s** of driving on the road. A car driven 6 tiles off the road in one go is put back on the path.
+- After **12** correct turns in a row (`Tuning.TUTORIAL_STREAK`), the run goes on in the City under its rules, with full health and no stop. The road ahead is the tutorial's until its last loop closes, then the seed's. The run's distance, turns and areas count from there: the tutorial counts for nothing.
+- The HUD shows the streak, such as "turns 3/12", for the turns, and no distance. A correct turn chimes as it does after the tutorial.
+- The save records that the tutorial is done as the streak completes (§9). A save from before the tutorial that has a run counts as done.
+
 ---
 
 ## 3. World and Road Generation
@@ -99,6 +107,7 @@ None that affects gameplay. Persisted between runs:
 ### 3.5 Determinism
 - All generation uses a seeded `RandomNumberGenerator`. The same seed gives the same road, junctions, dead ends, decorations and disaster variations.
 - Separate sub-streams (`road`, `props`, `disaster`) so that changing decorations never changes road layout.
+- With the tutorial, the road also depends on where the streak ends. The tutorial's straights have a stream of their own, so the road after it is the seed's, from the seed's first junction (§2.7).
 
 ### 3.6 Area schedule
 Fixed areas are keyed by **correct-turn count**. The areas between schedule entries are filled procedurally using the active area's rules.
@@ -272,6 +281,7 @@ Main
 - `health_changed(value)`
 - `disaster_triggered(area_def, junction)`
 - `run_ended(cause, stats)`
+- `streak_changed(streak)`, `tutorial_completed`
 
 ### 7.5 Car state machine
 `DRIVING ⇄ BRAKING_FOR_JUNCTION`, `DRIVING/BRAKING → OFFROAD ⇄ DRIVING` (rejoin within 2 tiles), `OFFROAD → DISASTER` (limit reached near a junction) `| CRASHED` (limit reached on a straight, or health reaches 0), `DRIVING/BRAKING → DISASTER` (wrong exit)
@@ -310,14 +320,15 @@ tests/         GUT tests
 `user://save.json`:
 ```json
 {
-  "version": 1,
+  "version": 2,
   "atlas": { "city": { "discovered": true, "best_distance": 0 } },
   "best": { "distance": 0, "turns": 0 },
   "disasters": { "phantom_bus": { "seen": 3, "first_area": "city" } },
-  "settings": { "music": 0.8, "sfx": 1.0, "ambient": 0.8, "haptics": true, "orientation": "sensor" }
+  "settings": { "music": 0.8, "sfx": 1.0, "ambient": 0.8, "haptics": true, "orientation": "sensor" },
+  "tutorial": { "done": false }
 }
 ```
-The file has a version number so it can be migrated when the format changes. It is written on `run_ended` and when settings change.
+The file has a version number so it can be migrated when the format changes. It is written on `run_ended`, when settings change, and as the tutorial is done (§2.7).
 
 ---
 
@@ -381,6 +392,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Engine | Godot 4.3+, GDScript (switched from Phaser on request) |
 | Controls | Free steering, automatic speed (Model B) |
 | Core rule | Hidden alternating L/R pattern, always starting Left; a wrong or missed turn triggers a disaster |
+| Tutorial | Until the player has finished it, runs start with one in the City: no disasters or death, every road leads on, and 12 correct turns in a row lead into the City's run |
 | Road directions | All 4 headings rendered; the correct path is a staircase, so it never crosses itself |
 | Buffer | 50 tiles at start, refill at midpoint, keep 25–50 lookahead |
 | Areas | Fixed schedule by turn count; the last area continues forever |

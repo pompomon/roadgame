@@ -15,6 +15,8 @@ const GAME_OVER := GameState.State.GAME_OVER
 
 func before_each() -> void:
 	SaveService.use_memory()
+	# Play would start the tutorial, which has no disasters (TUTORIAL_PLAN.md §5.6).
+	SaveService.complete_tutorial()
 
 
 func after_each() -> void:

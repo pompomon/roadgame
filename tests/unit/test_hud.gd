@@ -179,3 +179,34 @@ func test_the_end_of_a_run_and_a_new_run_hide_the_area_name() -> void:
 	assert_false(banner.visible, "a new run starts without the last one's name")
 	simulate(hud, 1, DELTA)
 	assert_false(banner.visible, "and it stays hidden")
+
+
+## TUTORIAL_PLAN.md §5.4: in the tutorial, the turns in a row of TUTORIAL_STREAK for the turns, no
+## distance, and its goal, which fits the narrowest reference screen (M2_PLAN.md §6.5), for the
+## area's name. Once it is done, the City's turns, distance and name; a run without it starts so.
+func test_the_tutorial_shows_its_streak_and_goal_until_it_is_done() -> void:
+	var hud := _hud()
+	var distance: Label = hud.get_node("%Distance")
+	var banner: Label = hud.get_node("%AreaBanner")
+	GameState.start_run(1, true)
+	EventBus.area_changed.emit(_area("City"))
+	assert_eq(_text(hud, "Turns"), "turns 0/%d" % Tuning.TUTORIAL_STREAK)
+	assert_false(distance.visible)
+	assert_eq(banner.text, "Tutorial\n%d turns in a row" % Tuning.TUTORIAL_STREAK)
+	assert_lte(banner.get_combined_minimum_size().x, 360.0)
+	EventBus.streak_changed.emit(3)
+	assert_eq(_text(hud, "Turns"), "turns 3/%d" % Tuning.TUTORIAL_STREAK)
+	EventBus.streak_changed.emit(0)
+	assert_eq(_text(hud, "Turns"), "turns 0/%d" % Tuning.TUTORIAL_STREAK)
+	GameState.end_tutorial()
+	EventBus.tutorial_completed.emit()
+	EventBus.area_changed.emit(_area("City"))
+	assert_eq(_text(hud, "Turns"), "turns 0")
+	assert_true(distance.visible)
+	assert_eq(banner.text, "City")
+	GameState.quit_to_title()
+	GameState.start_run(2, true)
+	GameState.quit_to_title()
+	GameState.start_run(3)
+	assert_eq(_text(hud, "Turns"), "turns 0")
+	assert_true(distance.visible)
