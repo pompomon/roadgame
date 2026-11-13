@@ -5,6 +5,7 @@ extends GutTest
 const CAR_SCENE := preload("res://car/car.tscn")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const FOOT := Vector2(300.0, 200.0)
+const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert"]
 
 var _shadows: Shadows
 
@@ -39,7 +40,13 @@ static func _clock(hour: float) -> DayCycle:
 
 ## Where `cast` lays the texel `texel` of its frame, from the frame's top left.
 static func _laid(cast: Shadows.Cast, texel: Vector2) -> Vector2:
-	return cast.sprite.transform * (texel + cast.sprite.offset)
+	return Shadows.laid(cast) * (texel + cast.sprite.offset)
+
+
+static func _corners(rect: Rect2) -> Array[Vector2]:
+	var top_right := Vector2(rect.end.x, rect.position.y)
+	var bottom_left := Vector2(rect.position.x, rect.end.y)
+	return [rect.position, top_right, rect.end, bottom_left]
 
 
 func _car() -> CarController:
@@ -72,7 +79,7 @@ func test_an_upright_props_shadow_falls_from_its_foot_across_the_light() -> void
 		shown += 1
 		# A texel to the right on the foot's row. Vector2 is single precision, so not measured as
 		# the difference of two points 300 pixels out.
-		var right := cast.sprite.transform.x
+		var right := Shadows.laid(cast).x
 		var across := Iso.world_to_tile(right)
 		var along := Iso.world_to_tile(cycle.shadow).normalized()
 		if not _laid(cast, Vector2(8.0, 8.0)).is_equal_approx(FOOT + 12.0 * cycle.shadow):
@@ -165,7 +172,10 @@ func test_removed_shadows_give_their_sprites_back() -> void:
 func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	# The car's shadow is an upright prop's, from its foot, in its frame. A legend that shrinks the
 	# car shrinks its shadow, and one that makes it clear makes its shadow as clear; a hidden car
-	# casts none (M6_PLAN.md §5.4).
+	# casts none (M6_PLAN.md §5.4). It is laid by its sprite's transform, and measured by its frame,
+	# though its sprite was a prop's.
+	var used := _shadows.add(_prop(PropDef.Shadow.UPRIGHT), FOOT)
+	_shadows.remove(used)
 	var car := _car()
 	var body: Sprite2D = car.get_node("%Body")
 	var cycle := _clock(9.0)
@@ -174,6 +184,8 @@ func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	_shadows.refresh(cycle, car)
 	var cast := _shadows.car_cast()
 	assert_not_null(cast)
+	assert_same(cast.sprite, used.sprite, "a prop's sprite again")
+	assert_null(cast.sprite.material, "laid by its transform")
 	assert_true(cast.sprite.visible)
 	assert_eq(cast.sprite.texture, body.texture)
 	assert_eq(cast.sprite.frame, body.frame, "the body's frame")
@@ -201,3 +213,61 @@ func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	_shadows.refresh(cycle, car)
 	assert_true(cast.sprite.visible, "shown again")
 	assert_same(_shadows.car_cast(), cast, "the same shadow")
+	await wait_process_frames(1)
+	var measured := RenderingServer.debug_canvas_item_get_rect(cast.sprite.get_canvas_item())
+	assert_eq(measured, cast.sprite.get_rect(), "measured by its frame")
+
+
+func test_the_clock_turns_the_props_shadows_but_no_sprite() -> void:
+	# Each kind's material lays its props' shadows, so that as the clock turns, every frame, no
+	# sprite changes, however many there are (C20).
+	var upright := _shadows.add(_prop(PropDef.Shadow.UPRIGHT, 2), FOOT)
+	var wall := _shadows.add(_prop(PropDef.Shadow.WALL, 2), FOOT + Vector2(40.0, 0.0))
+	var from := Transform2D(0.0, FOOT - Vector2(0.0, 2.0))
+	assert_eq(upright.sprite.transform, from, "where it falls from")
+	var placed: Array[Transform2D] = [upright.sprite.transform, wall.sprite.transform]
+	var cycle := _clock(9.0)
+	_shadows.refresh(cycle, null)
+	var morning: Array[Transform2D] = [Shadows.laid(upright), Shadows.laid(wall)]
+	cycle.advance(30.0)
+	_shadows.refresh(cycle, null)
+	var after: Array[Transform2D] = [upright.sprite.transform, wall.sprite.transform]
+	assert_eq(after, placed, "the sprites stay")
+	assert_ne(Shadows.laid(upright), morning[0], "an upright prop's shadow turns")
+	assert_ne(Shadows.laid(wall), morning[1], "a wall's turns")
+
+
+func test_each_props_shadow_is_drawn_wherever_it_falls() -> void:
+	# Godot culls a sprite, and fits the group around its sprites, by the rect it measures each by,
+	# and a prop's material lays its shadow beyond its frame. So each prop's shadow is measured by
+	# its reach, which holds its frame however it lies: at each quarter hour, and as long as a
+	# shadow can be, every way round (C20, P11).
+	var casts: Array[Shadows.Cast] = []
+	for area: StringName in AREAS:
+		for def: PropDef in (load("res://areas/%s.tres" % area) as AreaDef).props:
+			var cast := _shadows.add(def, FOOT)
+			if cast != null:
+				casts.append(cast)
+	var cycles: Array[DayCycle] = []
+	var longest := 0.0
+	for minute: int in 24 * 60:
+		longest = maxf(longest, DayCycle.shadow_at(minute / 60.0).length())
+		if minute % 15 == 0:
+			cycles.append(_clock(minute / 60.0))
+	for turn: int in 64:
+		var cycle := DayCycle.new()
+		cycle.shadow = Vector2.from_angle(TAU * turn / 64.0) * longest
+		cycle.shadow_alpha = 1.0
+		cycles.append(cycle)
+	var wrong := PackedStringArray()
+	for cycle: DayCycle in cycles:
+		_shadows.refresh(cycle, null)
+		for cast: Shadows.Cast in casts:
+			var rid := cast.sprite.get_canvas_item()
+			var measured := RenderingServer.debug_canvas_item_get_rect(rid).grow(1e-3)
+			var lay := cast.sprite.transform.affine_inverse() * Shadows.laid(cast)
+			for corner: Vector2 in _corners(cast.sprite.get_rect()):
+				if not measured.has_point(lay * corner):
+					wrong.append("%s, %s: %s" % [cast.def.id, cycle.shadow, corner])
+	assert_gt(casts.size(), 20, "the props that cast")
+	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d corners out" % wrong.size())
