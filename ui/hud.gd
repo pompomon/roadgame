@@ -5,9 +5,7 @@ extends Control
 ## AREA_BANNER_SECONDS (M4.3). It reads GameState, listens to EventBus, starts afresh with each
 ## run, and processes while the game is paused. When the run ends it hides the pause button and
 ## the area's name, and the game-over screen shows why it ended (M3.3). Its text uses only
-## characters in Godot's default font: the Web build has no system font to fall back on. In the
-## tutorial, it shows the turns in a row for the distance and the turns, and the tutorial's goal for
-## the area's name (TUTORIAL_PLAN.md §5.4).
+## characters in Godot's default font: the Web build has no system font to fall back on.
 
 const PAUSED_MESSAGE := "Paused\nTap II or press Esc to go on"
 ## The area banner when a run starts with the tutorial: its name and its goal, TUTORIAL_STREAK.
@@ -107,6 +105,8 @@ func _on_run_ended(_cause: StringName, _stats: Dictionary) -> void:
 	_hide_banner()
 
 
+## In the tutorial, the turns label shows the turns in a row, the distance is hidden, and the area
+## banner shows the tutorial's goal (TUTORIAL_PLAN.md §5.4).
 func _on_streak_changed(streak: int) -> void:
 	_turns.text = STREAK_TEXT % [streak, Tuning.TUTORIAL_STREAK]
 

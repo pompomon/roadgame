@@ -133,17 +133,17 @@ func is_over() -> bool:
 	return state == State.DISASTER or state == State.CRASHED
 
 
+## Whether the tutorial has lost the car, which then drives at junction_speed at most, so that it
+## can take the corners of the loops (TUTORIAL_PLAN.md §5.3).
+func is_lost() -> bool:
+	return trigger.tutorial and trigger.next_junction == null
+
+
 ## Path distance from the car to the centre of the next unresolved junction, or INF after a
 ## disaster, or while the tutorial has lost the car.
 func distance_to_junction() -> float:
 	var junction := trigger.next_junction
 	return INF if junction == null else junction.path_index - progress
-
-
-## Whether the tutorial has lost the car, which then drives at junction_speed at most, so that it
-## can take the corners of the loops (TUTORIAL_PLAN.md §5.3).
-func is_lost() -> bool:
-	return trigger.tutorial and trigger.next_junction == null
 
 
 ## The cells a move from `from` to `to` enters, in order: none, one, or two when the move crosses a
