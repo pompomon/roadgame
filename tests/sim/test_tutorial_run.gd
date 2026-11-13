@@ -1,5 +1,5 @@
 extends GutTest
-## The tutorial on the road (TUTORIAL_PLAN.md §6.1). The autopilot finishes it in TUTORIAL_STREAK
+## The tutorial on the road (TUTORIAL_PLAN.md §5.7). The autopilot finishes it in TUTORIAL_STREAK
 ## turns and drives on through the City's schedule as a run without it would. A wrong turn loops
 ## back onto the path and starts the streak again, and a car left alone is put back on the path,
 ## and neither ends the run. Past the tutorial, the road it laid ahead plays by the City's rules.

@@ -1,7 +1,7 @@
 extends Autopilot
 ## Drives like the autopilot, but takes the wrong exit at each junction whose turn number is in
 ## `wrong_at`, and follows the road from there: in the tutorial, round the loop and back onto the
-## path, through the junction where the loop comes back (TUTORIAL_PLAN.md §6.1). No class_name:
+## path, through the junction where the loop comes back (TUTORIAL_PLAN.md §5.7). No class_name:
 ## tests/ is not exported.
 
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
