@@ -32,7 +32,8 @@ class Lit:
 	var def: PropDef
 
 
-## The silhouettes of each PropDef, so that one that remove() hid still has its glows.
+## The silhouettes of each PropDef, so that one that remove() hid still has its glows. They are
+## Lamps' own parts, so internal children (C20).
 var _pools: Dictionary[PropDef, PropPool] = {}
 ## The silhouettes that show, in the order they draw. They are Lamps' first children.
 var _order: Array[Lit] = []
@@ -54,7 +55,7 @@ func add(def: PropDef, prop: Sprite2D) -> Lit:
 	if not stands and def.lights.is_empty() and def.light_pools.is_empty():
 		return null
 	if not _pools.has(def):
-		_pools[def] = PropPool.new(self)
+		_pools[def] = PropPool.new(self, Node.INTERNAL_MODE_BACK)
 	var pool: PropPool = _pools[def]
 	var made := pool.made
 	var lit := Lit.new()
