@@ -164,6 +164,8 @@ gh run download <run-id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/r
 adb install -r /tmp/roadgame-apk/roadgame-debug.apk
 ```
 
+In debug builds, the title's Start button chooses the area that Play starts in, so a device can check each area without `--area` (ZONE_SELECT_PLAN.md).
+
 Agents can check the Web build themselves: serve it with `python3 -m http.server` and drive Chrome and Firefox with Playwright (#28 ran them headed under Xvfb). Post the results as a table in a PR comment, one row per check. Mention @pompomon when the owner must act.
 
 ## 7. Internal review by a different model

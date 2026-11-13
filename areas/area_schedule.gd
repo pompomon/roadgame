@@ -63,9 +63,10 @@ static func gap(entry: AreaScheduleEntry) -> int:
 	return entry.set_piece_length + entry.area.max_straight + 1
 
 
-## A copy that starts in the area `id`, for tests and manual checks (main.gd's --area): the entries
-## from that area's on, with their turns moved so that it is turn 0, and without its set piece.
-## The entries share their areas with this schedule. For an id it lacks: an error, and this one.
+## A copy that starts in the area `id`, for tests and manual checks (main.gd's --area, and the
+## title's Start button in debug builds): the entries from that area's on, with their turns moved so
+## that it is turn 0, and without its set piece. The entries share their areas with this schedule.
+## For an id it lacks: an error, and this one.
 func starting_at(id: StringName) -> AreaSchedule:
 	var start := -1
 	for k: int in entries.size():

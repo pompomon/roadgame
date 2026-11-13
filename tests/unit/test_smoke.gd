@@ -21,7 +21,8 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# The Web build has no system fonts to fall back on: a glyph missing from the default
 	# font shows as a box. The HUD, the game-over screen and the title's screens (M5.5) also show
 	# numbers, the areas' and the disasters' names, the disasters' fates and lore (M6_PLAN.md S8,
-	# S12), and messages they keep in constants.
+	# S12), the title's start area in debug builds (ZONE_SELECT_PLAN.md Z8), and messages they keep
+	# in constants.
 	var main := _main()
 	var shown: Array[Control] = []
 	shown.append_array(main.find_children("*", "Label", true, false))
@@ -37,6 +38,7 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	for entry: AreaScheduleEntry in schedule.entries:
 		var stats := {"distance": 1.0, "turn_index": 1, "run_seed": 1}
 		texts.append(GameOver.stats_text(stats, entry.area))
+		texts.append(TitleScreen.START_TEXT % entry.area.display_name)
 		for seen: int in [1, 2]:
 			var first := {"seen": seen, "first_distance": 1.0, "first_turns": 1}
 			texts.append(CollectionScreen.seen_text(first, entry.area))
