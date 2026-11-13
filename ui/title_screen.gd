@@ -4,13 +4,26 @@ extends Control
 ## collection and the settings, each a screen of its own with a Back button. The game starts on it,
 ## and the game-over screen's Title button comes back to it. Esc, and Android's back button through
 ## main.gd, leave a screen for the title (M5_PLAN.md L13). On the Web, the tap on Play is also the
-## first gesture, which lets the game start its sound (M7.3).
+## first gesture, which lets the game start its sound (M7.3). In debug builds, the Start button
+## steps through the schedule's areas, to choose the area that Play starts the run in, for checks
+## on a phone (ZONE_SELECT_PLAN.md Z1): a button, as a dropdown's popup would let Android's back
+## button quit the game (Z7).
 
 ## Play was pressed.
 signal play_requested
 
-## The game's schedule: the Atlas and the collection show its areas and disasters.
+## The Start button's text, with the area's name.
+const START_TEXT := "Start in: %s"
+
+## The game's schedule: the Atlas and the collection show its areas and disasters, and the Start
+## button steps through its areas.
 var schedule: AreaSchedule
+## Whether the title shows the Start button: in debug builds only, like the game-over screen's seed
+## (M3_PLAN.md J19; ZONE_SELECT_PLAN.md Z4). Tests change it.
+var area_choice := OS.is_debug_build()
+## The area that Play starts the run in, with area_choice. main.gd sets it first; open() makes it
+## the schedule's first area if it isn't one of the schedule's.
+var start_area: AreaDef
 
 ## The button that opens each screen, which takes the focus back when the screen closes.
 var _buttons: Dictionary[MenuScreen, Button] = {}
@@ -18,6 +31,7 @@ var _buttons: Dictionary[MenuScreen, Button] = {}
 @onready var _main_page: Control = %MainPage
 @onready var _best: Label = %Best
 @onready var _play: Button = %Play
+@onready var _start: Button = %StartArea
 @onready var _atlas: AtlasScreen = %Atlas
 @onready var _collection: CollectionScreen = %Collection
 @onready var _settings: SettingsScreen = %Settings
@@ -28,6 +42,7 @@ var _buttons: Dictionary[MenuScreen, Button] = {}
 
 func _ready() -> void:
 	_play.pressed.connect(_on_play_pressed)
+	_start.pressed.connect(_on_start_pressed)
 	_add_screen(_atlas, _atlas_button, _open_atlas)
 	_add_screen(_collection, _disasters_button, _open_collection)
 	_add_screen(_settings, _settings_button, _open_settings)
@@ -38,10 +53,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Shows the title, with the bests from the save.
+## Shows the title, with the bests from the save, and the Start button with area_choice.
 func open() -> void:
 	_close_screen()
 	_best.text = AtlasScreen.best_text(SaveService.data().best)
+	var areas := schedule.areas()
+	if not areas.has(start_area):
+		start_area = areas[0]
+	_start.text = START_TEXT % start_area.display_name
+	_start.visible = area_choice
 	_main_page.show()
 	show()
 	_play.grab_focus()
@@ -102,3 +122,10 @@ func _open_settings() -> void:
 func _on_play_pressed() -> void:
 	if visible and open_screen() == null:
 		play_requested.emit()
+
+
+## The next area of the schedule, and after the last, the first.
+func _on_start_pressed() -> void:
+	var areas := schedule.areas()
+	start_area = areas[(areas.find(start_area) + 1) % areas.size()]
+	_start.text = START_TEXT % start_area.display_name

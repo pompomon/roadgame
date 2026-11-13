@@ -89,6 +89,11 @@ static func kind_for(roll: float, area: AreaDef) -> Kind:
 	return Kind.T
 
 
+## The area that the road starts in, path tile 0's: the schedule's first.
+func first_area() -> AreaDef:
+	return _schedule.entries[0].area
+
+
 ## The schedule's area whose id is `id`. Every tile's area_id names one; for any other id, the
 ## first area.
 func find_area(id: StringName) -> AreaDef:
