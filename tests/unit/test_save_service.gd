@@ -97,6 +97,14 @@ func test_a_disaster_is_written_when_it_starts() -> void:
 	assert_eq(_read().disasters["flood"]["first_area"], "meadows")
 
 
+## TUTORIAL_PLAN.md §5.6: at once, so that leaving the app after the tutorial doesn't bring it back.
+func test_the_end_of_the_tutorial_is_written_at_once() -> void:
+	assert_false(_service.data().tutorial["done"])
+	_service.complete_tutorial()
+	assert_true(_read().tutorial["done"])
+	assert_true(_new_service().data().tutorial["done"])
+
+
 func test_a_tmp_file_left_by_a_write_is_removed_when_the_save_is_read() -> void:
 	_write(FILE, SaveData.new().to_json())
 	_write(FILE + ".tmp", '{"best": ')

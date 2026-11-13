@@ -113,6 +113,15 @@ func flush() -> Error:
 	return error
 
 
+## The player finished the tutorial: it is written at once (TUTORIAL_PLAN.md §5.6).
+func complete_tutorial() -> void:
+	if data().tutorial["done"]:
+		return
+	data().tutorial["done"] = true
+	_dirty = true
+	flush()
+
+
 func _load() -> void:
 	_data = SaveData.new()
 	if path == "":

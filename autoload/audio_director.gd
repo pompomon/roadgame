@@ -73,6 +73,7 @@ func _ready() -> void:
 	EventBus.run_started.connect(_on_run_started)
 	EventBus.area_changed.connect(_on_area_changed)
 	EventBus.turn_completed.connect(_on_turn_completed)
+	EventBus.streak_changed.connect(_on_streak_changed)
 	EventBus.car_offroad_changed.connect(_on_offroad_changed)
 	EventBus.health_changed.connect(_on_health_changed)
 	EventBus.run_ended.connect(_on_run_ended)
@@ -246,6 +247,13 @@ func _on_area_changed(area: AreaDef) -> void:
 
 func _on_turn_completed(_turn_index: int) -> void:
 	play_effect(&"junction")
+
+
+## A correct turn in the tutorial chimes as one does after it. A mistake, which ends the streak, has
+## no sound of its own (TUTORIAL_PLAN.md Q11).
+func _on_streak_changed(streak: int) -> void:
+	if streak > 0:
+		play_effect(&"junction")
 
 
 func _on_offroad_changed(is_offroad: bool) -> void:
