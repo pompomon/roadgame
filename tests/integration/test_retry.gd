@@ -85,6 +85,27 @@ func test_retry_starts_the_next_run_afresh() -> void:
 	assert_eq((hud.get_node("%Distance") as Label).text, "0 m")
 
 
+func test_a_retry_weighs_the_disaster_just_seen_less() -> void:
+	# Each run reads the collection as it starts, with the last run's disaster in it
+	# (POOLS_PLAN.md Q2, V2).
+	SaveService.use_memory()
+	var main := MainScene.open(self, ["--seed=1"])
+	var director: DisasterDirector = main.get_node("%Director")
+	var city := MainScene.car(main).sim.area
+	for weight: float in director.picks.weights(city.disasters):
+		assert_eq(weight, 1.0, "nothing seen yet")
+	_to_game_over(main)
+	var id := director.disaster.id
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(GameState.state, RUNNING, "retried")
+	var weights := director.picks.weights(city.disasters)
+	for k: int in city.disasters.size():
+		var seen := DisasterPicks.id_of(city.disasters[k]) == id
+		assert_eq(weights[k], Tuning.SEEN_DISASTER_WEIGHT if seen else 1.0, "scene %d" % k)
+	assert_eq(weights.count(Tuning.SEEN_DISASTER_WEIGHT), 1, "the one seen")
+	SaveService.use_memory()
+
+
 func test_after_retry_the_arrow_keys_steer_and_enter_does_nothing() -> void:
 	# Retry had the focus, which takes the arrow keys for itself; hiding it gives them back.
 	var main := MainScene.open(self, ["--seed=1"])
