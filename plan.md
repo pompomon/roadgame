@@ -217,6 +217,14 @@ Shared assets:
 - Drawn in Aseprite and exported as PNG sprite sheets into `assets/<area>/`.
 - Import settings: no filtering, no mipmaps, lossless compression.
 
+### 5.5 Day and night
+Each zone has a clock of its own, and the picture follows its hour (`DAYNIGHT_PLAN.md`).
+- The clock starts at 07:00 as the car enters a zone, and turns a whole day and night in the area's `day_seconds`, 120 s by default: dusk comes 50 s into a zone, and the night at 65 s.
+- The light eases from key to key round the clock: the night's blue, dawn's pink, the day's white from 07:00 to 17:00, and dusk's orange. No channel changes by more than a quarter of white a second, so nothing flashes, and after a reset at night the morning comes back in under 2.5 s.
+- The art is drawn as by day. `Daylight`, a square over the view, multiplies the world by the light, as the legends' veils do. The legends' glows and the UI draw above it and stay as bright.
+- The clock stops when the run ends or pauses, so a legend plays in the light that the run ended in.
+- Only the picture follows the hour: no gameplay or audio code reads the clock (§6).
+
 ---
 
 ## 6. Audio
@@ -231,6 +239,7 @@ Shared assets:
 
 - Volume channels: `Master → Music, SFX, Ambient`. The tunnel adds a reverb effect on SFX.
 - `AudioDirector` (autoload) cross-fades ambient and music on `area_changed`.
+- The audio doesn't follow the hour: the day and the night change only what the screen shows (§5.5).
 
 ---
 
@@ -248,6 +257,7 @@ Main
 │       └── Pooled prop sprites
 ├── DisasterLayer (Node2D)
 ├── Camera2D (follows car, look-ahead)
+├── Daylight (ViewVeil: the zone's light over the world, §5.5)
 └── UI (CanvasLayer)
     ├── HUD (distance, turns, health, pause)
     ├── TouchZones
@@ -266,6 +276,9 @@ Main
 | `JunctionTrigger` | `Node` | Exit-zone detection and checking against the L/R pattern |
 | `DisasterDirector` | `Node` | Selects, sets parameters for and plays disasters |
 | `AreaRegistry` | Resources | Loads `AreaDef` and `AreaSchedule` |
+| `DayCycle` | `RefCounted` | The clock of the zone that the car is in, and the light of its hour |
+| `ViewVeil` | `Polygon2D` | A square over the view that multiplies what it covers by a colour: the legends' veils and `Daylight` |
+| `Daylight` | `ViewVeil` | Shades the world with `DayCycle`'s light |
 | `GameState` | Autoload | Run state, seed, `turnIndex`, distance, state machine |
 | `EventBus` | Autoload | Signals (below) |
 | `SaveService` | Autoload | Atlas, collection, settings in `user://save.json` |

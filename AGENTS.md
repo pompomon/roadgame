@@ -36,7 +36,7 @@ Contents:
 | `autoload/` | The `EventBus`, `GameState`, `SaveService` and `AudioDirector` singletons, and `SaveData` |
 | `road/` | Road generator, buffer, geometry, occupancy grid and junction trigger |
 | `car/` | `CarSim` (the pure simulation), `Autopilot`, `CarController` and `InputRouter` |
-| `world/` | Isometric projection, the renderer with its props and skid marks, and the camera |
+| `world/` | Isometric projection, the renderer with its props and skid marks, the camera, and the day and the night |
 | `disasters/` | `DisasterDirector`, `DisasterBase` and `Legend`, and each legend's script and scene in `legends/` |
 | `setpieces/` | The tunnel and the bridge |
 | `ui/` | `main.tscn` (the main scene), the HUD, game over, the title with its screens, and the theme |
@@ -89,6 +89,7 @@ Reviewers check these too. The IDs say where each rule comes from.
   - The Web export has no system font fallback. UI text may use only glyphs of the game's font, Pixel Operator 8 (`ui/theme.tres:3`): no arrows such as ↑. `test_smoke.gd` checks the main scene's text, with the disasters' names, fates and lore (M6 §5.8).
   - In Godot 4.7.2, each redraw of a `Polygon2D` after its first raises WebGL errors on the Web (godotengine/godot#124726, fixed in 4.8). Tint through `self_modulate`, not `color` (M2 §5.7).
   - Losing focus reaches the game only as the canvas's blur. The Web never sends `NOTIFICATION_APPLICATION_FOCUS_OUT` (H4, N46).
+- **Light** (DAYNIGHT_PLAN.md §5.5). Draw the world as by day. `Daylight`, a `ViewVeil` under Main, multiplies everything below `VEIL_Z` by the light of the zone's hour. At `VEIL_Z` draw only MUL veils, and above it only ADD glows; the UI is on layers of its own. Don't tint the world with a `CanvasModulate`, a `Light2D` or World's `modulate`: they would dim the glows and darken the legends' veils twice. A new veil is a `ViewVeil`. The light is visual only: no gameplay or audio code reads `DayCycle` (`test_daylight_run.gd`).
 - **Files.** Commit the `.uid` file that Godot makes for each new script. After the checks, `git status --porcelain` must print nothing. A file that the editor saves by itself, as it does the bus layout, is committed just as the editor writes it, uid included: change the buses in the editor's Audio panel (M5 L28).
 - **Legends** (M6_PLAN.md §5). A disaster from a legend extends `Legend` (`disasters/legend.gd`):
   - It poses its beats, `Tuning.<ID>_BEATS`, on its own clock in `_physics_process`: no Tween and no timer (§5.2, §5.3).

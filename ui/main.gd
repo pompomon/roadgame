@@ -7,6 +7,7 @@ extends Node
 ## User arguments (after "--"): --play starts a run at once, without the title screen;
 ## --seed=<int> picks the road (D8); --autopilot drives by itself (the CI smoke run), and implies
 ## --play; --area=<id> starts every run in that area, for tests and manual checks (M4_PLAN.md K10).
+## --hour=<h> starts every zone's clock at hour h instead of the morning (DAYNIGHT_PLAN.md §5.9).
 ## A phone can't take them (M4_PLAN.md P4), so in debug builds the title's Start button chooses the
 ## area that Play starts in instead, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
@@ -39,6 +40,7 @@ var _fate := ""
 @onready var _world: WorldRenderer = %World
 @onready var _input: InputRouter = %InputRouter
 @onready var _camera: CameraRig = %Camera
+@onready var _daylight: Daylight = %Daylight
 @onready var _director: DisasterDirector = %Director
 @onready var _game_over: GameOver = %GameOver
 @onready var _hud: Hud = %HUD
@@ -59,6 +61,8 @@ func _ready() -> void:
 	print("grey box: tilesets built in %d ms" % ((Time.get_ticks_usec() - start) / 1000))
 	_director.layer = _world.get_node("%DisasterLayer")
 	_director.stage = _world.get_node("%Props")
+	_daylight.camera = _camera
+	_daylight.cycle.start_hour = _parse_hour(args)
 	_director.sequence_finished.connect(_on_sequence_finished)
 	_director.disaster_started.connect(_on_disaster_started)
 	_director.disaster_appeared.connect(_on_disaster_appeared)
@@ -89,9 +93,13 @@ func _exit_tree() -> void:
 	GameState.quit_to_title()
 
 
-func _physics_process(_delta: float) -> void:
-	if GameState.state == GameState.State.RUNNING and not GameState.in_tutorial:
-		GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
+func _physics_process(delta: float) -> void:
+	if GameState.state == GameState.State.RUNNING:
+		if not GameState.in_tutorial:
+			GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
+		# The zone's clock runs with the run, the tutorial's too, and stops when it ends or pauses
+		# (DAYNIGHT_PLAN.md §5.4). Daylight shows the light after the camera has moved.
+		_daylight.cycle.advance(delta)
 
 
 func _notification(what: int) -> void:
@@ -155,6 +163,9 @@ func _start_run(run_seed: int) -> void:
 	GameState.start_run(run_seed, tutorial)
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
 	_on_area_changed(_sim.area)
+	# A new run is a cut: it shows the morning, or --hour's light, at once (DAYNIGHT_PLAN.md §5.4).
+	_daylight.cycle.snap()
+	_daylight.refresh()
 
 
 ## Retry on the game-over screen: the next run, on the same nodes. A forced --seed stays; otherwise
@@ -218,7 +229,7 @@ func _on_disaster_triggered(junction: RoadTile, choice: int) -> void:
 	var area := _buffer.generator.find_area(junction.area_id)
 	EventBus.disaster_triggered.emit(area, junction)
 	_end_run(CarSim.MISSED_TURN if choice == -1 else CarSim.WRONG_TURN)
-	_director.play_disaster(area, _car, _camera)
+	_director.play_disaster(area, _car, _camera, _daylight.cycle.light)
 
 
 func _on_crashed(cause: StringName) -> void:
@@ -237,6 +248,8 @@ func _on_area_changed(area: AreaDef) -> void:
 	# A run starts at the centre of its first tile, at distance 0.
 	var start := maxf(first - 0.5 - _origin, 0.0)
 	GameState.enter_area(area.id, start, _turns_before(first) - _turn_base)
+	# Each zone starts its clock again, at its own pace (DAYNIGHT_PLAN.md §5.4).
+	_daylight.cycle.enter(area.day_seconds)
 	EventBus.area_changed.emit(area)
 
 
@@ -251,6 +264,8 @@ func _on_tutorial_completed(junction: RoadTile) -> void:
 	_buffer.generator.end_tutorial(_turn_base)
 	SaveService.complete_tutorial()
 	GameState.end_tutorial()
+	# The City's day starts here too, as its distance and turns do (DAYNIGHT_PLAN.md §5.4).
+	_daylight.cycle.enter(_sim.area.day_seconds)
 	EventBus.tutorial_completed.emit()
 	EventBus.area_changed.emit(_sim.area)
 
@@ -321,3 +336,15 @@ static func _parse_area(p_args: PackedStringArray) -> StringName:
 				push_error("main: --area= needs the id of an area")
 			return StringName(id)
 	return &""
+
+
+## The hour of --hour=<h> in `p_args`, round the clock, which every zone's clock starts at
+## (DAYNIGHT_PLAN.md §5.9). Tuning.DAY_START_HOUR without it, or with an h that isn't a number.
+static func _parse_hour(p_args: PackedStringArray) -> float:
+	for arg: String in p_args:
+		if arg.begins_with("--hour="):
+			var text := arg.trim_prefix("--hour=")
+			if text.is_valid_float() and is_finite(text.to_float()):
+				return fposmod(text.to_float(), 24.0)
+			push_error("main: --hour= needs an hour, such as --hour=20.5")
+	return Tuning.DAY_START_HOUR
