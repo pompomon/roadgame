@@ -311,7 +311,7 @@ World's last child, `Lamps`, is a `CanvasGroup` above `Daylight` that lights the
 ```
 RoadGenerator ──tiles──▶ WorldRenderer ──cells/props──▶ TileMapLayers / Props
       ▲                                         
-      │ request more (car passes buffer midpoint)
+      │ request more (fewer than 37 tiles ahead)
 CarController ──position──▶ tile lookup ──▶ off-road? / JunctionTrigger
 JunctionTrigger ──▶ EventBus ──▶ GameState / DisasterDirector / AudioDirector / HUD
 ```
@@ -377,7 +377,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 - The correct path follows `L, R, L, R…` starting with Left.
 - The correct path and dead ends never overlap (occupancy check).
 - Every junction has ≥ 1 wrong exit.
-- Lookahead stays within 25..50 tiles after any number of refills.
+- Lookahead stays within 37..55 tiles after any number of refills.
 - Area switches and set pieces happen at turns 34, 100, 200 and 220. Desert continues forever afterwards.
 
 **Simulation**
@@ -415,7 +415,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Core rule | Hidden alternating L/R pattern, always starting Left; a wrong or missed turn triggers a disaster |
 | Tutorial | Until the player has finished it, runs start with one in the City: no disasters or death, every road leads on, and 12 correct turns in a row lead into the City's run |
 | Road directions | All 4 headings rendered; the correct path is a staircase, so it never crosses itself |
-| Buffer | 50 tiles at start, refill at midpoint, keep 25–50 lookahead |
+| Buffer | 55 tiles at start, refill below 37, keep 37–55 lookahead and 20 tiles behind |
 | Areas | Fixed schedule by turn count; the last area continues forever |
 | Orientation | Portrait default, runtime orientation change supported |
 | Meta-progression | None; Atlas and disaster collection only |

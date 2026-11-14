@@ -54,7 +54,7 @@ func test_lookahead_stays_between_refill_and_ahead_fuzzed() -> void:
 			if behind > Tuning.BUFFER_BEHIND:
 				fail_test("seed %d step %d: %d tiles behind" % [run_seed, step, behind])
 				return
-	pass_test("lookahead stayed in 25..50")
+	pass_test("lookahead stayed in BUFFER_REFILL_AT..BUFFER_AHEAD")
 
 
 func test_freed_tiles_leave_with_their_dead_ends() -> void:

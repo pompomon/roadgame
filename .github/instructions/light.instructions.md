@@ -1,5 +1,5 @@
 ---
-applyTo: "world/**,disasters/**,setpieces/**,tools/art/**,ui/main.tscn"
+applyTo: "world/**,disasters/**,setpieces/**,areas/**,tools/art/**,config/tuning.gd,ui/main.gd,ui/main.tscn"
 ---
 
 # Light, shadows and lamps

@@ -26,7 +26,7 @@ This document turns the design in `plan.md` into ordered work packages with file
 |---|---|---|
 | D1 | **Simulation runs in logical tile space** (`Vector2`, 1.0 = one road tile). Rendering converts to isometric pixels. | Off-road checks, exit zones and distances become simple maths; tests need no rendering. |
 | D2 | **Car logic is a pure `RefCounted` (`CarSim`)** with `step(delta, steer)`. `CarController` (Node) is a thin wrapper. | Deterministic, fast headless simulation tests (300+ turns in well under a second). |
-| D3 | **The generator streams one correct-path tile at a time** (internal state machine) instead of whole segments. | Lets the buffer hit exactly 50 lookahead, keeping the 25..50 invariant strict. |
+| D3 | **The generator streams one correct-path tile at a time** (internal state machine) instead of whole segments. | Lets the buffer hit exactly 55 lookahead, keeping the 37..55 invariant strict (`plan.md` §3.4). |
 | D4 | Road surface = union of **capsules** from the tile centre to each exit edge midpoint (half-width `ROAD_HALF_WIDTH = 0.32` tiles). | Rounded corners for free steering, and one formula for every tile type. |
 | D5 | Exit choice = the **first edge of the junction tile the car crosses** while on road, or the **branch of the first road tile it rejoins** after leaving the road. | Direct implementation of `plan.md` §4.1. |
 | D6 | "Near a junction" = the car left the road while its tile was the next unresolved junction **or** a tile at most 1 step from it (the approach tile or any exit tile). | Gives a precise rule for disaster vs crash (`plan.md` §2.4). |
@@ -244,7 +244,7 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 | L, R, L, R… starting with L | `unit/test_road_generator_pattern.gd` | M1 |
 | No overlap between path and dead ends | `unit/test_road_generator_occupancy.gd` | M1 |
 | ≥ 1 wrong exit per junction | `unit/test_road_generator_occupancy.gd` | M1 |
-| Lookahead 25..50 | `unit/test_road_buffer.gd` | M1 |
+| Lookahead 37..55 | `unit/test_road_buffer.gd` | M1 |
 | Area switches at 34/100/200/220, desert forever | `unit/test_area_schedule.gd` | M1/M4 |
 | Scripted driver 300+ turns, no disaster | `sim/test_autopilot_300_turns.gd` | M2 |
 | Wrong turn → disaster from the area pool | `integration/test_wrong_turn_disaster.gd`, `test_disaster_pools.gd` | M3/M4 |
