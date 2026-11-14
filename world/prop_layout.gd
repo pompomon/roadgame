@@ -42,34 +42,56 @@ static func row(
 	if props.is_empty():
 		return placed
 	var sizes := by_lot(props)
+	var singles: Array[PropDef] = sizes.get(1, [] as Array[PropDef])
 	for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
 		var tile := anchor + Vector2i(j, -j)
 		if buffer.tile_at(tile) != null or near_set_piece(tile, buffer):
 			continue
-		# The tile's cells that a prop's lot takes, a bit each.
+		var origin := tile * Iso.GROUND_PER_TILE
+		# The tile's cells that a larger lot's prop takes, a bit each.
 		var taken := 0
 		for lot: int in sizes:
+			if lot == 1:
+				continue
 			var sized: Array[PropDef] = sizes[lot]
 			for b: int in range(0, Iso.GROUND_PER_TILE, lot):
 				for a: int in range(0, Iso.GROUND_PER_TILE, lot):
 					var cells := lot_cells(Vector2i(a, b), lot)
 					if taken & cells != 0:
 						continue
-					var front := (
-						tile * Iso.GROUND_PER_TILE + Vector2i(a, b) + Vector2i.ONE * (lot - 1)
-					)
+					var front := origin + Vector2i(a, b) + Vector2i.ONE * (lot - 1)
 					var hashed := lot_hash(props_seed, front, lot)
 					var def := pick(sized, hashed)
-					if def == null:
-						continue
-					var placement := Placement.new()
-					placement.def = def
-					placement.foot = ground_centre(front)
-					placement.phase = float(_mix(hashed ^ 0x2545F491) & 0xFFFF) / 65536.0
-					if not touches_road(def, placement.foot, buffer):
-						placed.append(placement)
+					if def != null and _place(def, front, hashed, buffer, placed):
 						taken |= cells
+		if singles.is_empty():
+			continue
+		# The lots of one cell, as before lots, and as fast: most rows have no larger lots.
+		for b: int in Iso.GROUND_PER_TILE:
+			for a: int in Iso.GROUND_PER_TILE:
+				if taken & (1 << (b * Iso.GROUND_PER_TILE + a)) != 0:
+					continue
+				var cell := origin + Vector2i(a, b)
+				var hashed := cell_hash(props_seed, cell)
+				var def := pick(singles, hashed)
+				if def != null:
+					_place(def, cell, hashed, buffer, placed)
 	return placed
+
+
+## Adds to `placed` a placement of `def` with its foot on ground cell `cell`, which `hashed` picked,
+## unless its frame would touch the road of `buffer`. Returns whether it added it.
+static func _place(
+	def: PropDef, cell: Vector2i, hashed: int, buffer: RoadBuffer, placed: Array[Placement]
+) -> bool:
+	var placement := Placement.new()
+	placement.def = def
+	placement.foot = ground_centre(cell)
+	placement.phase = float(_mix(hashed ^ 0x2545F491) & 0xFFFF) / 65536.0
+	if touches_road(def, placement.foot, buffer):
+		return false
+	placed.append(placement)
+	return true
 
 
 ## The props of `props` by the size of lot they take, largest first, each in their order. A prop

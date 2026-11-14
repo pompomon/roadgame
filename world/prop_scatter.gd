@@ -53,7 +53,10 @@ var _clock := 0.0
 ## Scatters the props of `schedule`'s areas on `layer`. A prop that breaks the contract is an
 ## error, and doesn't show.
 func _init(layer: Node2D, schedule: AreaSchedule) -> void:
-	pool = PropPool.new(layer)
+	# Internal children, which simulate() walks past (docs/DAYNIGHT.md C20): the City's lots double
+	# its props (VISUALS_PLAN.md W7). In front of the layer's own children, so that the car draws
+	# over a prop on its y.
+	pool = PropPool.new(layer, Node.INTERNAL_MODE_FRONT)
 	for entry: AreaScheduleEntry in schedule.entries:
 		if not _props.has(entry.area.id):
 			_props[entry.area.id] = _valid_props(entry.area)

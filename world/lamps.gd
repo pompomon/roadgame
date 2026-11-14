@@ -107,11 +107,12 @@ static func strength(light: Color) -> float:
 
 
 ## Whether Props draws `a`'s prop before `b`'s. As Godot y-sorts: by y, and if that is the same,
-## in the order of Props' children (servers/rendering/renderer_canvas_cull.h:117, ItemYSort).
-## Props only adds sprites after the others and frees them, so that order stays as it is.
+## in the order of Props' children, internal ones included (servers/rendering/
+## renderer_canvas_cull.h:117, ItemYSort). Props only adds sprites after the others and frees them,
+## so that order stays as it is.
 static func _draws_before(a: Lit, b: Lit) -> bool:
 	if is_equal_approx(a.prop.position.y, b.prop.position.y):
-		return a.prop.get_index() < b.prop.get_index()
+		return a.prop.get_index(true) < b.prop.get_index(true)
 	return a.prop.position.y < b.prop.position.y
 
 

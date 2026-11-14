@@ -115,7 +115,8 @@ func test_rows_show_props_ahead_of_the_car_and_lose_them_with_their_path_tile() 
 	# A step shows a row before it hides one, so the pool needs one row more than ever shows.
 	assert_lte(scatter.pool.made, most_shown + largest_row, "the sprites are reused")
 	assert_eq(scatter.pool.hidden() + _shown(scatter), scatter.pool.made, "none lost")
-	assert_eq(_layer.get_child_count(), scatter.pool.made)
+	assert_eq(_layer.get_child_count(true), scatter.pool.made)
+	assert_eq(_layer.get_child_count(), 0, "internal children, which simulate() walks past (W7)")
 
 
 func test_a_seed_shows_the_same_props_however_the_car_got_there() -> void:
