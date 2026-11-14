@@ -142,32 +142,50 @@ func test_every_car_smokes_alike() -> void:
 
 
 func test_the_smoke_shows_over_everything_the_world_draws() -> void:
+	# In every light of the day, under the night's veil (DAYNIGHT_PLAN.md §5.7).
 	var smoke: CPUParticles2D = _car().get_node("%Smoke")
-	for background: Color in _backgrounds():
-		var puff := background.blend(smoke.color)
-		assert_gte(
-			absf(puff.get_luminance() - background.get_luminance()),
-			SMOKE_CONTRAST,
-			"a puff over %s" % background
-		)
+	for light: Color in _lights():
+		for background: Color in _backgrounds():
+			var puff := background.blend(smoke.color)
+			assert_gte(
+				absf((puff * light).get_luminance() - (background * light).get_luminance()),
+				SMOKE_CONTRAST * light.get_luminance(),
+				"a puff over %s in %s" % [background, light]
+			)
 
 
 func test_the_smoke_shows_through_a_tunnel() -> void:
 	# A tunnel draws over the car (z_index 1), at TUNNEL_SEE_THROUGH while the car is in it
-	# (Tunnel.opacity()): what it lets through of the smoke must still show.
+	# (Tunnel.opacity()): what it lets through of the smoke must still show, in every light.
 	var smoke: CPUParticles2D = _car().get_node("%Smoke")
 	var covers: Array[Color] = []
 	for polygon: Polygon2D in _polygons(load("res://setpieces/tunnel.tscn")):
 		covers.append(Color(polygon.color, polygon.color.a * Tuning.TUNNEL_SEE_THROUGH))
 	assert_eq(covers.size(), 4)
-	for background: Color in _backgrounds():
-		var puff := background.blend(smoke.color)
-		for cover: Color in covers:
-			assert_gte(
-				absf(puff.blend(cover).get_luminance() - background.blend(cover).get_luminance()),
-				SMOKE_CONTRAST,
-				"a puff over %s, through %s" % [background, cover]
-			)
+	for light: Color in _lights():
+		for background: Color in _backgrounds():
+			var puff := background.blend(smoke.color)
+			for cover: Color in covers:
+				var through := puff.blend(cover) * light
+				var bare := background.blend(cover) * light
+				assert_gte(
+					absf(through.get_luminance() - bare.get_luminance()),
+					SMOKE_CONTRAST * light.get_luminance(),
+					"a puff over %s, through %s, in %s" % [background, cover, light]
+				)
+
+
+## The key lights of the day (DAYNIGHT_PLAN.md §5.7). The night's veil multiplies each colour by
+## the light, and the eye takes a dimmer light's smaller contrast as the same, so the smoke needs
+## SMOKE_CONTRAST times the light's luminance. Both sides are linear in the light, and the light
+## shown is always a blend of the keys (DayCycle.advance()), so what holds in each key light holds
+## in every light that the game shows.
+static func _lights() -> Array[Color]:
+	var lights: Array[Color] = []
+	for light: Color in Tuning.LIGHT_COLORS:
+		if light not in lights:
+			lights.append(light)
+	return lights
 
 
 ## What the world can draw under a puff of smoke. The smoke covers the wreck, and around it an
