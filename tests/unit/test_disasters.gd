@@ -248,7 +248,7 @@ func test_only_a_legend_with_a_veil_has_glows() -> void:
 			for emitter: CPUParticles2D in Disasters.particles(played):
 				items.append(emitter)
 			for item: CanvasItem in items:
-				var material := item.material as CanvasItemMaterial
+				var material := Disasters.material_of(item) as CanvasItemMaterial
 				var adds := material != null
 				adds = adds and material.blend_mode == CanvasItemMaterial.BLEND_MODE_ADD
 				if adds and not glows.has(String(item.name)):
