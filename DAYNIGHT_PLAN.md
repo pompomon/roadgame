@@ -1,6 +1,6 @@
 # Day and Night: Sun and Moon Light in the Zones — Detailed Plan
 
-Status: the owner answered Q4 and Q5 and kept the other defaults (§3); the five PRs are in review · 2026-11-13 · Step 0 and the internal reviews done (§4.1, §4.6) · Scope: a light that follows the sun and the moon through a 24-hour day in each zone, with the clock reset as the car enters each zone; the shadows that the sun and the moon cast; lamps and windows that glow at night; visual only. This plan calls the work DN. It comes after RG (#54–#57), ZS (#60, #61) and TUT (#65–#68), and doesn't depend on M7 (Ship), which may land before or after it (§4.5).
+Status: the owner answered Q4 and Q5 and kept the other defaults (§3); the five PRs passed their reviews and checks, the Web's included, and wait for the owner's on the Fold4 (§6.4, §7); #70, PR 1, was merged into `dn/plan`, not `main`, so #76 landed its branch on `main`, as e93805f, from native stack #77; #71, #72 and #73 followed one by one, squashed as c693c96, e6ebe16 and c0cd1e7, and #74 is the last (§4.5) · 2026-11-14 · Step 0 and the internal reviews done (§4.1, §4.6) · Scope: a light that follows the sun and the moon through a 24-hour day in each zone, with the clock reset as the car enters each zone; the shadows that the sun and the moon cast; lamps and windows that glow at night; visual only. This plan calls the work DN. It comes after RG (#54–#57), ZS (#60, #61) and TUT (#65–#68), and doesn't depend on M7 (Ship), which may land before or after it (§4.5).
 
 The owner asked: "create a detailed implementation plan for sun/moon light movement in the zones. Each zone resets the clock, and sunlight / moonlight cadence is zone-specific, starting with 2 minute for full 24h cycle in each zone. Sun/moon only affects visual part of the scene, audio remains separate. Current visuals could be used as the sunlight version without additional changes. The transition from sun to moon is gradual, not abrupt." On the first draft, which had three PRs: "Adjust the plan, Q4 implement shadows in pr4, Q5 glow lamps at night. Keep the rest of the default decisions and proceed with the implementation using stacked PRs".
 
@@ -147,7 +147,7 @@ Step 0 is done (§4.1). Five stacked PRs follow (`AGENTS.md` §5). Each passes t
 | PR | Branch → base | What | Scripts | Test scripts | Tests |
 |---|---|---|---|---|---|
 | — | `dn/prototype` | Step 0: the PRs' code and tests, the probes and the measurements (§4.1). Never a PR | — | — | — |
-| 1 | `dn/1-cycle` → `dn/plan` | The clock: `DayCycle`, its lights and its rate, and `AreaDef.day_seconds` | +2 | +1 | +12 |
+| 1 | `dn/1-cycle` → `dn/plan` (#70), then `main` (#76) | The clock: `DayCycle`, its lights and its rate, and `AreaDef.day_seconds` | +2 | +1 | +12 |
 | 2 | `dn/2-night-ready` → `dn/1-cycle` | Ready for the night: `ViewVeil`, legends' veils in an ambient light, and the smoke in every light | +2 | +1 | +2 |
 | 3 | `dn/3-daylight` → `dn/2-night-ready` | Daylight in the game, `--hour=<h>`, and the City's day from the tutorial's switch | +3 | +2 | +14 |
 | 4 | `dn/4-shadows` → `dn/3-daylight` | The props' and the car's shadows, by the sun and by the moon | +3 | +2 | +20 |
@@ -285,9 +285,15 @@ Legends learn the light they play in, and the smoke's tests check every light. T
 
 1. This plan's PR (#64, `dn/plan` → `main`), docs only, lands first.
 2. PR 1 targets `dn/plan`, as M6's first PR did `m6/plan` (#46), and each next PR the previous one's branch, so that each diff shows only its own files. Only PRs whose base is `main` are merged. After #64's squash, PR 1 merges `origin/dn/plan` and `origin/main`, and is retargeted to `main` before `dn/plan` is deleted: deleting `m6/plan` closed #46 (ROADGEN_PLAN.md:195). After each later squash, the next PR merges its base's final state and `main` (`AGENTS.md` §5).
+   That retarget didn't happen. #64 was squash-merged as 64f6693 at 01:41:40 UTC on 2026-11-14, and 11 s later #70–#74 were registered as native stack #75, whose base was then `dn/plan`. A stack merges into its bottom PR's base, so #70 merged into `dn/plan` as bc36f41, not into `main`. GitHub then retargeted #71 to `dn/plan` and rebased `dn/2-night-ready` onto bc36f41 with a force-push, 21748d4 to f08c2e4, with the same tree. GitHub's cascade replays each branch above onto the one below, without the branch's merges, and it stopped at `dn/3-daylight`: ee086e5 was made there before #68's a5244fe reached `dn/2-night-ready` by a merge, so it replays with a conflict in `ui/main.gd`, and GitHub reports `canBeRebased` false on #72. So `dn/3-daylight` and the branches above kept their heads, and #72's diff grew to 28 files. The repair merges, and rebases nothing (`AGENTS.md` §5). `dn/1-cycle` merges `dn/plan` and `main`, and is PR 1 again as #76, → `main`. `dn/2-night-ready` merges 21748d4 back, then `dn/1-cycle`, and #71 targets `dn/1-cycle` again. Each later branch merges the one below. No tree changed. #75 was unstacked and keeps only #70; stack #77 holds #76, #71, #72, #73 and #74, on `main`. Register a stack only once its bottom PR targets `main`: a stack merges into that PR's base, and the API can't put a PR below it.
 3. **Lines apart.** After a squash, the next PR conflicts where its lines touch the squashed PR's, so in each file that neighbouring PRs both change, a line of `main` stands between theirs. In `tuning.gd`, PR 5's lines go with the props'; in `world_renderer.gd`, PR 4's are in `build()` and PR 5's in `bind()`; in `plan.md` and `AGENTS.md` too, so PR 5 notes Lamps after §7.1's tree: a line in it would change the Props line, next to PR 4's Shadows (C14). No PR changes a file that the PR before it adds, and only PR 5 changes this plan. Simulated with `git merge-tree`, the landing merges clean, squash by squash, and ends with `dn/5-lamps`'s tree.
 4. A review fix goes on the branch of the PR that adds or changes the file, and is merged up (`AGENTS.md` §5).
 5. M7. Whichever lands first, the other merges `main` as usual, after `git merge-tree` shows the conflicts. Both may change `ui/main.gd`, `ui/main.tscn`, `config/tuning.gd`, `plan.md` and `AGENTS.md`, where DN's lines are in blocks of their own.
+6. **The native stack.** Stack #77 was to land whole, from #74: #76 and #71–#74 on `main` in one atomic operation, each as its own squash. GitHub's cascade, which replays each branch's own commits onto the squash below it with `git rebase --onto`, would have failed at #72, as `dn/3-daylight`'s don't replay (step 2), and then nothing would have landed ([gh-stack's FAQ](https://github.com/github/gh-stack/blob/b1bfce9e51d0cd92fc23efd6ecb37ff68139e7db/docs/src/content/docs/faq.md#L196-L265), on squashes and on failed merges).
+   #76 landed alone instead, by auto-merge, as e93805f at 03:06:21 UTC on 2026-11-14. GitHub retargeted #71 to `main`, rebased no branch, and kept stack #77, with #76 merged. `dn/2-night-ready` then merged `main`, and each branch above the one below, with no tree changed, so #71's diff shows its own 10 files again, not 18. The rest land the same way, one at a time, from #71 up, each only while its base is `main`. GitHub retargets the next PR to `main` as the one below it lands, and the agent then merges its base's final state and `main` into its branch (`AGENTS.md` §5). Simulated with `git merge-tree`, that merges clean, in squashes of 10, 11, 36 and 23 files, and ends with `dn/5-lamps`'s tree. Without those merges, #71–#73 squash clean, each to its branch's tree, but #74's squash conflicts in `tests/integration/test_daylight_run.gd`, which PR 3 adds and PR 5 changes. If `main` moves first, the next branch merges `main`, and each branch the one below.
+   Auto-merge, set while #76's checks ran, landed it without GitHub's cascade, which ran after #70's direct merge. It's offered only while a PR can't merge yet, as while its checks run: `gh pr merge --auto` merges a PR that is ready at once, as a direct merge ([cli/cli's `merge.go`](https://github.com/cli/cli/blob/v2.103.3/pkg/cmd/pr/merge/merge.go#L593), and its lines 826–828). A direct squash may set off the cascade, but here it can't lose work. Simulated with `git rebase --onto`, after #71's squash `dn/3-daylight`'s commits don't replay, so it would change no branch, as after #70. After #72's or #73's, `dn/4-shadows`' and `dn/5-lamps`' own commits replay clean, to their branches' trees, which GitHub would force-push without their merges. The agent then checks the trees and starts their CI. Don't press **Rebase stack**, which would rebase every branch above at once.
+   GitHub holds the CI run of each push from the agent's session (`action_required`), as it held #76's, which ran as its second attempt. The agent starts a held run with `gh run rerun <run-id>`. A run started with `gh workflow run` passes too, but GitHub leaves it out of the commit's checks, so the PR stays blocked.
+   #71 and #72 then landed by direct squash, as c693c96 at 03:58:36 UTC and e6ebe16 at 04:13:24, and GitHub did as simulated. After #71's, it retargeted #72 to `main` and rebased no branch, and `dn/3-daylight` merged `main`, with no tree changed. After #72's, it retargeted #73, then rebased `dn/4-shadows` onto e6ebe16 and `dn/5-lamps` onto that, 6016705 to d1d89fa and 9070ab5 to aacba95: 8 and 9 commits, without their merges, to the same trees, so neither needed `main`. It held neither branch's CI run. #73 then landed by direct squash too, as c0cd1e7 at 05:13:33. GitHub retargeted #74 to `main` and rebased `dn/5-lamps` onto c0cd1e7, 3511f65 to 15c7b44: 10 commits, to the same tree, and didn't hold its CI run. So #74 shows only its own 23 files without a merge, and its squash gives `dn/5-lamps`' tree.
 
 ### 4.6 Review fixes
 
@@ -514,26 +520,26 @@ PRs 4 and 5's **Shadows** and **Lamps** rules in `AGENTS.md` §3 sum §5.11 and 
 
 The five checks of `AGENTS.md` §4 passed with Godot 4.7.2 and gdtoolkit 4.5.0 on `main` and on each PR's head, and after them `git status --porcelain` printed nothing. `smoke.sh` printed `autopilot: tile 165, turns 35, area rural` on each: the light reaches neither the road, nor the car, nor the director (§5.1).
 
-| Head | Scripts loaded | Test scripts | Tests | Asserts |
-|---|---|---|---|---|
-| `main` (a5244fe) | 148 | 70 | 524 | 423,545 |
-| PR 1 | 150 | 71 | 536 | 423,629 |
-| PR 2 | 152 | 72 | 538 | 424,120 |
-| PR 3 | 155 | 74 | 552 | 424,852 |
-| PR 4 | 158 | 76 | 572 | 426,750 |
-| PR 5 | 160 | 77 | 583 | 426,861 |
+| Head | Scripts loaded | Test scripts | Tests | Asserts | GUT | CI `test` |
+|---|---|---|---|---|---|---|
+| `main` (a5244fe) | 148 | 70 | 524 | 423,545 | 1 min 47 s | 2 min 13 s |
+| PR 1 | 150 | 71 | 536 | 423,629 | 1 min 49 s | 2 min 34 s |
+| PR 2 | 152 | 72 | 538 | 424,120 | 1 min 46 s | 2 min 33 s |
+| PR 3 | 155 | 74 | 552 | 424,852 | 1 min 59 s | 2 min 56 s |
+| PR 4 | 158 | 76 | 572 | 426,750 | 2 min 1 s | 2 min 46 s |
+| PR 5 | 160 | 77 | 583 | 426,861 | 2 min 22 s | 2 min 53 s |
 
-GUT's times on these 2 CPUs varied with what else ran, so PR 5's sync gives each head's, measured alone. CI ran on the prototype by hand, with `upload-builds`: run 43492158711 on 5e20b2d passed every job, and `test` took 3 min 6 s.
+GUT's time is its own report, the median of three runs of each head alone on 2 CPUs. Each head's first run, right after the other checks, was its slowest, by up to 63 s; the next two agreed within 11 s. CI's is the `test` job on each PR's head before this sync, and `main`'s on #64's. By hand, with `upload-builds`, every job passed on the prototype (run 43492158711 on 5e20b2d), on PR 3 (run 43505306109 on 03ea55f) and on PR 5 (run 43505310680 on 3f2b0b2), whose builds §6.4 checked.
 
 ### 6.2 Negative cases
 
-Each case is a temporary change at its PR's head. A script, not committed, applies it, runs GUT and restores the tree. While the code changed it ran each case on the scripts of its tests; on the prototype, and on each PR's head after its reviews, on the whole suite, where a case must fail the tests of its row and no other, and leak nothing (`AGENTS.md` §2.4). Its runs found five gaps in the tests, now closed (§4.1). The tests drop their `test_`; "The same" repeats the row above's, and "As N#" that row's.
+Each case is a temporary change at its PR's head. A script, not committed, applies it, runs GUT and restores the tree. While the code changed it ran each case on the scripts of its tests; on the prototype, and on each PR's head after its reviews, on the whole suite, where a case must fail the tests of its row and no other, and leak nothing (`AGENTS.md` §2.4). Its runs found five gaps in the tests, now closed (§4.1). On each PR's final head every case did so but N11 and N12; where a change fails several tests, its row lists them all. N11 and N12 break the schedule, which fails most of the suite by design: the road falls back to one area, where TUT's `test_the_tutorial_ends_with_its_group_and_the_seed_road_follows` waits for a set piece until memory runs out. So they run on their test's script, `test_area_schedule.gd`, where they fail their row's test and others that need a valid schedule. The tests drop their `test_`; "The same" repeats the row above's, and "As N#" that row's.
 
 | N# | PR | Temporary change | Tests that fail |
 |---|---|---|---|
 | N1 | 1 | `hour()` without its `fposmod()` | `the_hour_runs_round_the_clock_in_day_seconds` |
-| N2 | 1 | `light_at()` starts at the first key, so the night doesn't run past midnight | `each_key_hour_has_its_light` |
-| N3 | 1 | `light_at()` blends by `t`, not `smoothstep()` | `between_keys_the_light_eases_in_and_out` |
+| N2 | 1 | `light_at()` starts at the first key, so the night doesn't run past midnight | `each_key_hour_has_its_light`, `after_a_reset_the_light_catches_up_and_then_follows_exactly`, `least_day_seconds_is_the_shortest_day_the_rate_can_follow` |
+| N3 | 1 | `light_at()` blends by `t`, not `smoothstep()` | `between_keys_the_light_eases_in_and_out`, `least_day_seconds_is_the_shortest_day_the_rate_can_follow` |
 | N4 | 1 | `advance()` sets `light = goal` | `the_light_shown_never_changes_faster_than_the_max_rate`, `after_a_reset_the_light_catches_up_and_then_follows_exactly` |
 | N5 | 1 | `enter()` calls `snap()` | The same |
 | N6 | 1 | `enter()` keeps `seconds` | `entering_a_zone_starts_its_clock_at_the_start_hour` |
@@ -550,7 +556,7 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 | N17 | 2 | `_share()` always gives V / L, above 1 where the light is darker | The same |
 | N18 | 2 | `shade()` never hides | The same |
 | N19 | 2 | `ViewVeil.shade()` sets `color`, not `self_modulate` | `none_redraws_a_polygon` |
-| N20 | 2 | A bluish smoke, `Color(0, 0, 0.4, 0.8)` in `car/car.tscn` | `the_smoke_shows_over_everything_the_world_draws` |
+| N20 | 2 | A bluish smoke, `Color(0, 0, 0.4, 0.8)` in `car/car.tscn` | `the_smoke_shows_over_everything_the_world_draws`, `the_smoke_shows_through_a_tunnel` |
 | N21 | 2 | `play_disaster()` doesn't keep its `ambient` | `a_disaster_waits_for_the_car_to_stop` |
 | N22 | 2 | `_start_disaster()` doesn't pass it on | The same |
 | N23 | 3 | Daylight's `_ready()` doesn't set its priority | `in_the_games_frames_the_veil_follows_the_view_of_the_same_frame` |
@@ -564,8 +570,8 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 | N31 | 3 | `_parse_hour()` without `is_finite()` | `the_hour_argument_starts_every_zone_at_that_hour` |
 | N32 | 3 | Daylight at `VEIL_Z + 1` | `the_veil_darkens_the_world_but_not_the_glows_or_the_ui` |
 | N33 | 3 | `main.gd` lowers bus 0 by 6 dB while the light isn't white | `the_light_changes_nothing_but_the_view` |
-| N34 | 3 | Daylight's `shade()` sets `color` | `daylight_is_never_redrawn`, `none_redraws_a_polygon` |
-| N35 | 3 | Daylight's `shade()` never hides | `by_day_the_veil_is_transparent_and_by_night_it_shows_the_light`, `each_run_starts_at_once_in_the_morning`, `the_title_keeps_the_night_and_play_starts_the_morning`, `daylight_is_never_redrawn`, `the_hour_argument_starts_every_zone_at_that_hour` |
+| N34 | 3 | `ViewVeil.shade()` sets `color`, in Daylight too | `daylight_is_never_redrawn`, `none_redraws_a_polygon` |
+| N35 | 3 | `ViewVeil.shade()` never hides, in Daylight too | `by_day_the_veil_is_transparent_and_by_night_it_shows_the_light`, `each_run_starts_at_once_in_the_morning`, `the_title_keeps_the_night_and_play_starts_the_morning`, `daylight_is_never_redrawn`, `the_hour_argument_starts_every_zone_at_that_hour`, `at_night_a_veil_darkens_only_what_the_night_hasnt` |
 | N36 | 1 | `enter()` checks only `p_day_seconds <= 0.0`, so NaN and INF pass | As N8 |
 | N37 | 1 | `validate()` names the least day to the hundredth, not rounded up: 55.68 | As N10 |
 | N38 | 1 | `validate()` without its check of a day that isn't finite | `validate_reports_a_day_that_isnt_finite` |
@@ -622,7 +628,7 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 | N89 | 4 | A prop's cast without its custom rect | `each_props_shadow_is_drawn_wherever_it_falls` |
 | N90 | 4 | The car's cast keeps a prop's custom rect | As N53 |
 | N91 | 4 | The car's cast keeps a prop's shader | The same |
-| N92 | 4 | Each prop's cast laid on the CPU, by its transform | `the_clock_turns_the_props_shadows_but_no_sprite` |
+| N92 | 4 | Each prop's cast laid on the CPU, by its transform | `the_clock_turns_the_props_shadows_but_no_sprite`, `each_props_shadow_is_drawn_wherever_it_falls`, `the_shader_lays_each_corner_where_laid_puts_it` |
 | N93 | 4 | `FALL_MOST` in heights, not pixels across | As N89 |
 | N94 | 4 | `WALL_ACROSS_MOST := 1.0` | The same |
 | N95 | 4 | Shadows' pool without internal children | `removed_shadows_give_their_sprites_back` |
@@ -645,7 +651,7 @@ Only the editor warns about shadowing (M2_PLAN.md §6.3). A script asked the edi
 ### 6.4 CI, the Web and the Fold4
 
 - **CI.** The five required checks on each PR into `main`, the `test` job's check of the tree included (`AGENTS.md` §10).
-- **The Web** (E11, E13; P3, P9). The agent checks PR 3's and PR 5's builds in Chrome and Firefox with Playwright, headed under Xvfb, and posts a table in each PR, one row per check (`AGENTS.md` §6). The page passes no arguments (C12), so it serves a copy that takes them from the address:
+- **The Web** (E11, E13; P3, P9). The agent checked PR 3's and PR 5's builds in Chrome and Firefox with Playwright, headed under Xvfb, and posted a table in each PR, one row per check (`AGENTS.md` §6): every check passed, on [PR 3](https://github.com/pompomon/roadgame/pull/72#issuecomment-6865819008) and [PR 5](https://github.com/pompomon/roadgame/pull/74#issuecomment-6865943044). The page passes no arguments (C12), so it serves a copy that takes them from the address:
   ```bash
   gh workflow run ci.yml -R pompomon/roadgame --ref dn/5-lamps -f upload-builds=true
   gh run download <run id> -R pompomon/roadgame -n web -D /tmp/dn-web
@@ -678,7 +684,7 @@ Only the editor warns about shadowing (M2_PLAN.md §6.3). A script asked the edi
 | P6 | Daylight covers the view of its own frame | The engine's frames, not `simulate()` (§5.4) | Now a test; without the priority the veil is a frame late (N23) |
 | P8 | Overlapping shadows darken once | Two black casts in a group at 0.5, over a grey of 0.6 | 0.302 under one and under both, for 0.3 |
 | P8b | A group in a group | The same, nested | 0.541 where the inner casts overlap: wrong (§5.10) |
-| P9 | No WebGL error with shadows and lamps | §6.4's runs 1 and 2 on 6ae2217's build (CI run 43461788754); all four on 5e20b2d's build (CI run 43492158711), beside two GUT runs | No error or WebGL message; 52–58 frames a second under Xvfb, 16–46 beside the GUT runs. Firefox warned only of a deprecated WebAssembly instruction in Godot's build |
+| P9 | No WebGL error with shadows and lamps | §6.4's runs 1 and 2 on 6ae2217's build (CI run 43461788754); all four on 5e20b2d's build (CI run 43492158711), beside two GUT runs; and on PR 5's (§6.4) | No error or WebGL message. Under Xvfb, 52–58 frames a second on 6ae2217's build, 16–46 on 5e20b2d's beside the GUT runs; PR 5's, alone, 53–60 by day and 57–59 by night in Chrome, 48–59 and 58–59 in Firefox. Firefox warned only of a deprecated WebAssembly instruction in Godot's build |
 | P10 | Overlapping glows light once | Two glows 2 px apart over the night's veil, alone and in one ADD group | In the group the overlap shows (0.859, 0.792, 0.804), as one glow does; alone they add twice. Godot's grouping: P10b, `renderer_canvas_cull.cpp`:197–257, :438–492 |
 | P11 | The shader lays the shadows as the CPU did | Every prop, laid by both, at each half hour | The same within 1 px, which only one of the 48 half hours shows |
 
@@ -690,8 +696,8 @@ Step 0 also measured the autopilot's seconds in each zone over 20 seeds (§5.8),
 
 For @pompomon:
 1. **The Q#s** (§3). Q4 and Q5 are answered: the shadows in PR 4, the lamps in PR 5. The rest keep their defaults. Q3 still decides whether the City and the Village show their night: at 120 s a run's first night comes in Rural, about 2 minutes in (§5.8).
-2. **Merge** this plan's PR, then PRs 1–5, squashed, in that order, each once its base is `main` (§4.5). Before deleting a merged PR's branch, retarget the next PR: `gh pr edit <n> --base main`.
-3. **Check the Fold4** with PR 5's debug APK (§6.4), and post the results in PR 5.
+2. **Merge** #74, the last PR of stack #77: #76, #71, #72 and #73 are merged (§4.5 step 6), and #74's base is `main`. Set it to auto-merge while its checks run, as for #76, or squash it once its five checks pass, as for #71–#73. If `main` moves first, ask the agent to merge it into `dn/5-lamps`; don't press **Rebase stack**. `dn/plan`, `dn/1-cycle`, `dn/2-night-ready`, `dn/3-daylight` and `dn/4-shadows` can go now: no open PR targets them. `dn/5-lamps` can go once #74 is merged.
+3. **Check the Fold4** with PR 5's debug APK (§6.4), and post the results in PR 5. After #74's squash, build the APK from `main`, with `--ref main`.
 4. **Tune**, if Q10 asks for it: the `LIGHT_*` colours, `SUN_SHADOW_ALPHA`, `MOON_SHADOW_ALPHA` and `LAMP_*` in `config/tuning.gd`, or a zone's `day_seconds` in its `.tres`. The tests follow, and the smoke shows in a light of any colour with today's art (§5.7).
 5. **Resolve** the review threads.
 
@@ -718,6 +724,8 @@ For @pompomon:
 - **Haptics and the Web's audio (M7).** The light drives neither. What M7 adds to the sound, and its haptics, can join `test_the_light_changes_nothing_but_the_view`'s `_sound()`.
 - **The tunnel's darkening (C15).** Daylight can multiply its light by a grey that eases in as the car enters a tunnel, `Tunnel.opacity()`, no faster than the rate. §5.7's rule scales with the light, and the glows stay lit.
 - **A setting for the night (Q9).** `Color.WHITE.lerp(light, k)` is still a blend of keys that changes no faster than the light, so §5.3's and §5.7's rules hold, and the lamps' strength follows.
+- **A loop that waits for a set piece.** TUT's `test_the_tutorial_ends_with_its_group_and_the_seed_road_follows` draws tiles until one is a set piece. With a broken schedule the road has none (§6.2), so it runs out of memory rather than fail. A bound on the loop would fail it instead.
 - **Saved runs.** The light isn't saved: every run starts at the start hour. A run saved part-way would save `seconds`, the light, the shadow and its alpha.
 - **Each zone's own hours and lights.** `AreaDef` could hold its start hour or keys; `least_day_seconds()` and `validate()` would then take each zone's.
+- **Native stacks.** Register a stack only once its bottom PR targets `main`, as the stack merges into that PR's base. GitHub's cascade moves a stack's branches by replaying each one's own commits without its merges, so branches that merge the one below, as `AGENTS.md` §5 has them do, may not move: a commit made before a change reached the branch below replays with a conflict that only the merge resolved (§4.5 step 2). GraphQL's `canBeRebased` only hints at it: it's false on #72, and on #74 too, whose commits replay clean with `git rebase`. GitHub's cascade ran after #70's direct merge and #72's and #73's direct squashes, each time rebasing the branches above as far as their commits replay, but not after #76's auto-merge, which only retargeted the PR above; after #71's squash it rebased no branch, as `dn/3-daylight`'s commits don't replay (§4.5 step 6). So with such branches, don't press **Rebase stack**, which leaves them half rebased. Land the PRs one by one, each set to auto-merge while its checks run, once its base is `main`, and after each squash merge `main` into the next branch, unless GitHub rebased it onto the squash (`AGENTS.md` §5). `gh pr merge --auto` merges a PR that is ready at once, as a direct merge.
 - **What DN doesn't light or shade.** The car has no headlights, and the traffic lights don't glow. The legends and the set pieces cast no shadows, and the car and the legends hide no glows (§5.11, §5.12). Tinted shadows would need §5.7's shadow rule again (C22).

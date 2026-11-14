@@ -66,6 +66,13 @@ const PROPS := {
 		&"tumbleweed": [4, 6.0, 0.004, ["rural dirt", "plank"]],
 	},
 }
+## Lights (DAYNIGHT_PLAN.md §5.12): a window painted the palette's yellow is lit, and glows
+## WINDOW_HALO pixels round it. A lamp's head, LAMP_HEAD, glows LAMP_HALO pixels round it, and
+## lights a pool of ground LAMP_POOL across, under it.
+const WINDOW_HALO := 2.0
+const LAMP_HEAD := Rect2i(4, -36, 4, 2)
+const LAMP_HALO := 4.0
+const LAMP_POOL := Vector2(64, 32)
 ## Props drawn without an ink outline: flat ones, which it would make look like holes.
 const FLAT: Array[StringName] = [&"flowers", &"pond"]
 ## How the props' shadows fall (DAYNIGHT_PLAN.md §5.11), where not as an upright prop's: the fence
@@ -80,6 +87,9 @@ const SHADOWS := {
 }
 const WALL_RISE := 2
 
+## The lights and the pools of light of the prop being painted, in pixels from its foot.
+var _lights: Array[Rect2] = []
+var _light_pools: Array[Rect2] = []
 var _palette: Dictionary[String, Color] = {}
 ## The half-width of the box that the last prop painted stands on, or 0.
 var _box_half := 0
@@ -128,6 +138,10 @@ func _make_area(area: StringName) -> void:
 		def.shadow_rise = WALL_RISE if def.shadow == PropDef.Shadow.WALL else _box_half >> 1
 		def.region = Rect2i(Vector2i.ZERO, used.size)
 		def.foot = canvas_foot() - used.position
+		def.lights = _lights.duplicate()
+		def.light_pools = _light_pools.duplicate()
+		_lights.clear()
+		_light_pools.clear()
 		defs.append(def)
 		strips.append(strip)
 	var sheet := _sheet(defs, strips)
@@ -204,6 +218,10 @@ static func _write_def(def: PropDef, sheet_path: String, path: String) -> void:
 		lines.append("frames = %d" % def.frames)
 		lines.append("fps = %s" % str(def.fps))
 	lines.append("foot = Vector2i(%d, %d)" % [def.foot.x, def.foot.y])
+	if not def.lights.is_empty():
+		lines.append("lights = %s" % var_to_str(def.lights))
+	if not def.light_pools.is_empty():
+		lines.append("light_pools = %s" % var_to_str(def.light_pools))
 	lines.append("density = %s" % str(def.density))
 	if def.shadow != PropDef.Shadow.UPRIGHT:
 		lines.append("shadow = %d" % def.shadow)
@@ -370,7 +388,10 @@ func _paint_lamp(image: Image, c: Array[Color], _frame: int) -> float:
 	_rect(image, Rect2i(-1, -38, 2, 38), c[0])
 	_rect(image, Rect2i(-2, -3, 4, 3), c[0])
 	_rect(image, Rect2i(1, -38, 6, 2), c[0])
-	_rect(image, Rect2i(4, -36, 4, 2), c[1])
+	_rect(image, LAMP_HEAD, c[1])
+	_add_once(_lights, Rect2(LAMP_HEAD).grow(LAMP_HALO))
+	var under := Vector2(Rect2(LAMP_HEAD).get_center().x, 0.0)
+	_add_once(_light_pools, Rect2(under - LAMP_POOL / 2.0, LAMP_POOL))
 	return 3.0
 
 
@@ -541,11 +562,22 @@ static func _face_rise(x: int) -> int:
 
 
 ## A window 3 pixels wide and 4 tall, on the face that `x` is on, its bottom `rise` above the
-## face's bottom edge.
+## face's bottom edge. One painted the palette's yellow is lit (DAYNIGHT_PLAN.md §5.12).
 func _window(image: Image, x: int, rise: int, color: Color) -> void:
+	var box := Rect2()
 	for dx: int in 3:
 		var column := x + dx if x > 0 else x - dx
-		_rect(image, Rect2i(column, -rise - 4 - _face_rise(column), 1, 4), color)
+		var pane := Rect2(column, -rise - 4 - _face_rise(column), 1, 4)
+		_rect(image, Rect2i(pane), color)
+		box = pane if dx == 0 else box.merge(pane)
+	if color == _palette["yellow"]:
+		_add_once(_lights, box.grow(WINDOW_HALO))
+
+
+## Adds `box` to `boxes` unless it is there: each frame of a prop paints its lights again.
+static func _add_once(boxes: Array[Rect2], box: Rect2) -> void:
+	if box not in boxes:
+		boxes.append(box)
 
 
 func _rect(image: Image, rect: Rect2i, color: Color) -> void:

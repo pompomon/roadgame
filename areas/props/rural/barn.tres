@@ -9,5 +9,6 @@ id = &"barn"
 texture = ExtResource("2_sheet")
 region = Rect2i(77, 0, 48, 49)
 foot = Vector2i(24, 48)
+lights = Array[Rect2]([Rect2(5, -24, 7, 9)])
 density = 0.004
 shadow_rise = 11
