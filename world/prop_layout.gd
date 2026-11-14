@@ -5,11 +5,14 @@ extends RefCounted
 ## on every run, at every frame rate and on every screen.
 ##
 ## Path tile k lies on screen row -k: the tiles whose cells add up to -k, side by side across the
-## screen. Row k's props stand on the ground cells of the PROP_SPREAD tiles either side of path
-## tile k, of those that are neither road nor within set_piece_margin() tiles of a set piece's
-## road. Each such cell shows one prop or none: its hash with props_seed picks one by the area's
-## densities. A prop whose frame would touch a road tile's diamond is left out, so that no prop
-## hides the road or the car on it.
+## screen. Row k's props stand on the ground of the PROP_SPREAD tiles either side of path tile k,
+## of those that are neither road nor within set_piece_margin() tiles of a set piece's road. Each
+## such tile's ground cells make lots of each size that its props take (PropDef.lot), the largest
+## first. Each lot that no larger prop stands on shows one prop of its size or none: its hash with
+## props_seed picks one by their densities. A lot of one cell has the cell's own hash, so props
+## that take one cell stand where they stood before lots (VISUALS_PLAN.md §5.4). A prop whose frame
+## would touch a road tile's diamond is left out, and its lot stays free, so that no prop hides the
+## road or the car on it.
 
 
 ## A prop of a row: which, where its foot stands, in world pixels, and where its animation starts,
@@ -22,6 +25,9 @@ class Placement:
 
 
 const MASK := 0xFFFFFFFF
+## Mixed into the hash of a lot larger than a cell, so that a cell whose lot shows nothing picks
+## its own prop by a hash unlike its lot's.
+const LOT_SALT := 0x9E3779B9
 ## The y of the highest foot on a row, below the top corner of its tiles: the centre of a tile's
 ## top ground cell.
 const TOP_FOOT := Iso.TILE_H / (2.0 * Iso.GROUND_PER_TILE)
@@ -35,24 +41,68 @@ static func row(
 	var placed: Array[Placement] = []
 	if props.is_empty():
 		return placed
+	var sizes := by_lot(props)
 	for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
 		var tile := anchor + Vector2i(j, -j)
 		if buffer.tile_at(tile) != null or near_set_piece(tile, buffer):
 			continue
-		for b: int in Iso.GROUND_PER_TILE:
-			for a: int in Iso.GROUND_PER_TILE:
-				var cell := tile * Iso.GROUND_PER_TILE + Vector2i(a, b)
-				var hashed := cell_hash(props_seed, cell)
-				var def := pick(props, hashed)
-				if def == null:
-					continue
-				var placement := Placement.new()
-				placement.def = def
-				placement.foot = ground_centre(cell)
-				placement.phase = float(_mix(hashed ^ 0x2545F491) & 0xFFFF) / 65536.0
-				if not touches_road(def, placement.foot, buffer):
-					placed.append(placement)
+		# The tile's cells that a prop's lot takes, a bit each.
+		var taken := 0
+		for lot: int in sizes:
+			var sized: Array[PropDef] = sizes[lot]
+			for b: int in range(0, Iso.GROUND_PER_TILE, lot):
+				for a: int in range(0, Iso.GROUND_PER_TILE, lot):
+					var cells := lot_cells(Vector2i(a, b), lot)
+					if taken & cells != 0:
+						continue
+					var front := (
+						tile * Iso.GROUND_PER_TILE + Vector2i(a, b) + Vector2i.ONE * (lot - 1)
+					)
+					var hashed := lot_hash(props_seed, front, lot)
+					var def := pick(sized, hashed)
+					if def == null:
+						continue
+					var placement := Placement.new()
+					placement.def = def
+					placement.foot = ground_centre(front)
+					placement.phase = float(_mix(hashed ^ 0x2545F491) & 0xFFFF) / 65536.0
+					if not touches_road(def, placement.foot, buffer):
+						placed.append(placement)
+						taken |= cells
 	return placed
+
+
+## The props of `props` by the size of lot they take, largest first, each in their order. A prop
+## whose lot doesn't divide a tile takes none: PropDef.validate() reports it.
+static func by_lot(props: Array[PropDef]) -> Dictionary[int, Array]:
+	var sizes: Dictionary[int, Array] = {}
+	for lot: int in range(Iso.GROUND_PER_TILE, 0, -1):
+		if Iso.GROUND_PER_TILE % lot != 0:
+			continue
+		var sized: Array[PropDef] = []
+		for def: PropDef in props:
+			if def.lot == lot:
+				sized.append(def)
+		if not sized.is_empty():
+			sizes[lot] = sized
+	return sizes
+
+
+## The cells of a tile in the lot of `lot` cells a side whose back cell is `corner`, a bit each:
+## cell (a, b) is bit b * GROUND_PER_TILE + a.
+static func lot_cells(corner: Vector2i, lot: int) -> int:
+	var cells := 0
+	for b: int in range(corner.y, corner.y + lot):
+		for a: int in range(corner.x, corner.x + lot):
+			cells |= 1 << (b * Iso.GROUND_PER_TILE + a)
+	return cells
+
+
+## The hash of the lot of `lot` cells a side whose front cell is `cell`: the cell's own for a lot
+## of one cell.
+static func lot_hash(props_seed: int, cell: Vector2i, lot: int) -> int:
+	var hashed := cell_hash(props_seed, cell)
+	return hashed if lot == 1 else _mix(hashed ^ (LOT_SALT * lot & MASK))
 
 
 ## The path tiles past a row's own that must be made before it gets its props: the tiles whose

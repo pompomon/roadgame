@@ -1,6 +1,7 @@
 extends GutTest
 ## CarController and the car scene (IMPLEMENTATION_PLAN.md M2.4, M3.3): the sprite frame for a
-## heading, and the car's view of its CarSim. A legend's double of the car (docs/M6.md §5.4).
+## heading, the row for its wheels' phase (VISUALS_PLAN.md §5.1), and the car's view of its CarSim.
+## A legend's double of the car (docs/M6.md §5.4).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
@@ -42,7 +43,7 @@ func test_it_steps_its_sim_with_the_input_and_moves_with_it() -> void:
 	assert_gt(car.sim.pos.distance_to(start), 0.5, "a second of driving")
 	assert_eq(car.position, Iso.tile_to_world(car.sim.pos))
 	var body: Sprite2D = car.get_node("%Body")
-	assert_eq(body.frame, CarController.frame(car.sim.forward()))
+	assert_eq(body.frame_coords.x, CarController.frame(car.sim.forward()))
 
 
 func test_the_body_shows_the_frame_of_each_heading() -> void:
@@ -53,8 +54,35 @@ func test_the_body_shows_the_frame_of_each_heading() -> void:
 	for heading: int in 4:
 		car.sim.angle = heading * PI / 2.0
 		await wait_physics_frames(2)
-		frames.append(body.frame)
+		frames.append(body.frame_coords.x)
 	assert_eq(frames, [3, 5, 11, 13] as Array[int], "N, E, S and W")
+
+
+func test_its_wheels_turn_on_a_phase_each_wheel_roll_tiles_it_moves() -> void:
+	# Never back, nor two phases at once, at the speeds it reaches; braking for a disaster, until it
+	# stands, and then not at all.
+	var car := _car()
+	var body: Sprite2D = car.get_node("%Body")
+	car.input.autopilot = Autopilot.new(car.sim)
+	var moved := 0.0
+	var turns := 0
+	var jumps := 0
+	var phase := body.frame_coords.y
+	for step: int in 360:
+		if step == 240:
+			car.sim.state = CarSim.State.DISASTER
+		var from := car.sim.pos
+		simulate(car, 1, 1.0 / 60.0)
+		moved += car.sim.pos.distance_to(from)
+		var turned := posmod(body.frame_coords.y - phase, CarController.PHASES)
+		jumps += 1 if turned > 1 else 0
+		turns += turned
+		phase = body.frame_coords.y
+	assert_eq(car.sim.speed, 0.0, "it stands")
+	assert_eq(jumps, 0, "a phase at a time, on")
+	assert_gt(turns, 2 * CarController.PHASES, "round more than twice")
+	var expected := moved / Tuning.WHEEL_ROLL_TILES
+	assert_almost_eq(float(turns), expected, 1.0, "a phase each WHEEL_ROLL_TILES")
 
 
 func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
@@ -63,13 +91,19 @@ func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
 	var sheet := body.texture.get_image()
 	var frame_size := body.texture.get_size() / Vector2(body.hframes, body.vframes)
 	car.input.enabled = false
+	# Its wheels in a phase past the first, as most of the time.
+	for _i: int in 120:
+		if body.frame_coords.y != 0:
+			break
+		await wait_physics_frames(1)
+	assert_ne(body.frame_coords.y, 0, "its wheels rolled")
 	for heading: int in 4:
 		car.sim.angle = heading * PI / 2.0
 		await wait_physics_frames(2)
 		var made := car.double()
 		add_child(made)
 		made.global_position = car.global_position
-		var what := "frame %d" % body.frame
+		var what := "frame %s" % body.frame_coords
 		assert_eq(made.texture, body.texture, what + ": the body's sheet")
 		assert_true(made.region_enabled, what + ": a part of it")
 		assert_eq(

@@ -277,7 +277,15 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	sunk.shadow_rise = sunk.foot.y
 	var shapeless := _prop(&"shapeless", 1, 0.0, 0.1)
 	shapeless.set(&"shadow", PropDef.Shadow.size())
-	var props: Array[PropDef] = [good, null, blank, frameless, crowding, sunk, shapeless]
+	# A lot that doesn't divide a tile, and one of 2 × 2 cells, whose densities add up apart
+	# (VISUALS_PLAN.md §5.4).
+	var odd := _prop(&"odd", 1, 0.0, 0.1)
+	odd.lot = 3
+	var block := _prop(&"block", 1, 0.0, 0.5)
+	block.lot = 2
+	var props: Array[PropDef] = [
+		good, null, blank, frameless, crowding, sunk, shapeless, odd, block
+	]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
 	assert_push_error("PropScatter: dense: a prop is null")
@@ -286,14 +294,20 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	assert_push_error("PropScatter: dense: prop crowding takes the densities past 1")
 	assert_push_error("PropScatter: dense: prop sunk: its shadow rises outside its frame")
 	assert_push_error("PropScatter: dense: prop shapeless: its shadow is 3")
+	assert_push_error("PropScatter: dense: prop odd: a lot of 3 cells doesn't divide a tile")
 	var buffer := _buffer(1, schedule)
 	scatter.bind(buffer)
 	buffer.start()
+	var shown: Dictionary[Texture2D, int] = {good.texture: 0, block.texture: 0}
 	var others := 0
 	for k: int in scatter.rows():
 		for sprite: Sprite2D in scatter.sprites(k):
-			others += 0 if sprite.texture == good.texture else 1
-	assert_gt(_shown(scatter), 100, "the good prop shows")
+			if shown.has(sprite.texture):
+				shown[sprite.texture] += 1
+			else:
+				others += 1
+	assert_gt(shown[good.texture], 100, "the good prop shows")
+	assert_gt(shown[block.texture], 20, "the block shows")
 	assert_eq(others, 0, "and no other")
 
 

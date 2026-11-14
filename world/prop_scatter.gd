@@ -184,14 +184,15 @@ func _set_frame(shown: Shown) -> void:
 
 static func _valid_props(area: AreaDef) -> Array[PropDef]:
 	var valid: Array[PropDef] = []
-	var density := 0.0
+	# Each size of lot picks from its own props (PropLayout.row()), so their densities add up apart.
+	var density: Dictionary[int, float] = {}
 	for prop: PropDef in area.props:
 		var problems := PackedStringArray(["a prop is null"]) if prop == null else prop.validate()
-		if problems.is_empty() and density + prop.density > 1.0:
+		if problems.is_empty() and density.get(prop.lot, 0.0) + prop.density > 1.0:
 			problems.append("prop %s takes the densities past 1" % prop.id)
 		for problem: String in problems:
 			push_error("PropScatter: %s: %s" % [area.id, problem])
 		if problems.is_empty():
 			valid.append(prop)
-			density += prop.density
+			density[prop.lot] = density.get(prop.lot, 0.0) + prop.density
 	return valid

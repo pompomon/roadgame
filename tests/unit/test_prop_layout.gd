@@ -31,6 +31,19 @@ func _prop(id: StringName, size: Vector2i, foot: Vector2i, density: float) -> Pr
 	return def
 
 
+## A prop with a box as wide as a building's, on a lot of 2 × 2 cells: its foot on the lot's front
+## cell, and its box reaching back over the rest (VISUALS_PLAN.md §5.4).
+func _block(density: float) -> PropDef:
+	var def := _prop(&"block", Vector2i(42, 58), Vector2i(21, 57), density)
+	def.lot = 2
+	return def
+
+
+## The ground cell that `placement`'s foot stands on.
+static func _ground_cell(placement: PropLayout.Placement) -> Vector2i:
+	return Vector2i((Iso.world_to_tile(placement.foot) * Iso.GROUND_PER_TILE).floor())
+
+
 ## The largest frames the contract allows: as wide and tall as PROP_MAX_SIZE and PROP_BELOW let a
 ## frame be, and as wide but low.
 func _largest() -> Array[PropDef]:
@@ -139,6 +152,70 @@ func test_rows_above_counts_the_rows_the_tallest_frame_reaches() -> void:
 		if PropLayout.touches_road(tall, foot, buffer):
 			highest = up
 	assert_eq(highest, PropLayout.rows_above())
+
+
+func test_a_lot_shows_one_prop_on_its_front_cell_and_no_other_stands_on_it() -> void:
+	# The lots of a tile start at its corner, and a prop stands on the centre of its lot's front
+	# cell, the one nearest the bottom of the screen. A lot whose prop would touch the road stays
+	# free for the props of its cells.
+	var block := _block(0.3)
+	var props: Array[PropDef] = [block, _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.3)]
+	var problems := PackedStringArray()
+	var counts: Dictionary[StringName, int] = {&"block": 0, &"post": 0, &"freed": 0}
+	for run_seed: int in [1, 2]:
+		var road := _road(Fixtures.schedule(), run_seed, props)
+		var taken: Dictionary[Vector2i, StringName] = {}
+		var props_seed := road.buffer.generator.props_seed
+		for k: int in road.rows:
+			for placement: PropLayout.Placement in road.rows[k]:
+				var front := _ground_cell(placement)
+				var lot := placement.def.lot
+				var what := "row %d: %s on %s" % [k, placement.def.id, front]
+				if posmod(front.x, lot) != lot - 1 or posmod(front.y, lot) != lot - 1:
+					problems.append(what + " isn't its lot's front cell")
+				if placement.foot != PropLayout.ground_centre(front):
+					problems.append(what + " is off its centre")
+				for b: int in lot:
+					for a: int in lot:
+						var cell := front - Vector2i(a, b)
+						if taken.has(cell):
+							problems.append(what + " stands on %s's lot" % taken[cell])
+						taken[cell] = placement.def.id
+				counts[placement.def.id] += 1
+				var around := (
+					front - Vector2i(posmod(front.x, 2), posmod(front.y, 2)) + Vector2i.ONE
+				)
+				var hashed := PropLayout.lot_hash(props_seed, around, 2)
+				if lot == 1 and PropLayout.pick([block], hashed) != null:
+					counts[&"freed"] += 1
+	assert_eq(problems.slice(0, 5), PackedStringArray(), "%d props astray" % problems.size())
+	assert_gt(counts[&"block"], 1000, "enough lots to tell")
+	assert_gt(counts[&"post"], 1000, "enough cells to tell")
+	assert_gt(counts[&"freed"], 20, "posts on lots whose block would touch the road")
+
+
+func test_each_size_of_lot_takes_its_density_and_a_free_lots_cells_their_own() -> void:
+	# On ground with no road. A lot that shows nothing leaves each of its cells its own chance: its
+	# front cell's too, though that cell's hash is its lot's but for LOT_SALT.
+	var props: Array[PropDef] = [_block(0.3), _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.2)]
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, Fixtures.schedule()))
+	var rows := 100
+	var counts: Dictionary[StringName, int] = {&"block": 0, &"post": 0, &"front": 0}
+	for k: int in rows:
+		for placement: PropLayout.Placement in PropLayout.row(Vector2i(0, -k), props, 7, buffer):
+			counts[placement.def.id] += 1
+			var cell := _ground_cell(placement)
+			if placement.def.lot == 1 and posmod(cell.x, 2) == 1 and posmod(cell.y, 2) == 1:
+				counts[&"front"] += 1
+	var tiles := rows * (2 * Tuning.PROP_SPREAD + 1)
+	@warning_ignore("integer_division")
+	var lots := tiles * Iso.GROUND_PER_TILE * Iso.GROUND_PER_TILE / 4
+	var free := lots - counts[&"block"]
+	# Within four standard deviations of each density.
+	for share: Array in [[&"block", lots, 0.3], [&"post", 4 * free, 0.2], [&"front", free, 0.2]]:
+		var expected: float = share[1] * share[2]
+		var spread := 4.0 * sqrt(expected * (1.0 - share[2]))
+		assert_almost_eq(float(counts[share[0]]), expected, spread, String(share[0]))
 
 
 ## A run of set pieces after every turn, bridges and tunnels in turn, on the dense area.

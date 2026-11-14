@@ -2,7 +2,8 @@ class_name PropDef
 extends Resource
 ## A prop that an area scatters on its ground (plan.md §5.2, docs/M5.md §5.6): a sprite from the
 ## area's props sheet, which stands with its foot on the centre of a ground cell. PropScatter gives
-## each ground cell beside the road one prop or none, by the cell's hash and the densities.
+## each lot of ground beside the road one prop or none, by the lot's hash and the densities: most
+## props take a lot of one cell, and a building a lot of 2 × 2 (VISUALS_PLAN.md §5.4).
 
 ## How its shadow falls (docs/DAYNIGHT.md §5.11). UPRIGHT: as a prop that stands at a point and
 ## is as wide whichever way the light comes from, such as a tree: the rows of its frame above that
@@ -26,7 +27,11 @@ enum Shadow { UPRIGHT, WALL, NONE }
 ## on, which glow more faintly.
 @export var lights: Array[Rect2] = []
 @export var light_pools: Array[Rect2] = []
-## The chance that a ground cell beside the road shows it.
+## The ground it takes, in cells a side: a lot of `lot` × `lot` cells, aligned with its tile's
+## corner, whose front cell its foot stands on the centre of. No other prop stands on a lot that
+## shows it, so a box wider than a cell, such as a building, stands in no other prop.
+@export_range(1, 4) var lot := 1
+## The chance that a lot of its size beside the road shows it.
 @export_range(0.0, 1.0, 0.001) var density := 0.0
 @export var shadow := Shadow.UPRIGHT
 ## How far above the foot, in pixels of the frame, the point that its shadow falls from is: the
@@ -57,6 +62,8 @@ func validate() -> PackedStringArray:
 		problems.append("prop %s is wider than PROP_MAX_SIZE allows" % id)
 	if foot.y > Tuning.PROP_MAX_SIZE.y or region.size.y - foot.y > Tuning.PROP_BELOW:
 		problems.append("prop %s is taller than PROP_MAX_SIZE and PROP_BELOW allow" % id)
+	if lot < 1 or Iso.GROUND_PER_TILE % lot != 0:
+		problems.append("prop %s: a lot of %d cells doesn't divide a tile" % [id, lot])
 	if density < 0.0 or density > 1.0:
 		problems.append("prop %s: density is outside 0..1" % id)
 	if shadow not in Shadow.values():
