@@ -1,6 +1,6 @@
 # Day and Night: Sun and Moon Light in the Zones — Detailed Plan
 
-Status: the owner answered Q4 and Q5 and kept the other defaults (§3); the five PRs are in review · 2026-11-13 · Step 0 and the internal reviews done (§4.1, §4.6) · Scope: a light that follows the sun and the moon through a 24-hour day in each zone, with the clock reset as the car enters each zone; the shadows that the sun and the moon cast; lamps and windows that glow at night; visual only. This plan calls the work DN. It comes after RG (#54–#57), ZS (#60, #61) and TUT (#65–#68), and doesn't depend on M7 (Ship), which may land before or after it (§4.5).
+Status: the owner answered Q4 and Q5 and kept the other defaults (§3); the five PRs passed their reviews and checks, the Web's included, and wait for the owner's on the Fold4 (§6.4, §7) · 2026-11-14 · Step 0 and the internal reviews done (§4.1, §4.6) · Scope: a light that follows the sun and the moon through a 24-hour day in each zone, with the clock reset as the car enters each zone; the shadows that the sun and the moon cast; lamps and windows that glow at night; visual only. This plan calls the work DN. It comes after RG (#54–#57), ZS (#60, #61) and TUT (#65–#68), and doesn't depend on M7 (Ship), which may land before or after it (§4.5).
 
 The owner asked: "create a detailed implementation plan for sun/moon light movement in the zones. Each zone resets the clock, and sunlight / moonlight cadence is zone-specific, starting with 2 minute for full 24h cycle in each zone. Sun/moon only affects visual part of the scene, audio remains separate. Current visuals could be used as the sunlight version without additional changes. The transition from sun to moon is gradual, not abrupt." On the first draft, which had three PRs: "Adjust the plan, Q4 implement shadows in pr4, Q5 glow lamps at night. Keep the rest of the default decisions and proceed with the implementation using stacked PRs".
 
@@ -514,26 +514,26 @@ PRs 4 and 5's **Shadows** and **Lamps** rules in `AGENTS.md` §3 sum §5.11 and 
 
 The five checks of `AGENTS.md` §4 passed with Godot 4.7.2 and gdtoolkit 4.5.0 on `main` and on each PR's head, and after them `git status --porcelain` printed nothing. `smoke.sh` printed `autopilot: tile 165, turns 35, area rural` on each: the light reaches neither the road, nor the car, nor the director (§5.1).
 
-| Head | Scripts loaded | Test scripts | Tests | Asserts |
-|---|---|---|---|---|
-| `main` (a5244fe) | 148 | 70 | 524 | 423,545 |
-| PR 1 | 150 | 71 | 536 | 423,629 |
-| PR 2 | 152 | 72 | 538 | 424,120 |
-| PR 3 | 155 | 74 | 552 | 424,852 |
-| PR 4 | 158 | 76 | 572 | 426,750 |
-| PR 5 | 160 | 77 | 583 | 426,861 |
+| Head | Scripts loaded | Test scripts | Tests | Asserts | GUT | CI `test` |
+|---|---|---|---|---|---|---|
+| `main` (a5244fe) | 148 | 70 | 524 | 423,545 | 1 min 47 s | 2 min 13 s |
+| PR 1 | 150 | 71 | 536 | 423,629 | 1 min 49 s | 2 min 34 s |
+| PR 2 | 152 | 72 | 538 | 424,120 | 1 min 46 s | 2 min 33 s |
+| PR 3 | 155 | 74 | 552 | 424,852 | 1 min 59 s | 2 min 56 s |
+| PR 4 | 158 | 76 | 572 | 426,750 | 2 min 1 s | 2 min 46 s |
+| PR 5 | 160 | 77 | 583 | 426,861 | 2 min 22 s | 2 min 53 s |
 
-GUT's times on these 2 CPUs varied with what else ran, so PR 5's sync gives each head's, measured alone. CI ran on the prototype by hand, with `upload-builds`: run 43492158711 on 5e20b2d passed every job, and `test` took 3 min 6 s.
+GUT's time is its own report, the median of three runs of each head alone on 2 CPUs. Each head's first run, right after the other checks, was its slowest, by up to 63 s; the next two agreed within 11 s. CI's is the `test` job on each PR's head before this sync, and `main`'s on #64's. By hand, with `upload-builds`, every job passed on the prototype (run 43492158711 on 5e20b2d), on PR 3 (run 43505306109 on 03ea55f) and on PR 5 (run 43505310680 on 3f2b0b2), whose builds §6.4 checked.
 
 ### 6.2 Negative cases
 
-Each case is a temporary change at its PR's head. A script, not committed, applies it, runs GUT and restores the tree. While the code changed it ran each case on the scripts of its tests; on the prototype, and on each PR's head after its reviews, on the whole suite, where a case must fail the tests of its row and no other, and leak nothing (`AGENTS.md` §2.4). Its runs found five gaps in the tests, now closed (§4.1). The tests drop their `test_`; "The same" repeats the row above's, and "As N#" that row's.
+Each case is a temporary change at its PR's head. A script, not committed, applies it, runs GUT and restores the tree. While the code changed it ran each case on the scripts of its tests; on the prototype, and on each PR's head after its reviews, on the whole suite, where a case must fail the tests of its row and no other, and leak nothing (`AGENTS.md` §2.4). Its runs found five gaps in the tests, now closed (§4.1). On each PR's final head every case did so but N11 and N12; where a change fails several tests, its row lists them all. N11 and N12 break the schedule, which fails most of the suite by design: the road falls back to one area, where TUT's `test_the_tutorial_ends_with_its_group_and_the_seed_road_follows` waits for a set piece until memory runs out. So they run on their test's script, `test_area_schedule.gd`, where they fail their row's test and others that need a valid schedule. The tests drop their `test_`; "The same" repeats the row above's, and "As N#" that row's.
 
 | N# | PR | Temporary change | Tests that fail |
 |---|---|---|---|
 | N1 | 1 | `hour()` without its `fposmod()` | `the_hour_runs_round_the_clock_in_day_seconds` |
-| N2 | 1 | `light_at()` starts at the first key, so the night doesn't run past midnight | `each_key_hour_has_its_light` |
-| N3 | 1 | `light_at()` blends by `t`, not `smoothstep()` | `between_keys_the_light_eases_in_and_out` |
+| N2 | 1 | `light_at()` starts at the first key, so the night doesn't run past midnight | `each_key_hour_has_its_light`, `after_a_reset_the_light_catches_up_and_then_follows_exactly`, `least_day_seconds_is_the_shortest_day_the_rate_can_follow` |
+| N3 | 1 | `light_at()` blends by `t`, not `smoothstep()` | `between_keys_the_light_eases_in_and_out`, `least_day_seconds_is_the_shortest_day_the_rate_can_follow` |
 | N4 | 1 | `advance()` sets `light = goal` | `the_light_shown_never_changes_faster_than_the_max_rate`, `after_a_reset_the_light_catches_up_and_then_follows_exactly` |
 | N5 | 1 | `enter()` calls `snap()` | The same |
 | N6 | 1 | `enter()` keeps `seconds` | `entering_a_zone_starts_its_clock_at_the_start_hour` |
@@ -550,7 +550,7 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 | N17 | 2 | `_share()` always gives V / L, above 1 where the light is darker | The same |
 | N18 | 2 | `shade()` never hides | The same |
 | N19 | 2 | `ViewVeil.shade()` sets `color`, not `self_modulate` | `none_redraws_a_polygon` |
-| N20 | 2 | A bluish smoke, `Color(0, 0, 0.4, 0.8)` in `car/car.tscn` | `the_smoke_shows_over_everything_the_world_draws` |
+| N20 | 2 | A bluish smoke, `Color(0, 0, 0.4, 0.8)` in `car/car.tscn` | `the_smoke_shows_over_everything_the_world_draws`, `the_smoke_shows_through_a_tunnel` |
 | N21 | 2 | `play_disaster()` doesn't keep its `ambient` | `a_disaster_waits_for_the_car_to_stop` |
 | N22 | 2 | `_start_disaster()` doesn't pass it on | The same |
 | N23 | 3 | Daylight's `_ready()` doesn't set its priority | `in_the_games_frames_the_veil_follows_the_view_of_the_same_frame` |
@@ -564,8 +564,8 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 | N31 | 3 | `_parse_hour()` without `is_finite()` | `the_hour_argument_starts_every_zone_at_that_hour` |
 | N32 | 3 | Daylight at `VEIL_Z + 1` | `the_veil_darkens_the_world_but_not_the_glows_or_the_ui` |
 | N33 | 3 | `main.gd` lowers bus 0 by 6 dB while the light isn't white | `the_light_changes_nothing_but_the_view` |
-| N34 | 3 | Daylight's `shade()` sets `color` | `daylight_is_never_redrawn`, `none_redraws_a_polygon` |
-| N35 | 3 | Daylight's `shade()` never hides | `by_day_the_veil_is_transparent_and_by_night_it_shows_the_light`, `each_run_starts_at_once_in_the_morning`, `the_title_keeps_the_night_and_play_starts_the_morning`, `daylight_is_never_redrawn`, `the_hour_argument_starts_every_zone_at_that_hour` |
+| N34 | 3 | `ViewVeil.shade()` sets `color`, in Daylight too | `daylight_is_never_redrawn`, `none_redraws_a_polygon` |
+| N35 | 3 | `ViewVeil.shade()` never hides, in Daylight too | `by_day_the_veil_is_transparent_and_by_night_it_shows_the_light`, `each_run_starts_at_once_in_the_morning`, `the_title_keeps_the_night_and_play_starts_the_morning`, `daylight_is_never_redrawn`, `the_hour_argument_starts_every_zone_at_that_hour`, `at_night_a_veil_darkens_only_what_the_night_hasnt` |
 | N36 | 1 | `enter()` checks only `p_day_seconds <= 0.0`, so NaN and INF pass | As N8 |
 | N37 | 1 | `validate()` names the least day to the hundredth, not rounded up: 55.68 | As N10 |
 | N38 | 1 | `validate()` without its check of a day that isn't finite | `validate_reports_a_day_that_isnt_finite` |
@@ -622,7 +622,7 @@ Each case is a temporary change at its PR's head. A script, not committed, appli
 | N89 | 4 | A prop's cast without its custom rect | `each_props_shadow_is_drawn_wherever_it_falls` |
 | N90 | 4 | The car's cast keeps a prop's custom rect | As N53 |
 | N91 | 4 | The car's cast keeps a prop's shader | The same |
-| N92 | 4 | Each prop's cast laid on the CPU, by its transform | `the_clock_turns_the_props_shadows_but_no_sprite` |
+| N92 | 4 | Each prop's cast laid on the CPU, by its transform | `the_clock_turns_the_props_shadows_but_no_sprite`, `each_props_shadow_is_drawn_wherever_it_falls`, `the_shader_lays_each_corner_where_laid_puts_it` |
 | N93 | 4 | `FALL_MOST` in heights, not pixels across | As N89 |
 | N94 | 4 | `WALL_ACROSS_MOST := 1.0` | The same |
 | N95 | 4 | Shadows' pool without internal children | `removed_shadows_give_their_sprites_back` |
@@ -645,7 +645,7 @@ Only the editor warns about shadowing (M2_PLAN.md §6.3). A script asked the edi
 ### 6.4 CI, the Web and the Fold4
 
 - **CI.** The five required checks on each PR into `main`, the `test` job's check of the tree included (`AGENTS.md` §10).
-- **The Web** (E11, E13; P3, P9). The agent checks PR 3's and PR 5's builds in Chrome and Firefox with Playwright, headed under Xvfb, and posts a table in each PR, one row per check (`AGENTS.md` §6). The page passes no arguments (C12), so it serves a copy that takes them from the address:
+- **The Web** (E11, E13; P3, P9). The agent checked PR 3's and PR 5's builds in Chrome and Firefox with Playwright, headed under Xvfb, and posted a table in each PR, one row per check (`AGENTS.md` §6): every check passed, on [PR 3](https://github.com/pompomon/roadgame/pull/72#issuecomment-6865819008) and [PR 5](https://github.com/pompomon/roadgame/pull/74#issuecomment-6865943044). The page passes no arguments (C12), so it serves a copy that takes them from the address:
   ```bash
   gh workflow run ci.yml -R pompomon/roadgame --ref dn/5-lamps -f upload-builds=true
   gh run download <run id> -R pompomon/roadgame -n web -D /tmp/dn-web
@@ -678,7 +678,7 @@ Only the editor warns about shadowing (M2_PLAN.md §6.3). A script asked the edi
 | P6 | Daylight covers the view of its own frame | The engine's frames, not `simulate()` (§5.4) | Now a test; without the priority the veil is a frame late (N23) |
 | P8 | Overlapping shadows darken once | Two black casts in a group at 0.5, over a grey of 0.6 | 0.302 under one and under both, for 0.3 |
 | P8b | A group in a group | The same, nested | 0.541 where the inner casts overlap: wrong (§5.10) |
-| P9 | No WebGL error with shadows and lamps | §6.4's runs 1 and 2 on 6ae2217's build (CI run 43461788754); all four on 5e20b2d's build (CI run 43492158711), beside two GUT runs | No error or WebGL message; 52–58 frames a second under Xvfb, 16–46 beside the GUT runs. Firefox warned only of a deprecated WebAssembly instruction in Godot's build |
+| P9 | No WebGL error with shadows and lamps | §6.4's runs 1 and 2 on 6ae2217's build (CI run 43461788754); all four on 5e20b2d's build (CI run 43492158711), beside two GUT runs; and on PR 5's (§6.4) | No error or WebGL message. Under Xvfb, 52–58 frames a second on 6ae2217's build, 16–46 on 5e20b2d's beside the GUT runs; PR 5's, alone, 53–60 by day and 57–59 by night in Chrome, 48–59 and 58–59 in Firefox. Firefox warned only of a deprecated WebAssembly instruction in Godot's build |
 | P10 | Overlapping glows light once | Two glows 2 px apart over the night's veil, alone and in one ADD group | In the group the overlap shows (0.859, 0.792, 0.804), as one glow does; alone they add twice. Godot's grouping: P10b, `renderer_canvas_cull.cpp`:197–257, :438–492 |
 | P11 | The shader lays the shadows as the CPU did | Every prop, laid by both, at each half hour | The same within 1 px, which only one of the 48 half hours shows |
 
@@ -718,6 +718,7 @@ For @pompomon:
 - **Haptics and the Web's audio (M7).** The light drives neither. What M7 adds to the sound, and its haptics, can join `test_the_light_changes_nothing_but_the_view`'s `_sound()`.
 - **The tunnel's darkening (C15).** Daylight can multiply its light by a grey that eases in as the car enters a tunnel, `Tunnel.opacity()`, no faster than the rate. §5.7's rule scales with the light, and the glows stay lit.
 - **A setting for the night (Q9).** `Color.WHITE.lerp(light, k)` is still a blend of keys that changes no faster than the light, so §5.3's and §5.7's rules hold, and the lamps' strength follows.
+- **A loop that waits for a set piece.** TUT's `test_the_tutorial_ends_with_its_group_and_the_seed_road_follows` draws tiles until one is a set piece. With a broken schedule the road has none (§6.2), so it runs out of memory rather than fail. A bound on the loop would fail it instead.
 - **Saved runs.** The light isn't saved: every run starts at the start hour. A run saved part-way would save `seconds`, the light, the shadow and its alpha.
 - **Each zone's own hours and lights.** `AreaDef` could hold its start hour or keys; `least_day_seconds()` and `validate()` would then take each zone's.
 - **What DN doesn't light or shade.** The car has no headlights, and the traffic lights don't glow. The legends and the set pieces cast no shadows, and the car and the legends hide no glows (§5.11, §5.12). Tinted shadows would need §5.7's shadow rule again (C22).
