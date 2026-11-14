@@ -72,6 +72,16 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 	assert_eq(all, listed, "every disaster of the pools, once each, in the schedule's order")
 
 
+func test_each_sets_its_id_in_its_scene_where_the_picks_read_it() -> void:
+	# A run's picks weigh a seen disaster by the id that its scene's root sets, read without
+	# instancing it (POOLS_PLAN.md V11). One set only by its script would never weigh less.
+	for scene: PackedScene in Disasters.scenes():
+		var disaster := Disasters.disaster(self, scene, null, null)
+		var what := scene.resource_path.get_file()
+		assert_ne(disaster.id, &"", "%s has an id" % what)
+		assert_eq(DisasterPicks.id_of(scene), disaster.id, what)
+
+
 func test_each_shows_nothing_until_its_delay_is_over() -> void:
 	for scene: PackedScene in Disasters.contract_scenes():
 		var car := Disasters.car(self)
