@@ -226,6 +226,37 @@ func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 			assert_almost_eq(distance, radius, 1e-4, "%.1f tiles from its centre" % radius)
 
 
+func test_only_a_legend_with_a_veil_has_glows() -> void:
+	# Glows add light, so without a veil they clip to white over a light ground (docs/M6.md S10).
+	# Of the ten legends to come, four have no veil (POOLS_PLAN.md V18). So each disaster without one
+	# plays to its end, and nothing that it draws, its particles too, may add light.
+	for scene: PackedScene in Disasters.contract_scenes():
+		var staging := Disasters.stage(self)
+		var stopped := Disasters.car(self, 0.0, staging)
+		var played := Disasters.disaster(self, scene, stopped, Disasters.camera(self))
+		if played is Legend and (played as Legend).veil_kind != Legend.Veil.NONE:
+			continue
+		played.stage = staging
+		watch_signals(played)
+		played.play(Disasters.params())
+		var glows: Array[String] = []
+		var frames := 0
+		while get_signal_emit_count(played, "finished") == 0 and frames < MAX_FRAMES:
+			simulate(played, 1, DELTA)
+			frames += 1
+			var items: Array[CanvasItem] = Disasters.drawables(played)
+			for emitter: CPUParticles2D in Disasters.particles(played):
+				items.append(emitter)
+			for item: CanvasItem in items:
+				var material := item.material as CanvasItemMaterial
+				var adds := material != null
+				adds = adds and material.blend_mode == CanvasItemMaterial.BLEND_MODE_ADD
+				if adds and not glows.has(String(item.name)):
+					glows.append(String(item.name))
+		assert_lt(frames, MAX_FRAMES, "%s finishes" % played.id)
+		assert_true(glows.is_empty(), "%s has no veil, but glows: %s" % [played.id, glows])
+
+
 func test_none_flashes() -> void:
 	# docs/M6.md S11, E6, after WCAG 2.3.1: no more than three flashes a second, nor a red flash.
 	for scene: PackedScene in Disasters.contract_scenes():
