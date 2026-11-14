@@ -2,7 +2,7 @@ class_name AreaDef
 extends Resource
 ## The rules of one area (plan.md §3.7). M1 added the fields the generator and the grey-box renderer
 ## use, M2 the driving fields CarSim reads, M3 the disaster pool. The art, prop and audio fields
-## come with what reads them, in M5 (M4_PLAN.md K3). The driving defaults are the City's values
+## come with what reads them, in M5 (docs/M4.md K3). The driving defaults are the City's values
 ## (IMPLEMENTATION_PLAN.md M4.2).
 
 @export var id := &""
@@ -16,7 +16,7 @@ extends Resource
 ## Chance that a junction also offers "straight on" as a wrong exit (a crossroads).
 @export_range(0.0, 1.0) var cross_junction_chance := 0.3
 ## Chance that a junction offers the turn and straight on, a wrong exit, but not the opposite turn
-## (a side road, ROADGEN_PLAN.md R1).
+## (a side road, docs/ROADGEN.md R1).
 @export_range(0.0, 1.0) var side_road_chance := 0.0
 ## Chance that a junction offers straight on and the opposite turn, a wrong exit, but not the turn
 ## (a decoy, R1): straight on is correct there, and the turn waits for the next junction. The three
@@ -24,7 +24,7 @@ extends Resource
 @export_range(0.0, 1.0) var decoy_chance := 0.0
 
 @export_group("Art")
-## The road sheet (M5_PLAN.md §5.5): GreyboxAtlas's layout, opaque exactly where its road is. With
+## The road sheet (docs/M5.md §5.5): GreyboxAtlas's layout, opaque exactly where its road is. With
 ## none, the grey box's.
 @export var road_sheet: Texture2D
 ## A seamless ground, which repeats across the screen, and its edge, which blends it into the last
@@ -48,7 +48,7 @@ extends Resource
 @export_range(0.5, 5.0, 0.1) var offroad_limit_tiles := 2.0
 
 @export_group("Props")
-## What PropScatter scatters beside the road here (M5_PLAN.md §5.6). Their densities add up to 1 at
+## What PropScatter scatters beside the road here (docs/M5.md §5.6). Their densities add up to 1 at
 ## most: the chance that a ground cell shows a prop.
 @export var props: Array[PropDef] = []
 
@@ -65,7 +65,7 @@ extends Resource
 
 @export_group("Light")
 ## Seconds for a full day of 24 hours in this area, whose clock starts again as the car enters it
-## (DAYNIGHT_PLAN.md §5.1). Finite, and at least DayCycle.least_day_seconds(), so that the light
+## (docs/DAYNIGHT.md §5.1). Finite, and at least DayCycle.least_day_seconds(), so that the light
 ## never changes faster than Tuning.LIGHT_MAX_RATE.
 @export_range(10.0, 600.0, 0.5, "or_greater") var day_seconds := 120.0
 

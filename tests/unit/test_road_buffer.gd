@@ -26,7 +26,7 @@ func _on_freed(tiles: Array[RoadTile]) -> void:
 			_freed_twice += 1
 
 
-func test_start_generates_50_ahead() -> void:
+func test_start_generates_buffer_ahead() -> void:
 	var buffer := _buffer(1)
 	buffer.start()
 	assert_eq(buffer.first_index(), 0)
@@ -35,7 +35,7 @@ func test_start_generates_50_ahead() -> void:
 	assert_eq(_live.size(), buffer.tiles().size())
 
 
-func test_lookahead_stays_between_25_and_50_fuzzed() -> void:
+func test_lookahead_stays_between_refill_and_ahead_fuzzed() -> void:
 	var rng := RandomNumberGenerator.new()
 	for run_seed: int in 20:
 		rng.seed = run_seed
@@ -54,7 +54,7 @@ func test_lookahead_stays_between_25_and_50_fuzzed() -> void:
 			if behind > Tuning.BUFFER_BEHIND:
 				fail_test("seed %d step %d: %d tiles behind" % [run_seed, step, behind])
 				return
-	pass_test("lookahead stayed in 25..50")
+	pass_test("lookahead stayed in BUFFER_REFILL_AT..BUFFER_AHEAD")
 
 
 func test_freed_tiles_leave_with_their_dead_ends() -> void:

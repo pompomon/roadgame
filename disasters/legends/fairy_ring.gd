@@ -1,6 +1,6 @@
 class_name FairyRing
 extends Legend
-## The Meadows' legend (M6_PLAN.md §3.3, Q2): dusk falls on the meadow, and ten pale toadstools
+## The Meadows' legend (docs/M6.md §3.3, Q2): dusk falls on the meadow, and ten pale toadstools
 ## sprout one by one in a ring round the car. A sickly glow swells over each in turn and stays lit.
 ## Pairs of yellow eyes open one by one in the grass beyond the ring and watch, and sparkles circle
 ## inside it. The car's double is made to dance: it spins through its headings, faster and faster,

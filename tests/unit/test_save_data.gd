@@ -1,6 +1,6 @@
 extends GutTest
 ## SaveData (plan.md §9, IMPLEMENTATION_PLAN.md M5.4): the save's data, its JSON, migration from
-## older versions, and what it makes of text it can't fully use (M5_PLAN.md L5, L6).
+## older versions, and what it makes of text it can't fully use (docs/M5.md L5, L6).
 
 ## plan.md §9's example, with no version: version 0 (Q8).
 const V0 := """{
@@ -57,7 +57,7 @@ func test_a_v0_file_is_migrated_and_keeps_its_values() -> void:
 	assert_eq(data.settings["music"], 0.5)
 	assert_eq(data.settings["haptics"], false)
 	assert_eq(data.settings["orientation"], "portrait")
-	assert_eq(data.tutorial, {"done": true}, "it has a run (TUTORIAL_PLAN.md §5.6)")
+	assert_eq(data.tutorial, {"done": true}, "it has a run (docs/TUTORIAL.md §5.6)")
 
 
 ## Copilot's review of #39: a load that read less than the last kept the last one's data, and its
@@ -101,7 +101,7 @@ func test_a_missing_migration_is_an_error() -> void:
 	assert_push_error("no migration from version 0")
 
 
-## TUTORIAL_PLAN.md §5.6: a version 1 save with a run, in the best distance or an area the atlas
+## docs/TUTORIAL.md §5.6: a version 1 save with a run, in the best distance or an area the atlas
 ## has discovered, has played without the tutorial and skips it; one with none gets it. A value of
 ## the wrong type counts as no run, and is no error.
 func test_a_v1_file_has_done_the_tutorial_if_it_has_a_run() -> void:

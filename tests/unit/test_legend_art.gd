@@ -1,5 +1,5 @@
 extends GutTest
-## The legends' art (M6_PLAN.md §5.7): each sheet is one row of whole frames, none larger than
+## The legends' art (docs/M6.md §5.7): each sheet is one row of whole frames, none larger than
 ## MAX_FRAME; a legend of the pools draws only its own sheets, from assets/legends/<id>/; and
 ## legend_art.gd draws the same pixels on every run, in the palette's colours.
 

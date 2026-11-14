@@ -1,6 +1,6 @@
 extends GutTest
 ## SaveService (plan.md §9, IMPLEMENTATION_PLAN.md M5.4): the save file on disk. Each test uses a
-## fresh service on its own file under user://save_tests/, never the player's save (M5_PLAN.md L1).
+## fresh service on its own file under user://save_tests/, never the player's save (docs/M5.md L1).
 
 const SaveServiceScript := preload("res://autoload/save_service.gd")
 const DIR := "user://save_tests"
@@ -11,7 +11,7 @@ var _service: SaveServiceScript
 
 
 ## Loses all but the start of each write as the file closes, as a full disk does to a buffered
-## write, and Godot reports nothing (M5_PLAN.md L11).
+## write, and Godot reports nothing (docs/M5.md L11).
 class LossySave:
 	extends "res://autoload/save_service.gd"
 
@@ -97,7 +97,7 @@ func test_a_disaster_is_written_when_it_starts() -> void:
 	assert_eq(_read().disasters["flood"]["first_area"], "meadows")
 
 
-## TUTORIAL_PLAN.md §5.6: at once, so that leaving the app after the tutorial doesn't bring it back.
+## docs/TUTORIAL.md §5.6: at once, so that leaving the app after the tutorial doesn't bring it back.
 func test_the_end_of_the_tutorial_is_written_at_once() -> void:
 	assert_false(_service.data().tutorial["done"])
 	_service.complete_tutorial()

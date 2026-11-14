@@ -1,8 +1,8 @@
 class_name Lamps
 extends CanvasGroup
-## The props' lights at night (DAYNIGHT_PLAN.md §5.12): a glow on each box that a prop's PropDef
+## The props' lights at night (docs/DAYNIGHT.md §5.12): a glow on each box that a prop's PropDef
 ## lights, such as a lamp's head or a lit window, and a fainter one on the ground that a lamp
-## lights. They draw over the night's veil and add light, as the legends' glows do (M6_PLAN.md
+## lights. They draw over the night's veil and add light, as the legends' glows do (docs/M6.md
 ## §5.5): in each channel as much as the veil takes away from it at most, so that nothing they
 ## light clips to white. They come on as the light fades, and by day they are off, so that the
 ## day's frames are the same as before.
@@ -17,7 +17,7 @@ extends CanvasGroup
 ## PropScatter adds and removes the props with their sprites, and shows their frames. WorldRenderer
 ## refreshes them every frame. Only the group's self_modulate and visible change, and each
 ## silhouette's position, frame and order as it is added, so no polygon is redrawn on the Web
-## (M2_PLAN.md §5.7).
+## (docs/M2.md §5.7).
 
 const GLOW := preload("res://disasters/glow.tres")
 const SHADER := preload("res://world/lamps.gdshader")

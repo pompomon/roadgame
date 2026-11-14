@@ -1,6 +1,6 @@
 class_name Beats
 extends RefCounted
-## A legend's beats on one clock (M6_PLAN.md S7, §5.2). Beat i starts when the beats before it have
+## A legend's beats on one clock (docs/M6.md S7, §5.2). Beat i starts when the beats before it have
 ## ended, and the first `start` seconds after the clock does. Each end is measured from the clock's
 ## start, so the last ends at start + total(), whatever steps the clock took, as a legend's
 ## duration() says. A frame that steps over a beat still lists its end in ended(), so that a legend

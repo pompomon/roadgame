@@ -1,5 +1,5 @@
 extends GutTest
-## Beats (M6_PLAN.md S7, §5.2): a legend's beats on one clock, which ends when their lengths say,
+## Beats (docs/M6.md S7, §5.2): a legend's beats on one clock, which ends when their lengths say,
 ## whatever steps it takes, and lists each beat's end once, even one that a step skipped.
 
 const DELTA := 1.0 / 60.0

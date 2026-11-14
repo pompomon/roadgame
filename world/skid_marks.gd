@@ -1,9 +1,9 @@
 class_name SkidMarks
 extends RefCounted
-## Skid marks (plan.md §5.3, M5_PLAN.md §5.7). While the car brakes for a junction, its rear wheels
+## Skid marks (plan.md §5.3, docs/M5.md §5.7). While the car brakes for a junction, its rear wheels
 ## leave a mark on the road every SKID_SPACING tiles. A wheel over the road's edge leaves none, also
-## while the car's centre is on the road (M5_PLAN.md R12). A mark is a Sprite2D on World's Skids
-## layer, placed once where it lands, so nothing redraws (M2_PLAN.md §5.7). Marks come from a pool,
+## while the car's centre is on the road (docs/M5.md R12). A mark is a Sprite2D on World's Skids
+## layer, placed once where it lands, so nothing redraws (docs/M2.md §5.7). Marks come from a pool,
 ## and go back to it when the buffer frees their tile, or the oldest first once `limit` show.
 ## WorldRenderer makes it, binds it with itself and updates it every physics frame.
 

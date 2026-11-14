@@ -1,5 +1,5 @@
 extends GutTest
-## The tutorial in the game (TUTORIAL_PLAN.md §5.4 to §5.6). Play starts a run in the City with it
+## The tutorial in the game (docs/TUTORIAL.md §5.4 to §5.6). Play starts a run in the City with it
 ## until the player has finished it, and --tutorial always does. The HUD shows the streak, and the
 ## goal for the distance and the area's name. The streak's end starts the City's run there: its
 ## distance, turns, areas and day count from the junction, and the save marks the tutorial done. A
@@ -143,7 +143,7 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 		)
 
 
-## TUTORIAL_PLAN.md §5.5, §5.6: the run that the tutorial started ends as any run does, with its
+## docs/TUTORIAL.md §5.5, §5.6: the run that the tutorial started ends as any run does, with its
 ## distance and turns counted from the streak's end, in the save too. Retry then starts a run with
 ## no tutorial, which counts from its own start.
 func test_the_city_run_after_the_tutorial_ends_and_retries_without_it() -> void:
@@ -187,7 +187,7 @@ func test_the_city_run_after_the_tutorial_ends_and_retries_without_it() -> void:
 	assert_eq(areas.get(&"city"), {"distance": GameState.distance, "turns": 0})
 
 
-## TUTORIAL_PLAN.md §5.3: with no input, the car drives on off the road at the first junction, with
+## docs/TUTORIAL.md §5.3: with no input, the car drives on off the road at the first junction, with
 ## no health, until it is put back before the junction, with the camera on it.
 func test_a_car_left_alone_is_put_back_with_the_camera_on_it() -> void:
 	var main := MainScene.open(self, ["--seed=1", "--tutorial"])
@@ -213,7 +213,7 @@ func test_a_car_left_alone_is_put_back_with_the_camera_on_it() -> void:
 	assert_lt(off, 1.0, "%.0f px from the car, %.0f px before the frame ended" % [off, behind])
 
 
-## Also when the title's Start button chooses the area, in debug builds (ZONE_SELECT_PLAN.md Z1).
+## Also when the title's Start button chooses the area, in debug builds (docs/ZONE_SELECT.md Z1).
 func test_only_a_run_that_starts_in_the_city_has_the_tutorial() -> void:
 	for chosen: bool in [false, true]:
 		var main: Node
@@ -233,7 +233,7 @@ func test_only_a_run_that_starts_in_the_city_has_the_tutorial() -> void:
 		GameState.quit_to_title()
 
 
-## DAYNIGHT_PLAN.md §5.4 (TUTORIAL_PLAN.md Q18): the City's clock runs in the tutorial, and the
+## docs/DAYNIGHT.md §5.4 (docs/TUTORIAL.md Q18): the City's clock runs in the tutorial, and the
 ## switch starts it again, as it does the City's distance and turns. From the evening, the light
 ## then goes back to the day's at the rate, with no jump.
 func test_the_city_day_starts_at_the_switch() -> void:

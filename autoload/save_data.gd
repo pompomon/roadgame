@@ -4,7 +4,7 @@ extends RefCounted
 ## run, the disaster collection, the settings and whether the tutorial is done. SaveService reads
 ## and writes the file; this class only turns text into data and back, and records runs.
 ## load_json() takes any text and keeps what it can: it migrates an older version, and a value of
-## the wrong type or out of range falls back to its default with a note in problems (M5_PLAN.md
+## the wrong type or out of range falls back to its default with a note in problems (docs/M5.md
 ## L5). Distances are in tiles, as in GameState.
 
 ## What load_json() made of the text.
@@ -22,14 +22,14 @@ const DEFAULT_SETTINGS := {
 ## The settings that are volumes, from 0 to 1.
 const VOLUMES: Array[String] = ["music", "sfx", "ambient"]
 ## An area of the atlas: whether a run has reached it, and the most distance and turns a run made
-## in it (M5_PLAN.md L8).
+## in it (docs/M5.md L8).
 const ATLAS_ENTRY := {"discovered": false, "best_distance": 0.0, "best_turns": 0}
 ## A disaster of the collection: how often it was seen, and where and in which run it was first
 ## seen (plan.md §2.6).
 const DISASTER_ENTRY := {"seen": 0, "first_area": "", "first_distance": 0.0, "first_turns": 0}
 const BEST := {"distance": 0.0, "turns": 0}
 ## Whether the player has finished the tutorial, which runs start with until then
-## (TUTORIAL_PLAN.md §5.6).
+## (docs/TUTORIAL.md §5.6).
 const TUTORIAL := {"done": false}
 ## The largest number a count or an amount can be: 2^53 - 1, the largest whole number that a JSON
 ## number holds exactly. Past it, int() can't hold a count, and the HUD's metres overflow (L5). An
@@ -53,13 +53,13 @@ static func migrations() -> Dictionary[int, Callable]:
 	return {0: _v0_to_v1, 1: _v1_to_v2}
 
 
-## Version 0 is a file with no "version" (M5_PLAN.md Q8). It has plan.md §9's keys, and the keys
+## Version 0 is a file with no "version" (docs/M5.md Q8). It has plan.md §9's keys, and the keys
 ## version 1 adds come from the defaults, so it needs no change.
 static func _v0_to_v1(data: Dictionary) -> Dictionary:
 	return data
 
 
-## Version 2 adds the tutorial (TUTORIAL_PLAN.md §5.6). A player whose save has a run has played
+## Version 2 adds the tutorial (docs/TUTORIAL.md §5.6). A player whose save has a run has played
 ## without it, and doesn't get it: a run leaves a best distance above 0, and marks each area it
 ## reaches discovered in the atlas (record_run()). A value of the wrong type counts as no run:
 ## _read() then reports it.
@@ -102,7 +102,7 @@ func load_json(text: String) -> Status:
 	tutorial = TUTORIAL.duplicate()
 	problems = PackedStringArray()
 	var json := JSON.new()
-	# Not JSON.parse_string(), which logs an error for bad text (M5_PLAN.md L6).
+	# Not JSON.parse_string(), which logs an error for bad text (docs/M5.md L6).
 	if json.parse(text) != OK:
 		problems.append("line %d: %s" % [json.get_error_line(), json.get_error_message()])
 		return Status.CORRUPT

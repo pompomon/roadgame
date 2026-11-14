@@ -4,7 +4,7 @@ extends RefCounted
 ## off-road damage. Pure logic, stepped at a fixed delta. It moves the road buffer along, reports
 ## cell crossings and rejoins to its JunctionTrigger, and CarController draws it.
 ##
-## In the tutorial (TUTORIAL_PLAN.md §5.3), the car takes damage off the road but never crashes: it
+## In the tutorial (docs/TUTORIAL.md §5.3), the car takes damage off the road but never crashes: it
 ## drives on at 0 health, heals on the road, and is put back on the path once it has driven
 ## TUTORIAL_RESCUE_TILES off the road.
 
@@ -34,7 +34,7 @@ var speed := 0.0
 var health := Tuning.START_HEALTH
 var state := State.DRIVING
 ## Tiles driven in the run, and since the car last took a junction's correct exit: a turn, or a
-## decoy's straight on (ROADGEN_PLAN.md R2).
+## decoy's straight on (docs/ROADGEN.md R2).
 var dist_total := 0.0
 var dist_on_straight := 0.0
 ## Tiles driven since the car last left the road.
@@ -76,7 +76,7 @@ func _init(p_buffer: RoadBuffer) -> void:
 ## Moves the car on by `delta` seconds, with steering `steer` from -1 (left) to 1 (right). One step
 ## must move less than a tile. Once the run is over, the car brakes in a straight line: at BRAKE,
 ## or harder if it must, so that it stops within STOP_SECONDS of the step that ended the run
-## (M3_PLAN.md J4).
+## (docs/M3.md J4).
 func step(delta: float, steer: float) -> void:
 	if is_over():
 		if _stop_rate == 0.0:
@@ -134,7 +134,7 @@ func is_over() -> bool:
 
 
 ## Whether the tutorial has lost the car, which then has no next junction to brake for, but the
-## junctions and corners of the road it is on (TUTORIAL_PLAN.md §5.3).
+## junctions and corners of the road it is on (docs/TUTORIAL.md §5.3).
 func is_lost() -> bool:
 	return trigger.tutorial and trigger.next_junction == null
 
@@ -149,7 +149,7 @@ func distance_to_junction() -> float:
 ## Distance from the car to the centre of the turn it brakes for next: the next unresolved
 ## junction's, along the path. While the tutorial has lost the car, that of the first tile ahead on
 ## the road, along the grid direction nearest its heading, that is a junction, whichever exit the
-## car will take, or that it can't drive straight through: a loop's corner (TUTORIAL_PLAN.md §5.3).
+## car will take, or that it can't drive straight through: a loop's corner (docs/TUTORIAL.md §5.3).
 ## INF if no such tile is within junction_brake_distance, or the car's cell has no tile.
 func distance_to_turn() -> float:
 	if not is_lost():
@@ -353,7 +353,7 @@ func _crash(cause: StringName) -> void:
 ## it, it is put back on the path. Its straight starts again while it brakes for a turn, as a
 ## correct exit starts it, so that a mistake starts it too, even one that ends no streak, such as a
 ## rejoin on a loop; and off the road while it is lost, so that it heads for junction_speed there,
-## slowed (TUTORIAL_PLAN.md §5.3).
+## slowed (docs/TUTORIAL.md §5.3).
 func _tutorial_step(delta: float) -> void:
 	if state == State.OFFROAD:
 		if offroad_dist >= Tuning.TUTORIAL_RESCUE_TILES:
@@ -398,7 +398,7 @@ func _on_streak_changed(_streak: int) -> void:
 	dist_on_straight = 0.0
 
 
-## The City's run starts at the junction where the tutorial ended (TUTORIAL_PLAN.md §5.5): with
+## The City's run starts at the junction where the tutorial ended (docs/TUTORIAL.md §5.5): with
 ## full health, and its speed cap from BASE_TOP_SPEED.
 func _on_tutorial_completed(_junction: RoadTile) -> void:
 	health = Tuning.START_HEALTH

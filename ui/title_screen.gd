@@ -3,10 +3,10 @@ extends Control
 ## The title screen (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): Play, and the Atlas, the disaster
 ## collection and the settings, each a screen of its own with a Back button. The game starts on it,
 ## and the game-over screen's Title button comes back to it. Esc, and Android's back button through
-## main.gd, leave a screen for the title (M5_PLAN.md L13). On the Web, the tap on Play is also the
+## main.gd, leave a screen for the title (docs/M5.md L13). On the Web, the tap on Play is also the
 ## first gesture, which lets the game start its sound (M7.3). In debug builds, the Start button
 ## steps through the schedule's areas, to choose the area that Play starts the run in, for checks
-## on a phone (ZONE_SELECT_PLAN.md Z1): a button, as a dropdown's popup would let Android's back
+## on a phone (docs/ZONE_SELECT.md Z1): a button, as a dropdown's popup would let Android's back
 ## button quit the game (Z7).
 
 ## Play was pressed.
@@ -19,7 +19,7 @@ const START_TEXT := "Start in: %s"
 ## button steps through its areas.
 var schedule: AreaSchedule
 ## Whether the title shows the Start button: in debug builds only, like the game-over screen's seed
-## (M3_PLAN.md J19; ZONE_SELECT_PLAN.md Z4). Tests change it.
+## (docs/M3.md J19; docs/ZONE_SELECT.md Z4). Tests change it.
 var area_choice := OS.is_debug_build()
 ## The area that Play starts the run in, with area_choice. main.gd sets it first; open() makes it
 ## the schedule's first area if it isn't one of the schedule's.

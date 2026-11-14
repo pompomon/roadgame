@@ -1,5 +1,5 @@
 extends GutTest
-## AudioDirector (plan.md §6, IMPLEMENTATION_PLAN.md M5.3, M5_PLAN.md L15): the buses, the volume
+## AudioDirector (plan.md §6, IMPLEMENTATION_PLAN.md M5.3, docs/M5.md L15): the buses, the volume
 ## settings, the engine's pitch, the tunnel's reverb, the area's music and ambient sound, and the
 ## sounds of a run's events. Each test has its own AudioDirector, which it steps by hand.
 
@@ -210,7 +210,7 @@ func test_leaving_the_road_screeches_and_rumbles_until_the_car_is_back() -> void
 
 
 func test_a_sound_never_plays_twice_at_once() -> void:
-	# Its copies would add up past full scale (M5_PLAN.md L29): when the car crosses the road's
+	# Its copies would add up past full scale (docs/M5.md L29): when the car crosses the road's
 	# edge again and again, the screech starts over.
 	_audio.can_play = true
 	EventBus.run_started.emit(1)
@@ -290,7 +290,7 @@ func test_every_disaster_of_every_area_has_its_sound() -> void:
 
 
 func test_a_disaster_sounds_as_it_shows_not_as_it_starts_to_play() -> void:
-	# Its delay may be up to DISASTER_DELAY_MAX (M6_PLAN.md S18).
+	# Its delay may be up to DISASTER_DELAY_MAX (docs/M6.md S18).
 	watch_signals(_audio)
 	for id: StringName in _disaster_ids():
 		EventBus.disaster_started.emit(id, CITY)

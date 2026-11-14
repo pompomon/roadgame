@@ -27,7 +27,7 @@ static func run_while(test: GutTest, main: Node, state: int, frames: int) -> int
 	return frames
 
 
-## The run's car, which World's Props layer holds among the props (M5_PLAN.md L12).
+## The run's car, which World's Props layer holds among the props (docs/M5.md L12).
 static func car(main: Node) -> CarController:
 	return (main.get_node("%World") as WorldRenderer).car as CarController
 

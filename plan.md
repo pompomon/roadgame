@@ -67,7 +67,7 @@ None that affects gameplay. Persisted between runs:
 - Settings (volume, orientation lock, haptics).
 
 ### 2.7 Tutorial
-Until the player has finished it, Play starts the run with a tutorial: the City's look, with no disasters and no death (`TUTORIAL_PLAN.md`).
+Until the player has finished it, Play starts the run with a tutorial: the City's look, with no disasters and no death (`docs/TUTORIAL.md`).
 - Every junction is a T, and its wrong exit loops round to the path two junctions on, so every road leads on. Correct turns build a **streak**. A wrong exit, a U-turn or the off-road limit ends it, and costs nothing else.
 - Off the road the car takes damage as in the City, but drives on at 0 health, and heals to full within **2 s** of driving on the road. A car driven 6 tiles off the road in one go is put back on the path.
 - After **12** correct turns in a row (`Tuning.TUTORIAL_STREAK`), the run goes on in the City under its rules, with full health and no stop. The road ahead is the tutorial's until its last loop closes, then the seed's. The run's distance, turns and areas count from there: the tutorial counts for nothing.
@@ -99,10 +99,10 @@ Until the player has finished it, Play starts the run with a tutorial: the City'
 
 ### 3.4 Buffer management
 - The buffer counts **correct-path tiles** only. Dead ends belong to their junction and are added or removed with it.
-- At run start: generate **50** tiles ahead.
-- When the car passes the **midpoint** of the buffer (25 tiles of lookahead remain), generate enough to get back to 50 ahead.
-- Tiles more than **5** behind the car are freed (cells erased, props returned to the pool).
-- Invariant: lookahead is always **≥ 25 and ≤ 50** tiles. The visible field of view is about 5 tiles.
+- At run start: generate **55** tiles ahead.
+- When fewer than **37** tiles of lookahead remain, generate enough to get back to 55 ahead. Each row of props then has the road that it must avoid.
+- Tiles more than **20** behind the car are freed (cells erased, props returned to the pool), and a set piece with its last tile, so no screen sees a tile, a set piece or a prop come or go.
+- Invariant: lookahead is always **≥ 37 and ≤ 55** tiles (`config/tuning.gd`, `docs/M5.md` L2, `docs/ROADGEN.md` R6). The visible field of view is about 5 tiles.
 
 ### 3.5 Determinism
 - All generation uses a seeded `RandomNumberGenerator`. The same seed gives the same road, junctions, dead ends, decorations and disaster variations.
@@ -169,7 +169,7 @@ AreaDef
 4. Plays the sequence (2–4 s), records it in the disaster collection and shows the game-over screen.
 
 ### 4.3 Disaster pools
-Since M6 the disasters come from myths, folk tales and urban legends: one for each area, from three options each (`M6_PLAN.md` §3.3). They replaced the MVP's natural four: the sinkhole, the tornado, the flood and the quicksand.
+Since M6 the disasters come from myths, folk tales and urban legends: one for each area, from three options each (`docs/M6.md` §3.3). They replaced the MVP's natural four: the sinkhole, the tornado, the flood and the quicksand.
 
 | Area | Disasters |
 |---|---|
@@ -197,30 +197,29 @@ Each disaster is a self-contained scene (animation, GPU particles, shaders, soun
 - Road tile: **128×64** diamond.
 - Ground tile: **32×16** (4×4 ground tiles per road tile) for decoration placement around the road.
 - `TileMapLayer` in isometric mode. Props and the car sit in a Y-sorted `Node2D` with the pivot at the sprite's base.
-- **Shadows** (`DAYNIGHT_PLAN.md` §5.11). The props and the car cast shadows, from the sun by day and the moon by night. Each crosses the sky from the screen's left to its right, so the shadows turn from right to left, always in front of what casts them. They lengthen as it sinks, fade out before it sets and fade in after the next one rises. The moon's are fainter.
+- **Shadows** (`docs/DAYNIGHT.md` §5.11). The props and the car cast shadows, from the sun by day and the moon by night. Each crosses the sky from the screen's left to its right, so the shadows turn from right to left, always in front of what casts them. They lengthen as it sinks, fade out before it sets and fade in after the next one rises. The moon's are fainter.
 
 ### 5.3 Asset list per area
 | Asset | Count | Notes |
 |---|---|---|
 | Road tiles | Straights (2 axes), corners (4), T-junctions (4), crossroads (1), dead-end caps (4) | Rounded corners for free steering |
-| Ground | 3–4 variants | Placed randomly to avoid visible repetition |
+| Ground | One seamless band per area | Under the road; its dithered edge blends into the next area's (`docs/M5.md` L3) |
 | Props | 6–10 | Some animated (tumbleweed, water, smoke) |
-| Transition | 1–2 tiles | Blends ground into the next area |
 | Set pieces | Tunnel, Bridge+River | Separate scenes |
 
 Shared assets:
 - Car: 16 directions at about 32×24 px, plus a crash frame.
 - Effects: dust, smoke, skid marks.
 - UI: HUD, health bar, pixel font, pause and menus.
-- One master palette of 36 colours, `assets/palette.gpl`, with a sub-palette for each area. M6 added four of them for night magic (`M6_PLAN.md` S9).
-- Lights (`DAYNIGHT_PLAN.md` §5.12): at night the windows painted the palette's yellow glow, and so do the street lamps' heads, each over a pool of light on the ground. `make_props.gd` finds them as it paints the props.
+- One master palette of 36 colours, `assets/palette.gpl`, with a sub-palette for each area. M6 added four of them for night magic (`docs/M6.md` S9).
+- Lights (`docs/DAYNIGHT.md` §5.12): at night the windows painted the palette's yellow glow, and so do the street lamps' heads, each over a pool of light on the ground. `make_props.gd` finds them as it paints the props.
 
 ### 5.4 Art pipeline
-- Drawn in Aseprite and exported as PNG sprite sheets into `assets/<area>/`.
+- Drawn in Aseprite and exported as PNG sprite sheets into `assets/<area>/`. Until then, the scripts in `tools/art/` draw them with fixed seeds, with the same names and contracts (`docs/M5.md` Q1).
 - Import settings: no filtering, no mipmaps, lossless compression.
 
 ### 5.5 Day and night
-Each zone has a clock of its own, and the picture follows its hour (`DAYNIGHT_PLAN.md`).
+Each zone has a clock of its own, and the picture follows its hour (`docs/DAYNIGHT.md`).
 - The clock starts at 07:00 as the car enters a zone, and turns a whole day and night in the area's `day_seconds`, 120 s by default: dusk comes 50 s into a zone, and the night at 65 s.
 - The light eases from key to key round the clock: the night's blue, dawn's pink, the day's white from 07:00 to 17:00, and dusk's orange. No channel changes by more than a quarter of white a second, so nothing flashes, and after a reset at night the morning comes back in under 2.5 s.
 - The art is drawn as by day. `Daylight`, a square over the view, multiplies the world by the light, as the legends' veils do. The legends' glows and the UI draw above it and stay as bright.
@@ -233,12 +232,13 @@ Each zone has a clock of its own, and the picture follows its hour (`DAYNIGHT_PL
 
 | Category | Content | Format |
 |---|---|---|
-| Engine | Loop, pitch follows speed | OGG |
+| Engine | Loop, pitch follows speed | WAV |
 | Effects | Tyre screech, off-road rumble, damage, crash, junction success | WAV |
-| Disaster | One sound set per disaster | WAV/OGG |
-| Ambient | One loop per area (traffic, wind, birds/river, village, desert) | OGG |
-| Music | One track per area | OGG |
+| Disaster | One sound set per disaster | WAV |
+| Ambient | One loop per area (traffic, wind, birds/river, village, desert) | WAV |
+| Music | One track per area | WAV |
 
+- The WAV files in git are made by `tools/audio/make_audio.gd` with fixed seeds, and imported as QOA: Godot can't write OGG (`docs/M5.md` L23).
 - Volume channels: `Master → Music, SFX, Ambient`. The tunnel adds a reverb effect on SFX.
 - `AudioDirector` (autoload) cross-fades ambient and music on `area_changed`.
 - The audio doesn't follow the hour: the day and the night change only what the screen shows (§5.5).
@@ -311,7 +311,7 @@ World's last child, `Lamps`, is a `CanvasGroup` above `Daylight` that lights the
 ```
 RoadGenerator ──tiles──▶ WorldRenderer ──cells/props──▶ TileMapLayers / Props
       ▲                                         
-      │ request more (car passes buffer midpoint)
+      │ request more (fewer than 37 tiles ahead)
 CarController ──position──▶ tile lookup ──▶ off-road? / JunctionTrigger
 JunctionTrigger ──▶ EventBus ──▶ GameState / DisasterDirector / AudioDirector / HUD
 ```
@@ -342,9 +342,9 @@ tests/         GUT tests
 ```json
 {
   "version": 2,
-  "atlas": { "city": { "discovered": true, "best_distance": 0 } },
+  "atlas": { "city": { "discovered": true, "best_distance": 0, "best_turns": 0 } },
   "best": { "distance": 0, "turns": 0 },
-  "disasters": { "phantom_bus": { "seen": 3, "first_area": "city" } },
+  "disasters": { "phantom_bus": { "seen": 3, "first_area": "city", "first_distance": 0, "first_turns": 0 } },
   "settings": { "music": 0.8, "sfx": 1.0, "ambient": 0.8, "haptics": true, "orientation": "sensor" },
   "tutorial": { "done": false }
 }
@@ -377,7 +377,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 - The correct path follows `L, R, L, R…` starting with Left.
 - The correct path and dead ends never overlap (occupancy check).
 - Every junction has ≥ 1 wrong exit.
-- Lookahead stays within 25..50 tiles after any number of refills.
+- Lookahead stays within 37..55 tiles after any number of refills.
 - Area switches and set pieces happen at turns 34, 100, 200 and 220. Desert continues forever afterwards.
 
 **Simulation**
@@ -415,7 +415,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Core rule | Hidden alternating L/R pattern, always starting Left; a wrong or missed turn triggers a disaster |
 | Tutorial | Until the player has finished it, runs start with one in the City: no disasters or death, every road leads on, and 12 correct turns in a row lead into the City's run |
 | Road directions | All 4 headings rendered; the correct path is a staircase, so it never crosses itself |
-| Buffer | 50 tiles at start, refill at midpoint, keep 25–50 lookahead |
+| Buffer | 55 tiles at start, refill below 37, keep 37–55 lookahead and 20 tiles behind |
 | Areas | Fixed schedule by turn count; the last area continues forever |
 | Orientation | Portrait default, runtime orientation change supported |
 | Meta-progression | None; Atlas and disaster collection only |

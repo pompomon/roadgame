@@ -1,5 +1,5 @@
 extends RefCounted
-## The death worm's sheets (M6_PLAN.md §3.3), drawn into assets/legends/death_worm/ by
+## The death worm's sheets (docs/M6.md §3.3), drawn into assets/legends/death_worm/ by
 ## tools/art/make_legends.gd. `worm.png`: a giant eyeless worm standing up out of the sand, a thick
 ## red tube creased into rings, wet and lit from the upper left, as the car is. Its blunt head shut,
 ## puckered at its top; its head opened into a round mouth, its lips flared round two rings of white

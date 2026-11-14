@@ -5,7 +5,7 @@ const SEEDS: Array[int] = [1, 2, 3, 42, 12345]
 const TURNS := 300
 
 
-## The game's road, and a road with every kind of junction (ROADGEN_PLAN.md R1).
+## The game's road, and a road with every kind of junction (docs/ROADGEN.md R1).
 static func _schedules() -> Dictionary[String, AreaSchedule]:
 	var schedules: Dictionary[String, AreaSchedule] = {
 		"game": Fixtures.schedule(), "kinds": Fixtures.kinds_schedule(0.25, 0.25, 0.25)
@@ -200,7 +200,7 @@ func _check_dead_ends(tile: RoadTile, where: String) -> void:
 		assert_eq(runs.has(h), wrong, "%s tile %d exit %d" % [where, tile.path_index, h])
 	for exit: int in runs:
 		var run: Array = runs[exit]
-		# Even a dead end that another cuts short has 2 tiles (ROADGEN_PLAN.md R5).
+		# Even a dead end that another cuts short has 2 tiles (docs/ROADGEN.md R5).
 		assert_between(run.size(), 2, Tuning.DEAD_END_MAX_TILES)
 		for k: int in run.size():
 			var branch: RoadTile = run[k]

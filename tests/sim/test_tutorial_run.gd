@@ -1,5 +1,5 @@
 extends GutTest
-## The tutorial on the road (TUTORIAL_PLAN.md §5.7). The autopilot finishes it in TUTORIAL_STREAK
+## The tutorial on the road (docs/TUTORIAL.md §5.7). The autopilot finishes it in TUTORIAL_STREAK
 ## turns and drives on through the City's schedule as a run without it would. A wrong turn loops
 ## back onto the path and starts the streak again, and a car left alone is put back on the path,
 ## and neither ends the run. Past the tutorial, the road it laid ahead plays by the City's rules.
@@ -38,7 +38,7 @@ func _start(run_seed: int) -> void:
 	watch_signals(_sim.trigger)
 
 
-## What main.gd does (TUTORIAL_PLAN.md §5.5).
+## What main.gd does (docs/TUTORIAL.md §5.5).
 func _on_tutorial_completed(junction: RoadTile) -> void:
 	_ended_at = junction.turn_number
 	_ended_index = junction.path_index
@@ -98,7 +98,7 @@ func test_the_autopilot_finishes_the_tutorial_and_drives_on_through_the_schedule
 	gut.p("P1: %.1f s to path tile %d, with %d tiles and %d turns laid past it" % measured)
 
 
-## TUTORIAL_PLAN.md §5.2: a wrong exit at A (turn 0) or B (1, 5) loops on to C or D, and the streak
+## docs/TUTORIAL.md §5.2: a wrong exit at A (turn 0) or B (1, 5) loops on to C or D, and the streak
 ## starts again at the junction after it. One at C (2) or D (3) loops back to A or B, and the streak
 ## starts again at the junction after that one. The car never leaves the road. No streak before a
 ## mistake reaches 4, so the cases hold for a TUTORIAL_STREAK of 4 or more (P2a).
@@ -125,7 +125,7 @@ func test_a_wrong_turn_starts_the_streak_again_where_its_loop_comes_back() -> vo
 		assert_signal_not_emitted(_sim, "rescued", at)
 
 
-## TUTORIAL_PLAN.md §5.3: with no input the car drives straight off the road at the first junction,
+## docs/TUTORIAL.md §5.3: with no input the car drives straight off the road at the first junction,
 ## takes damage down to 0 and drives on, and is put back before the junction, again and again. The
 ## run never ends.
 func test_a_car_left_alone_is_put_back_on_the_path_again_and_again() -> void:
@@ -144,7 +144,7 @@ func test_a_car_left_alone_is_put_back_on_the_path_again_and_again() -> void:
 	assert_lte(_sim.buffer.car_index(), junction.path_index, "it never got past the junction")
 
 
-## TUTORIAL_PLAN.md §5.5: the road the tutorial laid past the junction where it ended plays by the
+## docs/TUTORIAL.md §5.5: the road the tutorial laid past the junction where it ended plays by the
 ## City's rules: a wrong exit there is a disaster, though its loop leads back.
 func test_a_wrong_turn_on_the_road_the_tutorial_laid_ends_the_run() -> void:
 	_start(1)

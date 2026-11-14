@@ -25,11 +25,11 @@ var area_id := &""
 ## Why the run ended, or empty while it goes on.
 var end_cause := &""
 ## Whether the run is in its tutorial, whose distance and turns count for nothing: the stats start
-## when it ends (TUTORIAL_PLAN.md §5.5).
+## when it ends (docs/TUTORIAL.md §5.5).
 var in_tutorial := false
 
 ## Where each area the run entered begins, in order: [area id, distance, turns], the path distance
-## to the area's first tile and the turns at the junctions before it (M5_PLAN.md L8).
+## to the area's first tile and the turns at the junctions before it (docs/M5.md L8).
 var _entries: Array[Array] = []
 
 

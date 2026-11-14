@@ -1,6 +1,6 @@
 extends GutTest
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3) on its own: why the run ended,
-## the disaster's fate (M6_PLAN.md S8), its stats, the seed, Retry, and Title (M5.5). It runs in a
+## the disaster's fate (docs/M6.md S8), its stats, the seed, Retry, and Title (M5.5). It runs in a
 ## SubViewport, so that Retry can take the focus.
 
 const GAME_OVER_SCENE := preload("res://ui/game_over.tscn")
@@ -120,7 +120,7 @@ func test_title_asks_for_the_title_screen_only_while_open() -> void:
 
 
 func test_it_shows_the_fate_of_the_disaster_that_ended_the_run_under_the_cause() -> void:
-	# M6_PLAN.md S8: what the disaster did to the car, from DisasterBase.fate.
+	# docs/M6.md S8: what the disaster did to the car, from DisasterBase.fate.
 	var game_over := _game_over()
 	var fate: Label = game_over.get_node("%Fate")
 	var cause: Label = game_over.get_node("%Cause")

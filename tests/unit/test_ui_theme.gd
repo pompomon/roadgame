@@ -1,5 +1,5 @@
 extends GutTest
-## The UI's theme and pixel font (plan.md §5.3, M5_PLAN.md §5.8).
+## The UI's theme and pixel font (plan.md §5.3, docs/M5.md §5.8).
 
 const Art := preload("res://tests/helpers/art_checks.gd")
 const TITLE_SCENE := preload("res://ui/title_screen.tscn")
@@ -18,7 +18,7 @@ func _theme() -> Theme:
 
 func test_the_project_theme_loads_without_an_import() -> void:
 	# Godot loads the project theme before it imports anything, so on a fresh checkout an imported
-	# font isn't there yet and the import fails (M5_PLAN.md L17).
+	# font isn't there yet and the import fails (docs/M5.md L17).
 	var path: String = ProjectSettings.get_setting("gui/theme/custom")
 	assert_eq(path.get_extension(), "tres")
 	var dependencies := ResourceLoader.get_dependencies(path)

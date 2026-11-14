@@ -1,7 +1,7 @@
 class_name RoadBuffer
 extends RefCounted
 ## Keeps Tuning.BUFFER_REFILL_AT to BUFFER_AHEAD correct-path tiles generated ahead of the car's
-## tile and BUFFER_BEHIND behind it (plan.md §3.4, IMPLEMENTATION_PLAN.md M1.5, M5_PLAN.md L2).
+## tile and BUFFER_BEHIND behind it (plan.md §3.4, IMPLEMENTATION_PLAN.md M1.5, docs/M5.md L2).
 ## Lookahead = last generated path index minus the car's path index. Dead ends come and go with
 ## their junction.
 

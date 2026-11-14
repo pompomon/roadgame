@@ -13,17 +13,17 @@ signal tiles_freed(tiles: Array[RoadTile])
 signal health_changed(value: float)
 ## A wrong exit or a missed turn at `junction`.
 signal disaster_triggered(area: AreaDef, junction: RoadTile)
-## The disaster `id` started to play in `area`, after the car stopped (M5_PLAN.md L7).
+## The disaster `id` started to play in `area`, after the car stopped (docs/M5.md L7).
 signal disaster_started(id: StringName, area: AreaDef)
-## The disaster `id` shows, once the delay in its params is over (M6_PLAN.md S18).
+## The disaster `id` shows, once the delay in its params is over (docs/M6.md S18).
 signal disaster_appeared(id: StringName, area: AreaDef)
 ## `cause` is one of CarSim's causes; `stats` comes from GameState.stats().
 signal run_ended(cause: StringName, stats: Dictionary)
 signal car_offroad_changed(is_offroad: bool)
 signal paused_changed(paused: bool)
 ## The tutorial's correct turns in a row are now `streak`: one more, or none after a mistake
-## (TUTORIAL_PLAN.md §5.4).
+## (docs/TUTORIAL.md §5.4).
 signal streak_changed(streak: int)
-## The tutorial is over, and the run goes on in the City under its rules (TUTORIAL_PLAN.md §5.5).
+## The tutorial is over, and the run goes on in the City under its rules (docs/TUTORIAL.md §5.5).
 signal tutorial_completed
 @warning_ignore_restore("unused_signal")

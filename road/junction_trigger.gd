@@ -4,13 +4,13 @@ extends RefCounted
 ## (plan.md §4.1, IMPLEMENTATION_PLAN.md D5, M2.3). Pure logic: CarSim reports cell crossings,
 ## rejoins and the off-road limit, and the run's owner relays the signals to EventBus.
 ##
-## In the tutorial (TUTORIAL_PLAN.md §5.2), a mistake ends no run: it ends the streak of correct
+## In the tutorial (docs/TUTORIAL.md §5.2), a mistake ends no run: it ends the streak of correct
 ## turns, and the trigger loses the car until it drives on along the path from one path tile to
 ## the next. A wrong exit, a U-turn on the path, a rejoin off the path and the off-road limit are
 ## mistakes. Once the streak reaches TUTORIAL_STREAK, the City's rules hold.
 
 ## A correct exit: the pattern's turn, or straight on at a decoy, which leaves `turn_index`, the
-## number of correct turns so far, as it was (ROADGEN_PLAN.md R2).
+## number of correct turns so far, as it was (docs/ROADGEN.md R2).
 signal turn_completed(turn_index: int)
 ## A wrong exit, whose heading is `choice`, or a missed turn (`choice` -1). The trigger then stops.
 signal disaster_triggered(junction: RoadTile, choice: int)
@@ -64,7 +64,7 @@ func on_cell_crossed(from_cell: Vector2i, to_cell: Vector2i, on_road: bool) -> v
 			next_junction = _junction_after(from.path_index)
 	elif not on_path and junction != null:
 		# Only a tutorial's loop leads from a branch to a path tile past its own junction, so only
-		# the road just after the tutorial can come here (TUTORIAL_PLAN.md §5.5). A car is on the
+		# the road just after the tutorial can come here (docs/TUTORIAL.md §5.5). A car is on the
 		# road at a crossing only within a road tile, so `from` is one.
 		if to.path_index >= junction.path_index:
 			_fail(-1)

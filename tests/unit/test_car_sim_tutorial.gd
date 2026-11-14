@@ -1,5 +1,5 @@
 extends GutTest
-## CarSim in the tutorial (TUTORIAL_PLAN.md §5.3), on a real tutorial road: off the road it takes
+## CarSim in the tutorial (docs/TUTORIAL.md §5.3), on a real tutorial road: off the road it takes
 ## damage but never crashes; it heals on the road; it is put back on the path once it has driven
 ## TUTORIAL_RESCUE_TILES off the road; and while the trigger has lost it, it brakes for the
 ## junctions and corners of the road it is on. The end of the tutorial starts the City's run, with
@@ -142,7 +142,7 @@ func test_a_rescue_from_a_junction_puts_the_car_before_it() -> void:
 
 
 ## On the start straight, lost, the car has no next junction to brake for, but A, the first, is a
-## junction ahead on its road (TUTORIAL_PLAN.md §5.3).
+## junction ahead on its road (docs/TUTORIAL.md §5.3).
 func test_a_lost_car_brakes_for_a_junction_that_it_enters_from_its_foot() -> void:
 	var a := _sim.trigger.next_junction
 	_sim.trigger.on_offroad_limit()
@@ -207,7 +207,7 @@ func test_a_lost_car_speeds_up_along_a_loop_and_slows_for_its_corners() -> void:
 
 
 ## Lost round A's loop, the car comes into C by an arm and turns down C's foot, back along the path.
-## It brakes for C as for any junction, so it makes the turn on the road (TUTORIAL_PLAN.md §4.6).
+## It brakes for C as for any junction, so it makes the turn on the road (docs/TUTORIAL.md §4.6).
 func test_a_lost_car_can_turn_down_the_foot_of_a_junction_that_it_enters_by_an_arm() -> void:
 	var c := _sim.trigger.next_junction
 	while c.turn_number != 2:

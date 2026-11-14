@@ -1,5 +1,5 @@
 extends GutTest
-## JunctionTrigger in the tutorial (TUTORIAL_PLAN.md §5.2), on a real tutorial road, called the way
+## JunctionTrigger in the tutorial (docs/TUTORIAL.md §5.2), on a real tutorial road, called the way
 ## CarSim calls it: a mistake ends the streak and loses the car, never the run; the car is found
 ## when it drives on along the path; and the streak's last turn ends the tutorial.
 

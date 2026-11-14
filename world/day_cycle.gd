@@ -1,6 +1,6 @@
 class_name DayCycle
 extends RefCounted
-## A zone's clock and its light (DAYNIGHT_PLAN.md §5.1–§5.3). The hour runs from start_hour round
+## A zone's clock and its light (docs/DAYNIGHT.md §5.1–§5.3). The hour runs from start_hour round
 ## the clock in day_seconds. The light shown follows the light of the hour, no faster than
 ## Tuning.LIGHT_MAX_RATE a second in any channel, so that it never jumps, also when a zone sets the
 ## clock back. The shadows shown follow the sun by day and the moon by night (§5.11), as gradually.

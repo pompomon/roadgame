@@ -1,7 +1,7 @@
 extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
-## The least share of an area's junctions that stay T's (ROADGEN_PLAN.md E8, Q2).
+## The least share of an area's junctions that stay T's (docs/ROADGEN.md E8, Q2).
 const LEAST_T_SHARE := 0.25
 
 
@@ -38,7 +38,7 @@ func test_the_game_schedule_is_valid() -> void:
 
 
 ## The City, where a run learns the pattern, has no side roads or decoys. Every later area has
-## both, and keeps at least LEAST_T_SHARE of its junctions as T's (ROADGEN_PLAN.md E8, §5.5).
+## both, and keeps at least LEAST_T_SHARE of its junctions as T's (docs/ROADGEN.md E8, §5.5).
 func test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions() -> void:
 	for area: AreaDef in Fixtures.schedule().areas():
 		if area.id == &"city":
@@ -68,7 +68,7 @@ func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
 
 
 func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
-	# A wrong turn in any area ends in a disaster (M3_PLAN.md J6).
+	# A wrong turn in any area ends in a disaster (docs/M3.md J6).
 	var areas := 0
 	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
 		var area := entry.area
@@ -252,9 +252,9 @@ static func _least_margin(schedule: AreaSchedule, turns: int) -> int:
 
 
 func test_validate_allows_only_schedules_whose_next_junction_is_in_the_buffer() -> void:
-	# H31: the set piece, the longest straight after it and the next junction's own tile. Straights
-	# of BUFFER_REFILL_AT - 5 tiles and a 4-tile tunnel put the next junction BUFFER_REFILL_AT tiles
-	# on, the most allowed.
+	# docs/M2.md H31: the set piece, the longest straight after it and the next junction's own
+	# tile. Straights of BUFFER_REFILL_AT - 5 tiles and a 4-tile tunnel put the next junction
+	# BUFFER_REFILL_AT tiles on, the most allowed.
 	var straight := Tuning.BUFFER_REFILL_AT - 5
 	for piece: int in [2, 3, 4, 5, 6]:
 		var gap := piece + straight + 1

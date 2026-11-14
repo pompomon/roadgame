@@ -1,7 +1,7 @@
 extends GutTest
 ## The disaster collection (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5) on its own: a card for each
 ## disaster of the schedule's pools, in the order a run can first meet them, a silhouette until it
-## is seen, and how often, where and how far into a run it was first seen, and its lore (M6_PLAN.md
+## is seen, and how often, where and how far into a run it was first seen, and its lore (docs/M6.md
 ## S12). The pools hold test disasters, so that a change to the game's leaves these tests alone
 ## (S15).
 
@@ -141,7 +141,7 @@ func test_a_seen_disaster_shows_how_often_and_where_and_when_first() -> void:
 
 
 func test_a_seen_card_shows_its_lore_under_its_details() -> void:
-	# M6_PLAN.md S12: in a label of its own, so that the details read as before (test_title.gd).
+	# docs/M6.md S12: in a label of its own, so that the details read as before (test_title.gd).
 	var data := SaveData.new()
 	data.record_disaster(&"ghost", &"town", _stats(1.0, 1))
 	data.record_disaster(&"wraith", &"marsh", _stats(1.0, 1))
@@ -178,7 +178,7 @@ func test_opening_again_replaces_the_cards_and_back_asks_to_close() -> void:
 
 
 func test_a_save_that_recorded_a_retired_disaster_loads_and_shows_only_the_pools() -> void:
-	# M6_PLAN.md E10, Q3: the natural four left the game's pools and files in M6 PR 8. A save that
+	# docs/M6.md E10, Q3: the natural four left the game's pools and files in M6 PR 8. A save that
 	# recorded one still loads and keeps it, and the collection shows a card for each disaster of
 	# the game's pools alone, each a silhouette.
 	var data := SaveData.new()

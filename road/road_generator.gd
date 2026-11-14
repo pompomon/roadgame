@@ -3,7 +3,7 @@ extends RefCounted
 ## Streams the correct path one tile at a time (IMPLEMENTATION_PLAN.md D3, M1.4). A junction comes
 ## with its dead-end branches attached. Every tile is in `occupancy` when it is returned.
 ##
-## Each junction is of a Kind that the area's chances pick (ROADGEN_PLAN.md R1, R2). A decoy
+## Each junction is of a Kind that the area's chances pick (docs/ROADGEN.md R1, R2). A decoy
 ## doesn't offer the pattern's next turn, so straight on is its correct exit, and the turn waits
 ## for the next junction.
 ##
@@ -11,9 +11,9 @@ extends RefCounted
 ## E or S, or straight on (N or W) while the path turns. A dead end therefore never touches a past
 ## or future path cell, only other dead ends within twice DEAD_END_MAX_TILES path steps. Straights
 ## are at least 2 tiles (D7), so an opposite-turn dead end always has 2 free cells, and a
-## straight-on dead end always fits whole: every junction keeps a wrong exit (ROADGEN_PLAN.md R5).
+## straight-on dead end always fits whole: every junction keeps a wrong exit (docs/ROADGEN.md R5).
 ##
-## A run may start with the tutorial (TUTORIAL_PLAN.md §5.1): T junctions in groups of four, A to D,
+## A run may start with the tutorial (docs/TUTORIAL.md §5.1): T junctions in groups of four, A to D,
 ## whose wrong exits don't end but loop back to the path. A's wrong exit (E) loops round to C's
 ## (E), and B's (S) to D's (S), so a car that goes wrong comes back onto the path two junctions on,
 ## and one that goes the wrong way round a loop comes back where it went in. A loop turns no sooner
@@ -33,10 +33,10 @@ var turn_count := 0
 ## Dead ends cut short by a taken cell, and wrong exits dropped because their first cell was taken.
 var shortened_count := 0
 var dropped_count := 0
-## The seed of the run's props (M5_PLAN.md §5.6). They hash it with each ground cell and take no
+## The seed of the run's props (docs/M5.md §5.6). They hash it with each ground cell and take no
 ## number from the road's stream, so they can't change the road (IMPLEMENTATION_PLAN.md §5.3).
 var props_seed := 0
-## Whether the next junction is the tutorial's (TUTORIAL_PLAN.md §5.1).
+## Whether the next junction is the tutorial's (docs/TUTORIAL.md §5.1).
 var tutorial := false
 
 var _schedule: AreaSchedule
@@ -76,7 +76,7 @@ func _init(run_seed: int, schedule: AreaSchedule, p_tutorial := false) -> void:
 
 
 ## Ends the tutorial after the junctions of its group that are still to come, and counts the
-## schedule's turns from `turn_base`, the turns before the City's first (TUTORIAL_PLAN.md §5.5).
+## schedule's turns from `turn_base`, the turns before the City's first (docs/TUTORIAL.md §5.5).
 func end_tutorial(turn_base: int) -> void:
 	_ending = true
 	_turn_base = turn_base
@@ -182,7 +182,7 @@ func _junction() -> RoadTile:
 	return junction
 
 
-## A junction of the tutorial (TUTORIAL_PLAN.md §5.1): a T whose wrong exit loops back. With A the
+## A junction of the tutorial (docs/TUTORIAL.md §5.1): a T whose wrong exit loops back. With A the
 ## group's first junction and s1 to s3 the straights after A to C, B = A + W(s1 + 1),
 ## C = B + N(s2 + 1) and D = C + W(s3 + 1). Each loop starts with a leg of L cells: the area's
 ## shortest straight, then a corner. A lays the leg from its E exit, and B, once it knows s2, the
@@ -297,7 +297,7 @@ func _lay_loop_tile(
 
 
 ## Adds a dead end of `length` tiles, or of the cells before the first taken one (plan.md §3.3,
-## ROADGEN_PLAN.md R5).
+## docs/ROADGEN.md R5).
 func _place_dead_end(junction: RoadTile, exit: int, length: int) -> void:
 	var fits := _free_run(junction.cell, exit, length)
 	if fits == 0:
@@ -332,7 +332,7 @@ func _due_entry() -> AreaScheduleEntry:
 		return null
 	var entry := _schedule.entries[_schedule_index]
 	# Past the tutorial, the schedule counts from the City's first turn. The tutorial's junctions
-	# don't come here, so an entry may be due when they are over (TUTORIAL_PLAN.md §5.5).
+	# don't come here, so an entry may be due when they are over (docs/TUTORIAL.md §5.5).
 	if entry.turn > turn_count - _turn_base:
 		return null
 	_schedule_index += 1

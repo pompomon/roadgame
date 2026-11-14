@@ -58,7 +58,7 @@ fail_on() {
 }
 
 # scratch_save: gives the Godot runs that follow a scratch user:// whose save.json isn't JSON, which
-# reading it would rename to .bak (M5_PLAN.md L1). Godot keeps user:// under XDG_DATA_HOME on Linux,
+# reading it would rename to .bak (docs/M5.md L1). Godot keeps user:// under XDG_DATA_HOME on Linux,
 # and under HOME on macOS, which ignores XDG_DATA_HOME (Godot 4.7.2's os_macos.mm, get_data_path()).
 scratch_save() {
   SCRATCH_DIR=$(mktemp -d)

@@ -2,7 +2,7 @@
 # Run every GUT test and write build/reports/gut-junit.xml. GUT exits 0 when a test script does
 # not parse or the project was never imported, so the log and the JUnit total are checked too.
 # The post-run hook tests/gut_post_run.gd makes GUT exit 1 on errors in setup/teardown hooks.
-# Arguments choose which tests run, with the same checks (AGENTS.md §4). Only GUT's options for that
+# Arguments choose which tests run, with the same checks (AGENTS.md §3). Only GUT's options for that
 # are taken, so that no run can drop the config's hooks or the errors that fail a test:
 # -gselect=test_hud runs each script whose file name contains test_hud, and
 # -gdir= -gtest=res://tests/unit/test_hud.gd,res://tests/integration/test_crash.gd runs just those.
@@ -21,7 +21,7 @@ source "$(dirname "$0")/_common.sh"
 log="$REPORTS/gut.log"
 junit="$REPORTS/gut-junit.xml"
 rm -f "$junit"
-# The tests keep the save in memory (M5_PLAN.md L1), from tests/gut_pre_run.gd on, which no test
+# The tests keep the save in memory (docs/M5.md L1), from tests/gut_pre_run.gd on, which no test
 # can check once another has called SaveService.use_memory(). As smoke.sh's autopilot does, they
 # must leave a scratch save be.
 scratch_save

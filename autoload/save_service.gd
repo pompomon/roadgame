@@ -1,13 +1,13 @@
 extends Node
 ## Keeps the save file, user://save.json (plan.md §9, IMPLEMENTATION_PLAN.md M5.4). It reads the
 ## file the first time something asks for data(), so that tests and an autopilot run can switch it
-## to memory first (M5_PLAN.md L1): tests/gut_pre_run.gd does, and so does --autopilot. It records
+## to memory first (docs/M5.md L1): tests/gut_pre_run.gd does, and so does --autopilot. It records
 ## every run when it ends and every disaster when it starts, and writes the file at once. A changed
 ## setting is written SETTINGS_SAVE_DELAY after the last change, or at once on flush(), which also
 ## comes when the app is closed, paused or loses focus.
 ##
 ## A write goes to a .tmp file which, once it reads back whole, replaces the file (M5.4), in one
-## frame, so that the Web build's IndexedDB sync sees both (M5_PLAN.md L11). A file that can't be
+## frame, so that the Web build's IndexedDB sync sees both (docs/M5.md L11). A file that can't be
 ## read is kept as .bak and replaced with the defaults at once, or, if it can't be kept, never
 ## written over. A file from a later version is read but never written over.
 
@@ -35,7 +35,7 @@ func _ready() -> void:
 	EventBus.disaster_started.connect(_on_disaster_started)
 	if OS.get_cmdline_user_args().has("--autopilot"):
 		use_memory()
-		# smoke.sh checks it: until a run reads a setting, nothing else shows it (M5_PLAN.md L1).
+		# smoke.sh checks it: until a run reads a setting, nothing else shows it (docs/M5.md L1).
 		print("autopilot: the save is in %s" % ("memory" if path == "" else path))
 
 
@@ -113,7 +113,7 @@ func flush() -> Error:
 	return error
 
 
-## The player finished the tutorial: it is written at once (TUTORIAL_PLAN.md §5.6).
+## The player finished the tutorial: it is written at once (docs/TUTORIAL.md §5.6).
 func complete_tutorial() -> void:
 	if data().tutorial["done"]:
 		return
@@ -137,7 +137,7 @@ func _load() -> void:
 	if status == SaveData.Status.CORRUPT:
 		_data = SaveData.new()
 		if DirAccess.rename_absolute(path, path + ".bak") != OK:
-			# Writing the defaults would lose the file (M5_PLAN.md L11).
+			# Writing the defaults would lose the file (docs/M5.md L11).
 			push_warning(
 				(
 					"SaveService: %s can't be read (%s) or kept as .bak: it won't be written"
@@ -149,7 +149,7 @@ func _load() -> void:
 			push_warning(
 				"SaveService: %s can't be read (%s), it is kept as .bak" % [path, problems]
 			)
-			# Also schedules the Web build's sync of the rename (M5_PLAN.md L11).
+			# Also schedules the Web build's sync of the rename (docs/M5.md L11).
 			_dirty = true
 			flush()
 	elif status == SaveData.Status.NEWER:

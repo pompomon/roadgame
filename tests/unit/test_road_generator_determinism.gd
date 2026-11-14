@@ -4,7 +4,7 @@ const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const TILES := 2000
 ## The game's road for seeds 0 to 19 up to turn 300, as MD5 digests: of its path tiles alone, and
 ## of its path tiles with their dead ends. A change that is meant to change the road updates them,
-## and its commit says why (ROADGEN_PLAN.md §6.1).
+## and its commit says why (docs/ROADGEN.md §6.1).
 const PATH_DIGEST := "b596a88cc0b5a09fc5db329cf0af264d"
 const ROAD_DIGEST := "d6b8a6e863a39539fe21c0ee9f5c18d0"
 const DIGEST_SEEDS := 20

@@ -1,5 +1,5 @@
 extends GutTest
-## PropLayout (M5_PLAN.md §5.6): where each row's props stand. The brute-force tests place each row
+## PropLayout (docs/M5.md §5.6): where each row's props stand. The brute-force tests place each row
 ## as PropScatter does, once the road has rows_needed() path tiles past the row's, and check the
 ## props against the whole road made by the end, with geometry of their own.
 

@@ -1,5 +1,5 @@
 extends GutTest
-## The props of each area (plan.md §5.3, IMPLEMENTATION_PLAN.md M5.1, M5_PLAN.md §5.6): 6–10, some
+## The props of each area (plan.md §5.3, IMPLEMENTATION_PLAN.md M5.1, docs/M5.md §5.6): 6–10, some
 ## animated, each keeping PropDef's contract, on its area's props sheet, with frames cropped to
 ## their pixels and kept apart from the other props' frames. test_area_art checks the sheets'
 ## colours and import settings.
@@ -50,7 +50,7 @@ func test_each_frame_is_cropped_to_its_props_pixels_apart_from_the_others() -> v
 
 func test_each_prop_lights_its_yellow_windows_and_lamps() -> void:
 	# make_props.gd records each box that it paints yellow, a lit window or a lamp's head, as a
-	# light grown by a halo, and a lamp's pool on the ground below its head (DAYNIGHT_PLAN.md
+	# light grown by a halo, and a lamp's pool on the ground below its head (docs/DAYNIGHT.md
 	# §5.12). Each light's centre is yellow in the prop's first frame.
 	var yellow := Art.pixel(Art.MakeArt.palette()["yellow"])
 	var lit: Dictionary[String, Vector2i] = {}
@@ -120,7 +120,7 @@ func test_each_shadow_falls_from_where_its_prop_meets_the_ground() -> void:
 	# column shadow_rise above the foot: the posts in each half of it stand on that line, and the
 	# rails between them above it. A box's falls from its footprint's centre, shadow_rise above
 	# the foot and level with the footprint's side corners, where its walls' lower edges, rising
-	# from the foot, end (DAYNIGHT_PLAN.md §5.11). Within PIXELS: an odd footprint's centre is
+	# from the foot, end (docs/DAYNIGHT.md §5.11). Within PIXELS: an odd footprint's centre is
 	# half a pixel off the grid, and its edges are drawn in whole pixels.
 	const PIXELS := 1.5
 	var walls := 0

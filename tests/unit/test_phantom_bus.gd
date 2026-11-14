@@ -1,5 +1,5 @@
 extends GutTest
-## The phantom bus, the City's legend (M6_PLAN.md §3.3). Out of its fog it glides along the car's
+## The phantom bus, the City's legend (docs/M6.md §3.3). Out of its fog it glides along the car's
 ## road, from the end that its direction picks, to a stop beside the car, up-screen of it, so that
 ## the car and its double draw over it. Its doors open on the dark, the double slides into them and
 ## shrinks away, the doors shut, and it glides on and fades, leaving its ticket at the doors. Its

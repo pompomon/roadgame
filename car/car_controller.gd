@@ -1,11 +1,11 @@
 class_name CarController
 extends Node2D
 ## Steps a CarSim every physics frame with the InputRouter's steering, and draws it
-## (IMPLEMENTATION_PLAN.md M2.4). Its body is a frame of the car's sheet (M5_PLAN.md §5.7): the
+## (IMPLEMENTATION_PLAN.md M2.4). Its body is a frame of the car's sheet (docs/M5.md §5.7): the
 ## nearest of 16 directions, or after a crash the wreck, which smokes (M3.3). Dust flies while the
 ## car is off the road. It lives under World/Props, which y-sorts it. It sets its position and its
 ## body's frame every frame, so a disaster may change only its scale, modulate and rotation
-## (M3_PLAN.md J3, M4_PLAN.md K19).
+## (docs/M3.md J3, docs/M4.md K19).
 
 ## Sprite frames: the screen directions the car can face, clockwise from straight up.
 const FRAMES := 16
@@ -38,7 +38,7 @@ static func frame(forward: Vector2) -> int:
 	return posmod(roundi(atan2(screen.x, -screen.y) / (TAU / FRAMES)), FRAMES)
 
 
-## A new sprite of the car as it shows now, for a legend to take in its place (M6_PLAN.md §5.4):
+## A new sprite of the car as it shows now, for a legend to take in its place (docs/M6.md §5.4):
 ## the body's frame, cut from its sheet, with the car's ground centre at the sprite's origin.
 func double() -> Sprite2D:
 	var made := Sprite2D.new()
@@ -52,7 +52,7 @@ func double() -> Sprite2D:
 
 
 ## The car's sheet, and the frame of it that the body shows, which its shadow shows too
-## (DAYNIGHT_PLAN.md §5.11).
+## (docs/DAYNIGHT.md §5.11).
 func body_texture() -> Texture2D:
 	return _body.texture
 

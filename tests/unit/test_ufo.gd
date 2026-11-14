@@ -1,5 +1,5 @@
 extends GutTest
-## The UFO, Rural's legend (M6_PLAN.md §3.3). Out of the night a dark saucer drops and hovers over
+## The UFO, Rural's legend (docs/M6.md §3.3). Out of the night a dark saucer drops and hovers over
 ## the car. The lights round its rim come on and turn, and its beam opens once, from the port under
 ## it to a pool of light round the car. Three greys stand at the beam's edge and tilt their heads.
 ## The car's double shudders, floats up the beam, turning, and is gone into the port. The beam
@@ -116,7 +116,7 @@ func test_it_drops_out_of_the_night_and_hovers_over_the_car() -> void:
 
 
 func test_its_beam_opens_once_from_the_port_to_a_pool_round_the_car_and_closes_once() -> void:
-	# One rise and one fall at each point (M6_PLAN.md §5.6), from the saucer's foot to the bottom of
+	# One rise and one fall at each point (docs/M6.md §5.6), from the saucer's foot to the bottom of
 	# its pool.
 	var ends := _ends()
 	var ufo := _ufo()
@@ -186,7 +186,7 @@ func test_each_point_of_its_rim_lights_at_most_once_a_turn() -> void:
 	# stays still while its rim is lit, so each point of the world shows one texel of each frame.
 	# The flash test reads the light FLASH_GRID px apart and can miss a texel, as it missed those
 	# where lights on the far half of the rim met those on the near half at its ends, and rose twice
-	# a turn (M6_PLAN.md §5.6).
+	# a turn (docs/M6.md §5.6).
 	var rim := _ufo().get_node("%Rim") as Sprite2D
 	var sheet := rim.texture.get_image()
 	var lit := 0

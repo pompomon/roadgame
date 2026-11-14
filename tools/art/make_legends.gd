@@ -1,5 +1,5 @@
 extends SceneTree
-## Makes the legends' sheets (M6_PLAN.md §5.7): runs each tools/art/legends/<id>.gd, whose
+## Makes the legends' sheets (docs/M6.md §5.7): runs each tools/art/legends/<id>.gd, whose
 ## `static func make(dir: String) -> void` draws the legend's parts with tools/art/legend_art.gd and
 ## saves them in `dir`, res://assets/legends/<id>/. So a legend's PR adds its script, and this one
 ## never changes. Like tools/art/make_art.gd's art, the sheets are placeholders that an artist may

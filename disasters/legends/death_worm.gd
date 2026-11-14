@@ -1,6 +1,6 @@
 class_name DeathWorm
 extends Legend
-## The Desert's legend (M6_PLAN.md §3.3, Q2): in the glare of the desert, the ground trembles, and
+## The Desert's legend (docs/M6.md §3.3, Q2): in the glare of the desert, the ground trembles, and
 ## ripples run through the sand to the car from where its direction points. A mound swells under
 ## the car and lifts it. A giant eyeless worm bursts up out of it in a spray of sand, under the
 ## car's double, and carries it up on its blunt head. Its head opens into a round mouth ringed with

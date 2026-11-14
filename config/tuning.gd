@@ -9,20 +9,20 @@ const BUFFER_AHEAD := 55
 ## PROP_AHEAD + PropLayout.rows_needed(), 36, so that each row of props has the road it must avoid.
 ## 37 makes the refill cycle, BUFFER_AHEAD - BUFFER_REFILL_AT + 1 tiles, a prime 19, so junctions
 ## at AreaSchedule's limit meet every point of it: test_area_schedule.gd's check that one then has
-## only M4_PLAN.md K1's spare tile past the next needs that (ROADGEN_PLAN.md R6).
+## only docs/M4.md K1's spare tile past the next needs that (docs/ROADGEN.md R6).
 const BUFFER_REFILL_AT := 37
 ## Correct-path tiles kept behind the car's tile. Older tiles are freed with their branches, and a
 ## set piece with its last tile. With BUFFER_REFILL_AT and PROP_AHEAD, enough that no reference
-## screen sees a tile, a set piece or a prop come or go (M5_PLAN.md L2). What reaches highest above
+## screen sees a tile, a set piece or a prop come or go (docs/M5.md L2). What reaches highest above
 ## a freed path tile is a straight-on dead end, DEAD_END_MAX_TILES rows above it: at
 ## GLOBAL_SPEED_CAP, 19 would leave its end 13 px below the tallest view, and 20 leaves 45
-## (test_camera_rig.gd, ROADGEN_PLAN.md R6).
+## (test_camera_rig.gd, docs/ROADGEN.md R6).
 const BUFFER_BEHIND := 20
 ## Straight tiles before the first junction: path indices 0 to START_STRAIGHT_TILES - 1.
 const START_STRAIGHT_TILES := 4
 ## Length range of a dead-end branch, in tiles (plan.md §3.3). With at least DEAD_END_MIN_TILES,
 ## its end is out of view on every reference screen as the car enters its junction, so that it
-## looks like a road (ROADGEN_PLAN.md R4). Another dead end can cut it shorter (RoadGenerator).
+## looks like a road (docs/ROADGEN.md R4). Another dead end can cut it shorter (RoadGenerator).
 const DEAD_END_MIN_TILES := 6
 const DEAD_END_MAX_TILES := 9
 ## The first path tiles of an area, whose ground blends with the last area's (plan.md §5.3,
@@ -36,11 +36,11 @@ const TUNNEL_FADE_NEAR := 0.75
 const TUNNEL_FADE_FAR := 2.5
 ## The bridge's banks, at each end of its road, and how far its river reaches across the road
 ## from its centreline, in tiles. With min_straight 2, other road can come within 2.5 tiles of the
-## centreline (M4_PLAN.md K7). How fast the waves drift down the river, in tiles/s.
+## centreline (docs/M4.md K7). How fast the waves drift down the river, in tiles/s.
 const BRIDGE_BANK := 0.5
 const RIVER_REACH := 2.0
 const WAVE_SPEED := 0.6
-## Props (M5_PLAN.md §5.6). The screen row of each path tile gets its props once the car is
+## Props (docs/M5.md §5.6). The screen row of each path tile gets its props once the car is
 ## PROP_AHEAD path tiles before it, on the ground of PROP_SPREAD road tiles either side of the path
 ## tile. A prop's frame reaches at most PROP_MAX_SIZE.y pixels above its foot, PROP_MAX_SIZE.x / 2
 ## either side of it and PROP_BELOW below it.
@@ -48,7 +48,7 @@ const PROP_AHEAD := 24
 const PROP_SPREAD := 9
 const PROP_MAX_SIZE := Vector2i(64, 72)
 const PROP_BELOW := 8
-## The props' lights (DAYNIGHT_PLAN.md §5.12): at night they glow LAMP_COLOR over the veil, which
+## The props' lights (docs/DAYNIGHT.md §5.12): at night they glow LAMP_COLOR over the veil, which
 ## they light, LAMP_ALPHA at their centres, and the ground below a lamp LAMP_POOL_SHARE as brightly.
 ## They add to no channel more than the veil takes away from it, so they come on as the light
 ## fades, and nothing that they light clips to white.
@@ -70,7 +70,7 @@ const BRAKE := 4.0
 const STEER_RATE := 3.0
 const STRAIGHTEN_RATE := 1.0
 const START_HEALTH := 100.0
-## Skid marks (M5_PLAN.md §5.7): while the car brakes for a junction, a pair every SKID_SPACING
+## Skid marks (docs/M5.md §5.7): while the car brakes for a junction, a pair every SKID_SPACING
 ## tiles, SKID_REAR tiles behind its centre and SKID_TRACK tiles apart, at SKID_ALPHA. At most
 ## SKID_MARKS show.
 const SKID_SPACING := 0.08
@@ -101,7 +101,7 @@ const DAMAGE_SOUND_STEP := 10.0
 ## The loudest sample, from 0 to 1, of each kind of sound: an area's music, its ambient loop, the
 ## car's loops (AudioDirector.LOOPS) and the one-shot sounds (AudioDirector.EFFECTS). Godot clamps
 ## the mix at full scale, so the sounds that play together must leave each other room: at the
-## default volumes, the music, the ambience, the engine and one effect add up to 1 (M5_PLAN.md L29,
+## default volumes, the music, the ambience, the engine and one effect add up to 1 (docs/M5.md L29,
 ## P12). Measure the mix again before raising one.
 const MUSIC_PEAK := 0.5
 const AMBIENT_PEAK := 0.25
@@ -114,7 +114,7 @@ const METRES_PER_TILE := 10
 ## while the game is paused doesn't count (IMPLEMENTATION_PLAN.md M4.3).
 const AREA_BANNER_SECONDS := 2.0
 
-## The tutorial (TUTORIAL_PLAN.md §5): a road in the City's look, where every wrong exit loops back
+## The tutorial (docs/TUTORIAL.md §5): a road in the City's look, where every wrong exit loops back
 ## to the path and nothing ends the run. It ends after TUTORIAL_STREAK correct turns in a row. In
 ## it, the car heals to START_HEALTH in TUTORIAL_HEAL_SECONDS of driving on the road, and once it
 ## drives TUTORIAL_RESCUE_TILES off the road in one go, it is put back on the path.
@@ -142,7 +142,7 @@ const DISASTER_INTENSITY_MIN := 0.5
 const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
-## Where a legend's parts draw (M6_PLAN.md §5.5): a part in the sky, such as the UFO's saucer, over
+## Where a legend's parts draw (docs/M6.md §5.5): a part in the sky, such as the UFO's saucer, over
 ## the props and the car; the veil over them all; and the glows over the veil, which they light.
 const SKY_Z := 1
 const VEIL_Z := 2
@@ -153,7 +153,7 @@ const VEIL_HALF_SIZE := 4096.0
 ## What a legend's veil multiplies the world's colours by, at dusk and at night (Q5, Q8).
 const VEIL_DUSK := Color8(170, 130, 190)
 const VEIL_NIGHT := Color8(70, 80, 150)
-## No flashing (M6_PLAN.md §5.6, E6, after WCAG 2.3.1). Light changes once it rises or falls by
+## No flashing (docs/M6.md §5.6, E6, after WCAG 2.3.1). Light changes once it rises or falls by
 ## more than FLASH_CHANGE of white's light, or of pure red's for red light, as WCAG counts, even
 ## where glows add up past white. Where a glow glides past a point at its faint edge, the light
 ## there steps by less, as the canvas draws the nearest texel (S19). At no point of the world may it
@@ -178,7 +178,7 @@ const SHAKE_FREQ_Y := 31.0
 const CRASH_SHAKE := 0.5
 const CRASH_SHAKE_SECONDS := 0.4
 
-## Day and night (DAYNIGHT_PLAN.md §5.2): what Daylight multiplies the world by at the key hours of
+## Day and night (docs/DAYNIGHT.md §5.2): what Daylight multiplies the world by at the key hours of
 ## a zone's day, LIGHT_HOURS, from 0 to 24, in LIGHT_COLORS. Between two keys each channel eases
 ## from one to the other, and from the last key the light runs on past midnight to the first. A
 ## zone's clock starts at DAY_START_HOUR as the car enters it. The light shown changes by at most
@@ -192,7 +192,7 @@ const LIGHT_COLORS: Array[Color] = [
 	LIGHT_NIGHT, LIGHT_DAWN, Color.WHITE, Color.WHITE, LIGHT_DUSK, LIGHT_NIGHT
 ]
 const LIGHT_MAX_RATE := 0.25
-## Shadows (DAYNIGHT_PLAN.md §5.11). The sun is up from SUN_RISE_HOUR to SUN_SET_HOUR, and the moon
+## Shadows (docs/DAYNIGHT.md §5.11). The sun is up from SUN_RISE_HOUR to SUN_SET_HOUR, and the moon
 ## the rest of the day. Each rises on the screen's left, SKY_RISE_ANGLE being the way toward it in
 ## tile space, stands highest at the screen's top, SUN_HIGHEST or MOON_HIGHEST above the ground,
 ## and sets on its right: so shadows fall beside what casts them or in front of it, where they
@@ -216,7 +216,7 @@ const SHADOW_MAX_RATE := 1.5
 const SHADOW_ALPHA_RATE := 0.25
 
 # The City's legends.
-## The phantom bus (M6_PLAN.md §3.3): its beats, in s: the fog rolls in, the bus comes, the car
+## The phantom bus (docs/M6.md §3.3): its beats, in s: the fog rolls in, the bus comes, the car
 ## boards it, the bus leaves. How far back it comes from, along the road, how far on it goes and
 ## how far from the car it stops, in tiles; and how much of it shows, as it's half see-through.
 const PHANTOM_BUS_BEATS: Array[float] = [0.5, 0.9, 0.4, 0.7]
@@ -226,7 +226,7 @@ const PHANTOM_BUS_GAP_TILES := 0.4
 const PHANTOM_BUS_ALPHA := 0.7
 
 # Rural's legends.
-## The UFO (M6_PLAN.md §3.3): its beats, in s: night falls, the saucer drops, its beam opens, the
+## The UFO (docs/M6.md §3.3): its beats, in s: night falls, the saucer drops, its beam opens, the
 ## car floats up into it, and it zips off. How far it drops to its hover and where it zips to, in
 ## px, the zip to the side that the params' direction picks; how many times a second its rim's
 ## lights pass each point of its rim; and how much light its beam adds.
@@ -237,13 +237,13 @@ const UFO_RIM_HZ := 2.0
 const UFO_BEAM_ALPHA := 0.5
 
 # The Meadows' legends.
-## The fairy ring (M6_PLAN.md §3.3): its beats, in s: the toadstools sprout, their glows swell and
+## The fairy ring (docs/M6.md §3.3): its beats, in s: the toadstools sprout, their glows swell and
 ## the eyes open, the car dances, and the ring holds; and how much light each toadstool's glow adds.
 const FAIRY_RING_BEATS: Array[float] = [0.6, 0.5, 0.9, 0.4]
 const FAIRY_RING_GLOW_ALPHA := 0.6
 
 # The Village's legends.
-## The witch's hex (M6_PLAN.md §3.3): its beats, in s: the witch swoops in and circles the car,
+## The witch's hex (docs/M6.md §3.3): its beats, in s: the witch swoops in and circles the car,
 ## cackling; she points and hexes it; a puff of smoke hides it; and a jack-o'-lantern pops up where
 ## it stood as she flies off. Where she swoops in from and flies off to, in px from where she
 ## hovers, for a hex whose params' direction points to the right of the screen, mirrored for the
@@ -254,7 +254,7 @@ const WITCH_HEX_FLY_OFF_PX := Vector2(260.0, -220.0)
 const WITCH_HEX_GLOW_ALPHA := 0.7
 
 # The Desert's legends.
-## The death worm (M6_PLAN.md §3.3): its beats, in s: the ground trembles and ripples run through
+## The death worm (docs/M6.md §3.3): its beats, in s: the ground trembles and ripples run through
 ## the sand to the car; a mound swells under it; the worm bursts up and swallows it; it dives back;
 ## and its crater stays. How far the ripples run from, in tiles; and what share of the params'
 ## intensity the trembling and the burst shake the camera with.

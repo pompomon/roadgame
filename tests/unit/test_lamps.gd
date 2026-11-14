@@ -1,5 +1,5 @@
 extends GutTest
-## Lamps (DAYNIGHT_PLAN.md §5.12): each prop's lights glow at night over the veil, adding no more
+## Lamps (docs/DAYNIGHT.md §5.12): each prop's lights glow at night over the veil, adding no more
 ## light than the veil takes away, and by day they are out. They draw as one group that adds what
 ## it holds, and a prop in front hides the glows behind it.
 
@@ -70,7 +70,7 @@ func _added() -> Color:
 
 
 func test_the_lamps_draw_as_one_group_that_adds_over_the_veil() -> void:
-	# They add light over the night's veil, as a legend's glow does (M6_PLAN.md §5.5), but as one
+	# They add light over the night's veil, as a legend's glow does (docs/M6.md §5.5), but as one
 	# group: where glows overlap, it covers no more than one does (P10). What it holds draws in the
 	# group, at its z and with no material of its own, and only the group's self_modulate lights it.
 	# A group that y-sorts draws what it holds on its own (P10b).
@@ -257,7 +257,7 @@ func test_out_by_day_and_without_a_clock_and_on_at_night() -> void:
 
 func test_a_glow_never_adds_more_than_the_veil_takes_away() -> void:
 	# Over a white pixel the veil leaves the light, and the group adds to it at most what a glow's
-	# centre adds: never past white (M6_PLAN.md S10), at every quarter hour and as a zone sets the
+	# centre adds: never past white (docs/M6.md S10), at every quarter hour and as a zone sets the
 	# clock back at night.
 	var over := PackedStringArray()
 	var lit := 0
@@ -306,7 +306,7 @@ func _turns(cycle: DayCycle, steps: int) -> Vector2i:
 
 
 func test_the_lamps_fade_on_once_a_day_and_out_once() -> void:
-	# Nothing flashes (WCAG 2.3.1, M6_PLAN.md §5.6), and nothing pops: through the least day and the
+	# Nothing flashes (WCAG 2.3.1, docs/M6.md §5.6), and nothing pops: through the least day and the
 	# reference one, the glows' alpha rises at dusk and falls at dawn, turning only then, and no
 	# faster than the light shown changes. As a zone sets the clock back at night, it falls, and
 	# turns at dusk.

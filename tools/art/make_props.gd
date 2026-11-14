@@ -1,5 +1,5 @@
 extends SceneTree
-## Makes each area's props (M5_PLAN.md §5.6): assets/<area>/props.png, a sheet of their frames, and
+## Makes each area's props (docs/M5.md §5.6): assets/<area>/props.png, a sheet of their frames, and
 ## areas/props/<area>/<id>.tres, a PropDef for each. Like tools/art/make_art.gd's art, they are
 ## placeholders that an artist may replace, file by file, with art that keeps the contract
 ## tests/unit/test_prop_art.gd checks: each PropDef validates, its region fits its frames' pixels
@@ -66,7 +66,7 @@ const PROPS := {
 		&"tumbleweed": [4, 6.0, 0.004, ["rural dirt", "plank"]],
 	},
 }
-## Lights (DAYNIGHT_PLAN.md §5.12): a window painted the palette's yellow is lit, and glows
+## Lights (docs/DAYNIGHT.md §5.12): a window painted the palette's yellow is lit, and glows
 ## WINDOW_HALO pixels round it. A lamp's head, LAMP_HEAD, glows LAMP_HALO pixels round it, and
 ## lights a pool of ground LAMP_POOL across, under it.
 const WINDOW_HALO := 2.0
@@ -75,7 +75,7 @@ const LAMP_HALO := 4.0
 const LAMP_POOL := Vector2(64, 32)
 ## Props drawn without an ink outline: flat ones, which it would make look like holes.
 const FLAT: Array[StringName] = [&"flowers", &"pond"]
-## How the props' shadows fall (DAYNIGHT_PLAN.md §5.11), where not as an upright prop's: the fence
+## How the props' shadows fall (docs/DAYNIGHT.md §5.11), where not as an upright prop's: the fence
 ## is a wall, whose base line rises WALL_RISE pixels above its foot where it crosses the foot's
 ## column, and the props that lie flat cast none. A box's shadow falls from the centre of its
 ## footprint, which _box() records.
@@ -562,7 +562,7 @@ static func _face_rise(x: int) -> int:
 
 
 ## A window 3 pixels wide and 4 tall, on the face that `x` is on, its bottom `rise` above the
-## face's bottom edge. One painted the palette's yellow is lit (DAYNIGHT_PLAN.md §5.12).
+## face's bottom edge. One painted the palette's yellow is lit (docs/DAYNIGHT.md §5.12).
 func _window(image: Image, x: int, rise: int, color: Color) -> void:
 	var box := Rect2()
 	for dx: int in 3:

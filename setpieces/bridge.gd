@@ -4,7 +4,7 @@ extends SetPiece
 ## run, between banks at both ends, and a deck carries the road over it, between two railings.
 ## Waves drift down the river: dashes that move, and are never redrawn. The railings only show the
 ## edge: off the road, the car still takes damage by the capsule test. The near railing draws over
-## the car (z_index 1). The river's shader comes with M5's art (M4_PLAN.md Q4). A run too short
+## the car (z_index 1). The river's shader waits for later art (docs/M4.md Q4). A run too short
 ## for the waves' rows between its banks is an error, and gets neither river nor waves.
 
 ## How far the deck reaches across the run from its centreline, in tiles.

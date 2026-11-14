@@ -1,5 +1,5 @@
 extends RefCounted
-## Checks of the art (M5_PLAN.md §5.5) that work on whole images natively: a test that looped over
+## Checks of the art (docs/M5.md §5.5) that work on whole images natively: a test that looped over
 ## every pixel in GDScript would take seconds. No class_name: tests/ is not exported.
 
 const MakeArt := preload("res://tools/art/make_art.gd")

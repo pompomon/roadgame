@@ -1,5 +1,5 @@
 extends GutTest
-## Each area's art (M5_PLAN.md §5.5): the contract that tools/art/make_art.gd's placeholders keep,
+## Each area's art (docs/M5.md §5.5): the contract that tools/art/make_art.gd's placeholders keep,
 ## and that any art which replaces them must keep too.
 
 const Art := preload("res://tests/helpers/art_checks.gd")

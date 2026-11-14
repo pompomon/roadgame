@@ -1,7 +1,7 @@
 extends GutTest
-## The legend kit (M6_PLAN.md §5.3–§5.5), on the sample legend: the veil follows the view and
+## The legend kit (docs/M6.md §5.3–§5.5), on the sample legend: the veil follows the view and
 ## darkens the world through the first beat, at night only what the night hasn't
-## (DAYNIGHT_PLAN.md §5.6); the car, the props and the parts sort under it, and the glows over it;
+## (docs/DAYNIGHT.md §5.6); the car, the props and the parts sort under it, and the glows over it;
 ## the standing parts and the car's double stand on the stage and leave it with the legend; and no
 ## frame shows both the car and its double, nor neither until it goes. test_view_veil.gd checks
 ## that the veil covers every view.
@@ -119,7 +119,7 @@ func test_the_veil_darkens_the_car_the_props_and_the_parts_but_not_the_glows() -
 
 
 func test_the_veil_darkens_the_world_through_the_first_beat() -> void:
-	# A multiply ignores alpha, so the veil fades in by its colour (P10, N8).
+	# A multiply ignores alpha, so the veil fades in by its colour (S4, N8).
 	var legend := _legend()
 	var params := Disasters.params()
 	legend.play(params)
@@ -143,7 +143,7 @@ func test_the_veil_darkens_the_world_through_the_first_beat() -> void:
 func test_at_night_a_veil_darkens_only_what_the_night_hasnt() -> void:
 	# Under the night's veil, the world shows the darker of the light and the legend's own colour
 	# in each channel at the end of the first beat. A veil with nothing left to darken isn't drawn
-	# (DAYNIGHT_PLAN.md §5.6).
+	# (docs/DAYNIGHT.md §5.6).
 	var params := Disasters.params()
 	var frames := ceili((params.delay + Sample.BEATS[0]) / DELTA) + 1
 	var lights: Array[Color] = [

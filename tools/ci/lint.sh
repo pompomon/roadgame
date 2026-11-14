@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Style (gdlint, gdformat), the determinism rule (IMPLEMENTATION_PLAN.md §5.3), shell scripts,
-# version pins and the Actions storage policy (no caches, artifacts kept 1 day; M0_PLAN.md F34).
+# version pins and the Actions storage policy (no caches, artifacts kept 1 day; docs/M0.md F34).
 # Needs gdtoolkit (pip install -r tools/ci/requirements.txt), not Godot.
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
@@ -12,7 +12,7 @@ for d in "${gd_list[@]}"; do
   if [ -d "$d" ]; then gd_dirs+=("$d"); fi
 done
 [ "${#gd_dirs[@]}" -gt 0 ] || { echo "::error::No GDScript directories found"; exit 1; }
-# A script anywhere else would skip every check here (M5_PLAN.md L16): list its directory above.
+# A script anywhere else would skip every check here (docs/M5.md L16): list its directory above.
 stray=$(find . -name '*.gd' -not -path './addons/*' -not -path './.godot/*' \
   | grep -vE "^\./($(IFS='|'; echo "${gd_list[*]}"))/" || true)
 [ -z "$stray" ] || { echo "::error::GDScript outside the linted directories:"; echo "$stray"; exit 1; }

@@ -78,7 +78,7 @@ func test_the_correct_exit_completes_the_turn() -> void:
 
 
 ## Each exit of the first junction of each kind, from a new trigger each time: the correct one
-## completes a turn, or no turn at a decoy (ROADGEN_PLAN.md R2), and every other is a disaster.
+## completes a turn, or no turn at a decoy (docs/ROADGEN.md R2), and every other is a disaster.
 func test_each_kind_of_junction_has_one_correct_exit() -> void:
 	for kind: int in RoadGenerator.Kind.values():
 		var junction := _start_where(_of_kind(kind), Fixtures.kinds_schedule(0.25, 0.25, 0.25))
@@ -223,7 +223,7 @@ func test_the_offroad_limit_is_a_missed_turn() -> void:
 
 
 ## On the game's road, and through every kind of junction, where decoys add junctions but no
-## turns (ROADGEN_PLAN.md R2).
+## turns (docs/ROADGEN.md R2).
 func test_finds_the_next_junction_for_300_turns() -> void:
 	var kinds := Fixtures.kinds_schedule(0.25, 0.25, 0.25)
 	for schedule: AreaSchedule in [Fixtures.schedule(), kinds]:

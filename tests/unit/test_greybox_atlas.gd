@@ -76,7 +76,7 @@ func test_road_pixels_follow_the_road_geometry() -> void:
 
 
 func test_a_road_tileset_has_a_source_for_each_sheet() -> void:
-	# Each area's road sheet, or the grey box's for an area that has none (M5_PLAN.md §5.5).
+	# Each area's road sheet, or the grey box's for an area that has none (docs/M5.md §5.5).
 	var sheet := ImageTexture.create_from_image(GreyboxAtlas.road_image())
 	var road := GreyboxAtlas.road_tileset([null, sheet])
 	assert_eq(road.get_source_count(), 2)

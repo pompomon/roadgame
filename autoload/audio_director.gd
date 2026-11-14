@@ -4,7 +4,7 @@ extends Node
 ## sounds of the run's events. Buses (default_bus_layout.tres): Master → Music, SFX, Ambient. The
 ## SFX bus's reverb is on while the car is in a tunnel. The volumes are the settings' (M5.4): they
 ## apply when a run starts and when they change, never in _ready(), which mustn't read the save
-## (M5_PLAN.md L1). Music and ambient sound go on while the game is paused; the car's sounds pause.
+## (docs/M5.md L1). Music and ambient sound go on while the game is paused; the car's sounds pause.
 
 ## A one-shot sound started, or would have if can_play were on.
 signal effect_played(id: StringName)
@@ -43,7 +43,7 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 }
 
 ## Off on the Dummy driver, which headless runs use (the tests and smoke.sh): a sound that still
-## plays when the game quits leaks (M5_PLAN.md L15). Everything else works as it would. A test may
+## plays when the game quits leaks (docs/M5.md L15). Everything else works as it would. A test may
 ## turn it on, and must then call stop_all() and wait 0.25 s before the run ends.
 var can_play := AudioServer.get_driver_name() != "Dummy"
 
@@ -89,7 +89,7 @@ func _physics_process(_delta: float) -> void:
 	if _sim == null:
 		return
 	# Every frame, also when it's the same: on the Web, each new round of a loop starts at the
-	# sound's own pitch until the next assignment (M5_PLAN.md L27).
+	# sound's own pitch until the next assignment (docs/M5.md L27).
 	_loop_players[&"engine"].pitch_scale = engine_pitch(_sim.speed)
 	var tile := _sim.buffer.tile_at(Vector2i(_sim.pos.floor()))
 	_set_reverb(tile != null and tile.set_piece == &"tunnel")
@@ -137,7 +137,7 @@ func is_loop_on(id: StringName) -> bool:
 
 
 ## Plays the one-shot sound `id` (EFFECTS). A sound plays on one player at a time: copies of it
-## would add up past full scale (M5_PLAN.md L29), as when the car crosses the road's edge again
+## would add up past full scale (docs/M5.md L29), as when the car crosses the road's edge again
 ## and again. So it starts over on the player that last played it, if no other sound has taken
 ## that one since; if not, it goes on the next of EFFECT_PLAYERS players, which stops whatever that
 ## one still played.
@@ -250,7 +250,7 @@ func _on_turn_completed(_turn_index: int) -> void:
 
 
 ## A correct turn in the tutorial chimes as one does after it. A mistake, which ends the streak, has
-## no sound of its own (TUTORIAL_PLAN.md Q11).
+## no sound of its own (docs/TUTORIAL.md Q11).
 func _on_streak_changed(streak: int) -> void:
 	if streak > 0:
 		play_effect(&"junction")
@@ -277,7 +277,7 @@ func _on_run_ended(cause: StringName, _stats: Dictionary) -> void:
 
 
 ## A disaster's sound starts as it shows, with its first beat, not as it starts to play: its delay
-## may be up to DISASTER_DELAY_MAX (M6_PLAN.md S18).
+## may be up to DISASTER_DELAY_MAX (docs/M6.md S18).
 func _on_disaster_appeared(id: StringName, _area: AreaDef) -> void:
 	play_effect(id)
 

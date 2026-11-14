@@ -1,5 +1,5 @@
 extends GutTest
-## Daylight (DAYNIGHT_PLAN.md §5.5): the night's veil shows its clock's light over the view of the
+## Daylight (docs/DAYNIGHT.md §5.5): the night's veil shows its clock's light over the view of the
 ## frame that the camera moved in, hides while the light is white, and is never redrawn.
 ## test_daylight_run.gd checks it in the main scene.
 
@@ -70,8 +70,8 @@ func test_in_the_games_frames_the_veil_follows_the_view_of_the_same_frame() -> v
 
 
 func test_daylight_is_never_redrawn() -> void:
-	# Each redraw of a Polygon2D after its first raises WebGL errors on the Web (M2_PLAN.md §5.7,
-	# N34).
+	# Each redraw of a Polygon2D after its first raises WebGL errors on the Web (docs/M2.md §5.7,
+	# docs/DAYNIGHT.md N34).
 	# Over a day, a tenth of an hour each frame, it shows, changes its light at dusk and dawn, and
 	# hides again, by its modulates alone. Headless, a frame sleeps as if it had drawn nothing: not
 	# here.

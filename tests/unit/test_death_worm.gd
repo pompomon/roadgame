@@ -1,5 +1,5 @@
 extends GutTest
-## The death worm, the Desert's legend (M6_PLAN.md §3.3). In the glare of the desert, the ground
+## The death worm, the Desert's legend (docs/M6.md §3.3). In the glare of the desert, the ground
 ## trembles, and ripples run through the sand to the car. A mound swells under the car and lifts
 ## it. A giant eyeless worm bursts up out of it in a spray of sand, carrying the car's double up on
 ## its head. Its mouth opens, ringed with white teeth, and the double sinks down its black throat.
@@ -178,7 +178,7 @@ static func _adds_light(item: CanvasItem) -> bool:
 
 func test_the_ground_trembles_and_ripples_run_through_the_sand_to_the_car() -> void:
 	# From DEATH_WORM_BURROW_TILES tiles away, where the direction points in tile space, or from the
-	# right for none. In the glare of the desert: no veil, and so no glows (M6_PLAN.md §5.5).
+	# right for none. In the glare of the desert: no veil, and so no glows (docs/M6.md §5.5).
 	var froms: Dictionary[Vector2, Vector2] = {
 		Vector2(0.6, -0.8): Vector2(0.6, -0.8),
 		Vector2(-2.0, 0.0): Vector2.LEFT,

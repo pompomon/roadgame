@@ -146,7 +146,7 @@ func test_speeds_up_again_after_a_turn() -> void:
 
 
 func test_once_the_run_is_over_the_car_stops_in_a_line_within_stop_seconds() -> void:
-	# At BRAKE if that is enough, and harder if not (M3_PLAN.md J4).
+	# At BRAKE if that is enough, and harder if not (docs/M3.md J4).
 	for state: CarSim.State in [CarSim.State.DISASTER, CarSim.State.CRASHED]:
 		for start: float in [0.5, 2.0, 4.0, Tuning.GLOBAL_SPEED_CAP]:
 			var why := "%s from %.1f tiles/s" % [CarSim.State.keys()[state], start]

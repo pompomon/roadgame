@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Actions storage policy (M0_PLAN.md F34): no caches, and every artifact is kept 1 day. Scans the
+# Actions storage policy (docs/M0.md F34): no caches, and every artifact is kept 1 day. Scans the
 # block-style YAML under .github/ for cache actions, cache inputs that are on (and actions that
 # cache unless told not to), Docker layer caches (type=gha) and uploads without retention-days: 1.
 # shellcheck source=tools/ci/_common.sh
@@ -235,7 +235,7 @@ hits=$(awk '
 
 if [ -n "$hits" ]; then
   printf '%s\n' "$hits"
-  echo "::error::Caches or long-lived artifacts break the Actions storage policy (M0_PLAN.md F34)"
+  echo "::error::Caches or long-lived artifacts break the Actions storage policy (docs/M0.md F34)"
   exit 1
 fi
 echo "Actions storage: no caches, artifacts kept 1 day (${#files[@]} files checked)"

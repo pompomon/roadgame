@@ -1,5 +1,5 @@
 extends RefCounted
-## The phantom bus's sheets (M6_PLAN.md §3.3), drawn into assets/legends/phantom_bus/ by
+## The phantom bus's sheets (docs/M6.md §3.3), drawn into assets/legends/phantom_bus/ by
 ## tools/art/make_legends.gd. `bus.png`: a red double-decker with no one at the wheel and pale
 ## faces at its windows, in DOORS frames for each of its FACINGS, its doors shut, half open and
 ## open on the dark, where two eyes wait. `ticket.png`: the ticket that it leaves on the road. Its

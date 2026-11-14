@@ -1,4 +1,4 @@
-// Lays the props' shadows on the ground (DAYNIGHT_PLAN.md §5.11, C20): a frame's width along lay_x
+// Lays the props' shadows on the ground (docs/DAYNIGHT.md §5.11, C20): a frame's width along lay_x
 // and its height along lay_y, from the sprite's position, where its shadow falls from. Shadows sets
 // the two for each kind of shadow as the clock turns, so that no sprite moves.
 

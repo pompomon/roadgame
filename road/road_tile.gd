@@ -2,7 +2,7 @@ class_name RoadTile
 extends RefCounted
 ## One road cell (IMPLEMENTATION_PLAN.md M1.2). Correct-path tiles have a path_index; dead-end
 ## tiles belong to a junction, which owns them in `branches` and frees them with itself. The
-## tutorial's loops are dead-end tiles too, which lead back to the path (TUTORIAL_PLAN.md §5.1).
+## tutorial's loops are dead-end tiles too, which lead back to the path (docs/TUTORIAL.md §5.1).
 
 enum Type { STRAIGHT, CORNER, T_JUNCTION, CROSS_JUNCTION, DEAD_END, SET_PIECE }
 

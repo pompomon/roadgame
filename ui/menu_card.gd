@@ -1,7 +1,7 @@
 class_name MenuCard
 extends HBoxContainer
 ## A card of the Atlas or the disaster collection (IMPLEMENTATION_PLAN.md M5.5): a swatch, a name,
-## and a few lines under it, and for a seen disaster its lore (M6_PLAN.md S12). Something not found
+## and a few lines under it, and for a seen disaster its lore (docs/M6.md S12). Something not found
 ## yet shows as a silhouette: a dark swatch and no name.
 
 @onready var _swatch: ColorRect = %Swatch

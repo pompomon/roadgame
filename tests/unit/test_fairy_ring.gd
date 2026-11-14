@@ -1,5 +1,5 @@
 extends GutTest
-## The fairy ring, the Meadows' legend (M6_PLAN.md §3.3). Dusk falls on the meadow, and ten pale
+## The fairy ring, the Meadows' legend (docs/M6.md §3.3). Dusk falls on the meadow, and ten pale
 ## toadstools sprout one by one in a ring round the car. A sickly glow swells over each in turn and
 ## stays lit. Pairs of yellow eyes open one by one in the grass beyond the ring and watch, and
 ## sparkles circle inside it. The car's double is made to dance: it spins through its headings,
@@ -293,7 +293,7 @@ func test_pairs_of_eyes_open_one_by_one_beyond_the_ring_and_close_together() -> 
 
 func test_each_point_of_a_pair_of_eyes_only_lightens_as_they_open() -> void:
 	# They open once and close once, through the same frames, so each point of the World that they
-	# light rises once and falls once (M6_PLAN.md §5.6), if each texel of each frame is at least as
+	# light rises once and falls once (docs/M6.md §5.6), if each texel of each frame is at least as
 	# light as in the frame before. The flash test reads the light FLASH_GRID px apart and can miss a
 	# texel.
 	var pair := _ring().eyes()[0]

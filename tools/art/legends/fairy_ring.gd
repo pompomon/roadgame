@@ -1,5 +1,5 @@
 extends RefCounted
-## The fairy ring's sheets (M6_PLAN.md §3.3), drawn into assets/legends/fairy_ring/ by
+## The fairy ring's sheets (docs/M6.md §3.3), drawn into assets/legends/fairy_ring/ by
 ## tools/art/make_legends.gd. `toadstool.png`: a pale toadstool as it grows, a button, half grown,
 ## then full: a white cap with dark spots, its rim in shade, on a short stem, lit from the upper
 ## left, as the car is. `eyes.png`: a pair of slanted eyes with no pupils as they open, a slit, half

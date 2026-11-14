@@ -1,6 +1,6 @@
 extends GutTest
 ## CarController and the car scene (IMPLEMENTATION_PLAN.md M2.4, M3.3): the sprite frame for a
-## heading, and the car's view of its CarSim. A legend's double of the car (M6_PLAN.md §5.4).
+## heading, and the car's view of its CarSim. A legend's double of the car (docs/M6.md §5.4).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
@@ -102,7 +102,7 @@ func test_dust_flies_only_while_the_car_is_off_the_road() -> void:
 
 func test_it_leaves_its_scale_and_modulate_to_a_disaster() -> void:
 	# A disaster sinks the car by its scale and modulate, and the car keeps its position on the sim's
-	# (M3_PLAN.md J3).
+	# (docs/M3.md J3).
 	var car := _car()
 	car.sim.state = CarSim.State.DISASTER
 	var sunk := Color(0.0, 0.0, 0.0, 0.5)
@@ -131,7 +131,7 @@ func test_a_crashed_car_shows_its_wreck_and_smokes() -> void:
 
 func test_every_car_smokes_alike() -> void:
 	# Godot gives each CPUParticles2D a random seed when it's made, so unless the scene fixes one,
-	# the smoke differs from run to run, whatever the run's seed (IP §5.3, M3_PLAN.md J16). The
+	# the smoke differs from run to run, whatever the run's seed (IP §5.3, docs/M3.md J16). The
 	# editor doesn't save a seed of 0, its default.
 	var smokes: Array[CPUParticles2D] = []
 	for _i: int in 2:
@@ -142,7 +142,7 @@ func test_every_car_smokes_alike() -> void:
 
 
 func test_the_smoke_shows_over_everything_the_world_draws() -> void:
-	# In every light of the day, under the night's veil (DAYNIGHT_PLAN.md §5.7).
+	# In every light of the day, under the night's veil (docs/DAYNIGHT.md §5.7).
 	var smoke: CPUParticles2D = _car().get_node("%Smoke")
 	for light: Color in _lights():
 		for background: Color in _backgrounds():
@@ -173,7 +173,7 @@ func test_the_smoke_shows_through_a_tunnel() -> void:
 				)
 
 
-## The key lights of the day (DAYNIGHT_PLAN.md §5.7). The night's veil multiplies each colour by
+## The key lights of the day (docs/DAYNIGHT.md §5.7). The night's veil multiplies each colour by
 ## the light, and the eye takes a dimmer light's smaller contrast as the same, so the smoke needs
 ## SMOKE_CONTRAST times the light's luminance. Both sides are linear in the light, and the light
 ## shown is always a blend of the keys (DayCycle.advance()), so what holds in each key light holds
@@ -188,7 +188,7 @@ static func _lights() -> Array[Color]:
 
 ## What the world can draw under a puff of smoke. The smoke covers the wreck, and around it an
 ## area's road sheet, its ground, or the edge that blends it into the last area's ground: the
-## colours that make up at least MAIN_SHARE of one of them (M5_PLAN.md §5.5, §5.7). The grey box's
+## colours that make up at least MAIN_SHARE of one of them (docs/M5.md §5.5, §5.7). The grey box's
 ## road, for an area without art, stays. The ground covers every view (WorldRenderer), so the clear
 ## colour no longer shows. On a bridge, it draws the river, its waves, the deck and the far railing
 ## (M4.4); the near railing and a tunnel draw over the car.
@@ -241,7 +241,7 @@ func _tunnel_covers() -> Array[Color]:
 func test_the_smoke_shows_in_a_shadow() -> void:
 	# A shadow dims what the smoke shows over, but not the smoke, which draws above it. The eye takes
 	# a shadow as a dimmer light, so there the smoke needs SMOKE_CONTRAST times the luminance of the
-	# light that the shadow lets through, in the open and through a tunnel (DAYNIGHT_PLAN.md C22,
+	# light that the shadow lets through, in the open and through a tunnel (docs/DAYNIGHT.md C22,
 	# N103). The shadows are black, at the sun's or the moon's alpha, and the wreck's colours are
 	# checked too, though the car draws above the shadows.
 	var smoke: CPUParticles2D = _car().get_node("%Smoke")

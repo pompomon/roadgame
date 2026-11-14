@@ -1,10 +1,10 @@
 extends GutTest
 ## A forced wrong turn in each area plays a disaster from that area's pool only
-## (IMPLEMENTATION_PLAN.md M4 tests): the main scene starts in the area (--area, M4_PLAN.md K10),
+## (IMPLEMENTATION_PLAN.md M4 tests): the main scene starts in the area (--area, docs/M4.md K10),
 ## the pilot takes a wrong exit at the junction of turn number 2, the third turn's or a decoy
-## before it (ROADGEN_PLAN.md R2), and the area's disaster takes the car before the game-over
+## before it (docs/ROADGEN.md R2), and the area's disaster takes the car before the game-over
 ## screen, 2 to 4 s after the turn. Every disaster of every pool plays for some seed
-## (M6_PLAN.md S13).
+## (docs/M6.md S13).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")

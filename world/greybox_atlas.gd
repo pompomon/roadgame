@@ -3,7 +3,7 @@ class_name GreyboxAtlas
 ## comes from RoadGeometry, so that the road on screen is exactly the road the off-road test sees.
 ## A road sheet has one column per exits bitmask - 1, which covers all 15 road tiles of plan.md
 ## §5.3 (caps, straights, corners, T-junctions, crossroads), and one row per Row. An area's art has
-## the same layout, with opaque pixels exactly where the grey box's are (M5_PLAN.md §5.5). The
+## the same layout, with opaque pixels exactly where the grey box's are (docs/M5.md §5.5). The
 ## grey-box ground is a checker of 32×16 diamonds in two shades of the area's colour, and its edge
 ## the same with fewer pixels further down (IMPLEMENTATION_PLAN.md M4.3).
 

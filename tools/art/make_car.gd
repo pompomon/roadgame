@@ -1,5 +1,5 @@
 extends SceneTree
-## Makes the car's sheet (plan.md §5.3, M5_PLAN.md §5.7): assets/car/car.png, FRAMES frames of
+## Makes the car's sheet (plan.md §5.3, docs/M5.md §5.7): assets/car/car.png, FRAMES frames of
 ## FRAME_SIZE in a row, and its skid mark, assets/car/skid.png. Frame f faces the direction f of
 ## CarController.frame(), clockwise from straight up; the last is the wreck. Each frame has the
 ## car's ground centre at FOOT. They are placeholders an artist may replace with art that keeps

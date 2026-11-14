@@ -1,7 +1,7 @@
 class_name GameOver
 extends Control
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3): why the run ended, what the
-## disaster did to the car (M6_PLAN.md S8), the run's distance, its turns and the area it reached,
+## disaster did to the car (docs/M6.md S8), the run's distance, its turns and the area it reached,
 ## and the Retry and Title buttons. The main scene opens it once the end of the run has played.
 ## Retry starts the next run in place; Title goes back to the title screen (M5.5). Retry takes the
 ## focus, so Enter and Space press it too. The run's seed shows in small text in debug builds. Like

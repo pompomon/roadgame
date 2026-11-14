@@ -66,7 +66,7 @@ func test_draws_the_buffer_and_follows_refills_and_frees() -> void:
 
 
 func test_a_new_buffer_replaces_the_last_one() -> void:
-	# A retry binds the next run's buffer to the same renderer (M3_PLAN.md J11).
+	# A retry binds the next run's buffer to the same renderer (docs/M3.md J11).
 	var last := RoadBuffer.new(RoadGenerator.new(5, Fixtures.schedule()))
 	last.start()
 	_world.build(Fixtures.schedule())
@@ -88,7 +88,7 @@ func test_a_new_buffer_replaces_the_last_one() -> void:
 
 
 func test_each_area_shows_its_ground_and_blends_it_into_the_last_ones() -> void:
-	# plan.md §5.3 and IMPLEMENTATION_PLAN.md M4.3, with bands (M5_PLAN.md §5.5): across the screen,
+	# plan.md §5.3 and IMPLEMENTATION_PLAN.md M4.3, with bands (docs/M5.md §5.5): across the screen,
 	# each area's ground shows from the centre of its path tile TRANSITION_TILES on, and below it
 	# its edge, over the last area's ground. The edge's pixels are its ground's, where they would be.
 	_world.build(Fixtures.schedule())
@@ -367,16 +367,16 @@ func test_layers_line_up_with_tile_space() -> void:
 
 
 func test_disasters_draw_above_the_road_and_below_the_car() -> void:
-	# World draws its children in order, and only Props sorts by y (M3_PLAN.md J5). Skid marks lie
-	# on the road, under the disasters (M5_PLAN.md §5.7), and the shadows on both, under the
-	# disasters too (DAYNIGHT_PLAN.md §5.11).
+	# World draws its children in order, and only Props sorts by y (docs/M3.md J5). Skid marks lie
+	# on the road, under the disasters (docs/M5.md §5.7), and the shadows on both, under the
+	# disasters too (docs/DAYNIGHT.md §5.11).
 	var names: Array[StringName] = []
 	for node: Node in _world.get_children():
 		names.append(node.name)
 	var order: Array[StringName] = [
 		&"Ground", &"SetPieces", &"RoadLayer", &"Skids", &"Shadows", &"DisasterLayer", &"Props"
 	]
-	# The props' lights, which draw over the night's veil (DAYNIGHT_PLAN.md §5.12).
+	# The props' lights, which draw over the night's veil (docs/DAYNIGHT.md §5.12).
 	order.append(&"Lamps")
 	assert_eq(names, order)
 	var layer: Node2D = _world.get_node("%DisasterLayer")
@@ -395,7 +395,7 @@ func test_set_pieces_draw_above_the_ground_and_below_the_road() -> void:
 
 func test_the_lamps_glow_over_the_veil_at_night() -> void:
 	# The props' lights add light over the night's veil, as the legends' glows do, and the world
-	# lights them as its clock does (DAYNIGHT_PLAN.md §5.12). Without a clock, and by day, they are
+	# lights them as its clock does (docs/DAYNIGHT.md §5.12). Without a clock, and by day, they are
 	# out.
 	var lamps: Lamps = _world.get_node("%Lamps")
 	assert_eq(lamps.z_index, Tuning.GLOW_Z)
@@ -543,7 +543,7 @@ func test_an_empty_set_piece_scene_is_an_error() -> void:
 
 func test_the_shadows_follow_the_clock_and_the_props() -> void:
 	# The world lays each prop's shadow and the car's, and shows them as its clock does
-	# (DAYNIGHT_PLAN.md §5.11). Without a clock it shows none.
+	# (docs/DAYNIGHT.md §5.11). Without a clock it shows none.
 	var shadows: Shadows = _world.get_node("%Shadows")
 	assert_false(shadows.y_sort_enabled)
 	assert_eq(shadows.z_index, 0)

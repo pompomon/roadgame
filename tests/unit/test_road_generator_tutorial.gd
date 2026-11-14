@@ -1,5 +1,5 @@
 extends GutTest
-## The tutorial's road over many seeds (TUTORIAL_PLAN.md §5.1): its junctions are T-junctions whose
+## The tutorial's road over many seeds (docs/TUTORIAL.md §5.1): its junctions are T-junctions whose
 ## wrong exits loop round to the junction two on, each loop tile belongs to the nearer end and is of
 ## its area, a loop turns no sooner than the path does, no road touches a loop's side, a loop stays
 ## within DEAD_END_MAX_TILES rows of the junction that frees it, as a dead end does, and the buffer
@@ -64,7 +64,7 @@ func test_the_tutorial_ends_with_its_group_and_the_seed_road_follows() -> void:
 
 ## The road that the tutorial laid past the streak's end counts toward the schedule, but is laid in
 ## the tutorial's shape. An entry that falls due on it comes with the City's first junction after
-## it, rather than never (TUTORIAL_PLAN.md §5.5).
+## it, rather than never (docs/TUTORIAL.md §5.5).
 func test_an_entry_due_on_the_tutorials_road_comes_after_its_last_group() -> void:
 	var gen := RoadGenerator.new(1, Fixtures.set_piece_schedule(2, &"tunnel", 3), true)
 	Fixtures.path_until_turn(gen, 10)
@@ -113,7 +113,7 @@ func _count(path: Array[RoadTile]) -> int:
 
 
 ## Checks the tutorial's junctions of `path`, those before turn `end`, and their loops. It checks
-## nothing once the test fails, so that a broken rule fails once (ROADGEN_PLAN.md §6.2, N7).
+## nothing once the test fails, so that a broken rule fails once (docs/ROADGEN.md §6.2, N7).
 func _check_tutorial(gen: RoadGenerator, path: Array[RoadTile], end: int, label: String) -> void:
 	if is_failing():
 		return
