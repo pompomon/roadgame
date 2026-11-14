@@ -11,6 +11,7 @@ What AGENTS.md §3 leaves out: setting up the checks (§1), seeing the game on t
 - **Time**, on 2 CPUs: `lint.sh` 9 s, `import.sh` 14 s, `check_scripts.sh` 2 s, `run_tests.sh` 75–110 s, `smoke.sh` 1 s. A CI run started by hand takes 5–6 minutes for the same results.
 - **Fewer tests.** `run_tests.sh` takes only GUT's options that choose tests, `-gselect=`, `-gtest=`, `-gdir=`, `-ginner_class=` and `-gunit_test_name=`, so its checks for errors, leaks and the save still apply. `-gselect=test_hud` runs each script whose file name contains `test_hud`, in 2 s. `-gdir= -gtest=res://tests/unit/test_hud.gd,res://tests/integration/test_crash.gd` runs just those two: `-gtest` alone adds them to the whole suite.
 - **Side by side.** Two whole suites in two worktrees took 77 s each on 2 CPUs, as long as one alone, so run one worktree per CPU (`nproc`). Each needs its own import: `git worktree add --detach /tmp/n1 HEAD && (cd /tmp/n1 && tools/ci/import.sh)`. Remove it after with `git worktree remove /tmp/n1`.
+- **Editor warnings.** No check reports GDScript warnings, so a plan's §6.3 compares them on `main` and on the branch in one of two ways. Put a temporary `override.cfg` in the project root that raises each `debug/gdscript/warnings/*` setting at level 1 (warn) to 2 (error), run `check_scripts.sh`, then delete the file (#61). Or start the language server, `godot --headless --editor --lsp-port <port>`, and open every `.gd` outside `addons/` and `.godot/` (docs/M2.md §6.3).
 
 ## 2. Seeing the game
 
@@ -59,7 +60,7 @@ sed -i 's/"args":\[\]/"args":["--"].concat(new URLSearchParams(location.search).
 python3 -m http.server -d /tmp/roadgame-web 8000   # http://localhost:8000/?arg=--play&arg=--seed=12345
 ```
 
-- Drive Chrome and Firefox with Playwright, headed under Xvfb (#28). If Firefox is missing, install Playwright's, with the version of Playwright that drives it: `npx -y playwright@<version> install --with-deps firefox` took 47 s.
+- Drive Chrome and Firefox with Playwright, headed under Xvfb (#28): headless Chrome ran `requestAnimationFrame` at 1 Hz. If Firefox is missing, install Playwright's, with the version of Playwright that drives it: `npx -y playwright@<version> install --with-deps firefox` took 47 s. Without a sound device, Firefox's audio clock stands still, so give it a PulseAudio null sink to check sound (docs/M5.md P12).
 - They draw in software, so their frame rate depends on the browser and the page's size: on 2 CPUs, Chrome drew 49 fps at 360×640 and 21 at 1280×720, and Firefox 59 and 55. Judge the frame rate only on the Fold4. Chrome's `GPU stall due to ReadPixels` notes, and an early `CONTEXT_LOST_WEBGL`, come from software GL too (docs/M4.md §6.6).
 - With touch emulation on, Chrome takes touches of several fingers over the DevTools protocol (#23).
 - Playwright keeps its pages focused, so a blur needs a browser without it, such as Chrome driven over the DevTools protocol, with real X input from `xdotool` under a window manager (#28, #33).

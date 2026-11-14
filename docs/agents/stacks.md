@@ -16,7 +16,7 @@ AGENTS.md §4 has the branch names and the commit format. This is how a plan's P
    git push
    gh pr edit <k+1> --base main       # unless GitHub retargeted it
    ```
-   Simulate the merges first with `git merge-tree`. A push like this changes no files in the PR, so it starts no Copilot review (review.md §2).
+   Simulate the merges first with `git merge-tree`. If PR k's branch is already deleted, merge its last state with `git fetch origin pull/<k>/head && git merge FETCH_HEAD`. A push like this changes no files in the PR, so it starts no Copilot review (review.md §2).
 6. **Retarget before a branch is deleted.** Deleting a merged PR's branch closes each open PR based on it, unless GitHub retargets that PR first. It did for #40–#44 and #47, but deleting `m6/plan` closed #46. GitHub Mobile's "Delete branch" button is reported to close such PRs where github.com's retargets them. A PR closed that way can't be reopened while its base is gone: #46 needed `m6/plan` restored, the PR reopened and retargeted, and the branch deleted again. So once PR k is merged, retarget PR k+1 with `gh pr edit <k+1> --base main` before anyone deletes PR k's branch, or ask the owner to keep the branches until the whole stack has landed.
 7. **GitHub's native stacks rebase where these steps merge.** After a squash, GitHub replays each branch's own commits onto it and drops its merges (docs/ROADGEN.md §4.5, docs/DAYNIGHT.md §4.5).
    - Register a stack only once its bottom PR targets `main`: a stack merges into that PR's base, so DN's #70 landed in `dn/plan`.

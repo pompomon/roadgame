@@ -6,7 +6,8 @@ applyTo: "disasters/**,tools/art/**,tools/audio/**,autoload/audio_director.gd,co
 
 A disaster from a legend extends `Legend` (`disasters/legend.gd`). The § and IDs below are those of docs/M6.md.
 
-- It poses its beats, `Tuning.<ID>_BEATS`, on its own clock in `_physics_process`: no Tween and no timer (§5.2, §5.3).
+- **Choosing one** from §3.3's list. It reads at 360×640 in 2–4 s without words, belongs in its area, and ends with the car gone and something left behind. It comes from folklore or a public-domain story, not a recent work with owners such as Slender Man, Siren Head or the Backrooms, and isn't sacred to a living tradition. It takes the car another way than its area's other two, and needs only sprite sheets with frames of at most 96×96.
+- It poses its beats, `Tuning.<ID>_BEATS`, on its own clock in `_physics_process`: no Tween and no timer (§5.2, §5.3). The beats are a `const` `Array[float]`: in 4.7.2 a `const` `PackedFloat64Array` fails to parse, and `check_scripts.sh` hangs.
 - Before its delay nothing shows. Each part is in its scene, hidden by `modulate.a` 0 or `scale` 0. Polygons and particles stay under the legend, and a `Polygon2D`'s `visible`, `color`, `polygon` and `offset` never change (S6). A sprite that stands up goes in `standing`: `play()` puts it on the stage, `%Props`, to sort with the props and the car, and the legend frees it when it leaves the tree (§5.3).
 - To take the car, it hides it in the frame that the double from `take_car()` shows (§5.4).
 - Glows add light, so only a legend with a veil has them: over a light ground they clip to white (S10, §5.5). A new veil is a `ViewVeil`, drawn at `VEIL_Z` (light.instructions.md).

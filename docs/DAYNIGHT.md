@@ -60,7 +60,7 @@ The owner answered Q4, Q5 and Q14; the rest are defaults.
 
 ### 4.5 Landing
 
-Each PR targeted the branch below and landed alone once its base was `main`. With #70–#74 in native stack #75 while #70's base was `dn/plan`, #70 merged there, not into `main`; GitHub's cascade, which replays each branch's commits without its merges, stopped at `dn/3-daylight`. The repair rebased nothing: `dn/1-cycle` came back as #76.
+Each PR targeted the branch below and landed alone once its base was `main`. With #70–#74 in native stack #75 while #70's base was `dn/plan`, #70 merged there, not into `main`; GitHub's cascade, which replays each branch's commits without its merges, stopped at `dn/3-daylight`. The repair rebased nothing: `dn/1-cycle` came back as #76. GitHub held the CI run of each push from the agent's session (`action_required`), as it held #76's; `gh run rerun <run-id>` started it, while a run from `gh workflow run` passed but stayed out of the commit's checks. It held none of its own rebases' runs.
 
 ## 5. Design
 
@@ -156,7 +156,7 @@ The five checks passed on each PR; at PR 5, 160 scripts, 583 tests and 426,861 a
 
 - **M7 views:** add them to `SCREENS` in `tests/integration/test_props_in_view.gd`, which checks that the veil covers them.
 - **M7 haptics and Web audio:** add them to `_sound()` in `tests/integration/test_daylight_run.gd`.
-- **The tunnel's darkening** (C15, `setpieces/tunnel.gd`): through Daylight, eased with `Tunnel.opacity()`, not a `CanvasModulate`.
+- **The tunnel's darkening** (C15, `setpieces/tunnel.gd`): through Daylight, eased with `Tunnel.opacity()` and no faster than `LIGHT_MAX_RATE`, not a `CanvasModulate`.
 - **A night setting** (Q9): `Color.WHITE.lerp(light, k)` keeps the rules.
 - **Saved runs** would need `DayCycle`'s state; per-zone hours would go in `AreaDef`.
 - **A bound** for the loop in `tests/unit/test_road_generator_tutorial.gd`, which runs out of memory if the schedule has no set piece.

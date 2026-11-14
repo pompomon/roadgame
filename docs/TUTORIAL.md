@@ -30,7 +30,7 @@ Goal: let a new player learn the pattern without dying; on `main` the first wron
 
 ## 3. Decisions
 
-- **Q1.** The road: T's in groups of four, each wrong exit a loop to the junction two on or two back.
+- **Q1.** The road: T's in groups of four, each wrong exit a loop to the junction two on or two back. A crossroads' third exit would lead into the space that the path and a loop enclose, where it could only end.
 - **Q2.** When the City starts: at the streak's last turn, on the road already laid.
 - **Q3.** Who gets it: Play, until it is finished once, and only in the City.
 - **Q4.** The off-road limit: it ends the streak; 0 health ends nothing.

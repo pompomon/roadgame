@@ -69,7 +69,7 @@ Only a crossroads' tile is a `CROSS_JUNCTION`; a decoy's mask is a T's at the ot
 
 ### 5.3 Dead ends (R4, R5)
 
-`_free_run(from, exit, length)` counts the free cells up to the first taken one, and `_place_dead_end()` lays that many. Fewer than it drew counts in `shortened_count`; 0 drops the exit, in `dropped_count`. None is dropped, as the path moves only towards −x and −y. A straight-on dead end meets no earlier tile. An opposite-turn one can be cut only by the straight-on dead end of the junction two turns back, at least 3 cells away (D7), which leaves it 2. Dead ends meet only those of junctions within 2 × `DEAD_END_MAX_TILES` = 18 path steps, all in the buffer.
+`_free_run(from, exit, length)` counts the free cells up to the first taken one, and `_place_dead_end()` lays that many. Fewer than it drew counts in `shortened_count`; 0 drops the exit, in `dropped_count`. None is dropped, as the path moves only towards −x and −y. A straight-on dead end meets no earlier tile. An opposite-turn one can be cut only by an earlier junction's straight-on dead end. The nearest, two turns back, is at least 3 cells away (D7), which leaves it 2, and earlier ones are farther. Dead ends meet only those of junctions within 2 × `DEAD_END_MAX_TILES` = 18 path steps, all in the buffer.
 
 At 6 tiles, an end is out of view on all 7 reference screens as the car enters the junction on the centreline; at 5, 1639×640 and 1137×640 show it. Ends still show from the leg before a short approach, and 1639×640 shows up to 4.5 px of a 6-tile end to a car steered 15–45° across the entry, which 7 tiles would hide. An end tells only that an exit is wrong, which the player's rule already does, so the length is for the look.
 

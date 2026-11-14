@@ -52,7 +52,7 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 
 | Exit | Meaning | Do |
 |---|---|---|
-| 0 | Copilot reviewed the head commit, nothing new needs an answer, and no check failed but Copilot's own. Or the PR is closed, even if feedback came with that | If the summary shows checks still running, `gh pr checks <n> --watch --required`. Then the PR waits for the owner. Once it's closed there's nothing to push: read any feedback printed above, which may ask for a follow-up |
+| 0 | Copilot reviewed the head commit, nothing new needs an answer, and no check failed but Copilot's own. Or the PR is closed, even if feedback came with that | If the summary shows checks still running, `gh pr checks <n> --watch --required`; if it shows only Copilot's, GitHub held the CI run (§4). Then the PR waits for the owner. Once it's closed there's nothing to push: read any feedback printed above, which may ask for a follow-up |
 | 2 | Feedback that needs an answer, printed above the summary: any new review but a clean 🟢 one, and any new comment, the owner's too. Or, if you started late, Copilot's review of the head that isn't clean and has no thread reply or post by anyone but Copilot after it | Handle it (§2), push, reply, and watch again. If the last line says someone pushed, pull first |
 | 3 | No Copilot review of the head commit in 15 minutes | Look for a setup-failure comment from Copilot, then `gh pr edit <n> --add-reviewer @copilot` and watch once more. If there's still none, tell the owner in a PR comment |
 | 4 | The head moved, so someone pushed, and nothing new needs an answer | Pull, then watch again |
@@ -66,7 +66,9 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 
 ## 4. CI
 
-`ci.yml` runs on every pull request (no branch filter), on pushes to `main` and by hand. Its jobs are `lint`, `test`, `export-web`, and `export-android` for the APK and the AAB; these five are the required checks of ruleset "Test". `test` also fails if the checks changed the tree (AGENTS.md §3). `deploy-web` publishes to GitHub Pages and runs only on `main`. A run takes about 4–6 minutes: `lint` under 20 s, `test` 1–2 min, each export 1–3 min. `release.yml` runs for `v*.*.*` tags or by hand.
+`ci.yml` runs on every pull request (no branch filter), on pushes to `main` and by hand. Its jobs are `lint`, `test`, `export-web`, and `export-android` for the APK and the AAB; these five are the required checks of ruleset "Test". To require a new one, the owner opens the ruleset, clicks **Add checks** and types its name; GitHub suggests only checks that reported in the last 7 days, so if it's missing, the **+** beside the box adds the name as typed. `test` also fails if the checks changed the tree (AGENTS.md §3). `deploy-web` publishes to GitHub Pages and runs only on `main`. A run takes about 4–6 minutes: `lint` under 20 s, `test` 1–2 min, each export 1–3 min. `release.yml` runs for `v*.*.*` tags or by hand.
+
+**Held runs.** GitHub holds the CI run of each push from an agent's session: the run waits as `action_required`, and the commit has no CI checks, as #76's and #78's had none. Start it with `gh run rerun <run-id>`, from `gh run list -R pompomon/roadgame --branch <branch>`; it runs as its second attempt. A run started with `gh workflow run` passes too, but GitHub leaves it out of the commit's checks, so the PR stays blocked (docs/DAYNIGHT.md §4.5). GitHub's own pushes, such as a native stack's rebase, aren't held.
 
 When a check fails, read its log: `gh run view <run-id> --log-failed` (`gh pr checks <n>` gives the run's URL). Re-run the known flakes with `gh run rerun <run-id> --failed`:
 - GUT's daily update check gets a 403 from GitHub's API rate limit in an editor run, and the scripts reject its `ERROR: [GUT] Could not get version info`. Don't patch `addons/gut/`.
