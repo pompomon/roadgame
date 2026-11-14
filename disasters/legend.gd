@@ -1,16 +1,16 @@
 @abstract class_name Legend
 extends DisasterBase
-## A disaster from a legend (M6_PLAN.md §5.3): beats on one clock (Beats), a veil that darkens the
+## A disaster from a legend (docs/M6.md §5.3): beats on one clock (Beats), a veil that darkens the
 ## world, glows that light it (§5.5), standing parts that sort with the props, and a double that
 ## takes the car's place (§5.4).
 ##
 ## Nothing shows before the delay in its params: each part waits in the scene, hidden by its
 ## modulate's alpha or its scale. play() moves the standing parts onto the stage, still hidden.
 ## Polygons and particles stay under the legend, and a polygon's visible, color, polygon and offset
-## never change: each change would redraw it (M2_PLAN.md §5.7, S6). A legend's script poses its
-## beats in _pose(), and has a `static func duration(params: DisasterParams) -> float`, its delay
-## and Beats.total() of its beats. Legend steps them in _physics_process(), which a legend leaves
-## alone; a legend's _ready() calls super() first.
+## never change: each change would redraw it (docs/M2.md §5.7, docs/M6.md S6). A legend's script
+## poses its beats in _pose(), and has a `static func duration(params: DisasterParams) -> float`,
+## its delay and Beats.total() of its beats. Legend steps them in _physics_process(), which a
+## legend leaves alone; a legend's _ready() calls super() first.
 
 enum Veil { NONE, DUSK, NIGHT }
 
@@ -119,7 +119,7 @@ func _exit_tree() -> void:
 
 ## What the veil multiplies the world by at the end of the first beat. The world shows the legend's
 ## own colour where the ambient light is brighter, and the ambient's where it is as dark already, so
-## at night the two veils never darken a channel past either (DAYNIGHT_PLAN.md §5.6). By day it is
+## at night the two veils never darken a channel past either (docs/DAYNIGHT.md §5.6). By day it is
 ## the legend's own colour.
 func _veil_color() -> Color:
 	var own := _own_color()

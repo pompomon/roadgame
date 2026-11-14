@@ -1,5 +1,5 @@
 extends GutTest
-## DayCycle (DAYNIGHT_PLAN.md §5.1–§5.3): a zone's clock, the light of each hour, and the light
+## DayCycle (docs/DAYNIGHT.md §5.1–§5.3): a zone's clock, the light of each hour, and the light
 ## shown, which follows it no faster than LIGHT_MAX_RATE.
 
 const DELTA := 1.0 / 60.0
@@ -118,7 +118,7 @@ func test_after_a_reset_the_light_catches_up_and_then_follows_exactly() -> void:
 	# From the night at 22:00, a new zone's clock is back at 07:00: the light shown takes the
 	# largest channel difference over the rate to get there. A sum of 1/60 s may fall short of it,
 	# so it may take a frame more. It goes the straight way, within float rounding, so that every
-	# light shown is a blend of the key lights, where the smoke shows (DAYNIGHT_PLAN.md §5.7).
+	# light shown is a blend of the key lights, where the smoke shows (docs/DAYNIGHT.md §5.7).
 	var cycle := _cycle(120.0, 22.0)
 	var from := cycle.light
 	cycle.start_hour = Tuning.DAY_START_HOUR
@@ -191,7 +191,7 @@ static func _ground_length(shadow: Vector2) -> float:
 
 func test_shadows_sweep_from_the_right_to_the_left_in_front_of_what_casts_them() -> void:
 	# The sun by day and the moon by night cross the sky from the screen's left, through its top, to
-	# its right (DAYNIGHT_PLAN.md §5.11). So the shadows sweep from the right, through straight
+	# its right (docs/DAYNIGHT.md §5.11). So the shadows sweep from the right, through straight
 	# down, to the left, and never fall up the screen, behind what casts them, where they'd hide.
 	var rises: Array[float] = [Tuning.SUN_RISE_HOUR, Tuning.SUN_SET_HOUR]
 	var sets: Array[float] = [Tuning.SUN_SET_HOUR, Tuning.SUN_RISE_HOUR + 24.0]
@@ -214,7 +214,7 @@ func test_shadows_sweep_from_the_right_to_the_left_in_front_of_what_casts_them()
 func test_a_shadow_is_as_long_as_the_light_is_low_up_to_the_longest() -> void:
 	# On the ground a shadow is 1 / tan(h) times as long as what casts it is tall, h being how high
 	# the sun or the moon stands: shortest at noon and midnight, and SHADOW_LONGEST as it rises and
-	# sets. On the screen it is shorter or longer by the way it falls (DAYNIGHT_PLAN.md §5.11).
+	# sets. On the screen it is shorter or longer by the way it falls (docs/DAYNIGHT.md §5.11).
 	var noon := (Tuning.SUN_RISE_HOUR + Tuning.SUN_SET_HOUR) / 2.0
 	var noon_length := _ground_length(DayCycle.shadow_at(noon))
 	assert_almost_eq(noon_length, 1.0 / tan(Tuning.SUN_HIGHEST), 1e-5, "at noon")

@@ -2,7 +2,7 @@ extends GutTest
 ## The title screen in the game (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): the game starts on it,
 ## Play starts a run, and the game-over screen's Title goes back to it, where the Atlas and the
 ## collection show what the run found. Android's back button leaves each screen, and quits only
-## from the title (M5_PLAN.md L13). SaveService keeps the save in memory.
+## from the title (docs/M5.md L13). SaveService keeps the save in memory.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
@@ -15,7 +15,7 @@ const GAME_OVER := GameState.State.GAME_OVER
 
 func before_each() -> void:
 	SaveService.use_memory()
-	# Play would start the tutorial, which has no disasters (TUTORIAL_PLAN.md §5.6).
+	# Play would start the tutorial, which has no disasters (docs/TUTORIAL.md §5.6).
 	SaveService.complete_tutorial()
 
 
@@ -35,7 +35,7 @@ static func _title(main: Node) -> TitleScreen:
 	return main.get_node("%Title")
 
 
-## The cars in World's Props layer, which y-sorts them with the props (M5_PLAN.md §5.6).
+## The cars in World's Props layer, which y-sorts them with the props (docs/M5.md §5.6).
 static func _cars(main: Node) -> int:
 	var cars := 0
 	for child: Node in main.get_node("%World/%Props").get_children():
@@ -190,7 +190,7 @@ func test_androids_back_button_in_each_state() -> void:
 
 
 func test_the_back_button_does_not_quit_on_its_own() -> void:
-	# Godot quits from every screen unless quit_on_go_back is off (M5_PLAN.md L13).
+	# Godot quits from every screen unless quit_on_go_back is off (docs/M5.md L13).
 	assert_false(ProjectSettings.get_setting("application/config/quit_on_go_back"))
 	assert_false(get_tree().quit_on_go_back)
 

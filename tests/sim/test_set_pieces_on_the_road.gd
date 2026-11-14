@@ -1,7 +1,7 @@
 extends GutTest
 ## The set pieces on the road (IMPLEMENTATION_PLAN.md M4.4): the autopilot drives through the tunnel
 ## and over the bridge, each drawn while the car is on it, and a river keeps BRIDGE_BANK clear of
-## every other road (M4_PLAN.md K7).
+## every other road (docs/M4.md K7).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0

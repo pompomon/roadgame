@@ -3,7 +3,7 @@ extends MenuScreen
 ## The Atlas (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): the bests, and a card for each area
 ## of the schedule, in the order a run reaches them. An area that no run has reached is a
 ## silhouette. A card's bests are the most distance and the most turns a run made in that area
-## (M5_PLAN.md L8). Like the HUD, its text uses only characters in Godot's default font.
+## (docs/M5.md L8). Like the HUD, its text uses only characters in Godot's default font.
 
 const CARD_SCENE := preload("res://ui/menu_card.tscn")
 ## The name of an area that no run has reached, and its card's text and swatch.

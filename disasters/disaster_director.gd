@@ -5,12 +5,12 @@ extends Node
 ## disaster stream, and plays it on World's DisasterLayer. After a crash it shakes the camera and
 ## waits CRASH_SECONDS while the car stops and smokes. Either way it then emits sequence_finished,
 ## once, and DISASTER_TIMEOUT after the end of the run at the latest. Its time comes from
-## _physics_process, as a disaster's must (M3_PLAN.md J2).
+## _physics_process, as a disaster's must (docs/M3.md J2).
 
 signal sequence_finished
 ## The disaster from `area`'s pool started to play.
 signal disaster_started(disaster: DisasterBase, area: AreaDef)
-## The disaster shows: the delay in its params is over, on its own clock from play() (M6_PLAN.md
+## The disaster shows: the delay in its params is over, on its own clock from play() (docs/M6.md
 ## S18). Its sound starts now, with its first beat.
 signal disaster_appeared(disaster: DisasterBase, area: AreaDef)
 
@@ -18,7 +18,7 @@ enum Sequence { NONE, STOPPING, PLAYING, CRASH, FINISHED }
 
 ## Where disasters go: World's DisasterLayer, above the road and below the car (J5).
 var layer: Node2D
-## Where a legend stands its parts: World's Props (M6_PLAN.md S2).
+## Where a legend stands its parts: World's Props (docs/M6.md S2).
 var stage: Node2D
 var sequence := Sequence.NONE
 ## The disaster playing, or null, and its params.
@@ -29,7 +29,7 @@ var _rng := RandomNumberGenerator.new()
 var _area: AreaDef
 var _car: CarController
 var _camera: CameraRig
-## The light that the run ended in, for the disaster (DAYNIGHT_PLAN.md §5.6).
+## The light that the run ended in, for the disaster (docs/DAYNIGHT.md §5.6).
 var _ambient := Color.WHITE
 ## Seconds since the run ended.
 var _time := 0.0

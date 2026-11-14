@@ -1,5 +1,5 @@
 extends GutTest
-## Shadows (DAYNIGHT_PLAN.md §5.11): a black copy of each prop's frame and of the car's, laid on the
+## Shadows (docs/DAYNIGHT.md §5.11): a black copy of each prop's frame and of the car's, laid on the
 ## ground along the clock's shadow, all in one group at the clock's shadow alpha.
 
 const CAR_SCENE := preload("res://car/car.tscn")
@@ -173,7 +173,7 @@ func test_removed_shadows_give_their_sprites_back() -> void:
 func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	# The car's shadow is an upright prop's, from its foot, in its frame. A legend that shrinks the
 	# car shrinks its shadow, and one that makes it clear makes its shadow as clear; a hidden car
-	# casts none (M6_PLAN.md §5.4). It is laid by its sprite's transform, and measured by its frame,
+	# casts none (docs/M6.md §5.4). It is laid by its sprite's transform, and measured by its frame,
 	# though its sprite was a prop's.
 	var used := _shadows.add(_prop(PropDef.Shadow.UPRIGHT), FOOT)
 	_shadows.remove(used)

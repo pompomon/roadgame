@@ -2,13 +2,13 @@ class_name WorldRenderer
 extends Node2D
 ## Draws the tiles of a RoadBuffer (IMPLEMENTATION_PLAN.md M1.6): one road cell per tile, from its
 ## area's road sheet, erased when the buffer frees the tile. The ground isn't drawn per tile: each
-## area the path goes through gets a band of its ground across the screen (M5_PLAN.md §5.5). The
+## area the path goes through gets a band of its ground across the screen (docs/M5.md §5.5). The
 ## path heads only N or W, up the screen, so an area's path tiles lie between two screen rows: its
 ## band reaches from its first path tiles up to where the next area's begins. Its edge blends it
 ## into the last area's ground over its first TRANSITION_TILES path tiles (M4.3). Each run of
 ## set-piece tiles gets its scene once the buffer has made the whole run, which may take two
 ## batches, and loses it with the run's last tile (M4.4). build() makes the tileset once; bind()
-## draws a run's buffer, and a retry binds the next run's (M3_PLAN.md J11).
+## draws a run's buffer, and a retry binds the next run's (docs/M3.md J11).
 
 ## How far the ground reaches past the buffered tiles, in world pixels: farther than any view can
 ## show past them. The camera follows the car, which stays between the buffer's oldest and newest
@@ -39,7 +39,7 @@ class Band:
 ## The run's car, which the set pieces follow, or null. bind() clears it.
 var car: Node2D:
 	set = set_car
-## The zone's clock, whose shadows the props and the car cast (DAYNIGHT_PLAN.md §5.11), or null for
+## The zone's clock, whose shadows the props and the car cast (docs/DAYNIGHT.md §5.11), or null for
 ## none. main.gd sets it to Daylight's.
 var cycle: DayCycle
 
@@ -50,13 +50,13 @@ var _road_sources: Dictionary[StringName, int] = {}
 var _buffer: RoadBuffer
 ## The ground bands, oldest first. Each draws over the last.
 var _bands: Array[Band] = []
-## The car's skid marks (M5_PLAN.md §5.7), on the Skids layer. build() makes it.
+## The car's skid marks (docs/M5.md §5.7), on the Skids layer. build() makes it.
 var _skids: SkidMarks
 ## The tiles so far of a run of set-piece tiles that the buffer hasn't finished.
 var _open_run: Array[RoadTile] = []
 ## The set pieces, by the path index of their run's last tile.
 var _set_pieces_by_end: Dictionary[int, SetPiece] = {}
-## The props beside the road (M5_PLAN.md §5.6), on the Props layer. build() makes it.
+## The props beside the road (docs/M5.md §5.6), on the Props layer. build() makes it.
 var _scatter: PropScatter
 
 @onready var _ground: Node2D = %Ground

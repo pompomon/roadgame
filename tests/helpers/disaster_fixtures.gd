@@ -1,6 +1,6 @@
 extends RefCounted
 ## Disasters under test outside the main scene, for the M4 disaster tests: a stopped car, a camera,
-## params, and the director that plays a disaster after a turn. For the legends (M6_PLAN.md §4 PR
+## params, and the director that plays a disaster after a turn. For the legends (docs/M6.md §4 PR
 ## 2): a stage, what a disaster draws, and whether it flashes. No class_name: tests/ is not
 ## exported.
 
@@ -138,7 +138,7 @@ static func particles(node: Node) -> Array[CPUParticles2D]:
 
 
 ## What `of` draws, but its particles: its polygons and sprites, and what a legend has put on the
-## stage, with what hangs under it (M6_PLAN.md S1).
+## stage, with what hangs under it (docs/M6.md S1).
 static func drawables(of: DisasterBase) -> Array[CanvasItem]:
 	var found: Array[CanvasItem] = []
 	for root: Node in _roots(of):
@@ -167,7 +167,7 @@ static func stage(test: GutTest) -> Node2D:
 	return made
 
 
-## Why the disaster of `scene` flashes with `with_params`, or "" if it doesn't (M6_PLAN.md §5.6,
+## Why the disaster of `scene` flashes with `with_params`, or "" if it doesn't (docs/M6.md §5.6,
 ## E6). It plays the disaster frame by frame with a car, a camera and a stage, and adds up the light
 ## of its glows, the sprites that add light, at the points of a grid fixed in the World,
 ## FLASH_GRID px apart. So glows that overlap add up, and the camera's shake moves nothing.
@@ -286,7 +286,7 @@ static func shine(
 
 
 ## What `veil`, a polygon that multiplies, multiplies the world by: its colour, whatever its alpha,
-## unless it's so clear that the canvas skips it (M6_PLAN.md P10). Opaque.
+## unless it's so clear that the canvas skips it (docs/M6.md S4). Opaque.
 static func veil_tint(veil: Polygon2D) -> Color:
 	const DRAWN_ALPHA := 0.007
 	var chain := _modulate(veil)
@@ -431,7 +431,7 @@ static func middle(values: Array[float]) -> float:
 
 
 ## A scene of a disaster with only its words, which plays nothing, for the screens that show them
-## apart from the game's pools (M6_PLAN.md S15).
+## apart from the game's pools (docs/M6.md S15).
 static func packed(id: StringName, display_name: String, fate := "", lore := "") -> PackedScene:
 	const WORDS_DISASTER := preload("res://tests/helpers/words_disaster.gd")
 	var made: DisasterBase = WORDS_DISASTER.new()

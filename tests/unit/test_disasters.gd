@@ -3,9 +3,9 @@ extends GutTest
 ## it shows nothing until play() and its delay; then it finishes once, after its static
 ## duration(params), with the car out of sight where it stopped; and with the car's stop it takes 2
 ## to 4 s from the turn. It seeds its particles from its params, shows them while they emit, and
-## never redraws a polygon (M2_PLAN.md §5.7). The pools come from the game's schedule, so a new
+## never redraws a polygon (docs/M2.md §5.7). The pools come from the game's schedule, so a new
 ## disaster is checked too. With them plays the sample legend, which uses every part of the legend
-## kit (M6_PLAN.md §4 PR 2): what a legend stands on the stage and the car's double count as what it
+## kit (docs/M6.md §4 PR 2): what a legend stands on the stage and the car's double count as what it
 ## shows, and no disaster flashes (E6).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -142,7 +142,7 @@ func test_each_finishes_without_a_car_or_a_camera() -> void:
 
 
 func test_each_seeds_its_particles_from_its_params_and_scales_them() -> void:
-	# Godot gives each CPUParticles2D a random seed when it's made (M3_PLAN.md J16).
+	# Godot gives each CPUParticles2D a random seed when it's made (docs/M3.md J16).
 	for scene: PackedScene in Disasters.contract_scenes():
 		var disaster := Disasters.disaster(self, scene, null, null)
 		var particles := Disasters.particles(disaster)
@@ -207,7 +207,7 @@ func test_each_shows_its_particles_while_they_emit_and_each_emits() -> void:
 
 func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 	# The kit's, for a legend's ground: the test legend draws its ring with it. No legend of the
-	# pools does, since the natural four left them (M6_PLAN.md §4 PR 8).
+	# pools does, since the natural four left them (docs/M6.md §4 PR 8).
 	for radius: float in [Sample.RING_RADIUS, 2.0 * Sample.RING_RADIUS]:
 		var points := DisasterBase.outline(radius)
 		assert_eq(points.size(), DisasterBase.OUTLINE_POINTS)
@@ -217,7 +217,7 @@ func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 
 
 func test_none_flashes() -> void:
-	# M6_PLAN.md S11, E6, after WCAG 2.3.1: no more than three flashes a second, nor a red flash.
+	# docs/M6.md S11, E6, after WCAG 2.3.1: no more than three flashes a second, nor a red flash.
 	for scene: PackedScene in Disasters.contract_scenes():
 		for intensity: float in [Tuning.DISASTER_INTENSITY_MIN, Tuning.DISASTER_INTENSITY_MAX]:
 			var why := Disasters.flashes(self, scene, Disasters.params(intensity))
@@ -269,8 +269,8 @@ func test_pulses_flash_after_glows_add_up_past_white() -> void:
 
 
 func test_none_redraws_a_polygon() -> void:
-	# Every redraw of a Polygon2D after its first raises WebGL errors on the Web (M2_PLAN.md §5.7).
-	# A polygon made after play(), or put on the stage, would escape the count (M6_PLAN.md S6). As
+	# Every redraw of a Polygon2D after its first raises WebGL errors on the Web (docs/M2.md §5.7).
+	# A polygon made after play(), or put on the stage, would escape the count (docs/M6.md S6). As
 	# in the game, the redraws that a frame's step asks for come before the next step, so a polygon
 	# shown again counts even if it ends hidden (N39). The polygons are looked at after each step,
 	# so one made and freed in between counts too (N40). Headless, a frame sleeps as if it had
@@ -305,9 +305,9 @@ func _count(draws: Array[int]) -> void:
 
 
 func test_with_the_stop_each_takes_2_to_4_seconds() -> void:
-	# The director starts it once the car has stopped, which takes up to STOP_SECONDS (M3_PLAN.md
+	# The director starts it once the car has stopped, which takes up to STOP_SECONDS (docs/M3.md
 	# J4). The stop and the disaster's clock each add up steps of DELTA, and each sum can fall just
-	# short of its time and take a frame more (M3_PLAN.md P10).
+	# short of its time and take a frame more (docs/M3.md P10).
 	var middle := (Tuning.DISASTER_INTENSITY_MIN + Tuning.DISASTER_INTENSITY_MAX) * 0.5
 	for scene: PackedScene in Disasters.contract_scenes():
 		var disaster := Disasters.disaster(self, scene, null, null)
@@ -328,7 +328,7 @@ func test_with_the_stop_each_takes_2_to_4_seconds() -> void:
 
 func test_after_a_wrong_turn_the_director_plays_each_in_2_to_4_seconds() -> void:
 	# IMPLEMENTATION_PLAN.md M3.1, from the end of the run: the car stops, within STOP_SECONDS
-	# (M3_PLAN.md J4), and the disaster plays, with the delay of its params.
+	# (docs/M3.md J4), and the disaster plays, with the delay of its params.
 	for scene: PackedScene in Disasters.contract_scenes():
 		var times: Array[float] = []
 		for run_seed: int in 10:
@@ -340,7 +340,7 @@ func test_after_a_wrong_turn_the_director_plays_each_in_2_to_4_seconds() -> void
 
 
 func test_each_has_a_fate_for_game_over_and_a_lore_for_its_card() -> void:
-	# M6_PLAN.md S8 and S12: short enough for game over's and a card's lines at 360 x 640 (P13).
+	# docs/M6.md S8 and S12: short enough for game over's and a card's lines at 360 x 640 (P13).
 	const MAX_FATE := 40
 	const MAX_LORE := 80
 	for scene: PackedScene in Disasters.scenes():

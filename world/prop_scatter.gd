@@ -1,10 +1,10 @@
 class_name PropScatter
 extends RefCounted
-## Scatters each area's props beside the road (plan.md §5.2, M5_PLAN.md §5.6) on World's Props
+## Scatters each area's props beside the road (plan.md §5.2, docs/M5.md §5.6) on World's Props
 ## layer, which y-sorts them with the car. Each screen row of the path gets its props from
 ## PropLayout once the car is PROP_AHEAD path tiles before the row's path tile, so a row at a time
 ## as the car drives, and loses them when the buffer frees that tile. With BUFFER_BEHIND and
-## BUFFER_REFILL_AT, neither shows on the reference screens (M5_PLAN.md L2). The BUFFER_BEHIND rows
+## BUFFER_REFILL_AT, neither shows on the reference screens (docs/M5.md L2). The BUFFER_BEHIND rows
 ## below the first path tile get the props of its area at the start, and lose them with it.
 ## WorldRenderer makes it, binds it with itself and updates it every frame.
 
@@ -13,11 +13,11 @@ extends RefCounted
 class Shown:
 	extends RefCounted
 	var sprite: Sprite2D
-	## Its silhouette and its glows at night (DAYNIGHT_PLAN.md §5.12), or null.
+	## Its silhouette and its glows at night (docs/DAYNIGHT.md §5.12), or null.
 	var lit: Lamps.Lit
 	var def: PropDef
 	var phase: float
-	## Its shadow (DAYNIGHT_PLAN.md §5.11), or null.
+	## Its shadow (docs/DAYNIGHT.md §5.11), or null.
 	var cast: Shadows.Cast
 
 
@@ -28,17 +28,17 @@ class Row:
 	var animated: Array[Shown] = []
 
 
-## Where the props' lights glow at night (DAYNIGHT_PLAN.md §5.12), or null for none. WorldRenderer
+## Where the props' lights glow at night (docs/DAYNIGHT.md §5.12), or null for none. WorldRenderer
 ## sets it.
 var lamps: Lamps
 var pool: PropPool
-## Where the props' shadows lie (DAYNIGHT_PLAN.md §5.11), or null for none. WorldRenderer sets it.
+## Where the props' shadows lie (docs/DAYNIGHT.md §5.11), or null for none. WorldRenderer sets it.
 var shadows: Shadows
 
 ## The props of each area of the schedule that keep the contract, by the area's id.
 var _props: Dictionary[StringName, Array] = {}
 ## The area of the bound road's first path tile. A run can start in any area of the schedule
-## (ZONE_SELECT_PLAN.md Z3).
+## (docs/ZONE_SELECT.md Z3).
 var _first_area := &""
 var _buffer: RoadBuffer
 ## The rows that have their props, by their path tile's index.

@@ -1,5 +1,5 @@
 extends GutTest
-## The car's sheet (plan.md §5.3, M5_PLAN.md §5.7): a frame for each of CarController's directions
+## The car's sheet (plan.md §5.3, docs/M5.md §5.7): a frame for each of CarController's directions
 ## and the wreck, each whole within its frame. test_area_art.gd checks its colours.
 
 const CAR_SCENE := preload("res://car/car.tscn")

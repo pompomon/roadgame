@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Watch a pull request for new review feedback after a push (AGENTS.md §9). Needs gh, logged in.
+# Watch a pull request for new review feedback after a push (docs/agents/review.md §3).
+# Needs gh, logged in.
 set -euo pipefail
 
 usage() {
@@ -18,10 +19,10 @@ Exit codes:
      review, or Copilot's review of the head that was already there, isn't clean, and has no
      thread reply or post by anyone but Copilot after it. Handle it, push, reply, run this again.
      If the head moved too, the last line says so: pull first
-  3  No Copilot review of the head commit in time (AGENTS.md §9 says what to do)
+  3  No Copilot review of the head commit in time (docs/agents/review.md §3 says what to do)
   4  The head commit changed while watching, and nothing new needs an answer: pull, run this again
-  5  A check other than Copilot's own failed on the head commit (named in the summary; AGENTS.md
-     §10)
+  5  A check other than Copilot's own failed on the head commit (named in the summary;
+     docs/agents/review.md §4)
   1  Usage error, or gh failed 3 times in a row
 EOF
 }
@@ -197,7 +198,7 @@ else
   echo "Copilot's review of $short: none yet"
 fi
 # The head's check runs, all pages: status, conclusion, name. Copilot's own check doesn't make
-# this exit 5: its setup failures also arrive as a PR comment (AGENTS.md §8).
+# this exit 5: its setup failures also arrive as a PR comment (docs/agents/review.md §2).
 read_checks() {
   gh api --paginate "repos/$repo/commits/$head/check-runs?per_page=100" \
     --jq '.check_runs[] | [.status, (.conclusion // ""), .name] | @tsv' > "$tmp/checks"
@@ -240,7 +241,7 @@ elif [ -z "$checks_read" ]; then
   echo "Exit 1: could not read the checks of $short. Check gh auth status, then run this again." >&2
   exit 1
 elif [ -n "$failed" ]; then
-  echo "Exit 5: a check failed on $short. Read its log (AGENTS.md §10), fix or re-run, then run this again."
+  echo "Exit 5: a check failed on $short. Read its log (docs/agents/review.md §4), fix or re-run, then run this again."
   exit 5
 elif [ -z "$review" ]; then
   echo "Exit 3: no Copilot review of $short within $minutes min."

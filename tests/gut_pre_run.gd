@@ -1,6 +1,6 @@
 extends GutHookScript
 ## GUT pre-run hook (pre_run_script in .gutconfig.json): the tests keep the save in memory, and
-## never read or write the player's save file (M5_PLAN.md L1). Nothing may read the save before
+## never read or write the player's save file (docs/M5.md L1). Nothing may read the save before
 ## this hook runs, so an autoload must not ask SaveService for data() in its _ready().
 
 

@@ -1,5 +1,5 @@
 extends Legend
-## A legend that uses every part of the kit (M6_PLAN.md §4 PR 2). The contract tests play it with
+## A legend that uses every part of the kit (docs/M6.md §4 PR 2). The contract tests play it with
 ## the pools' disasters, and test_legend.gd checks the kit with it. A totem stands on the stage and
 ## opens its eyes, a ring grows on the ground, sparks fly, and a night veil falls. Then it takes the
 ## car: the car's double rises, shrinks and fades. Two glows that overlap pulse together, and a red

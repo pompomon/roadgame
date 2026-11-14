@@ -1,5 +1,5 @@
 extends SceneTree
-## Makes each area's art (M5_PLAN.md §5.5): its road sheet, its ground and the ground's edge, in
+## Makes each area's art (docs/M5.md §5.5): its road sheet, its ground and the ground's edge, in
 ## the master palette. They are placeholders that an artist may replace, file by file, with art
 ## that keeps the contract tests/unit/test_area_art.gd checks: the road sheet is opaque exactly
 ## where GreyboxAtlas.road_image() is; the ground tiles seamlessly, with a size that is a multiple

@@ -17,7 +17,7 @@ func test_300_turns_on_20_seeds() -> void:
 		_drive(RoadGenerator.new(run_seed, Fixtures.schedule()), "seed %d" % run_seed)
 
 
-## Straight on at each decoy, and the turn at each side road (ROADGEN_PLAN.md R1).
+## Straight on at each decoy, and the turn at each side road (docs/ROADGEN.md R1).
 func test_300_turns_through_every_kind_of_junction() -> void:
 	for run_seed: int in KINDS_SEEDS:
 		var gen := RoadGenerator.new(run_seed, Fixtures.kinds_schedule(0.25, 0.25, 0.25))

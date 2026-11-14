@@ -46,7 +46,7 @@ static func set_piece_schedule(
 
 ## One area whose straights are all 2 tiles, as in dense_schedule(), and whose junctions are
 ## crossroads, side roads and decoys with chances `cross`, `side` and `decoy`, and T-junctions
-## otherwise (ROADGEN_PLAN.md R1).
+## otherwise (docs/ROADGEN.md R1).
 static func kinds_schedule(cross: float, side: float, decoy: float) -> AreaSchedule:
 	var kinds := dense_schedule()
 	var area := kinds.entries[0].area

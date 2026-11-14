@@ -56,9 +56,9 @@ func areas() -> Array[AreaDef]:
 ## The most path tiles from a junction to the next in `entry`'s area, counting the next: the set
 ## piece that leads into the area, the area's longest straight, and the junction's own tile. The
 ## JunctionTrigger looks for the next junction as the car enters the tile after a junction, when
-## the buffer is sure to hold only BUFFER_REFILL_AT tiles past that tile (M2_PLAN.md H31).
+## the buffer is sure to hold only BUFFER_REFILL_AT tiles past that tile (docs/M2.md H31).
 ## validate() keeps one of them spare, so that it doesn't rest on CarSim moving the buffer on
-## before the trigger looks (M4_PLAN.md K1).
+## before the trigger looks (docs/M4.md K1).
 static func gap(entry: AreaScheduleEntry) -> int:
 	return entry.set_piece_length + entry.area.max_straight + 1
 

@@ -4,7 +4,7 @@ extends Node2D
 ## path tiles with no junction. The WorldRenderer adds it once the buffer has made the whole run,
 ## calls setup() at once, and frees it with the run's last tile. Its polygons get their points in
 ## setup(), before their first draw, and are never redrawn: they move and fade only by their
-## transforms and modulate (M2_PLAN.md §5.7). Their points are World pixels, so the root stays at
+## transforms and modulate (docs/M2.md §5.7). Their points are World pixels, so the root stays at
 ## the origin. It may follow the car, and must work without one.
 
 ## The run's car, or null. The WorldRenderer sets it.

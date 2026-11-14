@@ -69,7 +69,7 @@ static func distance_text(tiles: float) -> String:
 	return "%d m" % roundi(tiles * Tuning.METRES_PER_TILE)
 
 
-## What a run starts with. A retry starts the next run without reloading the HUD (M3_PLAN.md J10).
+## What a run starts with. A retry starts the next run without reloading the HUD (docs/M3.md J10).
 func _reset() -> void:
 	_distance.visible = not GameState.in_tutorial
 	if GameState.in_tutorial:
@@ -106,7 +106,7 @@ func _on_run_ended(_cause: StringName, _stats: Dictionary) -> void:
 
 
 ## In the tutorial, the turns label shows the turns in a row, the distance is hidden, and the area
-## banner shows the tutorial's goal (TUTORIAL_PLAN.md §5.4).
+## banner shows the tutorial's goal (docs/TUTORIAL.md §5.4).
 func _on_streak_changed(streak: int) -> void:
 	_turns.text = STREAK_TEXT % [streak, Tuning.TUTORIAL_STREAK]
 

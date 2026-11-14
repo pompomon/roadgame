@@ -1,6 +1,6 @@
 class_name Shadows
 extends CanvasGroup
-## The shadows of the props and the car (DAYNIGHT_PLAN.md §5.11): a black copy of each one's frame,
+## The shadows of the props and the car (docs/DAYNIGHT.md §5.11): a black copy of each one's frame,
 ## laid on the ground away from the sun by day and the moon by night. They are drawn as one group,
 ## at the clock's shadow alpha, so where two overlap the ground is no darker than under one. They
 ## lie on the ground, the road and the skid marks, under the props, the car and the disasters.
@@ -8,7 +8,7 @@ extends CanvasGroup
 ## WorldRenderer refreshes them every frame: they turn with the clock's shadow, and the car's
 ## follows the car. A prop's shadow stays where it falls from, and its kind's material lays it, so
 ## that as the clock turns two materials change, not every sprite (C20). Only sprites' transforms,
-## frames and modulate change, so nothing is redrawn on the Web (M2_PLAN.md §5.7). The legends and
+## frames and modulate change, so nothing is redrawn on the Web (docs/M2.md §5.7). The legends and
 ## the set pieces cast none.
 
 const LAY := preload("res://world/shadows.gdshader")
@@ -116,7 +116,7 @@ static func reach(def: PropDef) -> Rect2:
 
 
 ## Lays the car's shadow under the car, in its frame, scale and turn. A car that is hidden, or that
-## a legend has made clear (M6_PLAN.md §5.4), casts as faint a shadow as it shows.
+## a legend has made clear (docs/M6.md §5.4), casts as faint a shadow as it shows.
 func _follow(car: CarController) -> void:
 	var shows := car != null and car.is_visible_in_tree() and car.modulate.a > 0.0
 	if not shows:

@@ -1,5 +1,5 @@
 extends GutTest
-## Day and night in the game (DAYNIGHT_PLAN.md §5.4–§5.9): each run starts in the morning at once;
+## Day and night in the game (docs/DAYNIGHT.md §5.4–§5.9): each run starts in the morning at once;
 ## each zone starts its clock again, runs it at its own pace, and the light catches up no faster
 ## than the rate; the clock runs only with the run; --hour= sets the hour that zones start at; a
 ## disaster plays in the light that the run ended in; the night's veil darkens the world but not
@@ -355,7 +355,7 @@ static func _items(node: Node) -> Array[CanvasItem]:
 
 
 ## Whether `item` blends by `mode`, by its material. A canvas group draws what it holds as one, by
-## its own material, as the lamps' group adds (DAYNIGHT_PLAN.md §5.12). But only what draws at its
+## its own material, as the lamps' group adds (docs/DAYNIGHT.md §5.12). But only what draws at its
 ## own z, and nothing if it y-sorts (P10b): Godot 4.7.2 groups the items that its children add to
 ## its z's list (servers/rendering/renderer_canvas_cull.cpp:197–257 and :438–492).
 static func _blends(item: CanvasItem, mode: CanvasItemMaterial.BlendMode) -> bool:
@@ -389,7 +389,7 @@ static func _z_under(item: CanvasItem, parent: CanvasItem) -> int:
 
 func test_the_lamps_light_by_the_zones_clock() -> void:
 	# World lights the props' lamps by the clock that Daylight keeps for the zone
-	# (DAYNIGHT_PLAN.md §5.12): in the City at night they glow, and by day they are out.
+	# (docs/DAYNIGHT.md §5.12): in the City at night they glow, and by day they are out.
 	var main := MainScene.open(self, ["--area=city", "--hour=22"])
 	simulate(main, 2, MainScene.DELTA)
 	var world: WorldRenderer = main.get_node("%World")

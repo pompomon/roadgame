@@ -4,7 +4,7 @@ extends GutTest
 ## disaster stream; after a crash it shakes the camera for CRASH_SECONDS. Every sequence ends once
 ## and in time, even one that is stuck. The disasters here are test ones;
 ## test_wrong_turn_disaster.gd plays the City's legend through the game's director. A disaster gets
-## the stage for a legend's parts, and disaster_appeared comes when its delay is over (M6_PLAN.md
+## the stage for a legend's parts, and disaster_appeared comes when its delay is over (docs/M6.md
 ## S2, S18).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -164,7 +164,7 @@ func test_disaster_started_comes_once_when_the_disaster_plays() -> void:
 
 
 func test_disaster_appeared_comes_once_when_the_delay_is_over() -> void:
-	# The sound starts as the disaster shows, not as it starts to play (M6_PLAN.md S18). The
+	# The sound starts as the disaster shows, not as it starts to play (docs/M6.md S18). The
 	# disaster counts its delay from play(), frame by frame as the director does.
 	for delay: float in [Tuning.DISASTER_DELAY_MIN, Tuning.DISASTER_DELAY_MAX]:
 		var area := _timed()

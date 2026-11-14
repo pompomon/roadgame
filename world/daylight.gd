@@ -1,6 +1,6 @@
 class_name Daylight
 extends ViewVeil
-## The light of the zone's hour (DAYNIGHT_PLAN.md §5.5): a veil over the view that multiplies the
+## The light of the zone's hour (docs/DAYNIGHT.md §5.5): a veil over the view that multiplies the
 ## world by the light that its clock shows. The legends' glows draw above it, and the UI on its own
 ## layer, so they stay as bright. By day the light is white and the veil hidden, so the frame is the
 ## same as before the day had hours. main.gd runs the clock: it starts it again in each zone, and

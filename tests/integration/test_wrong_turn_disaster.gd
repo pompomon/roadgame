@@ -2,7 +2,7 @@ extends GutTest
 ## A wrong turn ends the run with a disaster (plan.md §2.1, IMPLEMENTATION_PLAN.md M3 tests): the
 ## autopilot takes a wrong exit at the third junction, the input stops, the car stops, a disaster
 ## of the City's pool takes it, and the game-over screen shows 2 to 4 s after the turn. Its sound
-## starts as it shows (M6_PLAN.md S18).
+## starts as it shows (docs/M6.md S18).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
@@ -74,7 +74,7 @@ func test_the_citys_disaster_takes_the_car_and_then_the_game_is_over() -> void:
 	assert_true(game_over.visible)
 	assert_eq(game_over.get_node("%Cause").text, GameOver.END_MESSAGES[CarSim.WRONG_TURN])
 	var fate: Label = game_over.get_node("%Fate")
-	assert_true(fate.visible, "the disaster's fate (M6_PLAN.md S8)")
+	assert_true(fate.visible, "the disaster's fate (docs/M6.md S8)")
 	assert_eq(fate.text, disaster.fate)
 	var stats: Label = game_over.get_node("%Stats")
 	assert_eq(stats.text, GameOver.stats_text(GameState.stats(), city))
@@ -115,7 +115,7 @@ func test_the_run_and_its_disaster_are_saved() -> void:
 
 
 func test_the_disasters_sound_starts_as_it_shows() -> void:
-	# On the frame its delay is over, not as it starts to play (M6_PLAN.md S18, E8).
+	# On the frame its delay is over, not as it starts to play (docs/M6.md S18, E8).
 	watch_signals(EventBus)
 	watch_signals(AudioDirector)
 	var main := _wrong_turn()

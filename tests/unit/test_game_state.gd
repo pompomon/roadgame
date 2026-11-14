@@ -97,7 +97,7 @@ func test_game_over_then_retry() -> void:
 	assert_eq(_state.run_seed, 2)
 
 
-## TUTORIAL_PLAN.md §5.5: in_tutorial is set before run_started, on which the HUD reads it, and
+## docs/TUTORIAL.md §5.5: in_tutorial is set before run_started, on which the HUD reads it, and
 ## each run starts with it or without.
 func test_a_run_can_start_in_the_tutorial() -> void:
 	EventBus.run_started.connect(_record_tutorial)

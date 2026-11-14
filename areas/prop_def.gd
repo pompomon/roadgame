@@ -1,10 +1,10 @@
 class_name PropDef
 extends Resource
-## A prop that an area scatters on its ground (plan.md §5.2, M5_PLAN.md §5.6): a sprite from the
+## A prop that an area scatters on its ground (plan.md §5.2, docs/M5.md §5.6): a sprite from the
 ## area's props sheet, which stands with its foot on the centre of a ground cell. PropScatter gives
 ## each ground cell beside the road one prop or none, by the cell's hash and the densities.
 
-## How its shadow falls (DAYNIGHT_PLAN.md §5.11). UPRIGHT: as a prop that stands at a point and
+## How its shadow falls (docs/DAYNIGHT.md §5.11). UPRIGHT: as a prop that stands at a point and
 ## is as wide whichever way the light comes from, such as a tree: the rows of its frame above that
 ## point are laid on the ground away from the light. WALL: as a wall along the tile y axis, up-right
 ## on the screen, such as a fence: each pixel's shadow falls from the wall's base below it. NONE:
@@ -21,7 +21,7 @@ enum Shadow { UPRIGHT, WALL, NONE }
 @export_range(0.0, 30.0, 0.5) var fps := 0.0
 ## The pixel of a frame that stands on the ground, from the frame's top left.
 @export var foot := Vector2i()
-## Where it gives light at night (DAYNIGHT_PLAN.md §5.12), in pixels from its foot: boxes that a
+## Where it gives light at night (docs/DAYNIGHT.md §5.12), in pixels from its foot: boxes that a
 ## glow fills, such as a lamp's head or a lit window, and boxes of the ground that its light falls
 ## on, which glow more faintly.
 @export var lights: Array[Rect2] = []
@@ -34,7 +34,7 @@ enum Shadow { UPRIGHT, WALL, NONE }
 @export var shadow_rise := 0
 
 
-## Returns what breaks the props' contract (M5_PLAN.md §5.6), or nothing.
+## Returns what breaks the props' contract (docs/M5.md §5.6), or nothing.
 func validate() -> PackedStringArray:
 	var problems := PackedStringArray()
 	if texture == null:

@@ -1,7 +1,7 @@
 extends GutTest
 ## Property tests over many seeds (plan.md §11): no two tiles share a cell, every junction keeps
 ## its wrong exits, and dead ends are 2 to DEAD_END_MAX_TILES tiles long. A straight-on one is
-## never cut short, and one cut below DEAD_END_MIN_TILES stops at a taken cell (ROADGEN_PLAN.md R5).
+## never cut short, and one cut below DEAD_END_MIN_TILES stops at a taken cell (docs/ROADGEN.md R5).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 200
@@ -10,7 +10,7 @@ const TURNS := 500
 const ALWAYS_FREE := 2
 
 ## The dead ends that _check() has seen in this test, and those shorter than DEAD_END_MIN_TILES,
-## whose end shows as the car enters their junction (ROADGEN_PLAN.md R4).
+## whose end shows as the car enters their junction (docs/ROADGEN.md R4).
 var _dead_ends := 0
 var _short := 0
 
@@ -22,7 +22,7 @@ func before_each() -> void:
 
 ## Checks the road up to turn `turns`. It stops at the first junction that fails, and checks nothing
 ## once the test fails: a broken rule fails at nearly every junction, GUT keeps the text of each
-## failure, and one for each junction of 200 seeds ran out of memory (ROADGEN_PLAN.md §6.2, N7).
+## failure, and one for each junction of 200 seeds ran out of memory (docs/ROADGEN.md §6.2, N7).
 func _check(gen: RoadGenerator, turns: int, label: String) -> void:
 	if is_failing():
 		return
@@ -77,7 +77,7 @@ func test_densest_rules_shorten_dead_ends_but_never_drop_them() -> void:
 	assert_gt(shortened, 0, "collisions happen, and the generator shortens those dead ends")
 
 
-## Side roads and decoys too (ROADGEN_PLAN.md R1): a straight-on dead end always fits whole.
+## Side roads and decoys too (docs/ROADGEN.md R1): a straight-on dead end always fits whole.
 func test_every_kind_of_junction_keeps_its_wrong_exits() -> void:
 	for run_seed: int in 50:
 		var gen := RoadGenerator.new(run_seed, Fixtures.kinds_schedule(0.25, 0.25, 0.25))
@@ -85,7 +85,7 @@ func test_every_kind_of_junction_keeps_its_wrong_exits() -> void:
 
 
 ## A dead end with nothing in its way keeps the length it drew, and one that a taken cell cuts
-## short stops right before that cell (ROADGEN_PLAN.md R5, E5). Every junction of
+## short stops right before that cell (docs/ROADGEN.md R5, E5). Every junction of
 ## kinds_schedule(0, 1, 0) is a side road, whose only wrong exit is straight on.
 func test_a_dead_end_stops_right_before_the_first_taken_cell() -> void:
 	var side_roads := Fixtures.kinds_schedule(0.0, 1.0, 0.0)

@@ -1,5 +1,5 @@
 extends GutTest
-## AreaDef's junction chances (ROADGEN_PLAN.md R3) and its day (DAYNIGHT_PLAN.md C7).
+## AreaDef's junction chances (docs/ROADGEN.md R3) and its day (docs/DAYNIGHT.md C7).
 ## test_area_schedule.gd tests the rest of validate(), through the schedule that reports it.
 
 
@@ -37,7 +37,7 @@ func test_validate_reports_junction_chances_that_cannot_be() -> void:
 
 
 func test_validate_reports_a_day_too_short_to_follow() -> void:
-	# The light can't follow a shorter day at LIGHT_MAX_RATE (DAYNIGHT_PLAN.md C7). The day that
+	# The light can't follow a shorter day at LIGHT_MAX_RATE (docs/DAYNIGHT.md C7). The day that
 	# the message names is long enough, though the least day isn't a whole number of hundredths
 	# (N37).
 	var area := _area(&"short")

@@ -6,12 +6,12 @@ extends Node
 ## next run in place, without reloading the scene (M3.3), and Title goes back to the title screen.
 ## User arguments (after "--"): --play starts a run at once, without the title screen;
 ## --seed=<int> picks the road (D8); --autopilot drives by itself (the CI smoke run), and implies
-## --play; --area=<id> starts every run in that area, for tests and manual checks (M4_PLAN.md K10).
-## --hour=<h> starts every zone's clock at hour h instead of the morning (DAYNIGHT_PLAN.md §5.9).
-## A phone can't take them (M4_PLAN.md P4), so in debug builds the title's Start button chooses the
-## area that Play starts in instead, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6). --tutorial
+## --play; --area=<id> starts every run in that area, for tests and manual checks (docs/M4.md K10).
+## --hour=<h> starts every zone's clock at hour h instead of the morning (docs/DAYNIGHT.md §5.9).
+## A phone can't take them (docs/M4.md P4), so in debug builds the title's Start button chooses the
+## area that Play starts in instead, which --area presets (docs/ZONE_SELECT.md Z1, Z6). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
-## until the player has finished it (TUTORIAL_PLAN.md §5.6).
+## until the player has finished it (docs/TUTORIAL.md §5.6).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
@@ -26,7 +26,7 @@ var _autopilot := false
 var _whole_schedule: AreaSchedule
 ## The run's: the game's, or a copy that starts in --area's area or the title's choice.
 var _schedule: AreaSchedule
-## In a run with the tutorial, where the City's run began (TUTORIAL_PLAN.md §5.5): the path distance
+## In a run with the tutorial, where the City's run began (docs/TUTORIAL.md §5.5): the path distance
 ## where the car left the tutorial's last junction, and the turns before the next junction. The
 ## run's distance and turns count from there. 0 in a run without the tutorial.
 var _origin := 0.0
@@ -34,7 +34,7 @@ var _turn_base := 0
 var _buffer: RoadBuffer
 var _sim: CarSim
 var _car: CarController
-## What the disaster that ended the run did to the car, for the game-over screen (M6_PLAN.md S8).
+## What the disaster that ended the run did to the car, for the game-over screen (docs/M6.md S8).
 var _fate := ""
 
 @onready var _world: WorldRenderer = %World
@@ -55,7 +55,7 @@ func _ready() -> void:
 	if area != &"":
 		_schedule = _whole_schedule.starting_at(area)
 	var start := Time.get_ticks_usec()
-	# Every area's, whichever a run starts in (ZONE_SELECT_PLAN.md Z2).
+	# Every area's, whichever a run starts in (docs/ZONE_SELECT.md Z2).
 	_world.build(_whole_schedule)
 	_world.cycle = _daylight.cycle
 	# Read on devices (browser console, adb logcat): the grey-box atlas is drawn at run time.
@@ -82,7 +82,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	if _autopilot:
-		# tools/ci/smoke.sh requires this line with a tile above 0 (M1_PLAN.md G17).
+		# tools/ci/smoke.sh requires this line with a tile above 0 (docs/M1.md G17).
 		var tile := _buffer.path_tile(_buffer.car_index())
 		print(
 			(
@@ -99,7 +99,7 @@ func _physics_process(delta: float) -> void:
 		if not GameState.in_tutorial:
 			GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
 		# The zone's clock runs with the run, the tutorial's too, and stops when it ends or pauses
-		# (DAYNIGHT_PLAN.md §5.4). Daylight shows the light after the camera has moved.
+		# (docs/DAYNIGHT.md §5.4). Daylight shows the light after the camera has moved.
 		_daylight.cycle.advance(delta)
 
 
@@ -112,7 +112,7 @@ func _notification(what: int) -> void:
 		go_back()
 
 
-## Android's back button (M5_PLAN.md L13): it leaves a screen of the title for the title, and
+## Android's back button (docs/M5.md L13): it leaves a screen of the title for the title, and
 ## quits from the title itself. It pauses a running game, and leaves game over for the title. While
 ## the game is paused, and while the disaster or the crash plays, it does nothing. project.godot
 ## turns off quit_on_go_back, which would quit from every screen.
@@ -164,13 +164,13 @@ func _start_run(run_seed: int) -> void:
 	GameState.start_run(run_seed, tutorial)
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
 	_on_area_changed(_sim.area)
-	# A new run is a cut: it shows the morning, or --hour's light, at once (DAYNIGHT_PLAN.md §5.4).
+	# A new run is a cut: it shows the morning, or --hour's light, at once (docs/DAYNIGHT.md §5.4).
 	_daylight.cycle.snap()
 	_daylight.refresh()
 
 
 ## Retry on the game-over screen: the next run, on the same nodes. A forced --seed stays; otherwise
-## the run gets a new random seed (M2_PLAN.md H28).
+## the run gets a new random seed (docs/M2.md H28).
 func _retry() -> void:
 	if GameState.state != GameState.State.GAME_OVER:
 		push_error("main: a retry is only allowed after game over")
@@ -191,7 +191,7 @@ func _to_title() -> void:
 
 
 ## Play on the title screen: a run, as with --play. With the title's choice of area, it starts in
-## that area, as --area would start it, and so do its retries (ZONE_SELECT_PLAN.md Z6).
+## that area, as --area would start it, and so do its retries (docs/ZONE_SELECT.md Z6).
 func _play() -> void:
 	if GameState.state != GameState.State.TITLE:
 		push_error("main: Play is only allowed on the title screen")
@@ -209,7 +209,7 @@ func _show_title() -> void:
 
 
 ## Frees the last run's car and disaster at once, not queued, so that no frame shows two cars
-## (M3_PLAN.md J13).
+## (docs/M3.md J13).
 func _clear_run() -> void:
 	_game_over.close()
 	_director.clear()
@@ -240,7 +240,7 @@ func _on_crashed(cause: StringName) -> void:
 
 ## The car reached `area`. GameState counts the area's distance and turns from its first tile, which
 ## the car may have passed, off the road. In the step that reaches it, CarSim reports the area
-## before the trigger judges the turn behind it (M5_PLAN.md L8). After a tutorial, both count from
+## before the trigger judges the turn behind it (docs/M5.md L8). After a tutorial, both count from
 ## where the City's run began.
 func _on_area_changed(area: AreaDef) -> void:
 	var first := _buffer.car_index()
@@ -249,12 +249,12 @@ func _on_area_changed(area: AreaDef) -> void:
 	# A run starts at the centre of its first tile, at distance 0.
 	var start := maxf(first - 0.5 - _origin, 0.0)
 	GameState.enter_area(area.id, start, _turns_before(first) - _turn_base)
-	# Each zone starts its clock again, at its own pace (DAYNIGHT_PLAN.md §5.4).
+	# Each zone starts its clock again, at its own pace (docs/DAYNIGHT.md §5.4).
 	_daylight.cycle.enter(area.day_seconds)
 	EventBus.area_changed.emit(area)
 
 
-## The tutorial's streak is done at `junction` (TUTORIAL_PLAN.md §5.5): the run goes on in the City,
+## The tutorial's streak is done at `junction` (docs/TUTORIAL.md §5.5): the run goes on in the City,
 ## under its rules, from where the car left the junction, and the tutorial is done for good. The
 ## road ahead is still the tutorial's, to the end of its group of four junctions. The City's entry
 ## in GameState, from the run's start, is at distance 0 and turn 0, which the tutorial never passed:
@@ -265,14 +265,14 @@ func _on_tutorial_completed(junction: RoadTile) -> void:
 	_buffer.generator.end_tutorial(_turn_base)
 	SaveService.complete_tutorial()
 	GameState.end_tutorial()
-	# The City's day starts here too, as its distance and turns do (DAYNIGHT_PLAN.md §5.4).
+	# The City's day starts here too, as its distance and turns do (docs/DAYNIGHT.md §5.4).
 	_daylight.cycle.enter(_sim.area.day_seconds)
 	EventBus.tutorial_completed.emit()
 	EventBus.area_changed.emit(_sim.area)
 
 
 ## The turns before path index `index`: the turn number of the first junction from there on, as a
-## junction's turn number counts the turns before it, and a decoy is no turn (ROADGEN_PLAN.md R1).
+## junction's turn number counts the turns before it, and a decoy is no turn (docs/ROADGEN.md R1).
 func _turns_before(index: int) -> int:
 	for i: int in range(index, _buffer.last_index() + 1):
 		var tile := _buffer.path_tile(i)
@@ -292,7 +292,7 @@ func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
 	_fate = disaster.fate
 
 
-## The run is over the moment it ends (M3_PLAN.md J1): the input stops, and GameState reports the
+## The run is over the moment it ends (docs/M3.md J1): the input stops, and GameState reports the
 ## cause and the stats. The director then plays the disaster or the crash.
 func _end_run(cause: StringName) -> void:
 	GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
@@ -308,7 +308,7 @@ func _on_sequence_finished() -> void:
 	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id), _fate)
 
 
-## Whether the next run starts with the tutorial (TUTORIAL_PLAN.md §5.6): only one that starts in
+## Whether the next run starts with the tutorial (docs/TUTORIAL.md §5.6): only one that starts in
 ## the City, the whole schedule's first area, also when --area or the title's Start button chooses
 ## it. --tutorial asks for it. Otherwise Play does, until the player has finished it, but not --play
 ## or --autopilot, which tests and checks use.
@@ -340,7 +340,7 @@ static func _parse_area(p_args: PackedStringArray) -> StringName:
 
 
 ## The hour of --hour=<h> in `p_args`, round the clock, which every zone's clock starts at
-## (DAYNIGHT_PLAN.md §5.9). Tuning.DAY_START_HOUR without it, or with an h that isn't a number.
+## (docs/DAYNIGHT.md §5.9). Tuning.DAY_START_HOUR without it, or with an h that isn't a number.
 static func _parse_hour(p_args: PackedStringArray) -> float:
 	for arg: String in p_args:
 		if arg.begins_with("--hour="):

@@ -1,5 +1,5 @@
 extends RefCounted
-## The witch's hex's sheets (M6_PLAN.md §3.3), drawn into assets/legends/witch_hex/ by
+## The witch's hex's sheets (docs/M6.md §3.3), drawn into assets/legends/witch_hex/ by
 ## tools/art/make_legends.gd. `witch.png`: a hunched witch on a broomstick, facing right, flying
 ## with a hand on the broom, then pointing a long pale finger: a violet cloak and a pointed hat
 ## with an ink band, a face in shadow with wisp eyes, on a plank broom with straw bristles. She is

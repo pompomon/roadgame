@@ -100,7 +100,7 @@ func test_the_end_of_a_run_hides_the_pause_button_and_leaves_the_message_alone()
 
 
 func test_each_run_starts_the_hud_afresh() -> void:
-	# A retry starts the next run without reloading the HUD (M3_PLAN.md J10).
+	# A retry starts the next run without reloading the HUD (docs/M3.md J10).
 	var hud := _hud()
 	GameState.start_run(1)
 	EventBus.turn_completed.emit(5)
@@ -181,8 +181,8 @@ func test_the_end_of_a_run_and_a_new_run_hide_the_area_name() -> void:
 	assert_false(banner.visible, "and it stays hidden")
 
 
-## TUTORIAL_PLAN.md §5.4: in the tutorial, the turns in a row of TUTORIAL_STREAK for the turns, no
-## distance, and its goal, which fits the narrowest reference screen (M2_PLAN.md §6.5), for the
+## docs/TUTORIAL.md §5.4: in the tutorial, the turns in a row of TUTORIAL_STREAK for the turns, no
+## distance, and its goal, which fits the narrowest reference screen (docs/M2.md §6.5), for the
 ## area's name. Once it is done, the City's turns, distance and name; a run without it starts so.
 func test_the_tutorial_shows_its_streak_and_goal_until_it_is_done() -> void:
 	var hud := _hud()

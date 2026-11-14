@@ -1,5 +1,5 @@
 extends RefCounted
-## Draws a sheet of a legend's part (M6_PLAN.md §5.7): one row of frames, each standing on its
+## Draws a sheet of a legend's part (docs/M6.md §5.7): one row of frames, each standing on its
 ## bottom row, its foot at the middle of that row's bottom edge, as a standing sprite shows it with
 ## `centered` off and the offset (-width / 2, -height). Points are in pixels from the foot of the
 ## frame being drawn, and nothing is drawn outside that frame. Colours go by their names in

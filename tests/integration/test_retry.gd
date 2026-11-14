@@ -1,7 +1,7 @@
 extends GutTest
 ## Retry (IMPLEMENTATION_PLAN.md M3.3, M3 tests): the game-over screen's Retry starts the next run
 ## in place, without reloading the scene. Nothing of the last run is left: not its state, its car,
-## its disaster, its road or its shake, and no orphan nodes (M3_PLAN.md J10 to J13).
+## its disaster, its road or its shake, and no orphan nodes (docs/M3.md J10 to J13).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
@@ -157,7 +157,7 @@ func test_a_retry_while_the_run_goes_on_is_an_error() -> void:
 
 
 func test_a_crash_after_a_disaster_shows_no_fate() -> void:
-	# M6_PLAN.md S8: the fate is the disaster's, and a retry forgets it.
+	# docs/M6.md S8: the fate is the disaster's, and a retry forgets it.
 	var main := MainScene.open(self, ["--seed=1"])
 	_to_game_over(main, false)
 	var fate: Label = main.get_node("%GameOver/%Fate")

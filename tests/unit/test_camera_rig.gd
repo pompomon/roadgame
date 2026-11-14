@@ -4,7 +4,7 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
-## The reference screens' viewports, after the stretch (M2_PLAN.md §6.5).
+## The reference screens' viewports, after the stretch (docs/M2.md §6.5).
 const SCREENS: Array[Vector2i] = [
 	Vector2i(360, 640),
 	Vector2i(360, 922),
@@ -155,7 +155,7 @@ func test_the_shake_is_in_screen_pixels() -> void:
 	assert_eq(rig.offset, Vector2(0.0, Tuning.SHAKE_PX / 2.0), "half the world pixels at zoom 2")
 
 
-## A dead end's end is out of view as the car enters its junction (ROADGEN_PLAN.md R4): on every
+## A dead end's end is out of view as the car enters its junction (docs/ROADGEN.md R4): on every
 ## reference screen, the round end of a dead end DEAD_END_MIN_TILES long is off the view as the car
 ## enters the junction's tile, with the camera on its target, as far ahead as it gets. The correct
 ## path heads N or W, and a dead end goes straight on or the other way to the turn.
@@ -181,7 +181,7 @@ func test_a_dead_end_ends_out_of_view_as_the_car_enters_its_junction() -> void:
 				assert_false(view.intersects(cap), "%s, dead end %s" % [at, Heading.NAMES[exit]])
 
 
-## A dead end freed with its junction is out of view (ROADGEN_PLAN.md R6, M5_PLAN.md L2). The
+## A dead end freed with its junction is out of view (docs/ROADGEN.md R6, docs/M5.md L2). The
 ## buffer frees a junction and its dead ends as the car enters the path tile BUFFER_BEHIND + 1 past
 ## it. Each path tile is a row above the last, so the end of a straight-on dead end
 ## DEAD_END_MAX_TILES long is BUFFER_BEHIND + 1 - DEAD_END_MAX_TILES rows below the car's tile,

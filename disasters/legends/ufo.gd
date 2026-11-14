@@ -1,6 +1,6 @@
 class_name Ufo
 extends Legend
-## Rural's legend (M6_PLAN.md §3.3, Q2): night falls over the fields, and a dark saucer drops
+## Rural's legend (docs/M6.md §3.3, Q2): night falls over the fields, and a dark saucer drops
 ## without a sound and hovers over the car. The lights round its rim come on and turn, and a cone of
 ## cold light falls on the car, with sparkles rising in it. Three tall grey figures stand at its
 ## edge. The car's double shudders, then floats up the beam, turning, and is gone into the saucer,

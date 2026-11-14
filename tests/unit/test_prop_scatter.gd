@@ -1,5 +1,5 @@
 extends GutTest
-## PropScatter (M5_PLAN.md §5.6, L2): each row of the path gets its props PROP_AHEAD path tiles
+## PropScatter (docs/M5.md §5.6, L2): each row of the path gets its props PROP_AHEAD path tiles
 ## before the car, and loses them with its path tile. The rows below the start get theirs at once.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -76,7 +76,7 @@ func test_the_rows_below_the_start_show_first_and_the_roads_rows_with_it() -> vo
 
 func test_the_rows_below_the_start_show_the_area_the_road_starts_in() -> void:
 	# The world scatters the whole schedule's props, and a run can start in any of its areas
-	# (ZONE_SELECT_PLAN.md Z3): the rows below a Desert start, after a City run, show the Desert's
+	# (docs/ZONE_SELECT.md Z3): the rows below a Desert start, after a City run, show the Desert's
 	# props, as a scatter of the Desert's schedule alone shows them.
 	var schedule := Fixtures.schedule()
 	var desert := schedule.starting_at(&"desert")
@@ -222,7 +222,7 @@ static func _silhouettes(lamps: Lamps) -> PackedStringArray:
 func test_each_prop_lights_its_lamps_while_it_shows() -> void:
 	# PropScatter adds a prop's silhouette as it shows the prop, shows it in the prop's frame, with
 	# the prop's glows where its lights and its pools of light are, and takes them away with the
-	# prop (DAYNIGHT_PLAN.md §5.12). A prop without lights has none. One that lies flat and has none
+	# prop (docs/DAYNIGHT.md §5.12). A prop without lights has none. One that lies flat and has none
 	# neither hides nor lights. As sparse as the props of the other tests, as it checks each one at
 	# each step (C20).
 	var lit := _prop(&"lit", 1, 0.0, 0.03)
@@ -331,7 +331,7 @@ static func _falls(sprites: Array[Sprite2D]) -> PackedStringArray:
 
 func test_each_prop_casts_its_shadow_while_it_shows_in_its_frame() -> void:
 	# PropScatter lays a prop's shadow as it shows the prop, shows it in the prop's frame, and takes
-	# it away with the prop (DAYNIGHT_PLAN.md §5.11). A flat prop casts none. As sparse as the props
+	# it away with the prop (docs/DAYNIGHT.md §5.11). A flat prop casts none. As sparse as the props
 	# of the other tests, as it checks each one at each step (C20).
 	var flat := _prop(&"flat", 1, 0.0, 0.02)
 	flat.shadow = PropDef.Shadow.NONE

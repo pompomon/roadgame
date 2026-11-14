@@ -1,8 +1,8 @@
 extends GutTest
-## Each run starts by naming its area (IMPLEMENTATION_PLAN.md M4.3, M4_PLAN.md K4): main reports
+## Each run starts by naming its area (IMPLEMENTATION_PLAN.md M4.3, docs/M4.md K4): main reports
 ## the first area as it reports each later one, to GameState and on EventBus, and the HUD shows its
 ## name. --area=<id> starts every run in that area (K10), and so does the title's Start button in
-## debug builds, which --area presets (ZONE_SELECT_PLAN.md Z1, Z6). SaveService keeps the save in
+## debug builds, which --area presets (docs/ZONE_SELECT.md Z1, Z6). SaveService keeps the save in
 ## memory.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
@@ -13,7 +13,7 @@ const DISASTER := GameState.State.DISASTER
 
 func before_each() -> void:
 	SaveService.use_memory()
-	# Play would start a run in the City with the tutorial (TUTORIAL_PLAN.md §5.6).
+	# Play would start a run in the City with the tutorial (docs/TUTORIAL.md §5.6).
 	SaveService.complete_tutorial()
 
 
@@ -70,7 +70,7 @@ static func _road(main: Node) -> Array[Array]:
 
 
 ## The path distance to the far edge of the junction of turn `turn_number`, not a decoy before it
-## (ROADGEN_PLAN.md R2), or -1 if `buffer` doesn't hold it.
+## (docs/ROADGEN.md R2), or -1 if `buffer` doesn't hold it.
 static func _far_edge_of_junction(buffer: RoadBuffer, turn_number: int) -> float:
 	for i: int in range(buffer.first_index(), buffer.last_index() + 1):
 		var tile := buffer.path_tile(i)
@@ -210,7 +210,7 @@ func test_a_hidden_start_button_leaves_the_run_to_the_area_argument() -> void:
 ## With no set piece between them, an area's first tile follows the junction that ends the area
 ## before, and the step that reaches it reports the area before it judges the turn there: that turn
 ## still counts for the area before, and the distance from the junction's far edge on for the next
-## (M5_PLAN.md L8). Seed 1's Village meets the Desert after turn 20.
+## (docs/M5.md L8). Seed 1's Village meets the Desert after turn 20.
 func test_each_area_counts_from_its_first_tile() -> void:
 	var main := MainScene.open(self, ["--seed=1", "--area=village", "--autopilot"])
 	var buffer := MainScene.car(main).sim.buffer

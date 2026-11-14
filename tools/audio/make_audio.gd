@@ -1,8 +1,8 @@
 extends SceneTree
-## Makes the game's sounds (M5_PLAN.md §5.4): each area's music and ambient loop, the engine and
+## Makes the game's sounds (docs/M5.md §5.4): each area's music and ambient loop, the engine and
 ## the other effects of plan.md §6, and a sound for each disaster. They are placeholders that a
 ## sound designer may replace, file by file, with sounds of the same name, length class and format:
-## mono 16-bit WAV at 22,050 Hz, peaking no higher than its kind's Tuning.*_PEAK (M5_PLAN.md L29),
+## mono 16-bit WAV at 22,050 Hz, peaking no higher than its kind's Tuning.*_PEAK (docs/M5.md L29),
 ## to which this scales each one. Loops carry their loop points in a "smpl" chunk, which Godot's
 ## importer reads (edit/loop_mode "Detect From WAV"). The output is the same on every run: noise
 ## comes from one seeded generator. From the repository root:
@@ -507,7 +507,7 @@ func _save(path_in_out: String, samples: PackedFloat32Array, peak: float, loop: 
 
 
 ## Saves the legend `id`'s sound from `synth`, its noise drawn from a generator seeded by the id
-## alone, so that no other sound changes it (M6_PLAN.md S17).
+## alone, so that no other sound changes it (docs/M6.md S17).
 func _save_legend(id: String, synth: Callable) -> void:
 	_rng.seed = hash(id)
 	_save("sfx/" + id, synth.call(), Tuning.EFFECT_PEAK, false)

@@ -5,7 +5,7 @@
 source "$(dirname "$0")/_common.sh"
 
 log="$REPORTS/smoke.log"
-# The autopilot keeps the save in memory (M5_PLAN.md L1): it says so, and leaves a scratch save be.
+# The autopilot keeps the save in memory (docs/M5.md L1): it says so, and leaves a scratch save be.
 scratch_save
 run_godot 300 "$log" --headless --path . --fixed-fps 60 --quit-after 3600 -- --autopilot --seed=12345
 fail_on "$ANY_ERROR_RE" "$log" "Errors during smoke run"

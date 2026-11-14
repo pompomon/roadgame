@@ -1,5 +1,5 @@
 extends GutTest
-## The shadows in the game (DAYNIGHT_PLAN.md §5.11): World lays them by the clock that Daylight
+## The shadows in the game (docs/DAYNIGHT.md §5.11): World lays them by the clock that Daylight
 ## keeps for the zone.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")

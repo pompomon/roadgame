@@ -5,7 +5,7 @@ extends RefCounted
 ## nodes. A sprite shows its prop's frame with the prop's foot on the sprite's position. The layer
 ## frees the sprites. A layer whose sprites are its own parts holds them as internal children, which
 ## get_children() leaves out: so does GUT's simulate(), which walks every node each frame
-## (DAYNIGHT_PLAN.md C20).
+## (docs/DAYNIGHT.md C20).
 
 ## Sprites made so far, shown or hidden.
 var made := 0

@@ -1,6 +1,6 @@
 name: CI
 
-# Actions storage (M0_PLAN.md F34): no caches, and artifacts only where needed, kept 1 day.
+# Actions storage (docs/M0.md F34): no caches, and artifacts only where needed, kept 1 day.
 # To download the builds, run this workflow by hand with upload-builds.
 on:
   pull_request:
@@ -53,15 +53,15 @@ jobs:
         run: tools/ci/run_tests.sh
       - name: Smoke run (main scene, 60 s simulated)
         run: tools/ci/smoke.sh
-      # The checks must leave the tree as committed (AGENTS.md §4). On a slow runner, the import's
+      # The checks must leave the tree as committed (AGENTS.md §3). On a slow runner, the import's
       # editor saves a file that wasn't committed as it writes it, and the tests then read the
-      # editor's file (M5_PLAN.md L28). The container's root doesn't own the checkout.
+      # editor's file (docs/M5.md L28). The container's root doesn't own the checkout.
       - name: Tree unchanged by the checks (git status)
         run: |
           changes="$(git -c safe.directory="$PWD" status --porcelain)"
           if [ -n "$changes" ]; then
             printf '%s\n' "$changes"
-            echo "::error::The checks changed the tree: commit files as Godot writes them (AGENTS.md §3)"
+            echo "::error::The checks changed the tree: commit files as Godot writes them (AGENTS.md §2)"
             exit 1
           fi
 
@@ -114,7 +114,7 @@ jobs:
       - name: Disk usage
         if: always()
         run: |
-          # The image, the SDK and NDK, and Gradle share the runner's disk (M0_PLAN.md §8).
+          # The image, the SDK and NDK, and Gradle share the runner's disk (docs/M0.md §8).
           # Gradle's home is /root/.gradle: Java takes user.home from /etc/passwd, not $HOME (F31).
           df -h / "$GITHUB_WORKSPACE"
           du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" /root/.gradle 2>/dev/null || true

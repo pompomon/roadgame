@@ -1,6 +1,6 @@
 class_name PropLayout
 extends RefCounted
-## Where the props of one screen row stand (M5_PLAN.md §5.6): a pure function of the run's
+## Where the props of one screen row stand (docs/M5.md §5.6): a pure function of the run's
 ## props_seed, the area's props and the road around the row, so that a seed shows the same props
 ## on every run, at every frame rate and on every screen.
 ##

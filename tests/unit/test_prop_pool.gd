@@ -1,5 +1,5 @@
 extends GutTest
-## PropPool (IMPLEMENTATION_PLAN.md M5.2, M5_PLAN.md §5.6): a hidden sprite shows the next prop, so
+## PropPool (IMPLEMENTATION_PLAN.md M5.2, docs/M5.md §5.6): a hidden sprite shows the next prop, so
 ## that a run makes nodes only while it warms up.
 
 var _layer: Node2D

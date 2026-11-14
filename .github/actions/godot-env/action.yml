@@ -36,7 +36,7 @@ runs:
         # Gradle downloads it during the build or skips stripping the native libraries.
         "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
 
-    # Always a full import: CI keeps no caches (M0_PLAN.md F34).
+    # Always a full import: CI keeps no caches (docs/M0.md F34).
     - name: Import project
       shell: bash
       run: tools/ci/import.sh

@@ -2,7 +2,7 @@ class_name CollectionScreen
 extends MenuScreen
 ## The disaster collection (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): a card for each disaster in
 ## the pools of the schedule's areas, in the order a run can first meet them. A card tells how often
-## the disaster was seen, where and how far into a run it was seen first, and its lore (M6_PLAN.md
+## the disaster was seen, where and how far into a run it was seen first, and its lore (docs/M6.md
 ## S12); one never seen is a silhouette. Like the HUD, its text uses only characters in the game's
 ## font.
 

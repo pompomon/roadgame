@@ -1,5 +1,5 @@
 extends GutTest
-## ViewVeil (DAYNIGHT_PLAN.md §5.5): the square over the view that a legend's veil and the night's
+## ViewVeil (docs/DAYNIGHT.md §5.5): the square over the view that a legend's veil and the night's
 ## share. It multiplies what is drawn under it, at VEIL_Z, and starts hidden. test_legend.gd checks
 ## that a legend's veil follows the view, and darkens the world.
 
@@ -17,7 +17,7 @@ static func _cover(veil: Polygon2D) -> Rect2:
 
 
 func test_the_veil_covers_every_view() -> void:
-	# Every reference screen at every step of the zoom (M6_PLAN.md N26).
+	# Every reference screen at every step of the zoom (docs/M6.md N26).
 	var camera := Disasters.camera(self)
 	camera.position = Vector2(-700.0, 900.0)
 	var veil: ViewVeil = add_child_autofree(ViewVeil.new())

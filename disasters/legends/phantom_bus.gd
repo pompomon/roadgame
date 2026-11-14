@@ -1,6 +1,6 @@
 class_name PhantomBus
 extends Legend
-## The City's legend (M6_PLAN.md §3.3, Q2): a cold fog rolls over the road under a dusk veil, and a
+## The City's legend (docs/M6.md §3.3, Q2): a cold fog rolls over the road under a dusk veil, and a
 ## red double-decker glides out of it, half see-through, with no one at the wheel and pale faces at
 ## its windows. It stops beside the car and opens its doors on the dark. The car's double slides to
 ## them and shrinks into the bus, the doors shut, and the bus glides on and fades, leaving a ticket

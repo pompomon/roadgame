@@ -1,6 +1,6 @@
-// The props' lights at night (DAYNIGHT_PLAN.md §5.12, P10): Godot 4.7.2's own canvas group shader
+// The props' lights at night (docs/DAYNIGHT.md §5.12, P10): Godot 4.7.2's own canvas group shader
 // (drivers/gles3/rasterizer_canvas_gles3.cpp, default_canvas_group_shader), but adding what the
-// group holds to what is under it, as the legends' glows add (M6_PLAN.md §5.5).
+// group holds to what is under it, as the legends' glows add (docs/M6.md §5.5).
 
 shader_type canvas_item;
 render_mode unshaded, blend_add;

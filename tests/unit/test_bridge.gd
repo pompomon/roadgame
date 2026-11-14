@@ -49,7 +49,7 @@ func test_a_run_too_short_for_the_river_is_an_error() -> void:
 
 
 func test_the_near_railing_draws_over_the_car_and_the_rest_under_it() -> void:
-	# The car is under World/Props at z 0 (M3_PLAN.md J5), and the bridge under World/SetPieces,
+	# The car is under World/Props at z 0 (docs/M3.md J5), and the bridge under World/SetPieces,
 	# below the road.
 	var bridge := _bridge(Heading.N)
 	assert_eq(bridge.z_index, 0)
@@ -151,7 +151,7 @@ static func _drawn(bridge: Bridge, wave: Polygon2D) -> Rect2:
 
 
 func test_the_bridge_is_never_redrawn() -> void:
-	# The waves move; their polygons are drawn once (M2_PLAN.md §5.7).
+	# The waves move; their polygons are drawn once (docs/M2.md §5.7).
 	var bridge := _bridge(Heading.W)
 	await wait_process_frames(2)
 	var draws: Array[int] = [0]

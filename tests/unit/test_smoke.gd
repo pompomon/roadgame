@@ -20,8 +20,8 @@ func test_main_scene_shows_the_version_and_the_seed() -> void:
 func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# The Web build has no system fonts to fall back on: a glyph missing from the default
 	# font shows as a box. The HUD, the game-over screen and the title's screens (M5.5) also show
-	# numbers, the areas' and the disasters' names, the disasters' fates and lore (M6_PLAN.md S8,
-	# S12), the title's start area in debug builds (ZONE_SELECT_PLAN.md Z8), and messages they keep
+	# numbers, the areas' and the disasters' names, the disasters' fates and lore (docs/M6.md S8,
+	# S12), the title's start area in debug builds (docs/ZONE_SELECT.md Z8), and messages they keep
 	# in constants.
 	var main := _main()
 	var shown: Array[Control] = []
@@ -29,7 +29,7 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	shown.append_array(main.find_children("*", "Button", true, false))
 	assert_gt(shown.size(), 8, "labels and buttons")
 	var texts: Array[String] = ["-0123456789", Hud.PAUSED_MESSAGE, GameOver.FALLBACK_MESSAGE]
-	# The tutorial's (TUTORIAL_PLAN.md §5.4).
+	# The tutorial's (docs/TUTORIAL.md §5.4).
 	texts.append(Hud.TUTORIAL_BANNER % Tuning.TUTORIAL_STREAK)
 	texts.append(Hud.STREAK_TEXT % [Tuning.TUTORIAL_STREAK, Tuning.TUTORIAL_STREAK])
 	texts.append_array(GameOver.END_MESSAGES.values())

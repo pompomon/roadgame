@@ -1,5 +1,5 @@
 extends GutTest
-## The witch's hex, the Village's legend (M6_PLAN.md §3.3). Dusk falls on the village, and a
+## The witch's hex, the Village's legend (docs/M6.md §3.3). Dusk falls on the village, and a
 ## hunched witch on a broomstick swoops in out of the dark. She circles the car once and points a
 ## long finger at it, and a trail of violet sparkles runs from her finger to the car. A puff of
 ## black smoke hides the car, and a jack-o'-lantern pops up where it stood. Its grin lights from

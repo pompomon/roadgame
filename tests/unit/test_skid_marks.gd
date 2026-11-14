@@ -1,5 +1,5 @@
 extends GutTest
-## SkidMarks (M5_PLAN.md §5.7): the rear wheels mark the road, and not beside it, while the car
+## SkidMarks (docs/M5.md §5.7): the rear wheels mark the road, and not beside it, while the car
 ## brakes for a junction, and the marks go with their tiles, past the limit and with the run.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")

@@ -1,7 +1,7 @@
 extends GutTest
 ## The tunnel (IMPLEMENTATION_PLAN.md M4.4) and what it shares with every SetPiece: a block over its
 ## run, with a mouth on the end face that shows, which draws over the car and fades while the car
-## is near (M4_PLAN.md K5).
+## is near (docs/M4.md K5).
 
 const SCENE := preload("res://setpieces/tunnel.tscn")
 const DELTA := 1.0 / 60.0
@@ -65,7 +65,7 @@ func test_the_mouth_is_in_the_end_face_that_shows() -> void:
 
 
 func test_the_tunnel_draws_over_the_car() -> void:
-	# The car is under World/Props at z 0 (M3_PLAN.md J5).
+	# The car is under World/Props at z 0 (docs/M3.md J5).
 	assert_gt(_tunnel(Heading.N).z_index, 0)
 
 
@@ -94,7 +94,7 @@ func test_the_tunnel_fades_while_the_car_is_near() -> void:
 
 
 func test_the_tunnel_is_never_redrawn() -> void:
-	# Its polygons are drawn once; it fades by its modulate (M2_PLAN.md §5.7).
+	# Its polygons are drawn once; it fades by its modulate (docs/M2.md §5.7).
 	var tunnel := _tunnel(Heading.W)
 	var car: Node2D = add_child_autofree(Node2D.new())
 	tunnel.car = car

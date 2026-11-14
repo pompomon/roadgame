@@ -108,7 +108,7 @@ func test_close_closes_the_open_screen() -> void:
 
 
 func test_the_start_button_shows_in_debug_builds_only() -> void:
-	# ZONE_SELECT_PLAN.md Z4: GUT runs a debug build, so the release default is a device check.
+	# docs/ZONE_SELECT.md Z4: GUT runs a debug build, so the release default is a device check.
 	var title := _title()
 	assert_eq(title.area_choice, OS.is_debug_build())
 	var start := _button(title, "StartArea")
@@ -174,7 +174,7 @@ func test_the_title_page_fits_a_portrait_screen_with_each_start_area() -> void:
 
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings). Every
-	# disaster of the pools is seen, so that each card shows its lore (M6_PLAN.md S15).
+	# disaster of the pools is seen, so that each card shows its lore (docs/M6.md S15).
 	var data := SaveService.data()
 	var areas := {}
 	for id: StringName in [&"city", &"rural", &"meadows", &"village", &"desert"]:

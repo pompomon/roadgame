@@ -1,5 +1,5 @@
 extends RefCounted
-## The UFO's sheets (M6_PLAN.md §3.3), drawn into assets/legends/ufo/ by
+## The UFO's sheets (docs/M6.md §3.3), drawn into assets/legends/ufo/ by
 ## tools/art/make_legends.gd. `saucer.png`: a dark saucer, a dome with dark windows on a disc whose
 ## rim catches the light, and the port under it. `rim.png`: the lights round its rim, a glow over
 ## the saucer's frame, in a frame for each quarter of a light's step to the next. `beam.png`: the

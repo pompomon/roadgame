@@ -1,8 +1,8 @@
 extends SceneTree
-## Makes the UI's font (M5_PLAN.md §5.8): assets/fonts/pixel_operator_8.tres, the TTF beside it
+## Makes the UI's font (docs/M5.md §5.8): assets/fonts/pixel_operator_8.tres, the TTF beside it
 ## embedded in a FontFile, drawn without smoothing. The project theme (ui/theme.tres) uses it, and
 ## Godot loads that theme before it imports anything, so the font must load unimported: a fresh
-## checkout's first import would otherwise fail (M5_PLAN.md L17). From the repository root:
+## checkout's first import would otherwise fail (docs/M5.md L17). From the repository root:
 ##   godot --headless -s tools/art/make_font.gd
 
 const SOURCE := "res://assets/fonts/PixelOperator8.ttf"
