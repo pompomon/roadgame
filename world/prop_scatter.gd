@@ -15,6 +15,8 @@ class Shown:
 	var sprite: Sprite2D
 	var def: PropDef
 	var phase: float
+	## Its shadow (DAYNIGHT_PLAN.md §5.11), or null.
+	var cast: Shadows.Cast
 
 
 ## The props of a row, and those of them that animate.
@@ -25,6 +27,8 @@ class Row:
 
 
 var pool: PropPool
+## Where the props' shadows lie (DAYNIGHT_PLAN.md §5.11), or null for none. WorldRenderer sets it.
+var shadows: Shadows
 
 ## The props of each area of the schedule that keep the contract, by the area's id.
 var _props: Dictionary[StringName, Array] = {}
@@ -140,6 +144,8 @@ func _show_row(k: int) -> void:
 		shown.phase = placement.phase
 		shown.sprite = pool.acquire(placement.def)
 		shown.sprite.position = placement.foot
+		if shadows != null:
+			shown.cast = shadows.add(placement.def, placement.foot)
 		row.shown.append(shown)
 		if placement.def.frames > 1:
 			row.animated.append(shown)
@@ -151,6 +157,8 @@ func _hide_row(k: int) -> void:
 	if _rows.has(k):
 		for shown: Shown in _rows[k].shown:
 			pool.release(shown.sprite)
+			if shadows != null:
+				shadows.remove(shown.cast)
 		_rows.erase(k)
 
 
@@ -159,6 +167,8 @@ func _set_frame(shown: Shown) -> void:
 	var frame := int((cycle - floorf(cycle)) * shown.def.frames) % shown.def.frames
 	if shown.sprite.frame != frame:
 		shown.sprite.frame = frame
+		if shown.cast != null:
+			shown.cast.sprite.frame = frame
 
 
 static func _valid_props(area: AreaDef) -> Array[PropDef]:

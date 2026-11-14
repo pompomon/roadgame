@@ -208,13 +208,20 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	var frameless := _prop(&"frameless", 1, 0.0, 0.1)
 	frameless.frames = 0
 	var crowding := _prop(&"crowding", 1, 0.0, 0.5)
-	var props: Array[PropDef] = [good, null, blank, frameless, crowding]
+	# A shadow that falls from the frame's top or below its foot, or that is no shape at all.
+	var sunk := _prop(&"sunk", 1, 0.0, 0.1)
+	sunk.shadow_rise = sunk.foot.y
+	var shapeless := _prop(&"shapeless", 1, 0.0, 0.1)
+	shapeless.set(&"shadow", PropDef.Shadow.size())
+	var props: Array[PropDef] = [good, null, blank, frameless, crowding, sunk, shapeless]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
 	assert_push_error("PropScatter: dense: a prop is null")
 	assert_push_error("PropScatter: dense: prop blank has no texture")
 	assert_push_error("PropScatter: dense: prop frameless has 0 frames")
 	assert_push_error("PropScatter: dense: prop crowding takes the densities past 1")
+	assert_push_error("PropScatter: dense: prop sunk: its shadow rises outside its frame")
+	assert_push_error("PropScatter: dense: prop shapeless: its shadow is 3")
 	var buffer := _buffer(1, schedule)
 	scatter.bind(buffer)
 	buffer.start()
@@ -246,3 +253,46 @@ func test_the_props_take_nothing_from_the_road() -> void:
 		found.append(Fixtures.signature(tile))
 	assert_eq(found, expected)
 	assert_eq(scattered.generator.turn_count, plain.generator.turn_count)
+
+
+## Each prop's shadow, and each prop that casts one, as where its shadow falls from and its frame.
+static func _falls(sprites: Array[Sprite2D]) -> PackedStringArray:
+	var falls := PackedStringArray()
+	for sprite: Sprite2D in sprites:
+		if sprite.visible:
+			falls.append("%s %d" % [sprite.transform.origin, sprite.frame])
+	falls.sort()
+	return falls
+
+
+func test_each_prop_casts_its_shadow_while_it_shows_in_its_frame() -> void:
+	# PropScatter lays a prop's shadow as it shows the prop, shows it in the prop's frame, and takes
+	# it away with the prop (DAYNIGHT_PLAN.md §5.11). A flat prop casts none. As sparse as the props
+	# of the other tests, as it checks each one at each step (C20).
+	var flat := _prop(&"flat", 1, 0.0, 0.02)
+	flat.shadow = PropDef.Shadow.NONE
+	var props: Array[PropDef] = [_prop(&"turning", 4, 4.0, 0.03), flat]
+	var schedule := _schedule(props)
+	var scatter := PropScatter.new(_layer, schedule)
+	var shadows: Shadows = add_child_autofree(Shadows.new())
+	scatter.shadows = shadows
+	var buffer := _buffer(1, schedule)
+	scatter.bind(buffer)
+	buffer.start()
+	var wrong := PackedStringArray()
+	var casting := 0
+	for index: int in range(1, 120):
+		buffer.on_car_path_index(index)
+		scatter.update(0.1)
+		var turning: Array[Sprite2D] = []
+		for k: int in scatter.rows():
+			for sprite: Sprite2D in scatter.sprites(k):
+				if sprite.hframes == 4:
+					turning.append(sprite)
+		var casts: Array[Sprite2D] = []
+		casts.assign(shadows.get_children(true))
+		if _falls(casts) != _falls(turning) or shadows.count() != turning.size():
+			wrong.append("car on %d" % index)
+		casting = maxi(casting, turning.size())
+	assert_gt(casting, 20, "props that cast")
+	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d steps wrong" % wrong.size())

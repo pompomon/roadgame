@@ -10,3 +10,4 @@ texture = ExtResource("2_sheet")
 region = Rect2i(0, 0, 42, 58)
 foot = Vector2i(21, 57)
 density = 0.01
+shadow_rise = 10

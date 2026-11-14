@@ -185,6 +185,28 @@ const LIGHT_COLORS: Array[Color] = [
 	LIGHT_NIGHT, LIGHT_DAWN, Color.WHITE, Color.WHITE, LIGHT_DUSK, LIGHT_NIGHT
 ]
 const LIGHT_MAX_RATE := 0.25
+## Shadows (DAYNIGHT_PLAN.md §5.11). The sun is up from SUN_RISE_HOUR to SUN_SET_HOUR, and the moon
+## the rest of the day. Each rises on the screen's left, SKY_RISE_ANGLE being the way toward it in
+## tile space, stands highest at the screen's top, SUN_HIGHEST or MOON_HIGHEST above the ground,
+## and sets on its right: so shadows fall beside what casts them or in front of it, where they
+## show, never behind it. They are black, SUN_SHADOW_ALPHA or MOON_SHADOW_ALPHA, and fade in as the
+## sun or the moon rises from SHADOW_FADE_FROM to SHADOW_FADE_TO above the ground, and out as it
+## sets. A shadow is at most SHADOW_LONGEST times as long as what casts it is tall. The shadows
+## shown move by at most SHADOW_MAX_RATE a second, in screen pixels a pixel of height, and their
+## alpha changes by at most SHADOW_ALPHA_RATE a second: shadows that must move faster, as when a
+## zone sets the clock back, fade out and in.
+const SUN_RISE_HOUR := 6.0
+const SUN_SET_HOUR := 18.0
+const SKY_RISE_ANGLE := deg_to_rad(135.0)
+const SUN_HIGHEST := deg_to_rad(60.0)
+const MOON_HIGHEST := deg_to_rad(45.0)
+const SUN_SHADOW_ALPHA := 0.3
+const MOON_SHADOW_ALPHA := 0.15
+const SHADOW_FADE_FROM := deg_to_rad(3.0)
+const SHADOW_FADE_TO := deg_to_rad(20.0)
+const SHADOW_LONGEST := 2.5
+const SHADOW_MAX_RATE := 1.5
+const SHADOW_ALPHA_RATE := 0.25
 
 # The City's legends.
 ## The phantom bus (M6_PLAN.md §3.3): its beats, in s: the fog rolls in, the bus comes, the car

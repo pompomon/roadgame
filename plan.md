@@ -197,6 +197,7 @@ Each disaster is a self-contained scene (animation, GPU particles, shaders, soun
 - Road tile: **128×64** diamond.
 - Ground tile: **32×16** (4×4 ground tiles per road tile) for decoration placement around the road.
 - `TileMapLayer` in isometric mode. Props and the car sit in a Y-sorted `Node2D` with the pivot at the sprite's base.
+- **Shadows** (`DAYNIGHT_PLAN.md` §5.11). The props and the car cast shadows, from the sun by day and the moon by night. Each crosses the sky from the screen's left to its right, so the shadows turn from right to left, always in front of what casts them. They lengthen as it sinks, fade out before it sets and fade in after the next one rises. The moon's are fainter.
 
 ### 5.3 Asset list per area
 | Asset | Count | Notes |
@@ -251,6 +252,7 @@ Main
 ├── World
 │   ├── GroundLayer (TileMapLayer, isometric)
 │   ├── RoadLayer   (TileMapLayer, isometric)
+│   ├── Shadows     (CanvasGroup: the props' and the car's shadows, §5.2)
 │   └── Props (Node2D, y_sort_enabled)
 │       ├── Car
 │       ├── SetPiece instances
@@ -270,6 +272,7 @@ Main
 | `RoadGenerator` | `RefCounted` (no nodes) | Seeded generation of `RoadTile` data, junctions, dead ends, occupancy, buffer |
 | `RoadTile` | `RefCounted` | Cell, type, heading, exits, `expectedExit`, area, `turnNumber` |
 | `WorldRenderer` | `Node` | Turns `RoadTile`s into tilemap cells and props; erases freed tiles |
+| `Shadows` | `CanvasGroup` | Draws the props' and the car's shadows, laid by `DayCycle`'s sun or moon |
 | `PropPool` | `Node` | Reuses prop sprites instead of creating and destroying them |
 | `CarController` | `CharacterBody2D`-like custom movement | Steering, speed model (straight acceleration, junction auto-braking), off-road detection (from tile lookup), off-road limit, health |
 | `InputRouter` | `Node` | Turns keyboard, touch and scripted input into a steering intent from -1 to 1 |
