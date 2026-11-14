@@ -1,6 +1,6 @@
 # Docs
 
-Summaries of the finished plans. Each keeps its plan's section numbers and every ID that code, tests or docs cite, such as `docs/M2.md H16`. Its header names the commit that has the full plan, for `git show <sha>:<NAME>_PLAN.md`. [`IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md) (IP) has the milestones and M7, Ship, which is next; [`plan.md`](../plan.md) has the game's design.
+Summaries of the finished plans. Each keeps its plan's section numbers and every ID that code, tests or docs cite, such as `docs/M2.md H16`. Its header names the commit that has the full plan, for `git show <sha>:<NAME>_PLAN.md`. The plans also cite commits on their prototype branches, such as `m3/prototype`. To keep those commits, the branches are now tags, such as `archive/m3/prototype`; only `tut/prototype` and `hb/prototype` are still branches. [`IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md) (IP) has the milestones and M7, Ship, which is next; [`plan.md`](../plan.md) has the game's design.
 
 | Summary | What it built | PRs |
 |---|---|---|

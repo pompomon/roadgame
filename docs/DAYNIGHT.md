@@ -150,7 +150,6 @@ The five checks passed on each PR; at PR 5, 160 scripts, 583 tests and 426,861 a
 
 - **The Fold4** (E13), not yet reported, on a debug APK from `main`, folded and unfolded: dusk and Rural's reset gradual; the road, car and shaded smoke readable at night; lamps warm, never white; the night as smooth as the day.
 - **Tune** if needed (Q3, Q10): `LIGHT_*`, `*_SHADOW_ALPHA`, `LAMP_*` or a zone's `day_seconds`.
-- **Delete** `dn/plan` and `dn/1-cycle`.
 
 ## 9. Notes for later
 
