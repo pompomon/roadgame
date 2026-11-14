@@ -112,7 +112,6 @@ Each PR's head passed `AGENTS.md` §3's five checks, locally and in CI, and each
 ## 7. Owner actions
 
 - E10 on the Fold4, not recorded as done: on both screens, side roads and decoys read as roads, masks 11 and 13 look right, dead ends don't look like stubs, and the trick feels fair. A debug build's title Start button picks the area that Play starts in (`docs/ZONE_SELECT.md`).
-- Delete the leftover branches: `git push origin --delete rg/1-junction-kinds rg/3-area-chances rg/prototype`.
 
 ## 9. Notes for later
 

@@ -40,4 +40,5 @@ Finished plans don't stay at the root. Once the plan's last PR has merged, a doc
 - Define every ID that code, tests or docs cite, as a bold label: `- **H16.** …`. Keep the decisions, the design that the code follows, the measurements that tuning values come from, and what's still open. Leave out the steps, the review rounds and the counts.
 - Its header points to the full plan: `git show <sha>:<NAME>_PLAN.md`, with the last commit that has it.
 - Move its open owner actions and its notes for later milestones into IP.
+- End its PR's owner actions with the plan's branches. The plan cites the prototype's commits, so the owner tags it before deleting them (docs/README.md): `git fetch origin m<n>/prototype && git push origin FETCH_HEAD:refs/tags/archive/m<n>/prototype`, then `git push origin --delete m<n>/plan m<n>/prototype …`.
 - Rewrite the citations outside `docs/` from `<NAME>_PLAN.md` to `docs/<NAME>.md` (the same length, so lines don't need rewrapping), add a line to `docs/README.md`, and check that every cited ID is defined.
