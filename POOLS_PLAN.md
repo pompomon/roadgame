@@ -50,7 +50,7 @@ Goal: each area has three legends that end a run in three ways, and each run pla
 | E7 | Three in each pool (Q1). Each area's pool holds its ★ and §5.4's two, each ending a run another way. Every disaster of every pool plays through the director, with a seed that picks it | `test_disasters.gd`: `test_each_area_has_its_pool_of_disasters`; `test_disaster_pools.gd`: `test_every_disaster_of_every_pool_plays` |
 | E8 | Each new legend keeps M6's rules (the legends instructions; docs/M6.md §5): 2–4 s with the stop, nothing before its delay, the car taken out of sight with something left, particles seeded from the params, no flashing, no polygon redrawn, glows only with a veil (V18), and a fate and a lore that fit. Its own tests check its beats, how it takes the car and what it leaves, by day and by night (V15) | `test_disasters.gd`'s contract tests (§5.6), which play every scene of the pools, and its guard `test_only_a_legend_with_a_veil_has_glows`; the legend's `test_<id>.gd` |
 | E9 | The collection has 15 cards, in the order a run can first meet them, each a silhouette until it's seen | `test_collection_screen.gd`: `test_the_disasters_in_the_order_a_run_meets_them_each_once_with_a_name_and_lore`, `test_before_any_disaster_every_card_is_a_silhouette` |
-| E10 | Sound and art. Each legend has its sound, made by `make_audio.gd`, under its id in `AudioDirector.EFFECTS` and within its kind's peak; and its sheets, made by `tools/art/legends/<id>.gd`: one row of whole frames of at most 96 × 96, in the palette's colours, the same each time | `test_audio_director.gd`: `test_every_disaster_of_every_area_has_its_sound`, `test_no_sound_peaks_above_its_kinds_budget`; `test_legend_art.gd`: `test_each_sheet_is_one_row_of_whole_frames_none_too_large`, `test_each_legend_of_the_pools_draws_only_its_own_art`, `test_a_sheet_is_drawn_the_same_every_time_in_the_palettes_colours` |
+| E10 | Sound and art. Each legend has its sound, made by `make_audio.gd`, under its id in `AudioDirector.EFFECTS` and within its kind's peak; and its sheets, made by `tools/art/legends/<id>.gd`: one row of whole frames of at most 96 × 96, in the palette's colours, the same each time | `test_audio_director.gd`: `test_every_disaster_of_every_area_has_its_sound`, `test_no_sound_peaks_above_its_kinds_budget`; `test_legend_art.gd`: `test_each_sheet_is_one_row_of_whole_frames_none_too_large`, `test_each_legend_of_the_pools_draws_only_its_own_art`, and PR 2's `test_each_legends_script_draws_the_same_bytes_every_time` (§5.6); `test_area_art.gd`: `test_art_is_in_the_palettes_colours` |
 | E11 | The cost (V12, Q5). The ten legends add about 74 ms and 1.9–2.8 MB to the boot's loading on the desktop, with their sounds (P4, P16), and 0.3–0.5 MB to the builds (P7). PR 11 measures both again, and the owner times the Fold4's boot | §5.7, on PR 11 |
 | E12 | Manual, on the Web in Chrome and Firefox and on both of the Fold4's screens: each new legend reads in 2–4 s without words, at noon and at midnight, and nothing flashes | §6.4, on each legend PR's build |
 | E13 | Docs (V6, V9, V14, V16, V17). PR 1: `plan.md` §2.6, §3.5 and §4.2 and IP §5.3 say how the picks work. PR 12: `plan.md` §4.3 and §8, IP, `AGENTS.md` and the legends instructions name the pools, and `docs/POOLS.md` replaces this plan | Review |
@@ -218,11 +218,11 @@ Building PR k:
 6. `tools/ci/import.sh` again, and commit every `.import` and `.uid` that it makes.
 7. Its scene, with the sheets, and the area's `.tres`.
 8. Its `test_<id>.gd`, and the pools test's line.
-9. §6.1's checks, the negative cases N12–N25 (§6.2) and the warnings (§6.3).
+9. §6.1's checks, the negative cases N12–N25 and N28 (§6.2) and the warnings (§6.3).
 10. Its seeds, frames and Web build for the body (§5.6, §6.4). PR 11 also measures the boot's loading on the desktop, as P4 and P16 did (E11, §5.7).
 11. A review by a model of another family (`AGENTS.md` §5). Then commit as `legends: <the legend>, <the area>'s <second or third> (PL PR <k>)`, push, and open the PR with base PR k−1's branch.
 
-Expect, after PR k: `check_scripts: loaded` 3 more scripts than the PR before, and one more test script (192 and 88 after PR 11); the legend's own 5–8 tests more (about 647–677 after PR 11); about 11 more asserts in the shared tests (P8) and the legend's own; GUT about 0.5 s more (P11); `smoke.sh`'s line as on `main` (P8).
+Expect, after PR k: `check_scripts: loaded` 3 more scripts than the PR before, and one more test script (192 and 88 after PR 11); the legend's own 5–8 tests more, and PR 2's art test (about 648–678 after PR 11); about 16 more asserts in the shared tests (P8, P17), PR 2's 25 for the ★s' art, and the legend's own; GUT about 0.5 s more (P11); `smoke.sh`'s line as on `main` (P8).
 
 **Acceptance:** E7 for its area, E8, E10 and E14; E9 once the collection shows it; E12 on its build; and E11 on PR 11.
 
@@ -272,6 +272,7 @@ Fixes found while the prototype was built, by the internal review of this plan (
 | 1 | V18: only the death worm's test checked that a legend without a veil has no glow, and only at its start. Four of the ten have no veil. c4fd24d plays each legend of the pools without a veil, and checks every item it draws at each frame, particles too | `test_disasters.gd`: `test_only_a_legend_with_a_veil_has_glows` | N10, N11 |
 | 1 | §4.6 #4: an empty slot in a pool, a null in its `Array[PackedScene]`, was a script error as the car reached the area, picked or not, as `id_of()` read the null's state. 1c92081 makes it an error with no weight, so it is never picked; a pool of only empty slots picks nothing, and the director finishes as for an empty pool | `test_disaster_picks.gd`: `test_an_empty_slot_is_an_error_and_never_picked`, `test_a_pool_of_empty_slots_is_an_error_and_picks_nothing`, `test_the_id_comes_from_the_scene_without_instancing_it` | N26 |
 | 1 | §4.6 #5: the glow guard read a part's own material, but a part with `use_parent_material` draws with its parent's. d3a09a8's `material_of()` finds the material that a part draws with, as the renderer does, for the guard and for the flash check's blends | `test_disasters.gd`: `test_only_a_legend_with_a_veil_has_glows` | N27 |
+| 2 | Copilot's review of this plan: CI never runs the art scripts, so no test checked E10's "the same each time". PR 2's test runs each twice and compares the bytes (§5.6) | `test_legend_art.gd`: `test_each_legends_script_draws_the_same_bytes_every_time` | N28 |
 
 ### 4.6 Internal review
 
@@ -511,8 +512,10 @@ A legend PR follows the legends instructions, and these tests check them. Each p
 | At least one emitter, each emitting, its particles seeded and scaled from the params (docs/M3.md J16) | `test_each_seeds_its_particles_from_its_params_and_scales_them`, `test_each_shows_its_particles_while_they_emit_and_each_emits` |
 | No flashing; glows only with a veil (V18); no polygon redrawn | `test_none_flashes`, `test_only_a_legend_with_a_veil_has_glows`, `test_none_redraws_a_polygon` |
 | Words that fit, in the font's glyphs | `test_each_has_a_fate_for_game_over_and_a_lore_for_its_card`; `test_smoke.gd`: `test_main_scene_text_has_every_glyph_in_the_default_font` |
-| Its sound and sheets (E10) | `test_audio_director.gd`, `test_legend_art.gd` (E10's tests) |
+| Its sound and sheets (E10) | `test_audio_director.gd`, `test_legend_art.gd`, `test_area_art.gd` (E10's tests) |
 | The collection shows it, in order (E9) | `test_collection_screen.gd` |
+
+**Its art, the same each time** (E10). CI never runs the art scripts, so nothing checked `make_legends.gd`:6–7's claim that each draws the same sheets on every run. PR 2 adds `test_each_legends_script_draws_the_same_bytes_every_time` to `test_legend_art.gd`: it runs each script in `tools/art/legends/` twice into `user://` and compares the bytes; not with the committed sheets, which an artist may replace (:5–6). The ★s' 14 sheets pass, their two runs taking 0.15 s (P17), and N28 fails it.
 
 **Its own tests.** `tests/unit/test_<id>.gd` has 5–8 tests, named for what the player sees, as the ★s' are (`test_death_worm.gd`, `test_ufo.gd`): one for each beat, one for how it takes the car, hidden in the frame that its double shows, one for what it leaves, one for its glows or why it has none, and one for the night (V15).
 
@@ -522,7 +525,7 @@ A glow draws above Daylight and the veil, and adds. So a glow is checked as it d
 
 The negative case, N25, sets every opaque pixel of the figure to its area's main ground colour, which leaves 0%, or a glow's tint to black, which leaves 0% too. Setting only the figure's main colour to the ground's isn't enough: it left the ★s at 47–65% (§4.6 #7).
 
-**The negative cases** N12–N25 (§6.2) break each rule once, and each must fail the tests that §6.2 names.
+**The negative cases** N12–N25 and N28 (§6.2) break each rule once, and each must fail the tests that §6.2 names.
 
 **Seeds, frames and builds** for the body:
 
@@ -548,7 +551,7 @@ The negative case, N25, sets every opaque pixel of the figure to its area's main
    done
    ```
    Post a frame from each beat at both hours in a PR comment, as a table (docs/agents/checks.md §3).
-3. The Web build, served with M4's patch so that it takes arguments (§6.4), at `?arg=--seed=<s>&arg=--area=<area>&arg=--play` in a fresh browser profile, in Chrome and Firefox (E12).
+3. The Web build, served with M4's patch so that it takes arguments (§6.4), at `?arg=--seed=<s>&arg=--area=<area>&arg=--play`, in Chrome and Firefox, each browser and hour in a fresh profile (§6.4, E12).
 4. For the owner, on the Fold4: in the debug APK, the title's Start choice picks the area (docs/ZONE_SELECT.md). Each wrong turn there plays the new legend with odds of 67% in wave A, with the ★ seen, and 50% in wave B, with the other two seen; Retry keeps the area.
 
 ### 5.7 The cost (V12, Q5; E11)
@@ -600,7 +603,7 @@ The `test` job took 2 min 42 s on `main`, 2 min 27 s on 0e1a76c, 2 min 46 s on c
 
 ### 6.2 Negative cases
 
-Each change below makes the tests named fail, and nothing else. A script, not committed, applied each change to a clean worktree, ran `tools/ci/run_tests.sh`, read GUT's JUnit report, and restored the files: N12–N24 on c4fd24d, where each ran all 595 tests in 94–97 s; then N1–N11 again, and N26 and N27, on d3a09a8, where each ran all 597. Each exited 1. N1–N11 failed the same tests on both, and N7 and N8 the new tests of empty slots too. After the runs, `git status --porcelain` printed nothing.
+Each change below makes the tests named fail, and nothing else. A script, not committed, applied each change to a clean worktree, ran `tools/ci/run_tests.sh`, read GUT's JUnit report, and restored the files: N12–N24 on c4fd24d, where each ran all 595 tests in 94–97 s; then N1–N11 again, and N26 and N27, on d3a09a8, where each ran all 597; and N28 on d3a09a8 with PR 2's art test added, all 598. Each exited 1. N1–N11 failed the same tests on both, and N7 and N8 the new tests of empty slots too. After the runs, `git status --porcelain` printed nothing.
 
 **PR 1's** (§4, PR 1):
 
@@ -620,7 +623,7 @@ Each change below makes the tests named fail, and nothing else. A script, not co
 | N26 | `disaster_picks.gd` without its two checks for an empty slot, in `weights()` and `id_of()` | `test_disaster_picks.gd`: `test_an_empty_slot_is_an_error_and_never_picked`, `test_a_pool_of_empty_slots_is_an_error_and_picks_nothing`, `test_the_id_comes_from_the_scene_without_instancing_it` |
 | N27 | `death_worm.tscn`: the glow material on its root, and the crater with `use_parent_material = true` | `test_only_a_legend_with_a_veil_has_glows`. Before d3a09a8, it failed nothing |
 
-**Each legend PR's** (§5.6). Each legend PR breaks its own legend in these ways, and its body names the tests that fail. Here they ran on the death worm, and N16 on the UFO, with the same script; N25 needs PR 2's helper, so PR 2 runs it first, and PR 6 its form for glows. A change also fails the legend's own tests that check the same thing, as N14 does. `Legend.play()` seeds and scales every `CPUParticles2D` under a legend (`disaster_base.gd`:46), so only a legend that changes them after it plays could break docs/M3.md J16, and N23 checks the other half of that rule. M6's N39 and N40 cover the polygons (docs/M6.md §6):
+**Each legend PR's** (§5.6). Each legend PR breaks its own legend in these ways, and its body names the tests that fail. Here they ran on the death worm, N16 on the UFO and N28 on the fairy ring; N25 needs PR 2's helper, so PR 2 runs it first, and PR 6 its form for glows. A change also fails the legend's own tests that check the same thing, as N14 does. `Legend.play()` seeds and scales every `CPUParticles2D` under a legend (`disaster_base.gd`:46), so only a legend that changes them after it plays could break docs/M3.md J16, and N23 checks the other half of that rule. M6's N39 and N40 cover the polygons (docs/M6.md §6):
 
 | N# | Rule broken, on the worm | Fails |
 |---|---|---|
@@ -638,6 +641,7 @@ Each change below makes the tests named fail, and nothing else. A script, not co
 | N23 | Particles that never emit: the spray's `emitting` always false | `test_each_shows_its_particles_while_they_emit_and_each_emits`; `test_death_worm.gd`: `test_the_worm_bursts_up_out_of_the_cracked_mound_carrying_the_double_on_its_head`, `test_the_swallow_goes_down_its_body_as_it_dives_back_into_the_sand` |
 | N24 | What it leaves hides at its end: the crater's alpha 0 at the last beat, as docs/M6.md N31 | `test_death_worm.gd`: `test_it_leaves_a_crater_where_the_car_stood` |
 | N25 | It sinks into the night: every opaque pixel of its figure set to its area's main ground colour, or a glow's tint to black (§5.6) | Its night test (V15), once PR 2 adds the helper, and PR 6 the glows'; not run here, but P13 and P13b give 0% for both |
+| N28 | Its art drawn at random: four white pixels at `randi_range()` places in the fairy ring's eyes, as `lint.sh`'s RNG rule skips `tools/` | PR 2's `test_each_legends_script_draws_the_same_bytes_every_time`, alone of 598 tests, run on d3a09a8 with that test added |
 
 ### 6.3 Editor warnings
 
@@ -656,8 +660,8 @@ None of the five checks reports GDScript warnings, and shadowing shows only in t
     /tmp/roadgame-web/index.html
   python3 -m http.server -d /tmp/roadgame-web 8000
   ```
-  Open `http://localhost:8000/?arg=--seed=<s>&arg=--area=<area>&arg=--play`, with §5.6's seed, and again with `&arg=--hour=0`, in a fresh profile of Chrome and of Firefox, driven by Playwright, headed under Xvfb. Left alone, the car misses its first turn and the legend starts 3.0–4.5 s in (P14). Post a frame of each beat and the console's errors, by browser and hour, in a PR comment. The build stays current while `git diff --name-only <built> HEAD -- . ':!tests' ':!addons/gut' ':!*.md'` prints nothing, so a fix to tests or words in Markdown needs no new one.
-- **Each legend PR on the Fold4** (E12), by the owner, on both screens: `gh run download <run id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`, then `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`. The APK takes no arguments, so the title's Start choice picks the area, and each wrong turn plays the new legend with odds of 67% in wave A and 50% in wave B, once the area's others are seen (§5.6). Or serve the Web build as above, run `adb reverse tcp:8000 tcp:8000`, and open the same URL in the Fold4's Chrome. Check that the legend reads in 2–4 s without words, by day and by night, at 60 fps, and that nothing flashes.
+  Open `http://localhost:8000/?arg=--seed=<s>&arg=--area=<area>&arg=--play`, with §5.6's seed, and again with `&arg=--hour=0`, in Chrome and Firefox, driven by Playwright, headed under Xvfb. Give each browser and hour a new Playwright context, whose IndexedDB is empty: a run saves its legend as seen, and the seed may then pick another (§8, P15). Left alone, the car misses its first turn and the legend starts 3.0–4.5 s in (P14). Post a frame of each beat and the console's errors, by browser and hour, in a PR comment. The build stays current while `git diff --name-only <built> HEAD -- . ':!tests' ':!addons/gut' ':!*.md'` prints nothing, so a fix to tests or words in Markdown needs no new one.
+- **Each legend PR on the Fold4** (E12), by the owner, on both screens: `gh run download <run id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`, then `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`. The APK takes no arguments, so the title's Start choice picks the area, and each wrong turn plays the new legend with odds of 67% in wave A and 50% in wave B, once the area's others are seen (§5.6). Or serve the Web build as above, run `adb reverse tcp:8000 tcp:8000`, and open the same URLs in the Fold4's Chrome, each in Incognito with every Incognito tab closed first, so that each starts with no save. Check that the legend reads in 2–4 s without words, by day and by night, at 60 fps, and that nothing flashes.
 - **E11, the boot on the Fold4,** by the owner, on two debug APKs: `pl/prototype`'s, `main` at 2d93074 with PR 1 and none of the ten legends, and PR 11's, with all ten; `main`'s may hold some of them by then. Build each with the command above (`--ref pl/prototype`, `--ref pl/11-chupacabra`), and download it the same day, as CI keeps builds for one (`ci.yml`:127). Install each in turn with `adb install -r`, and start it three times, each after `adb shell am force-stop com.pompomon.roadgame` and `adb logcat -c`, so that each start is cold; then `adb logcat -d -v time -s godot`, and take the time from Godot's banner, `Godot Engine v4.7.2.stable…`, to `grey box: tilesets built in`, which `_ready()` prints (`ui/main.gd`:62). PR 11 should add at most about 0.1 s, the desktop's 74 ms (P4, P16) scaled for a slower CPU; more, and the legends load lazily (§9).
 
 ### 6.5 Measurements
@@ -683,6 +687,7 @@ The probes ran headless with Godot 4.7.2, on `main` (2d93074) or the prototype; 
 | P14 | When a legend starts in a run left alone: `--play --hour=0`, seeds 1–3 in each area | 2.97–4.52 s in, over the 15 runs | §5.6, §6.4 |
 | P15 | Whether a save replays a seed's pick: a City pool of the bus, the UFO and the fairy ring, seeds 0–99, from an empty collection and with the bus seen, as a run that met the bus leaves the save | Seed 3 picks the bus from an empty one and the UFO with the bus seen; 18 of the 100 seeds pick another legend | §8 |
 | P16 | What a legend's sound adds to the boot, as `AudioDirector.EFFECTS` preloads it (`audio_director.gd`:28–42): each ★'s sound loaded fresh, the median of five, three times | Each is QOA-compressed, and loads in 0.09–0.11 ms and 24–32 KB. Ten more: about 1 ms and 0.3 MB | V12, Q5, E11, §5.7 |
+| P17 | Whether each ★'s art script draws the same sheets each time: each run twice into `user://`, three times, on d3a09a8 | Its 14 sheets the same bytes each time, and as committed. Both runs of all five 152.5–153.7 ms; a run of the bus 43 ms, the worm 30, the others 1–5 | E10, §4.2, §5.6 |
 
 ---
 
@@ -692,7 +697,7 @@ The probes ran headless with Godot 4.7.2, on `main` (2d93074) or the prototype; 
 |---|---|---|
 | Now | Answer Q1–Q11, or accept the defaults | A comment on this plan's PR. Without an answer, the PRs follow the defaults (§3). Q2–Q5 change PR 1; Q1, Q6 and Q7 which legends PRs 2–11 build; Q8 their words; Q9 and Q11 the UI and the docs; Q10 how they land |
 | Now, if wanted | Try the prototype on the Fold4 | Until 2026-11-15 20:36 UTC: `rm -rf /tmp/roadgame-apk && gh run download 43638425708 -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`, then `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`. After that, `gh workflow run ci.yml -R pompomon/roadgame --ref pl/prototype -f upload-builds=true` makes a new one, kept a day. With pools of one, it plays as `main` does (E6) |
-| On each legend PR | E12 on the Fold4, on both screens | §6.4: its APK, with the Start choice and Retry; by night, its Web build in the Fold4's Chrome with `&arg=--hour=0` |
+| On each legend PR | E12 on the Fold4, on both screens | §6.4: its APK, with the Start choice and Retry; by night, its Web build in the Fold4's Chrome, in Incognito, with `&arg=--hour=0` |
 | On PR 11 | E11: time the boot | §6.4: three cold starts each of `pl/prototype`'s debug APK and PR 11's, each built and downloaded the same day |
 | To land PL | Merge this plan's PR, then PR 1, then PRs 2–11, each once its base is `main` and its checks pass; then PR 12, which starts from `main` once PR 11 has merged (§4.3) | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.4) |
 | After PR 12 | Tag the prototype, which this plan cites, and delete the `pl/` branches | `git fetch origin pl/prototype && git push origin FETCH_HEAD:refs/tags/archive/pl/prototype`, then `git push origin --delete pl/plan pl/prototype pl/1-picks pl/2-mothman pl/3-scarecrow pl/4-kelpie pl/5-frau-holle pl/6-marfa-lights pl/7-grim-reaper pl/8-headless-horseman pl/9-will-o-wisp pl/10-baba-yaga pl/11-chupacabra pl/12-docs`, less any already deleted (docs/agents/planning.md §6) |
