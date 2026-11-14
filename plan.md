@@ -145,6 +145,7 @@ AreaDef
   disasters: Array[PackedScene]    # pool used on wrong or missed turns
   ambient_loop, music: AudioStream
   transition_tiles: TileSet        # blending into this area
+  day_seconds: float               # a day and night, 120 s by default; each zone's clock starts at 07:00
 ```
 
 `AreaSchedule` resource: an ordered list of `{ turn, area: AreaDef, set_piece: PackedScene? }`.

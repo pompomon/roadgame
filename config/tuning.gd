@@ -171,6 +171,21 @@ const SHAKE_FREQ_Y := 31.0
 const CRASH_SHAKE := 0.5
 const CRASH_SHAKE_SECONDS := 0.4
 
+## Day and night (DAYNIGHT_PLAN.md §5.2): what Daylight multiplies the world by at the key hours of
+## a zone's day, LIGHT_HOURS, from 0 to 24, in LIGHT_COLORS. Between two keys each channel eases
+## from one to the other, and from the last key the light runs on past midnight to the first. A
+## zone's clock starts at DAY_START_HOUR as the car enters it. The light shown changes by at most
+## LIGHT_MAX_RATE a second in each channel, also when a zone sets the clock back (§5.3).
+const DAY_START_HOUR := 7.0
+const LIGHT_DAWN := Color(0.92, 0.74, 0.78)
+const LIGHT_DUSK := Color(1.0, 0.72, 0.52)
+const LIGHT_NIGHT := Color(0.42, 0.48, 0.72)
+const LIGHT_HOURS: Array[float] = [4.5, 6.0, 7.0, 17.0, 18.5, 20.0]
+const LIGHT_COLORS: Array[Color] = [
+	LIGHT_NIGHT, LIGHT_DAWN, Color.WHITE, Color.WHITE, LIGHT_DUSK, LIGHT_NIGHT
+]
+const LIGHT_MAX_RATE := 0.25
+
 # The City's legends.
 ## The phantom bus (M6_PLAN.md §3.3): its beats, in s: the fog rolls in, the bus comes, the car
 ## boards it, the bus leaves. How far back it comes from, along the road, how far on it goes and
