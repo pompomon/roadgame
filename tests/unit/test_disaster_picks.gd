@@ -114,7 +114,26 @@ func test_no_weight_above_zero_is_an_error_and_picks_the_first() -> void:
 	assert_push_error("no scene of the pool has a weight above 0")
 
 
+func test_an_empty_slot_is_an_error_and_never_picked() -> void:
+	# An exported array of scenes may have a slot left empty, which has no id to read.
+	var scene := _scene(&"bus")
+	var area := _area(&"city", [null, scene, null])
+	var picked: Array[PackedScene] = []
+	for run_seed: int in 10:
+		picked.append(DisasterPicks.new(run_seed).pick(area))
+	assert_eq(picked.count(scene), picked.size(), "the one scene, whatever the seed")
+	assert_push_error_count(2 * picked.size(), "an error for each empty slot of each pick")
+
+
+func test_a_pool_of_empty_slots_is_an_error_and_picks_nothing() -> void:
+	assert_null(DisasterPicks.new(1).pick(_area(&"city", [null, null])))
+	for _slot: int in 2:
+		assert_push_error("a pool has an empty slot, which is never picked")
+	assert_push_error("no scene of the pool has a weight above 0")
+
+
 func test_the_id_comes_from_the_scene_without_instancing_it() -> void:
 	assert_eq(DisasterPicks.id_of(_scene(&"bus")), &"bus")
 	assert_eq(DisasterPicks.id_of(_scene(&"")), &"", "a root that sets no id")
 	assert_eq(DisasterPicks.id_of(PackedScene.new()), &"", "an empty scene")
+	assert_eq(DisasterPicks.id_of(null), &"", "no scene")

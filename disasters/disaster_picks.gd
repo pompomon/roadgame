@@ -40,11 +40,16 @@ func picked() -> Array[StringName]:
 
 
 ## The weight of each scene of `pool`: 1 for a disaster not seen yet, and
-## Tuning.SEEN_DISASTER_WEIGHT for one seen.
+## Tuning.SEEN_DISASTER_WEIGHT for one seen. An empty slot is an error, and weighs 0, so it's never
+## picked.
 func weights(pool: Array[PackedScene]) -> PackedFloat32Array:
 	var result := PackedFloat32Array()
 	for scene: PackedScene in pool:
-		result.append(Tuning.SEEN_DISASTER_WEIGHT if _seen.has(id_of(scene)) else 1.0)
+		if scene == null:
+			push_error("DisasterPicks: a pool has an empty slot, which is never picked")
+			result.append(0.0)
+		else:
+			result.append(Tuning.SEEN_DISASTER_WEIGHT if _seen.has(id_of(scene)) else 1.0)
 	return result
 
 
@@ -72,8 +77,10 @@ static func draw(
 
 
 ## The id that `scene`'s root sets, read from the scene without instancing it (P6); &"" if it sets
-## none.
+## none, or if there's no scene.
 static func id_of(scene: PackedScene) -> StringName:
+	if scene == null:
+		return &""
 	var state := scene.get_state()
 	if state.get_node_count() == 0:
 		return &""
