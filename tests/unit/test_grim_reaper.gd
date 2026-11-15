@@ -694,6 +694,8 @@ func test_it_sinks_as_the_earth_falls_in_on_it() -> void:
 	# the heap, in front of it, from as it stops till it has sunk out of sight. Then the grave is
 	# filled. Its clods are the heap's browns, so each stays over the pit's dark depths from where
 	# it's thrown till it's gone, however fast it's thrown: the far wall and the heap would hide it.
+	# Those still falling as the grave fills go with the earth: they would fall on over the mound,
+	# which is in their browns too.
 	var ink: Color = Art.MakeArt.palette()["ink"]
 	var lip := true
 	for x: int in range(-CarController.FOOT.x, CarController.FRAME_SIZE.x - CarController.FOOT.x):
@@ -720,18 +722,23 @@ func test_it_sinks_as_the_earth_falls_in_on_it() -> void:
 		var gone := true
 		var falls := true
 		var fell := false
+		var buried := true
 		# How much of the double shows halfway through its sinking.
 		var half_kept := 0.0
 		while _short_of(ends[3]):
 			_step(legend)
 			var through := _through(3)
 			if _clear_of(3, rolled) and _clear_of(3, sunk):
-				falls = falls and earth.emitting == (through > rolled and through < sunk)
+				var falling := through > rolled and through < sunk
+				falls = falls and earth.emitting == falling
+				falls = falls and (Disasters.shows(earth) or not falling)
 			fell = fell or earth.emitting
 			if through <= 0.0 or not _clear_of(3, 0.0) or not _clear_of(3, sunk):
 				continue
 			var dug := GrimReaper.Dug.FILLED if through > sunk else GrimReaper.Dug.OPEN
 			open = open and grave.frame == dug
+			if through > sunk:
+				buried = buried and not Disasters.shows(earth)
 			var car_double := _double(legend)
 			if car_double == null or through < rolled or not _clear_of(3, rolled):
 				continue
@@ -746,6 +753,7 @@ func test_it_sinks_as_the_earth_falls_in_on_it() -> void:
 				sinking = sinking and car_double.region_rect.position.y == 0.0
 				sinking = sinking and absf(_bottom(car_double) - at.y - GrimReaper.LIP) < NEAR.y
 		_step_to(legend, ends[3])
+		buried = buried and not Disasters.shows(earth)
 		var last := _double(legend)
 		kept.append(last.region_rect.size.y if last != null and Disasters.shows(last) else 0.0)
 		assert_true(sinking, "%s: in the grave's middle, its top cut off at the near lip" % what)
@@ -756,6 +764,7 @@ func test_it_sinks_as_the_earth_falls_in_on_it() -> void:
 		assert_true(gone, "%s: out of sight once the grave is filled" % what)
 		assert_true(open, "%s: the grave open till then, then filled" % what)
 		assert_true(falls and fell, "%s: the earth falls in as it sinks" % what)
+		assert_true(buried, "%s: the earth gone once the grave is filled" % what)
 		assert_gt(Disasters.z(earth), 0, "%s: in front of it" % what)
 		var place := _from_car(earth)
 		var column := _up_from(_texel_under(grave, place), pit)

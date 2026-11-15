@@ -34,7 +34,7 @@ const HEAP_ALONG := 0.6
 const HEAP_PX := 5.0
 ## The earth falls in from EARTH_PX below the middle of the pit's side up the screen: under the
 ## heap, just past the foot of the pit's far wall, over its dark depths. The clods are the heap's
-## browns, so they show only once they are over the depths.
+## browns, so they show only once they are over the depths, and they go as the grave fills.
 const EARTH_PX := 7.0
 ## Under LIP px below the grave's middle, the car's double is cut off as it sinks: the highest that
 ## the pit's near lip comes across the car, so that nothing of the double shows over the road in
@@ -204,7 +204,7 @@ func _step(t: float) -> void:
 
 ## The car rolls into the grave and sinks, `t` of the sink done: its double takes its place, once,
 ## rolls to the grave's middle and sinks, faster and faster, as the earth falls in on it. The grave
-## fills, the gravestone rises, and the Reaper lowers its hand and fades away.
+## fills, and the earth goes, the gravestone rises, and the Reaper lowers its hand and fades away.
 func _sink(t: float) -> void:
 	if not _taken:
 		_taken = true
@@ -213,8 +213,12 @@ func _sink(t: float) -> void:
 			_from = _double.global_position
 	_reaper.frame = Pose.STAND
 	_reaper.modulate.a = 1.0 - clampf((t - FADE_FROM) / (1.0 - FADE_FROM), 0.0, 1.0)
-	_earth.emitting = t >= ROLL_SHARE and t < SUNK_AT
-	_grave.frame = Dug.FILLED if t >= SUNK_AT else Dug.OPEN
+	var filled := t >= SUNK_AT
+	_earth.emitting = t >= ROLL_SHARE and not filled
+	# The clods still falling would fall on over the mound, which is in their browns: they have
+	# filled the grave.
+	_earth.visible = not filled
+	_grave.frame = Dug.FILLED if filled else Dug.OPEN
 	var risen := clampf((t - STONE_FROM) / (1.0 - STONE_FROM), 0.0, 1.0)
 	_show_stone(stone_rows(1.0 - (1.0 - risen) * (1.0 - risen)))
 	if _double == null:
