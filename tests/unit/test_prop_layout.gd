@@ -345,12 +345,12 @@ static func _base(placement: PropLayout.Placement) -> Array[Vector2]:
 	]
 
 
-## Whether the lot of 2 × 2 ground cells from `corner` has a side on a road tile's side: a cell
-## across one of its sides, not just a corner, is on a road tile of `buffer`.
-static func _by_street(corner: Vector2i, buffer: RoadBuffer) -> bool:
-	var lot := Rect2i(corner, Vector2i(2, 2))
-	for b: int in 2:
-		for a: int in 2:
+## Whether the lot of `side` × `side` ground cells from `corner` has a side on a road tile's side: a
+## cell across one of its sides, not just a corner, is on a road tile of `buffer`.
+static func _by_street(corner: Vector2i, side: int, buffer: RoadBuffer) -> bool:
+	var lot := Rect2i(corner, Vector2i(side, side))
+	for b: int in side:
+		for a: int in side:
 			for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 				var next := corner + Vector2i(a, b) + step
 				var tile := Vector2i((Vector2(next) / Iso.GROUND_PER_TILE).floor())
@@ -360,22 +360,25 @@ static func _by_street(corner: Vector2i, buffer: RoadBuffer) -> bool:
 
 
 func test_lots_by_a_street_take_its_street_density_and_the_others_its_density() -> void:
-	# A lot with a side on a road tile's side, not just a corner, is by a street, and shows the prop
-	# at its street density, and the others at its density (§5.8): Q2's 0.6 and 0.35, within four
-	# standard deviations. A row sees the road across its tiles' sides when it's placed: placed again
-	# on the whole road, the rows are the same.
-	var props: Array[PropDef] = [_see_through(0.35, 0.6)]
-	# Lots, and lots that show the prop: by a street, then not.
-	var lots: Array[int] = [0, 0]
-	var shown: Array[int] = [0, 0]
+	# A lot with a side on a road tile's side, not just a corner, is by a street, and shows a prop at
+	# its street density, and the others at its density (§5.8): Q2's 0.6 and 0.35 on lots of 2 × 2,
+	# and a dot's 0.5 and 0.2 on the cells that no prop of 2 × 2 takes, within four standard
+	# deviations. The dot is too small to touch the road from a cell by it. A row sees the road
+	# across its tiles' sides when it's placed: placed again on the whole road, the rows are the same.
+	var dot := _prop(&"dot", Vector2i(2, 2), Vector2i(1, 2), 0.2)
+	dot.street_density = 0.5
+	var props: Array[PropDef] = [_see_through(0.35, 0.6), dot]
+	# Lots of 2 × 2, then free cells, and those that show their prop: by a street, then not.
+	var lots: Array[int] = [0, 0, 0, 0]
+	var shown: Array[int] = [0, 0, 0, 0]
 	for run_seed: int in [1, 2, 3]:
 		var road := _road(Fixtures.schedule(), run_seed, props)
 		var again := _placed_again(road, road.buffer.generator.props_seed, props)
 		assert_eq(_described(again), _described(road.rows), "seed %d on the whole road" % run_seed)
 		for k: int in road.rows:
-			var fronts: Dictionary[Vector2i, bool] = {}
+			var fronts: Dictionary[Vector2i, StringName] = {}
 			for placement: PropLayout.Placement in road.rows[k]:
-				fronts[_ground_cell(placement)] = true
+				fronts[_ground_cell(placement)] = placement.def.id
 			for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
 				var tile: Vector2i = road.path[k].cell + Vector2i(j, -j)
 				if (
@@ -385,15 +388,30 @@ func test_lots_by_a_street_take_its_street_density_and_the_others_its_density() 
 					continue
 				for b: int in range(0, Iso.GROUND_PER_TILE, 2):
 					for a: int in range(0, Iso.GROUND_PER_TILE, 2):
-						var cell := tile * Iso.GROUND_PER_TILE + Vector2i(a, b)
-						var inside := 0 if _by_street(cell, road.buffer) else 1
+						var corner := tile * Iso.GROUND_PER_TILE + Vector2i(a, b)
+						var inside := 0 if _by_street(corner, 2, road.buffer) else 1
+						var built: bool = fronts.get(corner + Vector2i.ONE, &"") == &"see_through"
 						lots[inside] += 1
-						shown[inside] += int(fronts.has(cell + Vector2i.ONE))
-	assert_gt(mini(lots[0], lots[1]), 1000, "enough lots of each to tell")
-	for share: Array in [["by a street", 0, 0.6], ["inside", 1, 0.35]]:
-		var expected: float = lots[share[1]] * share[2]
-		var spread := 4.0 * sqrt(expected * (1.0 - share[2]))
-		assert_almost_eq(float(shown[share[1]]), expected, spread, String(share[0]))
+						shown[inside] += int(built)
+						if built:
+							continue
+						for d: int in 4:
+							var cell := corner + Vector2i(d & 1, d >> 1)
+							var free := 2 if _by_street(cell, 1, road.buffer) else 3
+							lots[free] += 1
+							shown[free] += int(fronts.get(cell, &"") == &"dot")
+	assert_gt(lots.min(), 1000, "enough of each to tell: %s" % [lots])
+	var shares: Array[Array] = [
+		["lots by a street", 0.6],
+		["lots inside", 0.35],
+		["free cells by a street", 0.5],
+		["free cells inside", 0.2],
+	]
+	for i: int in shares.size():
+		var chance: float = shares[i][1]
+		var expected := lots[i] * chance
+		var spread := 4.0 * sqrt(expected * (1.0 - chance))
+		assert_almost_eq(float(shown[i]), expected, spread, String(shares[i][0]))
 
 
 ## A run of set pieces after every turn, bridges and tunnels in turn, on the dense area.

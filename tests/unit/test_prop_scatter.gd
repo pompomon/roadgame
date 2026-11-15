@@ -496,18 +496,18 @@ func test_see_through_props_fade_where_they_would_hide_the_car_or_a_legends_spri
 	# others: one hidden by its alpha, as a legend's part waits, and one not visible.
 	var targets := _apart(scatter, building.texture, car.position, 3)
 	assert_eq(targets.size(), 3, "buildings away from the car")
-	var double := car.double()
+	var stand_in := car.double()
 	var waiting := car.double()
 	waiting.modulate.a = 0.0
 	var unseen := car.double()
 	unseen.visible = false
-	var sprites: Array[Sprite2D] = [double, waiting, unseen]
+	var sprites: Array[Sprite2D] = [stand_in, waiting, unseen]
 	for i: int in sprites.size():
 		_layer.add_child(sprites[i])
 		sprites[i].position = targets[i].position + Vector2(0, -30)
 	scatter.update(DELTA)
-	var actors: Array[Rect2] = [car.body_rect(), double.get_transform() * double.get_rect()]
-	var sorts: Array[float] = [car.position.y, double.position.y]
+	var actors: Array[Rect2] = [car.body_rect(), stand_in.get_transform() * stand_in.get_rect()]
+	var sorts: Array[float] = [car.position.y, stand_in.position.y]
 	var wrong := PackedStringArray()
 	var faded := 0
 	var plain_near := 0
@@ -531,7 +531,7 @@ func test_see_through_props_fade_where_they_would_hide_the_car_or_a_legends_spri
 	assert_gt(plain_near, 2, "and plain props, which don't fade")
 	assert_eq(_unlike(lamps), 0, "each silhouette shows as much of itself as its prop")
 	car.position = Vector2(1e5, 1e5)
-	double.free()
+	stand_in.free()
 	scatter.update(DELTA)
 	var whole := 0
 	for k: int in scatter.rows():
