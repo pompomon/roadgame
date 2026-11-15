@@ -22,10 +22,12 @@ const FOOT := Vector2i(18, 18)
 var sim: CarSim
 var input: InputRouter
 
-## How far the car has driven, in tiles, within a turn of its wheels: PHASES phases.
+## How far the car has driven since the last drawn frame, in tiles.
+var _driven := 0.0
+## How far its wheels have rolled toward their next phase, in tiles: less than WHEEL_ROLL_TILES,
+## but for a sum of floats rounded up (_process()).
 var _rolled := 0.0
-## The phase of the wheels that the body shows, which follows phase(_rolled) a phase a drawn frame
-## at most (shown_phase()).
+## The phase of the wheels that the body shows.
 var _phase := 0
 
 @onready var _body: Sprite2D = %Body
@@ -39,15 +41,28 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	sim.step(delta, input.steer())
-	_rolled = fposmod(_rolled + sim.speed * delta, Tuning.WHEEL_ROLL_TILES * PHASES)
+	_driven += sim.speed * delta
 	_update_view()
 
 
-## Once a drawn frame, after its physics frames.
+## Once a drawn frame, after its physics frames: the wheels roll as far as the car drove, but a
+## phase at most, and turn to their next phase once they have rolled WHEEL_ROLL_TILES toward it.
+## Below 30 frames a second, the car at its top speed drives more than a phase from one drawn frame
+## to the next, and two phases at once would be a half turn, which reads as back as well as
+## forward. The rest of a frame's drive is dropped, not made up later, so the wheels stand once the
+## car stands. Nothing else is, so however unevenly the frames come, they turn no less often at a
+## higher speed (VISUALS_PLAN.md §5.1, W13).
 func _process(_delta: float) -> void:
-	var shown := shown_phase(_phase, _rolled)
-	if shown != _phase:
-		_phase = shown
+	var drive := minf(_driven, Tuning.WHEEL_ROLL_TILES)
+	_driven = 0.0
+	# Only a frame in which the car drove turns them. Where a sum of floats rounds up to two
+	# phases, one is left in _rolled: not dropped, it waits for the car to drive on.
+	if drive <= 0.0:
+		return
+	_rolled += drive
+	if _rolled >= Tuning.WHEEL_ROLL_TILES:
+		_rolled -= Tuning.WHEEL_ROLL_TILES
+		_phase = posmod(_phase + 1, PHASES)
 		_update_view()
 
 
@@ -55,21 +70,6 @@ func _process(_delta: float) -> void:
 static func frame(forward: Vector2) -> int:
 	var screen := Iso.tile_to_world(forward)
 	return posmod(roundi(atan2(screen.x, -screen.y) / (TAU / FRAMES)), FRAMES)
-
-
-## The row of the sheet that shows the wheels after the car has driven `rolled` tiles: the next
-## each WHEEL_ROLL_TILES.
-static func phase(rolled: float) -> int:
-	return posmod(floori(rolled / Tuning.WHEEL_ROLL_TILES), PHASES)
-
-
-## The phase that the body shows in the next drawn frame, after `shown`, once the car has driven
-## `rolled` tiles: phase(rolled), or if that's another, the next after `shown`. So a drawn frame
-## turns the wheels a phase at most, and only forward. Below 30 frames a second, the car at its top
-## speed rolls more than a phase from one to the next, and two at once would be a half turn, which
-## reads as back as well as forward (VISUALS_PLAN.md §5.1, W13).
-static func shown_phase(shown: int, rolled: float) -> int:
-	return shown if shown == phase(rolled) else posmod(shown + 1, PHASES)
 
 
 ## A new sprite of the car as it shows now, for a legend to take in its place (docs/M6.md §5.4):
