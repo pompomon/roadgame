@@ -1,11 +1,11 @@
 extends GutTest
 ## DisasterDirector (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1, M3.3): after a wrong or missed turn
-## it waits for the car to stop and plays a disaster from the area's pool, drawn with the run's
-## disaster stream; after a crash it shakes the camera for CRASH_SECONDS. Every sequence ends once
-## and in time, even one that is stuck. The disasters here are test ones;
-## test_wrong_turn_disaster.gd plays the City's legend through the game's director. A disaster gets
-## the stage for a legend's parts, and disaster_appeared comes when its delay is over (docs/M6.md
-## S2, S18).
+## it waits for the car to stop and plays the area's disaster for the run, which its picks drew
+## (POOLS_PLAN.md §5.1), with params from the run's disaster stream; after a crash it shakes the
+## camera for CRASH_SECONDS. Every sequence ends once and in time, even one that is stuck. The
+## disasters here are test ones; test_wrong_turn_disaster.gd plays the City's legend through the
+## game's director. A disaster gets the stage for a legend's parts, and disaster_appeared comes
+## when its delay is over (docs/M6.md S2, S18).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const StuckDisaster := preload("res://tests/helpers/stuck_disaster.gd")
@@ -91,20 +91,39 @@ func _run(frames: int) -> int:
 	return frames
 
 
-func test_pick_draws_every_scene_of_the_pool_with_the_stream() -> void:
-	assert_null(DisasterDirector.pick([] as Array[PackedScene], DisasterDirector.stream(1)))
-	var pool: Array[PackedScene] = [PackedScene.new(), PackedScene.new(), PackedScene.new()]
-	var picks: Array[int] = []
-	var again: Array[int] = []
-	var rng := DisasterDirector.stream(1)
-	var same := DisasterDirector.stream(1)
-	for _i: int in 60:
-		picks.append(pool.find(DisasterDirector.pick(pool, rng)))
-		again.append(pool.find(DisasterDirector.pick(pool, same)))
-	for i: int in pool.size():
-		assert_has(picks, i, "scene %d" % i)
-	assert_does_not_have(picks, -1)
-	assert_eq(picks, again, "the same stream picks the same scenes")
+## A scene whose root is a TimedDisaster with the id `id`, as a legend's .tscn sets it.
+static func _named(id: StringName) -> PackedScene:
+	var node := Node2D.new()
+	node.set_script(TimedDisaster)
+	node.set("id", id)
+	var scene := PackedScene.new()
+	scene.pack(node)
+	node.free()
+	return scene
+
+
+func test_the_disaster_is_the_areas_pick_for_the_run() -> void:
+	# The picks draw it, with the disasters seen weighing less, whether the car's entry into the
+	# area picked it first or the wrong turn does (POOLS_PLAN.md §5.1, Q4).
+	var area := _area([_named(&"a"), _named(&"b"), _named(&"c")])
+	var seen: Array[StringName] = [&"b"]
+	var played: Dictionary[StringName, bool] = {}
+	for run_seed: int in 24:
+		var expected := DisasterPicks.new(run_seed, seen).pick(area)
+		for entered: bool in [true, false]:
+			var why := "seed %d, %s" % [run_seed, "entered" if entered else "not entered"]
+			_director.start_run(run_seed, seen)
+			if entered:
+				_director.enter_area(area)
+				assert_eq(_director.picks.picked(), [&"test"] as Array[StringName], why)
+			else:
+				assert_eq(_director.picks.picked(), [] as Array[StringName], why)
+			_new_car()
+			_director.play_disaster(area, _car, _camera)
+			simulate(_root, 1, DELTA)
+			assert_eq(_director.disaster.id, DisasterPicks.id_of(expected), why)
+			played[_director.disaster.id] = true
+	assert_eq(played.size(), 3, "each scene of the pool plays for some seed")
 
 
 func test_a_disaster_waits_for_the_car_to_stop() -> void:
@@ -191,15 +210,12 @@ func test_disaster_appeared_comes_once_when_the_delay_is_over() -> void:
 
 
 ## The first of SEEDS run seeds whose disaster, the first of the run, has the delay nearest
-## `delay`. It draws as the director does.
+## `delay`. It rolls as the director does.
 func _seed_near(delay: float) -> int:
-	var pool := _timed().disasters
 	var nearest := 0
 	var off := INF
 	for run_seed: int in SEEDS:
-		var rng := DisasterDirector.stream(run_seed)
-		DisasterDirector.pick(pool, rng)
-		var rolled := DisasterParams.roll(rng, Vector2.ZERO).delay
+		var rolled := DisasterParams.roll(DisasterDirector.stream(run_seed), Vector2.ZERO).delay
 		if absf(rolled - delay) < off:
 			off = absf(rolled - delay)
 			nearest = run_seed

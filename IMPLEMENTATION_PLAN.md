@@ -228,7 +228,7 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 `Main` (`ui/main.tscn`, script `main.gd` owns run lifecycle) → `World` (`world.tscn`: `GroundLayer`, `RoadLayer`, `Props` + `WorldRenderer`, `PropPool`, `RoadBuffer` holder) → `DisasterLayer` → `CameraRig` → `UI` (`HUD`, `TouchZones`, `Overlays`).
 
 ### 5.3 Determinism rules
-- Only `RoadGenerator` (the road's stream and `props_seed`) and `DisasterDirector` (the disaster stream) use RNG; they are seeded only from `GameState.run_seed`. Any `randf()` call on the global RNG is banned in gameplay code (enforced by a `gdlint`-adjacent grep in `tools/ci/lint.sh`).
+- Only `RoadGenerator` (the road's stream and `props_seed`) and `DisasterDirector` (the disaster stream, and its `DisasterPicks`' stream for each area) use RNG; they are seeded only from `GameState.run_seed`, the picks with the area's id too. The picks are also weighted by the collection (`POOLS_PLAN.md` §5.1). Any `randf()` call on the global RNG is banned in gameplay code (enforced by a `gdlint`-adjacent grep in `tools/ci/lint.sh`).
 - Simulation runs in `_physics_process` with `physics/common/physics_ticks_per_second=60`, and tests step `CarSim` with a fixed `delta`.
 
 ### 5.4 Error handling and debug

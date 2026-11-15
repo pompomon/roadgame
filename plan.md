@@ -61,9 +61,9 @@ An isometric pixel-art endless driving roguelike. The player steers a car along 
 | Crash | Health reaches 0, or exceeding the off-road limit on a straight | Crash animation, then game over |
 
 ### 2.6 Meta-progression
-None that affects gameplay. Persisted between runs:
+None that makes a run easier or harder. Persisted between runs:
 - **Atlas:** areas discovered, plus best distance and best turn count overall and for each area.
-- **Disaster collection:** each disaster type witnessed, with its area and run stats.
+- **Disaster collection:** each disaster type witnessed, with its area and run stats. A disaster in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner.
 - Settings (volume, orientation lock, haptics).
 
 ### 2.7 Tutorial
@@ -105,8 +105,8 @@ Until the player has finished it, Play starts the run with a tutorial: the City'
 - Invariant: lookahead is always **≥ 37 and ≤ 55** tiles (`config/tuning.gd`, `docs/M5.md` L2, `docs/ROADGEN.md` R6). The visible field of view is about 5 tiles.
 
 ### 3.5 Determinism
-- All generation uses a seeded `RandomNumberGenerator`. The same seed gives the same road, junctions, dead ends, decorations and disaster variations.
-- Separate sub-streams (`road`, `props`, `disaster`) so that changing decorations never changes road layout.
+- All generation uses a seeded `RandomNumberGenerator`. The same seed gives the same road, junctions, dead ends, decorations and disaster variations. Which disaster each area has also depends on the collection: the same seed and the same collection give the same disasters (§4.2).
+- Separate sub-streams (`road`, `props`, `disaster`, and a `pick` stream for each area) so that changing decorations never changes road layout.
 - With the tutorial, the road also depends on where the streak ends. The tutorial's straights have a stream of their own, so the road after it is the seed's, from the seed's first junction (§2.7).
 
 ### 3.6 Area schedule
@@ -164,7 +164,7 @@ AreaDef
 
 ### 4.2 DisasterDirector
 1. Disables player input, then eases the car to a stop or moves it into the dead end.
-2. Picks a disaster scene from the current area's pool using the `disaster` RNG stream.
+2. Plays the current area's disaster for the run: the scene that the area's own `pick` stream drew from its pool as the car reached the area, with each disaster in the collection half as likely as each one not seen yet (`POOLS_PLAN.md` §5.1).
 3. Sets random parameters (direction, intensity, timing, particle counts) from the seed so no two disasters look the same.
 4. Plays the sequence (2–4 s), records it in the disaster collection and shows the game-over screen.
 

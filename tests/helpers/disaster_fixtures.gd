@@ -222,8 +222,19 @@ static func flashing(lights: Array[Dictionary], reds: Array[Dictionary]) -> Stri
 
 
 static func _blends(item: CanvasItem, mode: CanvasItemMaterial.BlendMode) -> bool:
-	var material := item.material as CanvasItemMaterial
+	var material := material_of(item) as CanvasItemMaterial
 	return material != null and material.blend_mode == mode
+
+
+## The material that `item` draws with: its own, or, while it uses its parent's, that of the
+## CanvasItem that it draws under, as the renderer resolves it. A top-level item draws under none.
+static func material_of(item: CanvasItem) -> Material:
+	var source := item
+	var parent := item.get_parent() as CanvasItem
+	while source.use_parent_material and not source.top_level and parent != null:
+		source = parent
+		parent = source.get_parent() as CanvasItem
+	return source.material
 
 
 ## `item`'s modulate, times its parents'.

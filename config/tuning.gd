@@ -142,6 +142,9 @@ const DISASTER_INTENSITY_MIN := 0.5
 const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
+## How much a disaster that the player has seen, which the collection shows, weighs in its area's
+## pick, against 1 for one not seen yet (POOLS_PLAN.md Q2): half as likely as each unseen one.
+const SEEN_DISASTER_WEIGHT := 0.5
 ## Where a legend's parts draw (docs/M6.md §5.5): a part in the sky, such as the UFO's saucer, over
 ## the props and the car; the veil over them all; and the glows over the veil, which they light.
 const SKY_Z := 1

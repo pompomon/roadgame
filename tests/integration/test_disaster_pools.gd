@@ -3,16 +3,17 @@ extends GutTest
 ## (IMPLEMENTATION_PLAN.md M4 tests): the main scene starts in the area (--area, docs/M4.md K10),
 ## the pilot takes a wrong exit at the junction of turn number 2, the third turn's or a decoy
 ## before it (docs/ROADGEN.md R2), and the area's disaster takes the car before the game-over
-## screen, 2 to 4 s after the turn. Every disaster of every pool plays for some seed
-## (docs/M6.md S13).
+## screen, 2 to 4 s after the turn. Every disaster of every pool plays, with a seed that picks it
+## (docs/M6.md S13), and each area's disaster is picked as the car reaches the area
+## (POOLS_PLAN.md §5.1, Q4).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
 const RUNNING := GameState.State.RUNNING
 const DISASTER := GameState.State.DISASTER
-## Seeds to try until an area has played every disaster of its pool.
-const SEEDS := 8
+## The run seeds among which to look for one that picks a disaster.
+const PICK_SEEDS := 100
 
 
 func before_each() -> void:
@@ -69,24 +70,39 @@ func test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool() -> void:
 
 
 func test_every_disaster_of_every_pool_plays() -> void:
+	# Each in a run of its own, with the first seed that picks it while the collection is empty, as
+	# each run adds the disaster it shows to the collection, where it weighs less (Q2).
 	for area: AreaDef in Fixtures.schedule().areas():
-		var pool := _ids(area)
-		var played: Array[StringName] = []
-		for run_seed: int in SEEDS:
-			var id := _wrong_turn_in(area, run_seed)
-			if id not in played:
-				played.append(id)
-			if pool.all(func(of: StringName) -> bool: return of in played):
-				break
-		for id: StringName in pool:
-			assert_has(played, id, "%s: %s plays for one of %d seeds" % [area.id, id, SEEDS])
+		for scene: PackedScene in area.disasters:
+			var id := DisasterPicks.id_of(scene)
+			var run_seed := _seed_for(area, scene)
+			if run_seed == -1:
+				fail_test("%s: none of %d seeds picks %s" % [area.id, PICK_SEEDS, id])
+				continue
+			SaveService.use_memory()
+			var what := "%s: %s, seed %d" % [area.id, id, run_seed]
+			assert_eq(_wrong_turn_in(area, run_seed), id, what)
+	SaveService.use_memory()
 
 
-## The ids of the disasters of `area`'s pool.
-static func _ids(area: AreaDef) -> Array[StringName]:
-	var found: Array[StringName] = []
-	for scene: PackedScene in area.disasters:
-		var disaster := scene.instantiate() as DisasterBase
-		found.append(disaster.id)
-		disaster.free()
-	return found
+func test_each_area_is_picked_as_the_car_reaches_it() -> void:
+	# As the run starts in it, with --area too, and as the car crosses into the next (Q4).
+	var main := MainScene.open(self, ["--seed=1"])
+	var director: DisasterDirector = main.get_node("%Director")
+	assert_eq(director.picks.picked(), [&"city"] as Array[StringName], "as the run starts")
+	var sim := MainScene.car(main).sim
+	sim.area_changed.emit(sim.buffer.generator.find_area(&"rural"))
+	assert_eq(director.picks.picked(), [&"city", &"rural"] as Array[StringName], "then Rural")
+	GameState.quit_to_title()
+	main = MainScene.open(self, ["--seed=1", "--area=village"])
+	director = main.get_node("%Director")
+	assert_eq(director.picks.picked(), [&"village"] as Array[StringName], "with --area")
+
+
+## The first of PICK_SEEDS run seeds whose pick in `area` is `scene` while nothing has been seen, or
+## -1.
+static func _seed_for(area: AreaDef, scene: PackedScene) -> int:
+	for run_seed: int in PICK_SEEDS:
+		if DisasterPicks.new(run_seed).pick(area) == scene:
+			return run_seed
+	return -1
