@@ -1,6 +1,6 @@
 # The End of the Road and the Book of Legends — Detailed Plan
 
-Status: plan, in review. PRs 1–2's prototype is built on `eg/prototype` and verified locally (§6); PRs 3–14 are designed, not built (§5.8–§5.18) · 2026-11-15 · The owner hasn't answered Q1–Q19 yet, so the plan and the prototype go on with the defaults (§3), and with the owner's two answers: an arrival unlocks a legend, and the Road Home starts heading W · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL's picks (#81) and comes before M7.
+Status: plan, in review. PRs 1–2's prototype is built on `eg/prototype` and verified locally (§6); PRs 3–14 are designed, not built (§5.8–§5.18) · 2026-11-15 · The owner hasn't answered Q1–Q19 yet, so the plan and the prototype go on with the defaults (§3), and with the owner's two answers · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL's picks (#81) and comes before M7.
 
 The owner asked for options first: "Help me brainstorm the endgame for the roadgame repo. Provide 3 options on what should be the goal for the player and how to better gamify it. Follow the best practices in the industry and game design recommendations from Mark Rosewater." The brainstorm offered A, The End of the Road: a finish line, a win and a second quest; B, Legend Hunter: the collection as a book to complete; and C, Road Master: medals, a driver's grade and a daily road. It recommended B as the heart, A as the finish line, and C's daily road for later. Then the owner asked: "Create a PR with the detailed implementation plan for A and B, with the following adjustments - player unlocks a legend not only by failing, but also for a full road completion - a random legend from the pool of locked. I approve starting west for the reverse road run".
 
@@ -12,7 +12,7 @@ The owner's second answer: the Road Home starts heading W. The first arrival unl
 
 The collection becomes the Book of Legends (B, §5.10), with NEW LEGEND! on the end screen (§5.9), and the Vanishing Hitchhiker, the road's own urban legend, as a full book's 16th page (§5.17). B's rule, a legend by the way a run fails, gives way to PL's picks, as the owner asked in #80 (Q5). The rest comes a PR each: Departures (§5.11), Keep Driving (§5.13), the route strip (§5.14), pit stops (§5.15), and records and postcards (§5.16).
 
-**Verified locally.** Every file of PRs 1–2 was first built on branch `eg/prototype`, from PL's PR 1 (`pl/1-picks`, 532908a, #81). Its commits, 1da20c6 to 4d3d981, add the road's end, the arrival, the unlock, the save's version 3 and the Road Home's mirror, with 45 tests. 4d3d981 passed the five checks locally with Godot 4.7.2 and in CI (§6.1), and the warnings check (§6.3); each of the 32 negative cases failed the tests it names, run against the whole suite (§6.2). Probes in Godot drove both roads to their ends, laid 200 seeds of each, and measured the unlock's odds, the stop and the save (§6.5). gpt-6.1-sol, a model of another family, reviewed this plan and the prototype at 93a85f5, and found seven issues; 4d3d981 and this plan fix each, and its review of the fixes found no more (`AGENTS.md` §5, §4.4).
+**Verified locally.** Every file of PRs 1–2 was first built on branch `eg/prototype`, from PL's PR 1 (`pl/1-picks`, 532908a, #81). Its commits, 1da20c6 to 4d3d981, add the road's end, the arrival, the unlock, the save's version 3 and the Road Home's mirror, with 45 tests. 4d3d981 passed the five checks locally with Godot 4.7.2 and in CI (§6.1), and the warnings check (§6.3); each of the 32 negative cases failed the tests it names, run against the whole suite (§6.2). Probes in Godot drove both roads to their ends, laid 200 seeds of each, and measured the unlock's odds, the stop and the save (§6.5). gpt-6.1-sol, a model of another family, found seven issues, each fixed, and none in its review of the fixes (§4.4).
 
 - Godot 4.7.2-stable (4.7.2.stable.official.ed1daf0bf), in CI's image and locally
 - GUT 9.7.1
@@ -20,9 +20,9 @@ The collection becomes the Book of Legends (B, §5.10), with NEW LEGEND! on the 
 
 **Precedence.** For EG, this document replaces `plan.md`'s vision (:13), §2.1 (:26), §2.4 (:55), §2.5 (:57–61), §2.6 (:63–66), §3.2 (:86), §3.6 (:121), §7.3 (:295), §9 (:339–352), §11 (:381), §13 (:419–428) and §14 (:434); `IMPLEMENTATION_PLAN.md` (IP) §5.3 (:231); docs/ZONE_SELECT.md Z4 and Q2 (:14, :26); and `POOLS_PLAN.md` §5's collection where §5.10 changes it, wherever it marks a difference with **Δ** and its finding (W#, §2). Each PR folds its own differences into them as it lands (Q18).
 
-**Reference code.** This plan has no appendices. PRs 1 and 2 split the difference between 532908a, PL's PR 1, and 4d3d981, the head of `eg/prototype`, which never gets a PR of its own (§4.1). PRs 3–14 follow the code of their nearest kin: the tunnel's set piece for the pier, ZS's Start choice for Departures, the collection and the Atlas for the Book and the postcards, and PL's legends for the Hitchhiker.
+**Reference code.** PRs 1 and 2 split the difference between 532908a, PL's PR 1, and 4d3d981, the head of `eg/prototype`, which never gets a PR of its own (§4.1). PRs 3–14 follow the code of their nearest kin: the tunnel's set piece for the pier, ZS's Start choice for Departures, the collection and the Atlas for the Book and the postcards, and PL's legends for the Hitchhiker.
 
-**Prerequisites.** PL's plan is merged (#80), and `main` is at 81f22e3. PL's PR 1 (#81, `pl/1-picks`, 532908a) is open: EG's PR 1 is made from it, as EG's unlock and the Book use its picks and `SaveData.seen_disasters()`, so EG's PRs land after it (§4.2). PL's legends, its PRs 2–11, may land before, between or after EG's: EG reads the pools, whatever their size (Q8). Only the Hitchhiker, EG's PR 13, waits for PL's PR 11, the last of the 15 (§5.17). M7 hasn't started; §9 has notes for it. No repository settings change.
+**Prerequisites.** PL's plan is merged (#80), and `main` is at 81f22e3. PL's PR 1 (#81, `pl/1-picks`, 532908a) is open: EG's PR 1 is made from it, as EG's unlock and the Book use its picks and `SaveData.seen_disasters()`, so EG's PRs land after it (§4.2). PL's legends, its PRs 2–11, may land before, between or after EG's: EG reads the pools, whatever their size (Q8). Only the Hitchhiker, EG's PR 13, and so PR 14, wait for PL's PR 11, the last of the 15 (§5.17). M7 hasn't started; §9 has notes for it. No repository settings change.
 
 Contents:
 1. Goal and exit criteria
@@ -402,7 +402,7 @@ After each squash, retarget the next PR to `main` before the merged branch is de
 
 ### 4.3 Review fixes
 
-Fixes found while the prototype was built, by the internal review of this plan (§4.4) and by the PRs' reviews, each with its tests and its negative case.
+Fixes from the prototype's build, the internal review (§4.4) and the PRs' reviews, each with its tests and negative case.
 
 | PR | Change | Tests | Negative case |
 |---|---|---|---|
@@ -417,6 +417,7 @@ Fixes found while the prototype was built, by the internal review of this plan (
 | 6 | Copilot: §6.4's runs, whose save is in memory, reached no seal, full Book or Hitchhiker; PR 6's `--collected`, and a reload (§5.7, §6.4) | `test_title.gd`'s `--collected` | PR 6's, from N33 |
 | 6 | Copilot: PR 6 left five tests on `CollectionScreen`, a deleted class; they move to the Book | Theirs; `git grep` finds no use | PR 6's, from N33 |
 | 12 | Copilot: a stamp read `_area_stats()`, which has the area that a run ends in; `crossed`, set on the road into the next area or by an arrival (§5.16) | `test_an_area_not_crossed_is_not_stamped` | PR 12's, from N33 |
+| 14 | Copilot: §8 let PR 14 land before PR 13, which makes this plan's final sync; it waits (§4.2, §8) | None | None |
 
 ### 4.4 Internal review
 
@@ -675,7 +676,7 @@ The probes ran headless with Godot 4.7.2: P2, P3 and P5 on 93a85f5, whose result
 |---|---|---|
 | The end is far | A run to the pier takes about 10 minutes when nothing goes wrong (P1). Most runs fail long before it, and a failure at turn 250 costs 9 minutes | Every run still pays: a failure meets a legend (PL), and an arrival unlocks one. Departures starts from any area found (PR 7), the strip shows how near the end is (PR 10), and pit stops repair the car (PR 11): Rosewater's catch-up feature. The finish's turn is one number in `schedule.tres` (Q1), to tune on the owner's runs |
 | Two stacks on #81 | PL's legend PRs and EG's change `make_audio.gd`, `test_disasters.gd` and the areas' `.tres` files | In different lines. Simulate each merge-up with `git merge-tree` first; whichever stack lands second merges the other's lines, and sets any `figure` missing (§4.2) |
-| The Hitchhiker waits on PL | PR 13 needs every legend of PL's pools, and PL's PR 11 may land late | Nothing waits on PR 13; PR 14 can land before it, and leave its line in IP |
+| The Hitchhiker waits on PL | PR 13 needs every legend of PL's pools, and PL's PR 11 may land late; PR 14 waits for PR 13's final sync of this plan (§4.2) | PRs 1–12 wait for none of PL's legends: they are the endgame but its 16th page, and this plan documents them until PR 14 |
 | A test drives past the end | Once PR 3 ends the game's road, a test that drives it 300 turns never ends, and takes the machine's memory (P5) | W6's tests drive `Fixtures.endless()`, and `path_until_turn()` errors and stops at a finish (PR 3) |
 | The Road Home looks wrong | It mirrors the road and reverses the areas, so the bridge, the tunnel, the props and the areas' borders meet the road from new sides | `test_drive_to_the_end.gd` drives it home on five seeds (P1), and PR 8's E16 checks it before the title offers it |
 | An older build meets a newer save | Versions 3 and 4 add keys. A build reads a newer save but never writes it (`save_service.gd`:155), so an older PR's APK installed after a newer one saves nothing | Check the PRs in order, or from a new save: the Web build in an Incognito window |
