@@ -471,9 +471,10 @@ func test_its_eyes_light_each_point_at_most_once_whichever_way_it_flies() -> voi
 
 
 func test_it_stands_out_from_the_city_by_night() -> void:
-	# Every frame of its sheet, against the City's road and ground, in each key light, under its
+	# Each frame of its sheet, against the City's road and ground, in each key light, under its
 	# veil (POOLS_PLAN.md §5.6, V15).
 	var mothman := _mothman()
-	var sheet := _moth(mothman).texture.get_image()
-	var share := Art.night_share(sheet, CITY, mothman.veil_kind)
-	assert_gte(share, Art.NIGHT_SHARE, "%.0f%% of its pixels stand out" % (share * 100.0))
+	var moth := _moth(mothman)
+	var share := Art.night_share(moth.texture.get_image(), moth.hframes, CITY, mothman.veil_kind)
+	var what := "%.0f%% of its least frame's pixels stand out" % (share * 100.0)
+	assert_gte(share, Art.NIGHT_SHARE, what)
