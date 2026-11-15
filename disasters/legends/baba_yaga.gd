@@ -1,15 +1,15 @@
 class_name BabaYaga
 extends Legend
 ## The Village's third legend (POOLS_PLAN.md §5.4), from the Russian tales of Baba Yaga: dusk
-## falls, and her log hut on chicken legs stomps along the road to the car, the dust flying from its
-## feet, and stops beside it, up-screen of the car, as Frau Holle's well stands. It turns its front
-## to the car, crouches, and its door opens on the dark. The car turns to the door and rolls in,
-## smaller and smaller, and the door shuts behind it; the hut rises, turns back the way it was
-## going, and stomps off, faster and faster, and fades. Its chicken feet leave prints behind it as
-## it goes, which stay. The car's double rolls to the hut's door, a pixel down-screen of the hut's
-## foot, so that it sorts in front of the hut. The hut's window is painted yellow, not lit: it has
-## no glow (§5.4 Δ), so no light moves about with its stomps, only its dusk veil.
-## tools/art/legends/baba_yaga.gd draws its sheets with these constants.
+## falls, and her log hut on chicken legs stomps along beside the road to the car, the dust flying
+## from its feet, and stops beside it, up-screen of the car and off the road, wherever across the
+## road the car stopped. It turns its front to the car, crouches, and its door opens on the dark.
+## The car turns to the door and rolls in, smaller and smaller, and the door shuts behind it; the
+## hut rises, turns back the way it was going, and stomps off, faster and faster, and fades. Its
+## chicken feet leave prints behind it as it goes, which stay. The car's double rolls to the hut's
+## door, a pixel down-screen of the hut's foot, so that it sorts in front of the hut. The hut's
+## window is painted yellow, not lit: it has no glow (§5.4 Δ), so no light moves about with its
+## stomps, only its dusk veil. tools/art/legends/baba_yaga.gd draws its sheets with these constants.
 
 ## The hut's frames: stomping, its near leg raised and then its far one, and standing, in profile;
 ## turned three-quarters to the car; its front to the car, the door shut; squatting, half down; and
@@ -68,13 +68,25 @@ static func duration(params: DisasterParams) -> float:
 	return params.delay + Beats.total(Tuning.BABA_YAGA_BEATS)
 
 
-## Where the hut stops, from the car's ground point, the car heading `heading`, in tile space:
-## beside the car, BABA_YAGA_SIDE_TILES up-screen of the middle of its road, the tile axis nearest
-## to its heading, as Frau Holle's well stands.
+## Where the hut stops, in px from the car's ground point, were the car on its road's middle and
+## heading `heading`, in tile space: beside the car, BABA_YAGA_SIDE_TILES up-screen of the middle
+## of its road, the tile axis nearest to its heading, as Frau Holle's well stands.
 static func stop(heading: Vector2) -> Vector2:
 	return Iso.tile_to_world(
 		-PhantomBus.side(PhantomBus.road(heading)) * Tuning.BABA_YAGA_SIDE_TILES
 	)
+
+
+## How far across its road the hut stops from stop(), in tiles, the car's ground point at `at`, in
+## tile space, heading `heading`, on `buffer`'s road. A wrong turn can leave the car off the middle
+## of the road ahead that it stopped on or beside (HeadlessHorseman.to_middle()). Where it stopped
+## down-screen of it, up-screen as far as the middle, so that the hut stops beside the road, not on
+## it; where up-screen of it, none, so that the hut stops up-screen of the car, off the road too,
+## and the car still rolls up-screen to its door. With no road ahead, none.
+static func shift(at: Vector2, heading: Vector2, buffer: RoadBuffer) -> Vector2:
+	var road := PhantomBus.road(heading)
+	var middle := HeadlessHorseman.to_middle(at, road, buffer)
+	return middle if middle.dot(PhantomBus.side(road)) < 0.0 else Vector2.ZERO
 
 
 ## Its frame `walked` tiles into a stomp: its near leg raised, then its far one, in turn.
@@ -143,6 +155,9 @@ func play(params: DisasterParams) -> void:
 	super(params)
 	var heading := car.sim.forward() if car != null else params.direction
 	_stop = stop(heading)
+	if car != null:
+		var at := Iso.world_to_tile(params.origin_world)
+		_stop += Iso.tile_to_world(shift(at, heading, car.sim.buffer))
 	_way = Iso.tile_to_world(PhantomBus.way(heading, params.direction))
 	_hut.flip_h = _way.x < 0.0
 	_place(_stop - _way * Tuning.BABA_YAGA_FROM_TILES)

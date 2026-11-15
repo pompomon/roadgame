@@ -34,6 +34,14 @@ const PRINTS_MIDDLE := Vector2i(BabaYaga.PRINTS.x >> 1, BabaYaga.PRINTS.y >> 1)
 ## How far its prints lie across the line that it stomps along, at most, in tiles: by turns to
 ## either side of it, their toes splayed.
 const PRINTS_SPREAD := 0.2
+## Where across its dead end a wrong turn can leave the car, in tiles down-screen of its middle, as
+## it brakes straight on from mid-turn, as test_headless_horseman.gd finds: on its middle; off the
+## road, in the dead end's cell; in the next cell across; a hair short of that cell's middle; each
+## to either side; and two cells across, off any road (FAR_OFF_TILES).
+const FAR_OFF_TILES := 1.67
+const STOPS: Array[float] = [
+	0.0, -0.47, 0.47, -0.67, 0.67, -0.99, 0.99, -FAR_OFF_TILES, FAR_OFF_TILES
+]
 
 var _stage: Node2D
 var _car: CarController
@@ -200,6 +208,31 @@ func _lying(footprints: Sprite2D, frame: int) -> Array[Vector2]:
 
 static func _near(a: Vector2, b: Vector2) -> bool:
 	return absf(a.x - b.x) <= NEAR.x and absf(a.y - b.y) <= NEAR.y
+
+
+## The first tile of the first dead end of each heading in `buffer`, of those with no road in the
+## two cells to either side of it, across its road, as test_headless_horseman.gd finds them.
+static func _dead_ends(buffer: RoadBuffer) -> Array[RoadTile]:
+	var found: Array[RoadTile] = []
+	var headings: Array[int] = []
+	for index: int in range(buffer.first_index(), buffer.last_index() + 1):
+		var junction := buffer.path_tile(index)
+		for branch: RoadTile in junction.branches:
+			var exit := branch.branch_exit
+			var across := Vector2i(absi(Heading.VEC[exit].y), absi(Heading.VEC[exit].x))
+			var clear := branch.cell == junction.cell + Heading.VEC[exit] and exit not in headings
+			for k: int in [-2, -1, 1, 2]:
+				clear = clear and buffer.tile_at(branch.cell + across * k) == null
+			if clear:
+				found.append(branch)
+				headings.append(exit)
+	return found
+
+
+## Whether `point`, in tiles, is on the road of the car's buffer.
+func _on_road(point: Vector2) -> bool:
+	var cell := Vector2i(point.floor())
+	return RoadGeometry.is_on_road(_car.sim.buffer.tile_at(cell), point - Vector2(cell))
 
 
 ## The largest change between one of `values` and the next.
@@ -669,6 +702,49 @@ func test_its_chicken_feet_leave_prints_behind_it_which_stay() -> void:
 			assert_gt(reach.y, all_strides * stride, "%s: all its strides' prints" % what)
 			_step_to(legend, ends[3] + 1.0)
 			assert_true(Disasters.shows(footprints), "%s: they stay after its end" % what)
+
+
+func test_it_stops_beside_the_road_wherever_across_it_the_car_stopped() -> void:
+	# A wrong turn can leave the car off its road's middle, even in the next cell across, as a
+	# review found. On a dead end of each heading, the car at each of STOPS: the hut stops beside
+	# the car, BABA_YAGA_SIDE_TILES up-screen of the road's middle, or of the car where it stopped
+	# up-screen of the middle, or off any road; so off the road. The car rolls in to its door, in
+	# front of it all the while, and its prints lie off the road.
+	var ends := _ends()
+	var dead_ends := _dead_ends(_car.sim.buffer)
+	assert_eq(dead_ends.size(), HEADINGS.size(), "a dead end of each heading")
+	for branch: RoadTile in dead_ends:
+		var heading := Vector2(Heading.VEC[branch.branch_exit])
+		var down := PhantomBus.side(heading)
+		for across: float in STOPS:
+			var what := "heading %s, %s tiles down-screen" % [heading, across]
+			var at := Iso.cell_centre(branch.cell) + down * across
+			var middle := 0.0 if absf(across) == FAR_OFF_TILES else -across
+			# Down-screen of the car: up-screen of the middle, or of the car if further up-screen.
+			var line := minf(middle, 0.0) - Tuning.BABA_YAGA_SIDE_TILES
+			_car.sim.pos = at
+			_car.position = Iso.tile_to_world(at)
+			var legend := _legend(heading)
+			var hut := _hut(legend)
+			_step_to(legend, ends[2])
+			var stopped := _from_car(hut)
+			var in_front := true
+			while _short_of(ends[3]):
+				_step(legend)
+				var car_double := _double(legend)
+				if car_double != null and Disasters.shows(car_double):
+					in_front = in_front and car_double.global_position.y > hut.global_position.y
+			_step_to(legend, ends[3])
+			var footprints := _prints(legend)
+			var off_road := Disasters.shows(footprints)
+			for lying: Vector2 in _lying(footprints, footprints.frame):
+				off_road = off_road and not _on_road(at + lying)
+			var beside := Iso.tile_to_world(down * line)
+			assert_almost_eq(stopped, beside, NEAR, "%s: it stops beside the road" % what)
+			assert_false(_on_road(at + Iso.world_to_tile(stopped)), "%s: off it" % what)
+			assert_not_null(_double(legend), "%s: it takes the car" % what)
+			assert_true(in_front, "%s: which rolls in, in front of it" % what)
+			assert_true(off_road, "%s: its prints lie off the road" % what)
 
 
 func test_dusk_falls_and_nothing_of_it_glows() -> void:
