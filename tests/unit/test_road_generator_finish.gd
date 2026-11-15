@@ -72,8 +72,9 @@ func test_a_last_area_at_the_finish_turn_is_a_home_stretch() -> void:
 	assert_eq(path[gen.finish_index].area_id, &"after")
 
 
+## As the areas do: the finish 9 turns after the last area's 3 is 9 after the tutorial's 4 turns.
 func test_the_finish_counts_its_turns_from_the_end_of_the_tutorial() -> void:
-	var gen := RoadGenerator.new(1, _finish_schedule(9, 9), true)
+	var gen := RoadGenerator.new(1, _finish_schedule(3, 9), true)
 	while gen.turn_count < 4:
 		gen.next_tile()
 	assert_false(gen.finished(), "no finish in the tutorial")
