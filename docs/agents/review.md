@@ -30,11 +30,11 @@ Rulesets "Test" (26672445) and "Copilot" (26740665) have Copilot review every pu
 4. Answer findings that have no thread (previously missed or unpublished ones) in one PR comment, as #26 did: `Re [Copilot's review of <sha>](<review URL>), whose overview says …: **Confirmed.** … **Fixed in <sha>.**`
 5. Decline with evidence, not opinion: say what you ran and what it showed. #18 checked YAML findings against actionlint and PyYAML, and declined its last one, a bypass of a heuristic check by deliberate shell tricks, as out of the check's scope. When findings turn into ever-rarer edge cases like that, write down the check's scope and stop.
 6. Add the fix to the PR body and to the plan's review-fix table (planning.md §3).
-7. Don't resolve threads: the owner does.
+7. Once you've replied, resolve Copilot's thread, as landing needs every thread resolved (stacks.md step 4): `gh api graphql -f query='mutation($id: ID!) { resolveReviewThread(input: {threadId: $id}) { thread { isResolved } } }' -f id=<thread-id>`, with the id that `land_pr.sh <n> --check` prints. Leave a thread that a person started: they resolve it. If you decline a finding as out of the PR's scope rather than as wrong, leave its thread open and label the PR `needs-owner` (AGENTS.md §5 step 4).
 
-A 🔵 review with no open issues that only asks for browser or device checks needs no code change (10 of #28's 11 reviews). Do the browser checks yourself (checks.md §3, §4), and list the owner's device checks in the PR body.
+A 🔵 review with no open issues that only asks for browser or device checks needs no code change (10 of #28's 11 reviews). Do the browser checks yourself (checks.md §3, §4), list the owner's device checks in the PR body and the plan's §6.4, and answer the review in a PR comment that says so. Device checks don't hold the PR: the plan's last PR gathers them (planning.md §5).
 
-**No review?** A push that changes no files in the PR, such as a merge of `main` after a squash, starts none. When the PR needs one, request it: `gh pr edit <n> --add-reviewer @copilot`.
+**No review?** A push that changes no files in the PR, such as a merge of `main` after a squash, starts none. When the PR needs one, request it: `gh pr edit <n> --add-reviewer @copilot`. Landing needs one of the head (stacks.md step 4).
 
 **Large diffs.** Copilot reviews no file whose patch is over about 100 KB, as GitHub leaves its patch out (#34: "Copilot wasn't able to review any files"). Keep a plan under about 95 KB, and split big changes into PRs.
 
@@ -52,7 +52,7 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 
 | Exit | Meaning | Do |
 |---|---|---|
-| 0 | Copilot reviewed the head commit, nothing new needs an answer, and no check failed but Copilot's own. Or the PR is closed, even if feedback came with that | If the summary shows checks still running, `gh pr checks <n> --watch --required`; if it shows only Copilot's, GitHub held the CI run (§4). Then the PR waits for the owner. Once it's closed there's nothing to push: read any feedback printed above, which may ask for a follow-up |
+| 0 | Copilot reviewed the head commit, nothing new needs an answer, and no check failed but Copilot's own. Or the PR is closed, even if feedback came with that | Land it with `land_pr.sh`, which waits for the checks and `main`'s CI run (stacks.md step 4), unless the owner lands it (AGENTS.md §5 step 4). If the summary shows only Copilot's check, GitHub held the CI run (§4). Once it's closed there's nothing to push: read any feedback printed above, which may ask for a follow-up |
 | 2 | Feedback that needs an answer, printed above the summary: any new review but a clean 🟢 one, and any new comment, the owner's too. Or, if you started late, Copilot's review of the head that isn't clean and has no thread reply or post by anyone but Copilot after it | Handle it (§2), push, reply, and watch again. If the last line says someone pushed, pull first |
 | 3 | No Copilot review of the head commit in 15 minutes | Look for a setup-failure comment from Copilot, then `gh pr edit <n> --add-reviewer @copilot` and watch once more. If there's still none, tell the owner in a PR comment |
 | 4 | The head moved, so someone pushed, and nothing new needs an answer | Pull, then watch again |
@@ -62,13 +62,13 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 - The script can't tell your posts from others'. Replies made with `gh` post as the account it's logged in as: #2–#28's 35 thread replies came from the owner's, `pompomon`. The cloud agent's replies post as `Copilot`, the same login as Copilot's inline comments (#1, #17). Post your replies first: anything new after that came from someone else.
 - Repeat the cycle (push, watch, handle) until it exits 0. When a review doesn't come in 15 minutes, follow exit 3 rather than waiting longer.
 - If you answer a review without a push (declines only, or a 🔵 review that needs no code change), Copilot won't review again, so there's nothing to wait for. A later run counts a review as answered once a thread reply, or a post by anyone but Copilot, follows it.
-- The script counts every check run of the head. When ci.yml's concurrency cancels a duplicate PR run, it exits 5 although GitHub shows the PR clean (#48–#52): judge by the run that completed.
+- The script counts the latest run of each check on the head, so a duplicate PR run that ci.yml's concurrency cancelled no longer makes it exit 5 (#48–#52). It also counts runs that GitHub leaves out of the PR's checks, such as one started by hand; `land_pr.sh` counts only the PR's own.
 
 ## 4. CI
 
 `ci.yml` runs on every pull request (no branch filter), on pushes to `main` and by hand. Its jobs are `lint`, `test`, `export-web`, and `export-android` for the APK and the AAB; these five are the required checks of ruleset "Test". To require a new one, the owner opens the ruleset, clicks **Add checks** and types its name; GitHub suggests only checks that reported in the last 7 days, so if it's missing, the **+** beside the box adds the name as typed. `test` also fails if the checks changed the tree (AGENTS.md §3). `deploy-web` publishes to GitHub Pages and runs only on `main`. A run takes about 4–6 minutes: `lint` under 20 s, `test` 1–2 min, each export 1–3 min. `release.yml` runs for `v*.*.*` tags or by hand.
 
-**Held runs.** GitHub holds the CI run of each push from an agent's session: the run waits as `action_required`, and the commit has no CI checks, as #76's and #78's had none. Start it with `gh run rerun <run-id>`, from `gh run list -R pompomon/roadgame --branch <branch>`; it runs as its second attempt. A run started with `gh workflow run` passes too, but GitHub leaves it out of the commit's checks, so the PR stays blocked (docs/DAYNIGHT.md §4.5). GitHub's own pushes, such as a native stack's rebase, aren't held.
+**Held runs.** GitHub holds the CI run of each push from an agent's session: the run waits as `action_required`, and the commit has no CI checks, as #76's and #78's had none. Start it with `gh run rerun <run-id>`, from `gh run list -R pompomon/roadgame --branch <branch>`; it runs as its second attempt. If GitHub holds `main`'s run after an agent lands a PR, the next `land_pr.sh` says so and prints the command that starts it. A run started with `gh workflow run` passes too, but GitHub leaves it out of the commit's checks, so the PR stays blocked (docs/DAYNIGHT.md §4.5). GitHub's own pushes, such as a native stack's rebase, aren't held.
 
 When a check fails, read its log: `gh run view <run-id> --log-failed` (`gh pr checks <n>` gives the run's URL). Re-run the known flakes with `gh run rerun <run-id> --failed`:
 - GUT's daily update check gets a 403 from GitHub's API rate limit in an editor run, and the scripts reject its `ERROR: [GUT] Could not get version info`. Don't patch `addons/gut/`.

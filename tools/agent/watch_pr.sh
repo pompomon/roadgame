@@ -13,16 +13,17 @@ commit is in. --minutes 0 only prints the current state.
 
 Exit codes:
   0  Copilot reviewed the head commit, nothing that needs an answer arrived, and no check failed
-     but Copilot's own (checks may still be running: the summary says). Or the PR is closed, even
-     if feedback came with that (printed above)
+     but Copilot's own (checks may still be running: the summary says): land it with land_pr.sh,
+     unless the owner lands it (AGENTS.md §5). Or the PR is closed, even if feedback came with
+     that (printed above)
   2  Feedback that needs an answer (printed above the summary): anything new but a clean Copilot
      review, or Copilot's review of the head that was already there, isn't clean, and has no
      thread reply or post by anyone but Copilot after it. Handle it, push, reply, run this again.
      If the head moved too, the last line says so: pull first
   3  No Copilot review of the head commit in time (docs/agents/review.md §3 says what to do)
   4  The head commit changed while watching, and nothing new needs an answer: pull, run this again
-  5  A check other than Copilot's own failed on the head commit (named in the summary;
-     docs/agents/review.md §4)
+  5  A check other than Copilot's own failed on the head commit, in its latest run (named in the
+     summary; docs/agents/review.md §4)
   1  Usage error, or gh failed 3 times in a row
 EOF
 }
@@ -197,11 +198,15 @@ if [ -n "$review" ]; then
 else
   echo "Copilot's review of $short: none yet"
 fi
-# The head's check runs, all pages: status, conclusion, name. Copilot's own check doesn't make
-# this exit 5: its setup failures also arrive as a PR comment (docs/agents/review.md §2).
+# The head's check runs, all pages: status, conclusion, name. GitHub lists the latest attempt of
+# every workflow run on the head, so a check can come twice; only its latest run counts. Then the
+# duplicate PR run that ci.yml's concurrency cancels doesn't make this exit 5 (#48–#52), nor does
+# Copilot's own check: its setup failures also arrive as a PR comment (docs/agents/review.md §2).
 read_checks() {
   gh api --paginate "repos/$repo/commits/$head/check-runs?per_page=100" \
-    --jq '.check_runs[] | [.status, (.conclusion // ""), .name] | @tsv' > "$tmp/checks"
+    --jq '.check_runs[] | [.id, .status, (.conclusion // ""), .name] | @tsv' > "$tmp/runs" &&
+    awk -F '\t' '!($4 in id) || $1 + 0 > id[$4] + 0 { id[$4] = $1; run[$4] = $2 "\t" $3 "\t" $4 }
+                 END { for (n in run) print run[n] }' "$tmp/runs" > "$tmp/checks"
 }
 checks_read=""
 if try3 read_checks; then checks_read=1; fi
@@ -247,4 +252,4 @@ elif [ -z "$review" ]; then
   echo "Exit 3: no Copilot review of $short within $minutes min."
   exit 3
 fi
-echo "Exit 0: Copilot reviewed $short, and nothing new needs an answer."
+echo "Exit 0: Copilot reviewed $short, and nothing new needs an answer. Next: land it, unless the owner lands it (AGENTS.md §5)."
