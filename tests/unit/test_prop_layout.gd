@@ -161,12 +161,15 @@ func test_rows_above_counts_the_rows_the_tallest_frame_reaches() -> void:
 
 func test_a_lot_shows_one_prop_on_its_front_cell_and_no_other_stands_on_it() -> void:
 	# The lots of a tile start at its corner, and a prop stands on the centre of its lot's front
-	# cell, the one nearest the bottom of the screen. A lot whose prop would touch the road stays
-	# free for the props of its cells.
+	# cell, the one nearest the bottom of the screen. The larger lots go first, so neither a block
+	# nor a post stands on a square's tile. A lot whose prop would touch the road stays free for the
+	# props of its cells.
 	var block := _block(0.3)
-	var props: Array[PropDef] = [block, _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.3)]
+	var square := _prop(&"square", Vector2i(64, 40), Vector2i(32, 39), 0.2)
+	square.lot = 4
+	var props: Array[PropDef] = [block, square, _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.3)]
 	var problems := PackedStringArray()
-	var counts: Dictionary[StringName, int] = {&"block": 0, &"post": 0, &"freed": 0}
+	var counts: Dictionary[StringName, int] = {&"square": 0, &"block": 0, &"post": 0, &"freed": 0}
 	for run_seed: int in [1, 2]:
 		var road := _road(Fixtures.schedule(), run_seed, props)
 		var taken: Dictionary[Vector2i, StringName] = {}
@@ -194,18 +197,24 @@ func test_a_lot_shows_one_prop_on_its_front_cell_and_no_other_stands_on_it() -> 
 				if lot == 1 and PropLayout.pick([block], hashed) != null:
 					counts[&"freed"] += 1
 	assert_eq(problems.slice(0, 5), PackedStringArray(), "%d props astray" % problems.size())
+	assert_gt(counts[&"square"], 250, "enough tiles to tell")
 	assert_gt(counts[&"block"], 1000, "enough lots to tell")
 	assert_gt(counts[&"post"], 1000, "enough cells to tell")
 	assert_gt(counts[&"freed"], 20, "posts on lots whose block would touch the road")
 
 
 func test_each_size_of_lot_takes_its_density_and_a_free_lots_cells_their_own() -> void:
-	# On ground with no road. A lot that shows nothing leaves each of its cells its own chance: its
-	# front cell's too, though that cell's hash is its lot's but for LOT_SALT.
-	var props: Array[PropDef] = [_block(0.3), _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.2)]
+	# On ground with no road. The larger lots go first, so each size takes its density of the lots
+	# that a larger one left free. A lot that shows nothing leaves each of its cells its own chance:
+	# its front cell's too, though that cell's hash is its lot's but for LOT_SALT.
+	var square := _prop(&"square", Vector2i(64, 40), Vector2i(32, 39), 0.2)
+	square.lot = 4
+	var props: Array[PropDef] = [
+		_block(0.3), square, _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.2)
+	]
 	var buffer := RoadBuffer.new(RoadGenerator.new(1, Fixtures.schedule()))
 	var rows := 100
-	var counts: Dictionary[StringName, int] = {&"block": 0, &"post": 0, &"front": 0}
+	var counts: Dictionary[StringName, int] = {&"square": 0, &"block": 0, &"post": 0, &"front": 0}
 	for k: int in rows:
 		for placement: PropLayout.Placement in PropLayout.row(Vector2i(0, -k), props, 7, buffer):
 			counts[placement.def.id] += 1
@@ -213,11 +222,17 @@ func test_each_size_of_lot_takes_its_density_and_a_free_lots_cells_their_own() -
 			if placement.def.lot == 1 and posmod(cell.x, 2) == 1 and posmod(cell.y, 2) == 1:
 				counts[&"front"] += 1
 	var tiles := rows * (2 * Tuning.PROP_SPREAD + 1)
+	# The lots of 2 × 2 cells in the tiles that no square took.
 	@warning_ignore("integer_division")
-	var lots := tiles * Iso.GROUND_PER_TILE * Iso.GROUND_PER_TILE / 4
+	var lots := (tiles - counts[&"square"]) * Iso.GROUND_PER_TILE * Iso.GROUND_PER_TILE / 4
 	var free := lots - counts[&"block"]
 	# Within four standard deviations of each density.
-	for share: Array in [[&"block", lots, 0.3], [&"post", 4 * free, 0.2], [&"front", free, 0.2]]:
+	for share: Array in [
+		[&"square", tiles, 0.2],
+		[&"block", lots, 0.3],
+		[&"post", 4 * free, 0.2],
+		[&"front", free, 0.2]
+	]:
 		var expected: float = share[1] * share[2]
 		var spread := 4.0 * sqrt(expected * (1.0 - share[2]))
 		assert_almost_eq(float(counts[share[0]]), expected, spread, String(share[0]))
