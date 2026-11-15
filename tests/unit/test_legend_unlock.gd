@@ -5,10 +5,10 @@ extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const TimedDisaster := preload("res://tests/helpers/timed_disaster.gd")
-## Run seeds for the shares. With 4000, a share of 0.25 is off by more than SHARE_OFF one time in
-## about 15000 (3.9 standard deviations); each seed's pick is the same on every run of the test.
+## Run seeds for the shares. With 4000, a share of 1/3 is off by more than SHARE_OFF one time in
+## about 10000 (3.9 standard deviations); each seed's pick is the same on every run of the test.
 const SEEDS := 4000
-const SHARE_OFF := 0.027
+const SHARE_OFF := 0.029
 
 
 ## A scene whose root is a disaster with the id `id` and the name `title`.
@@ -50,17 +50,18 @@ func test_the_locked_legends_are_those_not_collected_in_the_collections_order() 
 	assert_eq(LegendUnlock.locked(schedule, collected), [&"bus", &"ufo"] as Array[StringName])
 
 
+## One legend is locked in the first area and two in the second: each is a third, as a pick of an
+## area first would make the first's a half.
 func test_each_locked_legend_is_as_likely_as_the_others() -> void:
 	var schedule := _schedule([&"bus", &"moth", &"reaper"], [&"ufo", &"crow"])
-	var collected: Array[StringName] = [&"moth"]
+	var collected: Array[StringName] = [&"moth", &"reaper"]
 	var counts := {}
 	for run_seed: int in SEEDS:
 		var id := LegendUnlock.pick(schedule, collected, run_seed)
 		counts[id] = counts.get(id, 0) + 1
-	assert_eq(counts.keys().size(), 4, "never a collected one: %s" % [counts])
-	assert_does_not_have(counts, &"moth")
+	assert_eq(counts.keys().size(), 3, "never a collected one: %s" % [counts])
 	for id: StringName in counts:
-		assert_almost_eq(float(counts[id]) / SEEDS, 0.25, SHARE_OFF, String(id))
+		assert_almost_eq(float(counts[id]) / SEEDS, 1.0 / 3.0, SHARE_OFF, String(id))
 
 
 func test_the_same_seed_and_collection_unlock_the_same_legend() -> void:
