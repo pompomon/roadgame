@@ -23,7 +23,7 @@ const TRAFFIC_LIGHT := ["asphalt", "shadow", "asphalt light", "red", "yellow", "
 const PROPS := {
 	&"city":
 	{
-		&"building": [1, 0.0, 0.3, ["city light", "city dark", "asphalt light", "yellow"]],
+		&"building": [1, 0.0, 0.35, ["city light", "city dark", "asphalt light", "yellow"]],
 		&"tree": [1, 0.0, 0.01, TREE],
 		&"lamp": [1, 0.0, 0.01, ["asphalt", "yellow"]],
 		&"bin": [1, 0.0, 0.006, ["asphalt light", "city light", "asphalt"]],
@@ -90,6 +90,12 @@ const WALL_RISE := 2
 ## The props that take a lot of more than one ground cell (VISUALS_PLAN.md §5.4), in cells a side:
 ## the building's box is wider than a cell, so two on cells side by side would stand in each other.
 const LOTS := {&"building": 2}
+## The chance that a lot by a street shows a prop, where it isn't its density (§5.8): the City's
+## streets are lined with buildings, between its owner's 0.35 and 0.6 (Q2).
+const STREETS := {&"building": 0.6}
+## The props that may rise over the road behind them, and fade where they would hide the car
+## (§5.9): boxes, whose bases lie in their lots.
+const SEE_THROUGH: Array[StringName] = [&"building"]
 
 ## The lights and the pools of light of the prop being painted, in pixels from its foot.
 var _lights: Array[Rect2] = []
@@ -139,6 +145,8 @@ func _make_area(area: StringName) -> void:
 		def.fps = spec[1]
 		def.density = spec[2]
 		def.lot = LOTS.get(id, 1)
+		def.street_density = STREETS.get(id, -1.0)
+		def.see_through = id in SEE_THROUGH
 		def.shadow = SHADOWS.get(id, PropDef.Shadow.UPRIGHT)
 		def.shadow_rise = WALL_RISE if def.shadow == PropDef.Shadow.WALL else _box_half >> 1
 		def.region = Rect2i(Vector2i.ZERO, used.size)
@@ -230,6 +238,10 @@ static func _write_def(def: PropDef, sheet_path: String, path: String) -> void:
 	if def.lot != 1:
 		lines.append("lot = %d" % def.lot)
 	lines.append("density = %s" % str(def.density))
+	if def.street_density != -1.0:
+		lines.append("street_density = %s" % str(def.street_density))
+	if def.see_through:
+		lines.append("see_through = true")
 	if def.shadow != PropDef.Shadow.UPRIGHT:
 		lines.append("shadow = %d" % def.shadow)
 	if def.shadow_rise != 0:

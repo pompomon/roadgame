@@ -15,9 +15,11 @@ extends CanvasGroup
 ## and the legends hide no glows.
 ##
 ## PropScatter adds and removes the props with their sprites, and shows their frames. WorldRenderer
-## refreshes them every frame. Only the group's self_modulate and visible change, and each
-## silhouette's position, frame and order as it is added, so no polygon is redrawn on the Web
-## (docs/M2.md §5.7).
+## refreshes them every frame. Only the group's self_modulate and visible change, each silhouette's
+## position, frame and order as it is added, and its modulate's alpha as its prop fades, so no
+## polygon is redrawn on the Web (docs/M2.md §5.7). A see-through prop's silhouette fades with it
+## (VISUALS_PLAN.md §5.9), so that it hides as little of the glows behind it as the prop does of
+## what is behind it, and its own glows dim with it.
 
 const GLOW := preload("res://disasters/glow.tres")
 const SHADER := preload("res://world/lamps.gdshader")

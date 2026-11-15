@@ -31,6 +31,8 @@ func acquire(def: PropDef) -> Sprite2D:
 	else:
 		sprite = _hidden.pop_back()
 		sprite.show()
+		# PropScatter fades see-through props (VISUALS_PLAN.md §5.9): the next prop shows whole.
+		sprite.modulate = Color.WHITE
 	sprite.texture = def.texture
 	# The frame first: hframes mustn't leave the last prop's frame out of range.
 	sprite.frame = 0

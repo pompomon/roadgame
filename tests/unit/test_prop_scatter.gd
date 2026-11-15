@@ -3,7 +3,10 @@ extends GutTest
 ## before the car, and loses them with its path tile. The rows below the start get theirs at once.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+const CAR_SCENE := preload("res://car/car.tscn")
 const DELTA := 1.0 / 60.0
+## Alphas are 32-bit floats.
+const ROUNDING := 1e-5
 
 var _layer: Node2D
 
@@ -34,6 +37,22 @@ func _prop(id: StringName, frames: int, fps: float, density: float) -> PropDef:
 	def.fps = fps
 	def.foot = Vector2i(4, 8)
 	def.density = density
+	return def
+
+
+## A prop with a building's frame, a box on a lot of 2 × 2 cells, on a sheet of its own:
+## see-through, so that it may rise over the road behind it, unless `see_through` is false.
+func _building(id: StringName, density: float, see_through: bool) -> PropDef:
+	var def := PropDef.new()
+	def.id = id
+	var image := Image.create_empty(42, 58, false, Image.FORMAT_RGBA8)
+	def.texture = ImageTexture.create_from_image(image)
+	def.region = Rect2i(0, 0, 42, 58)
+	def.foot = Vector2i(21, 57)
+	def.density = density
+	def.lot = 2
+	def.shadow_rise = 10
+	def.see_through = see_through
 	return def
 
 
@@ -305,8 +324,38 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	odd.lot = 3
 	var block := _prop(&"block", 1, 0.0, 0.5)
 	block.lot = 2
+	# A street density outside 0..1, and one that takes a size's street densities past 1 though its
+	# density doesn't (§5.8). A see-through prop that isn't a box, one whose box reaches out of its
+	# lot, and one whose box just fits (§5.9).
+	var streets := _prop(&"streets", 1, 0.0, 0.1)
+	streets.street_density = 1.5
+	var lining := _prop(&"lining", 1, 0.0, 0.0)
+	lining.lot = 2
+	lining.street_density = 0.6
+	var wall := _prop(&"wall", 1, 0.0, 0.01)
+	wall.see_through = true
+	wall.shadow = PropDef.Shadow.WALL
+	var deep := _prop(&"deep", 1, 0.0, 0.01)
+	deep.see_through = true
+	deep.shadow_rise = 5
+	var fitting := _prop(&"fitting", 1, 0.0, 0.1)
+	fitting.see_through = true
+	fitting.shadow_rise = 4
 	var props: Array[PropDef] = [
-		good, null, blank, frameless, crowding, sunk, shapeless, odd, block
+		good,
+		null,
+		blank,
+		frameless,
+		crowding,
+		sunk,
+		shapeless,
+		odd,
+		block,
+		streets,
+		lining,
+		wall,
+		deep,
+		fitting
 	]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
@@ -317,10 +366,14 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	assert_push_error("PropScatter: dense: prop sunk: its shadow rises outside its frame")
 	assert_push_error("PropScatter: dense: prop shapeless: its shadow is 3")
 	assert_push_error("PropScatter: dense: prop odd: a lot of 3 cells doesn't divide a tile")
+	assert_push_error("PropScatter: dense: prop streets: street_density is outside 0..1")
+	assert_push_error("PropScatter: dense: prop lining takes the densities past 1")
+	assert_push_error("PropScatter: dense: prop wall is see-through, but not a box on its lot")
+	assert_push_error("PropScatter: dense: prop deep is see-through, but not a box on its lot")
 	var buffer := _buffer(1, schedule)
 	scatter.bind(buffer)
 	buffer.start()
-	var shown: Dictionary[Texture2D, int] = {good.texture: 0, block.texture: 0}
+	var shown: Dictionary[Texture2D, int] = {good.texture: 0, block.texture: 0, fitting.texture: 0}
 	var others := 0
 	for k: int in scatter.rows():
 		for sprite: Sprite2D in scatter.sprites(k):
@@ -330,6 +383,7 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 				others += 1
 	assert_gt(shown[good.texture], 100, "the good prop shows")
 	assert_gt(shown[block.texture], 20, "the block shows")
+	assert_gt(shown[fitting.texture], 20, "the box that fits shows")
 	assert_eq(others, 0, "and no other")
 
 
@@ -396,3 +450,100 @@ func test_each_prop_casts_its_shadow_while_it_shows_in_its_frame() -> void:
 		casting = maxi(casting, turning.size())
 	assert_gt(casting, 20, "props that cast")
 	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d steps wrong" % wrong.size())
+
+
+## `count` sprites of `texture` that `scatter` shows, each 400 pixels or more from `from` and from
+## each other.
+static func _apart(
+	scatter: PropScatter, texture: Texture2D, from: Vector2, count: int
+) -> Array[Sprite2D]:
+	var picked: Array[Sprite2D] = []
+	var taken: Array[Vector2] = [from]
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			var far := sprite.texture == texture and picked.size() < count
+			for at: Vector2 in taken:
+				far = far and sprite.position.distance_to(at) >= 400.0
+			if far:
+				picked.append(sprite)
+				taken.append(sprite.position)
+	return picked
+
+
+func test_see_through_props_fade_where_they_would_hide_the_car_or_a_legends_sprite() -> void:
+	# A see-through prop shows as much of itself as SeeThrough.opacity() gives for the actor on the
+	# layer that it would hide most: the car's body, or a sprite that a legend stood there, such as
+	# the car's double (VISUALS_PLAN.md §5.9). Its silhouette, with its glows, fades with it. Other
+	# props, and sprites that don't show, fade nothing, and each prop comes back whole as the actors
+	# go.
+	var building := _building(&"building", 0.5, true)
+	var props: Array[PropDef] = [building, _building(&"plain", 0.5, false)]
+	var schedule := _schedule(props)
+	var scatter := PropScatter.new(_layer, schedule)
+	var lamps: Lamps = add_child_autofree(Lamps.new())
+	scatter.lamps = lamps
+	var buffer := _buffer(1, schedule)
+	scatter.bind(buffer)
+	buffer.start()
+	var car: CarController = CAR_SCENE.instantiate()
+	car.sim = CarSim.new(buffer)
+	car.input = InputRouter.new()
+	_layer.add_child(car)
+	car.add_child(car.input)
+	# On the road, where the buildings beside it rise over it.
+	car.position = Iso.tile_to_world(Vector2(buffer.path_tile(4).cell) + Vector2.ONE * 0.5)
+	# The car's double up the screen behind a building, and two sprites that don't show behind
+	# others: one hidden by its alpha, as a legend's part waits, and one not visible.
+	var targets := _apart(scatter, building.texture, car.position, 3)
+	assert_eq(targets.size(), 3, "buildings away from the car")
+	var double := car.double()
+	var waiting := car.double()
+	waiting.modulate.a = 0.0
+	var unseen := car.double()
+	unseen.visible = false
+	var sprites: Array[Sprite2D] = [double, waiting, unseen]
+	for i: int in sprites.size():
+		_layer.add_child(sprites[i])
+		sprites[i].position = targets[i].position + Vector2(0, -30)
+	scatter.update(DELTA)
+	var actors: Array[Rect2] = [car.body_rect(), double.get_transform() * double.get_rect()]
+	var sorts: Array[float] = [car.position.y, double.position.y]
+	var wrong := PackedStringArray()
+	var faded := 0
+	var plain_near := 0
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			var frame := Rect2(sprite.position - Vector2(21, 57), Vector2(42, 58))
+			var expected := 1.0
+			for i: int in actors.size():
+				var alpha := SeeThrough.opacity(frame, sprite.position.y, actors[i], sorts[i])
+				expected = minf(expected, alpha)
+			if sprite.texture != building.texture:
+				plain_near += int(expected < 1.0)
+				expected = 1.0
+			faded += int(sprite.modulate.a < 1.0)
+			if absf(sprite.modulate.a - expected) > ROUNDING:
+				wrong.append("%s: %.3f, not %.3f" % [sprite.position, sprite.modulate.a, expected])
+	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d props wrong" % wrong.size())
+	assert_almost_eq(targets[0].modulate.a, Tuning.PROP_SEE_THROUGH, ROUNDING, "over the double")
+	assert_eq([targets[1].modulate.a, targets[2].modulate.a], [1.0, 1.0], "the hidden fade none")
+	assert_gt(faded, 2, "buildings by the car and the double")
+	assert_gt(plain_near, 2, "and plain props, which don't fade")
+	assert_eq(_unlike(lamps), 0, "each silhouette shows as much of itself as its prop")
+	car.position = Vector2(1e5, 1e5)
+	double.free()
+	scatter.update(DELTA)
+	var whole := 0
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			whole += int(sprite.modulate.a == 1.0)
+	assert_eq(whole, _shown(scatter), "whole again once the actors go")
+	assert_eq(_unlike(lamps), 0, "and their silhouettes")
+
+
+## How many silhouettes of `lamps` show another alpha than their props.
+static func _unlike(lamps: Lamps) -> int:
+	var unlike := 0
+	for lit: Lamps.Lit in lamps.shown():
+		unlike += int(lit.sprite.modulate.a != lit.prop.modulate.a)
+	return unlike
