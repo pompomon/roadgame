@@ -4,6 +4,11 @@ extends GutTest
 ## props against the whole road made by the end, with geometry of their own.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+const CITY := preload("res://areas/city.tres")
+## Of the eight ground cells around a cell, the four after it: each pair of neighbours once.
+const NEXT_CELLS: Array[Vector2i] = [
+	Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1)
+]
 ## Rows placed on each road.
 const ROWS := 100
 ## Path tiles made past the last row's needs, which its props must keep clear of too.
@@ -247,6 +252,30 @@ func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
 		shown += placed.size()
 	assert_eq(moved, [] as Array[int], "rows whose props moved")
 	assert_gt(shown, 1000, "enough props to tell")
+
+
+func test_the_city_shows_many_buildings_and_none_stand_in_each_other() -> void:
+	# A building's box is 40 px wide and a ground cell 32 px, so two buildings on cells side by side,
+	# or corner to corner, stand in each other (VISUALS_PLAN.md W3). On lots of 2 × 2 cells they
+	# never do. And the City is dense: these roads show 2,792 buildings at 0.3 a lot, and 1,868 at
+	# Q2's 0.2, where main's 0.01 a cell showed 402 (W2, §5.3).
+	var props := (CITY as AreaDef).props
+	var problems := PackedStringArray()
+	var shown := 0
+	for run_seed: int in [1, 2]:
+		var road := _road(Fixtures.schedule(), run_seed, props)
+		var cells: Dictionary[Vector2i, bool] = {}
+		for k: int in road.rows:
+			for placement: PropLayout.Placement in road.rows[k]:
+				if placement.def.id == &"building":
+					cells[_ground_cell(placement)] = true
+		shown += cells.size()
+		for cell: Vector2i in cells:
+			for step: Vector2i in NEXT_CELLS:
+				if cells.has(cell + step):
+					problems.append("seed %d: on %s and %s" % [run_seed, cell, cell + step])
+	assert_eq(problems.slice(0, 5), PackedStringArray(), "%d pairs of buildings" % problems.size())
+	assert_gt(shown, 1000, "buildings on two roads of ROWS rows")
 
 
 ## A run of set pieces after every turn, bridges and tunnels in turn, on the dense area.
