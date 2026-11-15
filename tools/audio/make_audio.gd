@@ -38,6 +38,7 @@ func _initialize() -> void:
 	# The City's legends.
 	_save_legend("phantom_bus", _phantom_bus)
 	_save_legend("mothman", _mothman)
+	_save_legend("grim_reaper", _grim_reaper)
 	# Rural's legends.
 	_save_legend("ufo", _ufo)
 	_save_legend("scarecrow", _scarecrow)
@@ -212,6 +213,34 @@ func _mothman() -> PackedFloat32Array:
 	_add(out, _swell(rush), swoop, 0.7)
 	var flap := _high_pass(_low_pass(_noise(roundi(beats[3] * RATE)), 900.0), 220.0)
 	_add(out, _fade_out(_lfo(flap, 4, 0.9)), lift, 1.3)
+	return out
+
+
+## Timed to Tuning.GRIM_REAPER_BEATS from the end of the delay, when the sound starts: a deep bell
+## tolls as the Reaper steps out, two bells that beat against each other; a dry whisper, two
+## breaths, as it beckons; the road cracks and tears open with a low rumble, as the bell tolls
+## again; and the earth falls in on the car in dull thuds as it sinks. Pitched for a phone's
+## speaker, which plays nothing under about 200 Hz: the bell's partials, the rumble's noise and the
+## thuds' reach above it.
+func _grim_reaper() -> PackedFloat32Array:
+	var beats := Tuning.GRIM_REAPER_BEATS
+	var beckon: float = beats[0]
+	var open: float = beckon + beats[1]
+	var sink: float = open + beats[2]
+	var fall: float = sink + beats[3] * GrimReaper.ROLL_SHARE
+	var filled: float = sink + beats[3] * GrimReaper.SUNK_AT
+	var out := _silence(roundi((open + 1.5) * RATE))
+	for toll: float in [0.0, open]:
+		_add(out, _bell(131.0), toll, 0.9)
+		_add(out, _bell(134.5), toll, 0.6)
+	var whisper := _high_pass(_low_pass(_noise(roundi(beats[1] * RATE)), 5000.0), 1500.0)
+	_add(out, _swell(_lfo(whisper, 2, 0.95)), beckon, 0.5)
+	_add(out, _decay(_high_pass(_noise(roundi(0.15 * RATE)), 1200.0), 0.04), open, 0.8)
+	_add(out, _fade_out(_low_pass(_noise(roundi(beats[2] * RATE)), 400.0)), open, 1.2)
+	var thuds := 5
+	for k: int in thuds:
+		var thud := _decay(_low_pass(_noise(roundi(0.12 * RATE)), 700.0), 0.04)
+		_add(out, thud, lerpf(fall, filled, float(k) / thuds), 1.4)
 	return out
 
 

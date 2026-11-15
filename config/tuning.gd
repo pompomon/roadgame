@@ -236,6 +236,14 @@ const MOTHMAN_AHEAD_TILES := 1.5
 const MOTHMAN_SIDE_TILES := 0.6
 const MOTHMAN_LIFT_PX := Vector2(80.0, -480.0)
 const MOTHMAN_EYES_ALPHA := 0.8
+## The Grim Reaper (POOLS_PLAN.md §5.4): its beats, in s: it steps out at the roadside, it beckons,
+## the road opens into a grave, and the car sinks into it. How far ahead of the car the grave
+## opens, to its middle, along the car's road; how far off the road's middle the Reaper stands,
+## beside the grave; and how much farther off it steps out from, in tiles.
+const GRIM_REAPER_BEATS: Array[float] = [0.6, 0.5, 0.6, 0.7]
+const GRIM_REAPER_AHEAD_TILES := 0.55
+const GRIM_REAPER_SIDE_TILES := 0.75
+const GRIM_REAPER_STEP_TILES := 0.4
 
 # Rural's legends.
 ## The UFO (docs/M6.md §3.3): its beats, in s: night falls, the saucer drops, its beam opens, the
