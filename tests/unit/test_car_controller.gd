@@ -243,6 +243,17 @@ func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
 		made.free()
 
 
+func test_its_body_rect_is_where_its_body_shows_however_a_disaster_moves_and_scales_it() -> void:
+	# A see-through prop fades where it would hide the body (VISUALS_PLAN.md §5.9), and a disaster
+	# sinks the car by its scale (docs/M3.md J3). The car's parent here draws where World does.
+	var car := _car()
+	var body: Sprite2D = car.get_node("%Body")
+	car.position = Vector2(300.0, -200.0)
+	car.scale = Vector2.ONE * 0.5
+	assert_true(car.body_rect().has_area())
+	assert_eq(car.body_rect(), body.get_global_transform() * body.get_rect())
+
+
 func test_dust_flies_only_while_the_car_is_off_the_road() -> void:
 	var car := _car()
 	var dust: CPUParticles2D = car.get_node("%Dust")

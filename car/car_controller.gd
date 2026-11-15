@@ -95,6 +95,12 @@ func body_frame() -> int:
 	return _body.frame_coords.x
 
 
+## Where the body shows on the car's parent: around its frame, as the car is scaled and turned. A
+## see-through prop fades where it would hide it (VISUALS_PLAN.md §5.9).
+func body_rect() -> Rect2:
+	return get_transform() * _body.get_transform() * _body.get_rect()
+
+
 func _update_view() -> void:
 	position = Iso.tile_to_world(sim.pos)
 	var crashed := sim.state == CarSim.State.CRASHED
