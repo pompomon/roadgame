@@ -78,6 +78,7 @@ static func stats_text(stats: Dictionary, area: AreaDef) -> String:
 ## `seconds` as minutes and seconds, such as "8:05".
 static func time_text(seconds: float) -> String:
 	var whole := floori(seconds)
+	@warning_ignore("integer_division")
 	return "%d:%02d" % [whole / 60, whole % 60]
 
 
