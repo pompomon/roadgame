@@ -263,6 +263,12 @@ const SCARECROW_LIFT_PX := 10.0
 ## the eyes open, the car dances, and the ring holds; and how much light each toadstool's glow adds.
 const FAIRY_RING_BEATS: Array[float] = [0.6, 0.5, 0.9, 0.4]
 const FAIRY_RING_GLOW_ALPHA := 0.6
+## The kelpie (POOLS_PLAN.md §5.4): its beats, in s: it rises from its pool, it waits, dripping, the
+## car rolls up to its side, and it plunges back in with the car. How far ahead of the car its pool
+## lies, along the car's road, and how far off the road's middle, in tiles.
+const KELPIE_BEATS: Array[float] = [0.6, 0.5, 0.5, 0.8]
+const KELPIE_AHEAD_TILES := 1.0
+const KELPIE_SIDE_TILES := 0.8
 
 # The Village's legends.
 ## The witch's hex (docs/M6.md §3.3): its beats, in s: the witch swoops in and circles the car,
