@@ -102,11 +102,11 @@ static func make(dir: String) -> void:
 		_draw_hut(hut, pose)
 		hut.outline()
 	hut.save(dir.path_join("hut.png"))
-	var prints := LegendArt.new(BabaYagaLegend.PRINTS, BabaYagaLegend.STRIDES)
+	var footprints := LegendArt.new(BabaYagaLegend.PRINTS, BabaYagaLegend.STRIDES)
 	for strides: int in BabaYagaLegend.STRIDES:
-		prints.frame = strides
-		_draw_prints(prints, strides + 1)
-	prints.save(dir.path_join("prints.png"))
+		footprints.frame = strides
+		_draw_prints(footprints, strides + 1)
+	footprints.save(dir.path_join("prints.png"))
 
 
 static func _draw_hut(art: LegendArt, pose: int) -> void:

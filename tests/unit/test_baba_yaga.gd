@@ -173,10 +173,10 @@ func _texel(frame: int, at: Vector2i) -> Color:
 ## Where the prints that show lie on the ground, in tiles: as x and y, the least and the most of the
 ## way along `along`, a tile direction, past `stopped`, where the hut stopped, in tiles from the
 ## car; and as z, the most across that way from its line.
-func _reach(prints: Sprite2D, stopped: Vector2, along: Vector2) -> Vector3:
+func _reach(footprints: Sprite2D, stopped: Vector2, along: Vector2) -> Vector3:
 	var across := Vector2(-along.y, along.x)
 	var reach := Vector3(INF, -INF, 0.0)
-	for lying: Vector2 in _lying(prints, prints.frame):
+	for lying: Vector2 in _lying(footprints, footprints.frame):
 		var on_line := lying - stopped
 		reach.x = minf(reach.x, on_line.dot(along))
 		reach.y = maxf(reach.y, on_line.dot(along))
@@ -186,15 +186,15 @@ func _reach(prints: Sprite2D, stopped: Vector2, along: Vector2) -> Vector3:
 
 ## Where the opaque texels of `frame` of the prints' sheet lie on the ground, in tiles from the car:
 ## each by its middle, as the prints' place and flips show it.
-func _lying(prints: Sprite2D, frame: int) -> Array[Vector2]:
+func _lying(footprints: Sprite2D, frame: int) -> Array[Vector2]:
 	var found: Array[Vector2] = []
 	for texel: Vector2i in _prints_texels[frame]:
 		var local := Vector2(texel) + Vector2(0.5, 0.5)
-		if prints.flip_h:
+		if footprints.flip_h:
 			local.x = -local.x
-		if prints.flip_v:
+		if footprints.flip_v:
 			local.y = -local.y
-		found.append(Iso.world_to_tile(_from_car(prints) + local))
+		found.append(Iso.world_to_tile(_from_car(footprints) + local))
 	return found
 
 
@@ -639,36 +639,36 @@ func test_its_chicken_feet_leave_prints_behind_it_which_stay() -> void:
 			var stopped := Iso.world_to_tile(BabaYaga.stop(heading))
 			var legend := _legend(heading, turn)
 			var hut := _hut(legend)
-			var prints := _prints(legend)
-			assert_eq(prints.get_parent(), legend, "%s: they lie under the props" % what)
-			assert_eq(Disasters.z(prints), 0, "%s: on the ground" % what)
+			var footprints := _prints(legend)
+			assert_eq(footprints.get_parent(), legend, "%s: they lie under the props" % what)
+			assert_eq(Disasters.z(footprints), 0, "%s: on the ground" % what)
 			var unprinted := true
 			var behind := true
 			var in_share := true
 			var left_all := -1.0
 			while _short_of(ends[3]):
 				_step(legend)
-				if not Disasters.shows(prints):
+				if not Disasters.shows(footprints):
 					continue
 				unprinted = unprinted and _through(3) > BabaYaga.OFF_FROM
 				var past := (Iso.world_to_tile(_from_car(hut)) - stopped).dot(along)
-				var lying := _reach(prints, stopped, along)
+				var lying := _reach(footprints, stopped, along)
 				behind = behind and lying.x >= -NEAR_TILES and lying.y <= past + NEAR_TILES
-				in_share = in_share and lying.y <= (prints.frame + 1) * stride + NEAR_TILES
+				in_share = in_share and lying.y <= (footprints.frame + 1) * stride + NEAR_TILES
 				in_share = in_share and lying.z <= PRINTS_SPREAD
-				if left_all < 0.0 and prints.frame == all_strides:
+				if left_all < 0.0 and footprints.frame == all_strides:
 					left_all = hut.modulate.a
 			_step_to(legend, ends[3])
-			var reach := _reach(prints, stopped, along)
+			var reach := _reach(footprints, stopped, along)
 			assert_true(unprinted, "%s: none till it stomps off" % what)
 			assert_true(behind, "%s: each stride's print once it has passed it" % what)
 			assert_true(in_share, "%s: in its share of the stretch, along its line" % what)
 			assert_gt(left_all, 0.0, "%s: all of them before it is gone" % what)
-			assert_true(Disasters.shows(prints), "%s: the prints stay" % what)
-			assert_eq(prints.frame, all_strides, "%s: all of them" % what)
+			assert_true(Disasters.shows(footprints), "%s: the prints stay" % what)
+			assert_eq(footprints.frame, all_strides, "%s: all of them" % what)
 			assert_gt(reach.y, all_strides * stride, "%s: all its strides' prints" % what)
 			_step_to(legend, ends[3] + 1.0)
-			assert_true(Disasters.shows(prints), "%s: they stay after its end" % what)
+			assert_true(Disasters.shows(footprints), "%s: they stay after its end" % what)
 
 
 func test_dusk_falls_and_nothing_of_it_glows() -> void:
