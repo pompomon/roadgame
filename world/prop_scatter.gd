@@ -10,6 +10,11 @@ extends RefCounted
 ## as the City's building, fades where it would hide the car or a legend's sprite on the layer
 ## (VISUALS_PLAN.md §5.9).
 
+## The scale under which a sprite on the layer doesn't show: Node2D stores a zero scale as
+## CMP_EPSILON (scene/2d/node_2d.cpp, set_scale), so a legend's part that waits at a scale of zero,
+## such as the Witch's Hex's pumpkin, still has a rect with an area.
+const HIDDEN_SCALE := 1e-4
+
 
 ## A prop that shows.
 class Shown:
@@ -230,7 +235,7 @@ func _fade() -> void:
 ## Where `node`, one of the layer's own children, shows on the layer, if a see-through prop mustn't
 ## hide it: the car's body, or a sprite that a legend stood there, such as the car's double (docs/
 ## M6.md §5.4). An empty rect for anything else, and for what doesn't show: a legend's part waits
-## hidden by its alpha or its scale, and a legend hides the car by its alpha.
+## hidden by its alpha or its scale (HIDDEN_SCALE), and a legend hides the car by its alpha.
 static func actor_rect(node: Node) -> Rect2:
 	var item := node as CanvasItem
 	if item == null or not item.visible or item.modulate.a <= 0.0:
@@ -239,6 +244,8 @@ static func actor_rect(node: Node) -> Rect2:
 		return (item as CarController).body_rect()
 	if item is Sprite2D:
 		var sprite := item as Sprite2D
+		if minf(absf(sprite.scale.x), absf(sprite.scale.y)) < HIDDEN_SCALE:
+			return Rect2()
 		return sprite.get_transform() * sprite.get_rect()
 	return Rect2()
 
@@ -261,6 +268,12 @@ func _set_frame(shown: Shown) -> void:
 			shown.cast.sprite.frame = frame
 
 
+## Whether densities that add up to `sum` take it past 1, by more than adding floats rounds: 0.33,
+## 0.56 and 0.11 add up to 1.0000000000000002.
+static func past_1(sum: float) -> bool:
+	return sum > 1.0 and not is_equal_approx(sum, 1.0)
+
+
 static func _valid_props(area: AreaDef) -> Array[PropDef]:
 	var valid: Array[PropDef] = []
 	# Each size of lot picks from its own props (PropLayout.row()), so their densities add up apart,
@@ -275,7 +288,7 @@ static func _valid_props(area: AreaDef) -> Array[PropDef]:
 		if problems.is_empty():
 			inside = density.get(prop.lot, 0.0) + prop.chance(false)
 			by_street = street.get(prop.lot, 0.0) + prop.chance(true)
-			if inside > 1.0 or by_street > 1.0:
+			if past_1(inside) or past_1(by_street):
 				problems.append("prop %s takes the densities past 1" % prop.id)
 		for problem: String in problems:
 			push_error("PropScatter: %s: %s" % [area.id, problem])

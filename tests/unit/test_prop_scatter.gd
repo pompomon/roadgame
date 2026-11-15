@@ -388,7 +388,8 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 
 
 ## The code review of VIS PR 2: a Vector2's 32 bits took ten densities of 0.1 past 1, so the tenth
-## prop of a size, inside or by a street, was an error and didn't show.
+## prop of a size, inside or by a street, was an error and didn't show. And its second: floats add
+## 0.33, 0.56 and 0.11 up to 1.0000000000000002, which took the third past 1 as well.
 func test_densities_that_add_up_to_1_are_valid() -> void:
 	var props: Array[PropDef] = []
 	for k: int in 10:
@@ -399,17 +400,28 @@ func test_densities_that_add_up_to_1_are_valid() -> void:
 		props.append(lining)
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
+	# In an area of their own: densities that add up to 1 leave no cell to a smaller lot.
+	var thirds: Array[PropDef] = []
+	var shares: Array[float] = [0.33, 0.56, 0.11]
+	for k: int in shares.size():
+		thirds.append(_prop(StringName("third%d" % k), 1, 0.0, shares[k]))
+	var rounded := _schedule(thirds)
+	var rounding := PropScatter.new(_layer, rounded)
 	assert_push_error_count(0, "no prop takes the densities past 1")
+	assert_gt(_times_shown(scatter, schedule, props[18]), 20, "the tenth single shows")
+	assert_gt(_times_shown(rounding, rounded, thirds[2]), 20, "the third shows")
+
+
+## How many times `def` shows once `scatter` is bound to a buffer of `schedule`.
+func _times_shown(scatter: PropScatter, schedule: AreaSchedule, def: PropDef) -> int:
 	var buffer := _buffer(1, schedule)
 	scatter.bind(buffer)
 	buffer.start()
-	var tenth := props[18].texture
 	var shown := 0
 	for k: int in scatter.rows():
 		for sprite: Sprite2D in scatter.sprites(k):
-			if sprite.texture == tenth:
-				shown += 1
-	assert_gt(shown, 20, "the tenth single shows")
+			shown += int(sprite.texture == def.texture)
+	return shown
 
 
 func test_the_props_take_nothing_from_the_road() -> void:
@@ -517,16 +529,19 @@ func test_see_through_props_fade_where_they_would_hide_the_car_or_a_legends_spri
 	car.add_child(car.input)
 	# On the road, where the buildings beside it rise over it.
 	car.position = Iso.tile_to_world(Vector2(buffer.path_tile(4).cell) + Vector2.ONE * 0.5)
-	# The car's double up the screen behind a building, and two sprites that don't show behind
-	# others: one hidden by its alpha, as a legend's part waits, and one not visible.
-	var targets := _apart(scatter, building.texture, car.position, 3)
-	assert_eq(targets.size(), 3, "buildings away from the car")
+	# The car's double up the screen behind a building, and three sprites that don't show behind
+	# others: two hidden as a legend's part waits, by their alpha and by their scale, which Node2D
+	# stores as CMP_EPSILON, and one not visible.
+	var targets := _apart(scatter, building.texture, car.position, 4)
+	assert_eq(targets.size(), 4, "buildings away from the car")
 	var stand_in := car.double()
 	var waiting := car.double()
 	waiting.modulate.a = 0.0
+	var shrunk := car.double()
+	shrunk.scale = Vector2.ZERO
 	var unseen := car.double()
 	unseen.visible = false
-	var sprites: Array[Sprite2D] = [stand_in, waiting, unseen]
+	var sprites: Array[Sprite2D] = [stand_in, waiting, shrunk, unseen]
 	for i: int in sprites.size():
 		_layer.add_child(sprites[i])
 		sprites[i].position = targets[i].position + Vector2(0, -30)
@@ -551,7 +566,8 @@ func test_see_through_props_fade_where_they_would_hide_the_car_or_a_legends_spri
 				wrong.append("%s: %.3f, not %.3f" % [sprite.position, sprite.modulate.a, expected])
 	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d props wrong" % wrong.size())
 	assert_almost_eq(targets[0].modulate.a, Tuning.PROP_SEE_THROUGH, ROUNDING, "over the double")
-	assert_eq([targets[1].modulate.a, targets[2].modulate.a], [1.0, 1.0], "the hidden fade none")
+	var hidden := [targets[1].modulate.a, targets[2].modulate.a, targets[3].modulate.a]
+	assert_eq(hidden, [1.0, 1.0, 1.0], "the hidden fade none")
 	assert_gt(faded, 2, "buildings by the car and the double")
 	assert_gt(plain_near, 2, "and plain props, which don't fade")
 	assert_eq(_unlike(lamps), 0, "each silhouette shows as much of itself as its prop")

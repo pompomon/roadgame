@@ -33,8 +33,12 @@ func test_each_area_has_six_to_ten_props_some_animated() -> void:
 		assert_gt(animated, 0, "%s has an animated prop" % area)
 		assert_gte(density, 0.01, "%s's densities" % area)
 		for lot: int in by_lot:
-			assert_lte(by_lot[lot], 1.0, "%s's densities of lots of %d" % [area, lot])
-			assert_lte(by_street[lot], 1.0, "%s's street densities of lots of %d" % [area, lot])
+			var inside := by_lot[lot]
+			var street := by_street[lot]
+			assert_false(PropScatter.past_1(inside), "%s's lots of %d: %f" % [area, lot, inside])
+			assert_false(
+				PropScatter.past_1(street), "%s's lots of %d by a street: %f" % [area, lot, street]
+			)
 
 
 func test_each_frame_is_cropped_to_its_props_pixels_apart_from_the_others() -> void:
