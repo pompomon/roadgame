@@ -42,14 +42,18 @@ var ambient := Color.WHITE
 
 
 ## Seeds `particles` from `params`, as Godot gives each CPUParticles2D a random seed when it's made
-## (docs/M3.md J16), and scales their speed by the intensity and their size by particle_scale.
+## (docs/M3.md J16), and scales their speed by the intensity and their size by particle_scale. Each
+## range's max is read before its min is set: Godot raises the max to a min set above it, and the
+## max would then be scaled twice.
 static func apply_params(particles: CPUParticles2D, params: DisasterParams) -> void:
 	particles.use_fixed_seed = true
 	particles.seed = params.particle_seed
+	var speed_max := particles.initial_velocity_max * params.intensity
+	var scale_max := particles.scale_amount_max * params.particle_scale
 	particles.initial_velocity_min *= params.intensity
-	particles.initial_velocity_max *= params.intensity
+	particles.initial_velocity_max = speed_max
 	particles.scale_amount_min *= params.particle_scale
-	particles.scale_amount_max *= params.particle_scale
+	particles.scale_amount_max = scale_max
 
 
 ## The ellipse that a circle of `radius` tiles around the origin makes on screen, in world pixels.
