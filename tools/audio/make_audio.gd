@@ -49,6 +49,7 @@ func _initialize() -> void:
 	_save_legend("frau_holle", _frau_holle)
 	# The Desert's legends.
 	_save_legend("death_worm", _death_worm)
+	_save_legend("marfa_lights", _marfa_lights)
 	quit()
 
 
@@ -467,6 +468,30 @@ func _death_worm() -> PackedFloat32Array:
 	var hiss := _high_pass(_low_pass(_noise(roundi((end - dived) * RATE)), 4000.0), 800.0)
 	_add(out, _swell(hiss), dived, 0.5)
 	_add(out, _decay(_low_pass(_noise(roundi(0.4 * RATE)), 900.0), 0.1), splash, 0.6)
+	return out
+
+
+## Timed to Tuning.MARFA_LIGHTS_BEATS from the end of the delay, when the sound starts: a soft hum,
+## a fifth and an octave over it, that rises as the lights glimmer and dance, wavering, and dies
+## away as they come close; a soft chime as each light shows, each higher than the last; and the
+## tyres hissing over the sand as the car follows them off the road, fading as it goes. Pitched for
+## a phone's speaker, which plays nothing under about 200 Hz.
+func _marfa_lights() -> PackedFloat32Array:
+	var beats := Tuning.MARFA_LIGHTS_BEATS
+	var beckoned: float = beats[0] + beats[1] + beats[2]
+	var end: float = beckoned + beats[3]
+	var out := _silence(roundi((end + 0.4) * RATE))
+	var hum := _glide(220.0, 294.0, beckoned)
+	_add(hum, _glide(330.0, 441.0, beckoned), 0.0, 0.5)
+	_add(hum, _glide(440.0, 588.0, beckoned), 0.0, 0.25)
+	_add(out, _swell(_lfo(hum, 6, 0.4)), 0.0, 0.5)
+	var steps: Array[int] = [0, 4, 7]
+	for k: int in MarfaLights.LIGHTS:
+		var chime := _bell(880.0 * pow(2.0, steps[k] / 12.0))
+		_add(out, chime, k * MarfaLights.STAGGER * beats[0], 0.3)
+	var hiss := _high_pass(_low_pass(_noise(roundi((beats[3] + 0.3) * RATE)), 3000.0), 600.0)
+	_add(hiss, _lfo(_low_pass(_noise(hiss.size()), 500.0), 12, 0.8), 0.0, 1.5)
+	_add(out, _swell(hiss), beckoned, 0.6)
 	return out
 
 

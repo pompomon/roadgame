@@ -299,3 +299,14 @@ const DEATH_WORM_BEATS: Array[float] = [0.6, 0.4, 0.6, 0.6, 0.3]
 const DEATH_WORM_BURROW_TILES := 1.75
 const DEATH_WORM_TREMOR := 0.35
 const DEATH_WORM_BURST := 1.0
+## The Marfa Lights (POOLS_PLAN.md §5.4): their beats, in s: they glimmer far off over the desert,
+## they dance, they come close round the car, and the car follows them off the road until it's
+## gone. Where they glimmer, in px from the car's ground point, up-screen of it and to the side that
+## the params' direction picks; how far they drift back across as they dance, in px; how high they
+## bob each way, in px, and how many times a second; and how much light each adds.
+const MARFA_LIGHTS_BEATS: Array[float] = [0.6, 0.8, 0.5, 0.6]
+const MARFA_LIGHTS_FAR_PX := Vector2(48.0, -160.0)
+const MARFA_LIGHTS_DRIFT_PX := 28.0
+const MARFA_LIGHTS_BOB_PX := 6.0
+const MARFA_LIGHTS_DANCE_HZ := 1.0
+const MARFA_LIGHTS_ALPHA := 0.8
