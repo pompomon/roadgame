@@ -218,6 +218,37 @@ func test_each_size_of_lot_takes_its_density_and_a_free_lots_cells_their_own() -
 		assert_almost_eq(float(counts[share[0]]), expected, spread, String(share[0]))
 
 
+func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
+	# On ground with no road, each cell of a row's tiles shows the prop that its own hash picks, or
+	# none, tile by tile and cell by cell: so an area whose props all take one cell shows each where,
+	# and in the order, it did before lots (VISUALS_PLAN.md W6).
+	var props: Array[PropDef] = [
+		_prop(&"a", Vector2i(8, 8), Vector2i(4, 8), 0.2),
+		_prop(&"b", Vector2i(8, 8), Vector2i(4, 8), 0.05),
+	]
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, Fixtures.schedule()))
+	var moved: Array[int] = []
+	var shown := 0
+	for k: int in 20:
+		var anchor := Vector2i(0, -k)
+		var expected: Array[Array] = []
+		for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
+			for b: int in Iso.GROUND_PER_TILE:
+				for a: int in Iso.GROUND_PER_TILE:
+					var cell := (anchor + Vector2i(j, -j)) * Iso.GROUND_PER_TILE + Vector2i(a, b)
+					var def := PropLayout.pick(props, PropLayout.cell_hash(7, cell))
+					if def != null:
+						expected.append([def.id, PropLayout.ground_centre(cell)])
+		var placed: Array[Array] = []
+		for placement: PropLayout.Placement in PropLayout.row(anchor, props, 7, buffer):
+			placed.append([placement.def.id, placement.foot])
+		if placed != expected:
+			moved.append(k)
+		shown += placed.size()
+	assert_eq(moved, [] as Array[int], "rows whose props moved")
+	assert_gt(shown, 1000, "enough props to tell")
+
+
 ## A run of set pieces after every turn, bridges and tunnels in turn, on the dense area.
 func _set_piece_schedule(turns: int) -> AreaSchedule:
 	var built := Fixtures.dense_schedule()
