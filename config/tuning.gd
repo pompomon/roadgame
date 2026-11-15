@@ -316,6 +316,16 @@ const FRAU_HOLLE_SIDE_TILES := 0.75
 const FRAU_HOLLE_TIP := 0.5
 const FRAU_HOLLE_TUMBLE := 1.5
 const FRAU_HOLLE_HOP_PX := 24.0
+## Baba Yaga's hut (POOLS_PLAN.md §5.4): its beats, in s: it stomps along the road to the car on its
+## chicken legs, it turns its front to the car, it crouches and its door opens, and the car rolls in
+## as the door shuts behind it and the hut stomps off. How far off the road's middle it stops,
+## beside the car, in tiles; and how far along the road it stomps in from, and stomps off, in tiles:
+## eight strides in, and five off, a stride past its prints, so that it has left them all before it
+## is gone (BabaYaga.STRIDE_TILES).
+const BABA_YAGA_BEATS: Array[float] = [0.6, 0.5, 0.5, 0.8]
+const BABA_YAGA_SIDE_TILES := 0.75
+const BABA_YAGA_FROM_TILES := 2.5
+const BABA_YAGA_OFF_TILES := 1.5625
 
 # The Desert's legends.
 ## The death worm (docs/M6.md §3.3): its beats, in s: the ground trembles and ripples run through
