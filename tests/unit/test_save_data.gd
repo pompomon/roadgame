@@ -272,6 +272,8 @@ func test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one() -> voi
 	assert_eq(data.arrivals["pier"], {"count": 3, "best_seconds": 498.5, "clean": true})
 	assert_eq(data.arrivals["home"], {"count": 1, "best_seconds": 700.0, "clean": false})
 	assert_eq(data.arrival_count(), 4)
+	assert_eq([data.arrival_count(&"pier"), data.arrival_count(&"home")], [3, 1], "each finish's")
+	assert_eq(data.arrival_count(&"nowhere"), 0)
 
 
 ## ENDGAME_PLAN.md W14: an unlocked legend shows in the collection, and weighs less in the picks,

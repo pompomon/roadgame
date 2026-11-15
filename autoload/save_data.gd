@@ -206,8 +206,10 @@ func unlock_disaster(id: StringName) -> void:
 	disasters[String(id)] = entry
 
 
-## The arrivals at every finish.
-func arrival_count() -> int:
+## The arrivals at the finish `finish`, or at every finish without one.
+func arrival_count(finish := &"") -> int:
+	if finish != &"":
+		return arrivals.get(String(finish), ARRIVAL_ENTRY)["count"]
 	var count := 0
 	for entry: Dictionary in arrivals.values():
 		count += entry["count"]
