@@ -42,6 +42,7 @@ func _initialize() -> void:
 	# Rural's legends.
 	_save_legend("ufo", _ufo)
 	_save_legend("scarecrow", _scarecrow)
+	_save_legend("headless_horseman", _headless_horseman)
 	# The Meadows' legends.
 	_save_legend("fairy_ring", _fairy_ring)
 	_save_legend("kelpie", _kelpie)
@@ -301,6 +302,53 @@ func _caw(freq: float) -> PackedFloat32Array:
 	for partial: float in [1.0, 2.0, 3.0, 4.0]:
 		_add(out, _glide(freq * partial, freq * partial * 0.85, length), 0.0, 1.0 / partial)
 	return _swell(_low_pass(out, 3000.0))
+
+
+## Timed to Tuning.HEADLESS_HORSEMAN_BEATS from the end of the delay, when the sound starts: the
+## Horseman's hoofbeats, three to a stride, louder and further apart as he gallops in and halts; a
+## soft flare that rises as the ghost-fire kindles in his hand; its whoosh as he hurls it; a dull
+## whump as it strikes the car, and then the hiss of cold fire over it, dying away, as his
+## hoofbeats go off into the distance, closer together. Pitched for a phone's speaker, which plays
+## nothing under about 200 Hz: the knocks and the fire's noise reach above it.
+func _headless_horseman() -> PackedFloat32Array:
+	var beats := Tuning.HEADLESS_HORSEMAN_BEATS
+	var raise: float = beats[0]
+	var hurl: float = raise + beats[1]
+	var kindle: float = hurl + beats[2]
+	var gone: float = kindle + beats[3]
+	var off: float = kindle + beats[3] * HeadlessHorseman.WHEEL_SHARE
+	var out := _silence(roundi((gone + 0.4) * RATE))
+	var strides := 4
+	for k: int in strides:
+		var share := float(k) / strides
+		_add_stride(out, raise * pow(share, 1.2), lerpf(0.4, 1.0, share))
+		_add_stride(out, lerpf(off, gone, pow(share, 0.8)), lerpf(0.8, 0.2, share))
+	var flare := _high_pass(_low_pass(_noise(roundi(beats[1] * RATE)), 3000.0), 600.0)
+	_add(flare, _glide(300.0, 600.0, beats[1]), 0.0, 0.3)
+	for i: int in flare.size():
+		flare[i] *= float(i) / flare.size()
+	_add(out, flare, raise, 0.5)
+	var whoosh := _high_pass(_low_pass(_noise(roundi(beats[2] * RATE)), 2500.0), 400.0)
+	_add(whoosh, _glide(500.0, 900.0, beats[2]), 0.0, 0.2)
+	_add(out, _swell(whoosh), hurl, 0.8)
+	var whump := _high_pass(_low_pass(_noise(roundi(0.15 * RATE)), 900.0), 200.0)
+	_add(out, _decay(whump, 0.05), kindle, 1.0)
+	var hiss := _high_pass(_noise(roundi(beats[3] * RATE)), 2000.0)
+	_add(out, _decay(_lfo(hiss, 12, 0.3), 0.35), kindle, 0.6)
+	return out
+
+
+## A stride's hoofbeats from `at` s, at `gain`: three knocks, the last the loudest.
+func _add_stride(out: PackedFloat32Array, at: float, gain: float) -> void:
+	for k: int in 3:
+		_add(out, _hoof(), at + k * 0.05, gain * (0.6 if k < 2 else 1.0))
+
+
+## A hoof's knock on the road: a click of noise and a hollow note, both short.
+func _hoof() -> PackedFloat32Array:
+	var out := _decay(_high_pass(_low_pass(_noise(roundi(0.06 * RATE)), 1800.0), 250.0), 0.012)
+	_add(out, _decay(_tone(420.0, 0.06, "sine"), 0.015), 0.0, 0.6)
+	return out
 
 
 # The Meadows' legends.

@@ -38,7 +38,7 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 		# The City's.
 		&"city": [&"phantom_bus", &"mothman", &"grim_reaper"],
 		# Rural's.
-		&"rural": [&"ufo", &"scarecrow"],
+		&"rural": [&"ufo", &"scarecrow", &"headless_horseman"],
 		# The Meadows'.
 		&"meadows": [&"fairy_ring", &"kelpie"],
 		# The Village's.

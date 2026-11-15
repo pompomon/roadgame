@@ -265,6 +265,16 @@ const SCARECROW_AHEAD_TILES := 1.25
 const SCARECROW_SIDE_TILES := 0.75
 const SCARECROW_CARRY_PX := Vector2(320.0, -80.0)
 const SCARECROW_LIFT_PX := 10.0
+## The Headless Horseman (POOLS_PLAN.md §5.4): his beats, in s: he gallops along the road to the
+## car, he raises a ball of ghost-fire, he hurls it at the car, and it kindles the car as he gallops
+## off. How far ahead of the car, along the car's road, he gallops in from and off to, and where he
+## stops, on the road's middle, in tiles; how high the ghost-fire arcs on its way to the car, in px;
+## and how much light it adds.
+const HEADLESS_HORSEMAN_BEATS: Array[float] = [0.6, 0.4, 0.5, 0.9]
+const HEADLESS_HORSEMAN_FROM_TILES := 4.0
+const HEADLESS_HORSEMAN_STOP_TILES := 1.5
+const HEADLESS_HORSEMAN_ARC_PX := 16.0
+const HEADLESS_HORSEMAN_GLOW_ALPHA := 0.8
 
 # The Meadows' legends.
 ## The fairy ring (docs/M6.md §3.3): its beats, in s: the toadstools sprout, their glows swell and
