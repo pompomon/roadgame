@@ -119,6 +119,27 @@ func test_rows_show_props_ahead_of_the_car_and_lose_them_with_their_path_tile() 
 	assert_eq(_layer.get_child_count(), 0, "internal children, which simulate() walks past (W7)")
 
 
+func test_the_layers_own_children_draw_over_the_props_on_their_y() -> void:
+	# Godot y-sorts by y, then by the order of the layer's children, internal ones included
+	# (servers/rendering/renderer_canvas_cull.h:117, ItemYSort). main.gd adds the car once the
+	# first rows show, and the pool makes sprites after that: each still goes before the car, so
+	# that the car draws over a prop on its y (VISUALS_PLAN.md W9).
+	var schedule := Fixtures.schedule()
+	var scatter := PropScatter.new(_layer, schedule)
+	var buffer := _buffer(5, schedule)
+	scatter.bind(buffer)
+	buffer.start()
+	var made_first := scatter.pool.made
+	var car := Node2D.new()
+	_layer.add_child(car)
+	for index: int in range(1, 200):
+		buffer.on_car_path_index(index)
+		scatter.update(DELTA)
+	assert_gt(made_first, 0, "sprites made before the car")
+	assert_gt(scatter.pool.made, made_first, "and after it")
+	assert_eq(car.get_index(true), scatter.pool.made, "each sprite before the car")
+
+
 func test_a_seed_shows_the_same_props_however_the_car_got_there() -> void:
 	var schedule := Fixtures.schedule()
 	var stepped := PropScatter.new(_layer, schedule)
