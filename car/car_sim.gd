@@ -62,6 +62,9 @@ var trigger: JunctionTrigger
 var _offroad_since := 0.0
 ## Once the run is over: how hard the car brakes, in tiles/s².
 var _stop_rate := 0.0
+## Once the car has arrived: the centre of the finish's first tile, and the finish's heading.
+var _finish_centre := Vector2.ZERO
+var _finish_axis := Vector2.ZERO
 
 
 ## Puts the car on the centre of the buffer's first path tile, facing along it, at speed 0.
@@ -86,10 +89,11 @@ func _init(p_buffer: RoadBuffer) -> void:
 ## or harder if it must, so that it stops within STOP_SECONDS of the step that ended the run
 ## (docs/M3.md J4). After it arrives, it rolls to a stop on the finish instead.
 func step(delta: float, steer: float) -> void:
+	if state == State.ARRIVED:
+		_roll(delta)
+		return
 	if is_over():
-		if state == State.ARRIVED:
-			_steer(delta, 0.0)
-		elif _stop_rate == 0.0:
+		if _stop_rate == 0.0:
 			_stop_rate = maxf(Tuning.BRAKE, speed / Tuning.STOP_SECONDS)
 		speed = move_toward(speed, 0.0, _stop_rate * delta)
 		pos += velocity() * delta
@@ -406,13 +410,35 @@ func _on_disaster_triggered(_junction: RoadTile, _choice: int) -> void:
 
 ## The car reached the finish. It brakes evenly, to stop ARRIVE_STOP_SHORT before the centre of
 ## the finish's last tile, wherever it reached the finish and however fast; a slow car stops
-## sooner, within ARRIVE_ROLL_SECONDS.
+## sooner, within ARRIVE_ROLL_SECONDS, and so does one that came at an angle, whose way is longer.
 func _on_arrived() -> void:
 	state = State.ARRIVED
+	var finish := buffer.path_tile(buffer.generator.finish_index)
+	_finish_centre = Iso.cell_centre(finish.cell)
+	_finish_axis = Vector2(Heading.VEC[finish.heading])
 	var last := buffer.generator.finish_index + Tuning.FINISH_TILES - 1
 	var room := maxf(last - Tuning.ARRIVE_STOP_SHORT - progress, Tuning.ARRIVE_STOP_SHORT)
 	_stop_rate = maxf(speed * speed / (2.0 * room), speed / Tuning.ARRIVE_ROLL_SECONDS)
 	arrived.emit()
+
+
+## The roll after the arrival. The car steers itself as the autopilot does, toward the finish's
+## centreline LOOKAHEAD ahead, however it came onto the finish: at an angle, or across it from the
+## side, after a rejoin. The finish holds it within its road's edges and its ends, so that the car
+## stops on it. Once stopped, it stays as it is.
+func _roll(delta: float) -> void:
+	if speed == 0.0:
+		return
+	var rel := pos - _finish_centre
+	var aim := _finish_axis * (rel.dot(_finish_axis) + Autopilot.LOOKAHEAD) - rel
+	var error := wrapf(atan2(aim.x, -aim.y) - angle, -PI, PI)
+	_steer(delta, clampf(error * Autopilot.GAIN, -1.0, 1.0))
+	speed = move_toward(speed, 0.0, _stop_rate * delta)
+	rel += velocity() * delta
+	var side := Vector2(-_finish_axis.y, _finish_axis.x)
+	var along := clampf(rel.dot(_finish_axis), -0.5, Tuning.FINISH_TILES - 0.5)
+	var across := clampf(rel.dot(side), -Tuning.ROAD_HALF_WIDTH, Tuning.ROAD_HALF_WIDTH)
+	pos = _finish_centre + _finish_axis * along + side * across
 
 
 func _on_streak_changed(_streak: int) -> void:
