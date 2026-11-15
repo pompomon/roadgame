@@ -157,6 +157,13 @@ func test_a_crashed_car_shows_its_wreck_and_smokes() -> void:
 	await wait_physics_frames(2)
 	assert_false(smoke.emitting, "driving")
 	assert_ne(body.frame, CarController.WRECK_FRAME, "driving")
+	# Its wheels in their second phase, so that the wreck must show its first row, whatever the
+	# phase (VISUALS_PLAN.md §5.1): two frames don't roll them on to the first again.
+	for _i: int in 120:
+		if body.frame_coords.y == 1:
+			break
+		await wait_physics_frames(1)
+	assert_eq(body.frame_coords.y, 1, "its wheels rolled")
 	car.sim.state = CarSim.State.CRASHED
 	await wait_physics_frames(2)
 	assert_eq(body.frame, CarController.WRECK_FRAME, "the wreck")

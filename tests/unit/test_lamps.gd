@@ -15,7 +15,8 @@ func before_each() -> void:
 	_lamps = add_child_autofree(Lamps.new())
 	_props = add_child_autofree(Node2D.new())
 	_props.y_sort_enabled = true
-	_pool = PropPool.new(_props)
+	# Internal children, as PropScatter holds them (VISUALS_PLAN.md W8).
+	_pool = PropPool.new(_props, Node.INTERNAL_MODE_FRONT)
 
 
 ## A prop that stands, of `frames` 8 × 8-pixel frames, with no lights.
@@ -155,7 +156,8 @@ func _drawn(silhouettes: Dictionary[Sprite2D, Sprite2D]) -> Array[Sprite2D]:
 
 
 ## The props of `shown` in the order Props draws them: by y, and if that is the same, in the order
-## of its children (servers/rendering/renderer_canvas_cull.h:117, ItemYSort).
+## of its children, internal ones included (servers/rendering/renderer_canvas_cull.h:117,
+## ItemYSort).
 func _y_sorted(shown: Array[Sprite2D]) -> Array[Sprite2D]:
 	var ys: Array[float] = []
 	for prop: Sprite2D in shown:
@@ -164,7 +166,7 @@ func _y_sorted(shown: Array[Sprite2D]) -> Array[Sprite2D]:
 	ys.sort()
 	var y_sorted: Array[Sprite2D] = []
 	for y: float in ys:
-		for child: Node in _props.get_children():
+		for child: Node in _props.get_children(true):
 			var prop := child as Sprite2D
 			if prop != null and prop in shown and prop.position.y == y:
 				y_sorted.append(prop)
