@@ -138,9 +138,9 @@ func test_a_drawn_frame_turns_the_wheels_a_phase_at_most_and_the_faster_the_more
 	# second, more than one from a drawn frame to the next. Two at once would be a half turn, which
 	# reads as back as well as forward, and three a quarter turn back. So a drawn frame turns the
 	# wheels a phase at most, and only forward: a phase each WHEEL_ROLL_TILES that the car drives,
-	# counting a phase at most of each frame's drive. So they show each phase while the car rolls
-	# less than one a frame, and turn no less often at a higher speed, however unevenly the frames
-	# come (VISUALS_PLAN.md §5.1, W13).
+	# counting a phase at most of each frame's drive, and on each frame that drives a phase or more.
+	# So they show each phase while the car rolls less than one a frame, and turn no less often at a
+	# higher speed, however unevenly the frames come (VISUALS_PLAN.md §5.1, W13).
 	for cadence: Array in CADENCES:
 		var fewest := 0
 		for speed: float in SPEEDS:
@@ -149,10 +149,14 @@ func test_a_drawn_frame_turns_the_wheels_a_phase_at_most_and_the_faster_the_more
 			var turned := turns.count(1)
 			assert_eq(turns.max(), 1, what + ": a phase at most, forward")
 			var phases := 0.0
+			var stuck := 0
 			for drawn: int in turns.size():
 				var steps: int = cadence[drawn % cadence.size()]
-				phases += minf(speed * steps / 60.0 / Tuning.WHEEL_ROLL_TILES, 1.0)
+				var drive := speed * steps / 60.0 / Tuning.WHEEL_ROLL_TILES
+				phases += minf(drive, 1.0)
+				stuck += 1 if drive >= 1.0 + ROUNDING and turns[drawn] == 0 else 0
 			assert_almost_eq(float(turned), phases, 1.0 + ROUNDING, what + ": each phase it drives")
+			assert_eq(stuck, 0, what + ": each frame that drives a phase turns them")
 			assert_gte(turned, fewest, what + ": no fewer than slower")
 			fewest = turned
 
