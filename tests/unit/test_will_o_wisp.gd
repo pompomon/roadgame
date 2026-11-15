@@ -267,10 +267,17 @@ func test_night_falls_and_four_wisps_glimmer_round_the_car_one_after_another() -
 	assert_true(dark, "each dark till its turn")
 	assert_true(lit, "and as bright as it shows by SHOW_SHARE after")
 	assert_true(there, "the car still there")
+	var bright := Tuning.WILL_O_WISP_ALPHA
+	var glimmer_most := GLIDE * bright * DELTA / (WillOWisp.SHOW_SHARE * ends[0])
 	for k: int in WillOWisp.WISPS:
 		var mine := _column(alphas, k)
 		assert_eq(mine, Disasters.sorted(mine), "wisp %d: it only brightens" % k)
-		var bright := Tuning.WILL_O_WISP_ALPHA
+		var gradual := true
+		var last := 0.0
+		for alpha: float in mine:
+			gradual = gradual and alpha - last <= glimmer_most
+			last = alpha
+		assert_true(gradual, "wisp %d: a little each frame" % k)
 		assert_almost_eq(mine[-1], bright, NEAR_ALPHA, "wisp %d: as bright as it shows" % k)
 
 
@@ -286,7 +293,7 @@ func test_they_circle_it_closing_in_and_speed_up_to_at_most_half_a_turn_a_second
 	while not _reached(ends[0]):
 		_step(wisp)
 	var last := _round(wisps[0]).angle()
-	var spreads: Array[float] = []
+	var spreads: Array[float] = [_round(wisps[0]).length()]
 	var steps: Array[float] = []
 	var apart := true
 	var on_ring := true
@@ -315,6 +322,10 @@ func test_they_circle_it_closing_in_and_speed_up_to_at_most_half_a_turn_a_second
 	assert_true(steady, "as bright as they glimmered, and one size")
 	assert_eq(spreads, Disasters.sorted(spreads, true), "closing in")
 	var nearer_most := GLIDE * (WillOWisp.FAR - 1.0) * DELTA / beats[1]
+	var gradual := true
+	for k: int in range(1, spreads.size()):
+		gradual = gradual and spreads[k - 1] - spreads[k] <= nearer_most
+	assert_true(gradual, "a little each frame")
 	assert_almost_eq(spreads[-1], 1.0, nearer_most, "to RING round its middle")
 	assert_true(on_ring, "and no nearer as it shrinks")
 	assert_gt(steps.min(), 0.0, "anticlockwise, every frame")
@@ -375,7 +386,7 @@ func test_the_car_shrinks_into_a_fifth_wisp_at_its_middle_paling_to_its_colour()
 		var brightens: Array[float] = [fifth.modulate.a]
 		var kept := _near(_centre(car_double), middle)
 		var shrink_most := GLIDE * (1.0 - WillOWisp.GONE_SCALE) * DELTA / beats[2]
-		var gradual := true
+		var gradual := 1.0 - car_double.scale.x <= shrink_most
 		while not _reached(ends[2]):
 			_step(wisp)
 			gradual = gradual and sizes[-1] - car_double.scale.x <= shrink_most
@@ -492,16 +503,20 @@ func test_the_five_drift_off_together_up_the_screen_and_fade_and_the_bog_cotton_
 		while _short_of(ends[2]):
 			_step(wisp)
 		var last := Vector2.ZERO
+		var turned_last := _round(wisps[0]).angle()
 		var across: Array[float] = []
 		var ups: Array[float] = []
+		var strides: Array[float] = []
 		var gradual := true
 		var together := true
+		var turning := true
 		var bright := true
 		var fading: Array[float] = []
 		while not _reached(ends[3]):
 			_step(wisp)
 			var moved := _from_car(fifth) - WitchHex.car_middle()
-			gradual = gradual and moved.distance_to(last) <= stride_most
+			strides.append(moved.distance_to(last))
+			gradual = gradual and strides[-1] <= stride_most
 			last = moved
 			across.append(moved.x * side)
 			ups.append(moved.y)
@@ -510,6 +525,10 @@ func test_the_five_drift_off_together_up_the_screen_and_fade_and_the_bog_cotton_
 				var round_now := _round(light, moved)
 				together = together and absf(round_now.length() - 1.0) <= NEAR_SPREAD
 				together = together and absf(light.modulate.a - alpha) <= NEAR_ALPHA
+			# Anticlockwise on the screen, where y runs down: the angle falls.
+			var turned_now := _round(wisps[0], moved).angle()
+			turning = turning and wrapf(turned_last - turned_now, -PI, PI) > 0.0
+			turned_last = turned_now
 			if _short_of(_at(3, WillOWisp.FADE_FROM)):
 				bright = bright and absf(alpha - Tuning.WILL_O_WISP_ALPHA) <= NEAR_ALPHA
 			elif _clear_of(3, WillOWisp.FADE_FROM):
@@ -520,10 +539,17 @@ func test_the_five_drift_off_together_up_the_screen_and_fade_and_the_bog_cotton_
 		assert_almost_eq(went, Vector2(side * way.x, way.y), NEAR, "%s: DRIFT_PX" % what)
 		assert_eq(across, Disasters.sorted(across), "%s: to its side" % what)
 		assert_eq(ups, Disasters.sorted(ups, true), "%s: up the screen" % what)
-		assert_true(gradual, "%s: slow at each end" % what)
-		assert_true(together, "%s: together, still circling round the fifth" % what)
+		assert_true(gradual, "%s: a little each frame" % what)
+		var mean := way.length() / strides.size()
+		assert_lt(strides[0], mean / 2.0, "%s: slow as it starts" % what)
+		assert_lt(strides[-1], mean / 2.0, "%s: and as it ends" % what)
+		assert_true(together, "%s: together, round the fifth" % what)
+		assert_true(turning, "%s: still circling" % what)
 		assert_true(bright, "%s: as bright till FADE_FROM" % what)
-		assert_eq(fading, Disasters.sorted(fading, true), "%s: then dimmer" % what)
+		var dimmer := true
+		for k: int in range(1, fading.size()):
+			dimmer = dimmer and fading[k] < fading[k - 1]
+		assert_true(dimmer, "%s: then dimmer each frame" % what)
 		for light: Sprite2D in _lights(wisp):
 			assert_false(Disasters.shows(light), "%s: %s is gone" % [what, light.name])
 		_step_to(wisp, Disasters.duration(wisp, _params) - _params.delay + 0.5)
