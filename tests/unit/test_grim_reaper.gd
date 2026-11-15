@@ -784,8 +784,8 @@ func test_a_gravestone_rises_at_its_head_and_the_reaper_fades_away() -> void:
 	# At the grave's head, the end of its pit up the screen, along the car's road, with the props:
 	# out of the ground as the car sinks, its top first, bit by bit, only up, till it stands whole,
 	# on its bottom row. The Reaper lowers its hand, and once the car has sunk a while, fades away.
-	# Once it has finished, the grave, filled in, and its gravestone stay where they were, and the
-	# car is gone.
+	# Neither starts while the car rolls into the grave whole. Once it has finished, the grave,
+	# filled in, and its gravestone stay where they were, and the car is gone.
 	var standing := false
 	for x: int in GrimReaper.STONE.x:
 		standing = standing or _stone_sheet.get_pixel(x, GrimReaper.STONE.y - 1).a > 0.0
@@ -814,6 +814,7 @@ func test_a_gravestone_rises_at_its_head_and_the_reaper_fades_away() -> void:
 		var rising := true
 		var lowered := true
 		var stays := true
+		var rolling := 0
 		watch_signals(legend)
 		var end := Disasters.duration(legend, _params) - _params.delay
 		while not _reached(end + 0.5):
@@ -834,7 +835,14 @@ func test_a_gravestone_rises_at_its_head_and_the_reaper_fades_away() -> void:
 			alphas.append(reaper.modulate.a)
 			if through < GrimReaper.FADE_FROM and _clear_of(3, GrimReaper.FADE_FROM):
 				stays = stays and reaper.modulate.a == 1.0
+			# While the car's double rolls in whole, before it has sunk at all.
+			var taken := _double(legend)
+			if taken != null and taken.offset == -Vector2(CarController.FOOT):
+				rolling += 1
+				hidden = hidden and not Disasters.shows(stone)
+				stays = stays and reaper.modulate.a == 1.0
 		assert_signal_emit_count(legend, "finished", 1, "%s: it has finished" % what)
+		assert_gt(rolling, 0, "%s: the car rolls in whole before it sinks" % what)
 		assert_true(hidden, "%s: unseen till the car has sunk a while" % what)
 		assert_true(rising, "%s: there, its top first, on its foot, with the props" % what)
 		assert_eq(heights, Disasters.sorted(heights), "%s: only up" % what)
