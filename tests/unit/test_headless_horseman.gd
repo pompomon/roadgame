@@ -326,8 +326,8 @@ func test_a_headless_rider_gallops_along_the_road_and_halts_in_front_of_the_car(
 	# From HEADLESS_HORSEMAN_FROM_TILES ahead along the car's road, on its middle, for each heading:
 	# straight to HEADLESS_HORSEMAN_STOP_TILES ahead, slower and slower to a stop, facing the way he
 	# gallops, his horse's legs stretching and gathering in turn, showing as he comes, the dust
-	# flying from its hooves till he halts. He stands with the props, on his foot. Each frame of his
-	# sheet stands on its bottom row.
+	# flying from its hooves till he halts, as faint as he is. He stands with the props, on his foot.
+	# Each frame of his sheet stands on its bottom row.
 	var size := HeadlessHorseman.RIDER
 	for frame: int in HeadlessHorseman.Pose.size():
 		var standing := false
@@ -357,6 +357,7 @@ func test_a_headless_rider_gallops_along_the_road_and_halts_in_front_of_the_car(
 		var facing := true
 		var shown := true
 		var dusty := true
+		var with_him := true
 		while _short_of(ends[0]):
 			_step(legend)
 			if _through(0) < 0.0 and _clear_of(0, 0.0):
@@ -372,6 +373,7 @@ func test_a_headless_rider_gallops_along_the_road_and_halts_in_front_of_the_car(
 			facing = facing and rider.flip_h == (halt.x < far.x)
 			dusty = dusty and dust.emitting and Disasters.particles_show(dust)
 			dusty = dusty and _near(_from_car(dust), path[-1])
+			with_him = with_him and is_equal_approx(dust.modulate.a, rider.modulate.a)
 			if _through(0) > show_share and _clear_of(0, show_share):
 				shown = shown and rider.modulate.a == 1.0
 		_step_to(legend, ends[0])
@@ -396,6 +398,7 @@ func test_a_headless_rider_gallops_along_the_road_and_halts_in_front_of_the_car(
 		assert_almost_eq(path[-1], halt, NEAR, "%s: where he halts" % what)
 		assert_true(dusty, "%s: the dust flies from his horse's hooves" % what)
 		assert_false(dust.emitting, "%s: till he halts" % what)
+		assert_true(with_him, "%s: as faint as he is" % what)
 
 
 func test_he_raises_a_ball_of_ghost_fire_that_grows_in_his_hand() -> void:
@@ -577,10 +580,11 @@ func test_its_flames_run_over_the_car_which_pales_to_a_ghost_of_itself_and_fades
 func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_stay() -> void:
 	# As the fire strikes, for each heading, he turns to face the way he came, and waits where he
 	# halted; then he gallops off along the road, straight back to where he came from, faster and
-	# faster, his horse's legs stretching and gathering in turn, the dust flying from its hooves,
-	# fading to nothing as he goes. His horse's hooves scorch the road behind him: the prints of
-	# each stride show only once he has passed them, on the road between where he halted and where
-	# he is, under the props. He has left all of them before he is gone, and they stay.
+	# faster, his horse's legs stretching and gathering in turn, the dust flying from its hooves
+	# till DUST_SHARE; he fades to nothing as he goes, and his dust with him. His horse's hooves
+	# scorch the road behind him: the prints of each stride show only once he has passed them, on
+	# the road between where he halted and where he is, under the props. He has left all of them
+	# before he is gone, and they stay.
 	var ends := _ends()
 	var stride_tiles := HeadlessHorseman.PRINTS_TILES / HeadlessHorseman.STRIDES
 	var all_strides := HeadlessHorseman.STRIDES - 1
@@ -606,6 +610,7 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 		var waited := _near(path[0], halt)
 		var stood := 0
 		var dusty := true
+		var with_him := true
 		var behind := true
 		var on_road := true
 		var left_all := -1.0
@@ -614,6 +619,7 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 			path.append(_from_car(rider))
 			alphas.append(rider.modulate.a)
 			facing = facing and rider.flip_h == (far.x < halt.x)
+			with_him = with_him and is_equal_approx(dust.modulate.a, rider.modulate.a)
 			var past := _past(rider, heading)
 			if rider.frame == HeadlessHorseman.Pose.STAND:
 				stood += 1
@@ -621,8 +627,11 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 				waited = waited and not dust.emitting
 			else:
 				frames.append(rider.frame)
-				dusty = dusty and dust.emitting and Disasters.particles_show(dust)
 				dusty = dusty and _near(_from_car(dust), path[-1])
+				if _clear_of(3, HeadlessHorseman.DUST_SHARE):
+					var flying := _through(3) < HeadlessHorseman.DUST_SHARE
+					dusty = dusty and dust.emitting == flying
+					dusty = dusty and (Disasters.particles_show(dust) or not flying)
 			if not Disasters.shows(hoofprints):
 				continue
 			var lying := _reach(hoofprints, heading)
@@ -649,11 +658,14 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 		assert_almost_eq(path[-1], far, NEAR, "%s: to where he came from" % what)
 		assert_eq(strides, _galloping(strides.size()), "%s: stride after stride" % what)
 		assert_gte(strides.size(), LEAST_STRIDES, "%s: galloping" % what)
-		assert_true(dusty, "%s: the dust flies from his horse's hooves" % what)
-		assert_false(dust.emitting, "%s: till he is gone" % what)
+		assert_true(dusty, "%s: the dust flies from his horse's hooves, till DUST_SHARE" % what)
 		assert_eq(alphas, Disasters.sorted(alphas, true), "%s: he fades" % what)
 		assert_lte(_largest_step(alphas), MOST_A_FRAME, "%s: bit by bit" % what)
 		assert_false(Disasters.shows(rider), "%s: to nothing" % what)
+		assert_true(with_him, "%s: his dust as faint as he is" % what)
+		assert_false(
+			Disasters.particles_show(dust), "%s: and none of it shows once he is gone" % what
+		)
 		assert_true(behind, "%s: each stride's prints once he has passed them" % what)
 		assert_true(on_road, "%s: on the road" % what)
 		assert_gt(left_all, 0.0, "%s: all of them before he is gone" % what)
@@ -744,7 +756,7 @@ func test_its_light_rises_at_each_point_at_most_once_whichever_way_the_car_heads
 		assert_eq(Disasters.flashing(lights, reds), "", what)
 
 
-func test_he_his_ghost_fire_and_his_hoofprints_stand_out_from_rural_at_dusk() -> void:
+func test_he_his_ghost_fire_and_his_hoofprints_stand_out_from_the_fields_by_night() -> void:
 	# Each frame of each sheet, against Rural's road and ground, in each key light, under his dusk
 	# veil; and the ghost-fire's glow, added over them as bright as it gets (POOLS_PLAN.md §5.6,
 	# V15, P13b).

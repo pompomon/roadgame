@@ -38,8 +38,9 @@ const STRIDES := 5
 const STRIDE_TILES := 0.4
 ## The shares: of the gallop that he takes to show; of the kindle that he takes to wheel round,
 ## that the flames take to run over the car, and that the car takes to pale to a ghost of itself,
-## tinted GHOST, GHOST_ALPHA of it showing; and from which he, the flames, their glow and the ghost
-## fade.
+## tinted GHOST, GHOST_ALPHA of it showing; from which he, the flames, their glow and the ghost
+## fade; and of the kindle till which his dust flies, while he still shows, so that none of it is
+## born unseen.
 const SHOW_SHARE := 0.4
 const WHEEL_SHARE := 0.2
 const SPREAD_SHARE := 0.3
@@ -47,6 +48,7 @@ const GHOST_SHARE := 0.4
 const GHOST := Color(0.8, 1.0, 0.9)
 const GHOST_ALPHA := 0.6
 const FADE_FROM := 0.6
+const DUST_SHARE := 0.9
 
 ## One tile ahead of the car along its road; where he gallops in from and off to, and where he
 ## halts, from the legend's origin; and where he holds the ghost-fire.
@@ -180,10 +182,11 @@ func _pose(beat: int, t: float) -> void:
 
 
 ## Puts his foot `at`, from the legend's origin, wherever he stands, and the dust at his horse's
-## hooves.
+## hooves, as faint as he is: it shows as he does, and once he has gone none of it shows.
 func _place(at: Vector2) -> void:
 	_rider.global_position = to_global(at)
 	_dust.position = at
+	_dust.modulate.a = _rider.modulate.a
 
 
 ## He gallops in to where he halts, `t` of the gallop done, slower and slower to a stop, and shows.
@@ -242,8 +245,8 @@ func _kindle(t: float) -> void:
 
 
 ## He wheels round and gallops off the way he came, `t` of the kindle done, faster and faster, and
-## fades. The dust flies from his horse's hooves, which scorch the road behind him: each stride's
-## prints show once he has passed them, and stay.
+## fades, his dust with him: it flies from his horse's hooves till DUST_SHARE. They scorch the road
+## behind him: each stride's prints show once he has passed them, and stay.
 func _gallop_off(t: float) -> void:
 	_rider.flip_h = not _left
 	_rider.modulate.a = fading(t)
@@ -251,7 +254,7 @@ func _gallop_off(t: float) -> void:
 	var past := off * off * gallop_tiles()
 	_rider.frame = stride(past) if off > 0.0 else Pose.STAND
 	_place(_halt + _ahead * past)
-	_dust.emitting = off > 0.0 and t < 1.0
+	_dust.emitting = off > 0.0 and t < DUST_SHARE
 	var strides := laid(past)
 	_prints.modulate.a = 1.0 if strides > 0 else 0.0
 	_prints.frame = maxi(strides - 1, 0)
