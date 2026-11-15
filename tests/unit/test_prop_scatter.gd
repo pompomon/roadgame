@@ -387,6 +387,31 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	assert_eq(others, 0, "and no other")
 
 
+## The code review of VIS PR 2: a Vector2's 32 bits took ten densities of 0.1 past 1, so the tenth
+## prop of a size, inside or by a street, was an error and didn't show.
+func test_densities_that_add_up_to_1_are_valid() -> void:
+	var props: Array[PropDef] = []
+	for k: int in 10:
+		props.append(_prop(StringName("single%d" % k), 1, 0.0, 0.1))
+		var lining := _prop(StringName("lining%d" % k), 1, 0.0, 0.0)
+		lining.lot = 2
+		lining.street_density = 0.1
+		props.append(lining)
+	var schedule := _schedule(props)
+	var scatter := PropScatter.new(_layer, schedule)
+	assert_push_error_count(0, "no prop takes the densities past 1")
+	var buffer := _buffer(1, schedule)
+	scatter.bind(buffer)
+	buffer.start()
+	var tenth := props[18].texture
+	var shown := 0
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			if sprite.texture == tenth:
+				shown += 1
+	assert_gt(shown, 20, "the tenth single shows")
+
+
 func test_the_props_take_nothing_from_the_road() -> void:
 	var schedule := Fixtures.schedule()
 	var plain := _buffer(6, schedule)

@@ -264,19 +264,23 @@ func _set_frame(shown: Shown) -> void:
 static func _valid_props(area: AreaDef) -> Array[PropDef]:
 	var valid: Array[PropDef] = []
 	# Each size of lot picks from its own props (PropLayout.row()), so their densities add up apart,
-	# and by a street their street densities.
-	var density: Dictionary[int, Vector2] = {}
+	# and by a street their street densities. In floats, as PropLayout.pick() uses them: a Vector2's
+	# 32 bits would take ten densities of 0.1 past 1.
+	var density: Dictionary[int, float] = {}
+	var street: Dictionary[int, float] = {}
 	for prop: PropDef in area.props:
 		var problems := PackedStringArray(["a prop is null"]) if prop == null else prop.validate()
-		var sums := Vector2.ZERO
+		var inside := 0.0
+		var by_street := 0.0
 		if problems.is_empty():
-			var chances := Vector2(prop.chance(false), prop.chance(true))
-			sums = density.get(prop.lot, Vector2.ZERO) + chances
-			if sums.x > 1.0 or sums.y > 1.0:
+			inside = density.get(prop.lot, 0.0) + prop.chance(false)
+			by_street = street.get(prop.lot, 0.0) + prop.chance(true)
+			if inside > 1.0 or by_street > 1.0:
 				problems.append("prop %s takes the densities past 1" % prop.id)
 		for problem: String in problems:
 			push_error("PropScatter: %s: %s" % [area.id, problem])
 		if problems.is_empty():
 			valid.append(prop)
-			density[prop.lot] = sums
+			density[prop.lot] = inside
+			street[prop.lot] = by_street
 	return valid
