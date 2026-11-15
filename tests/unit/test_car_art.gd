@@ -122,12 +122,15 @@ func test_seen_side_on_the_wheels_roll_forward() -> void:
 	for facing: int in [1, -1]:
 		var f := CarController.frame(Vector2(facing, -facing))
 		for right: bool in [false, true]:
+			var wheel := "frame %d, the %s wheel" % [f, "right" if right else "left"]
 			var angles: Array[float] = []
 			for phase: int in CarController.PHASES:
-				angles.append(_mark_angle(_frame(image, f, phase), right, mark, hub))
+				var angle := _mark_angle(_frame(image, f, phase), right, mark, hub)
+				# A NAN would pass assert_between(): GUT fails only a value below or above.
+				assert_false(is_nan(angle), "%s, phase %d: its mark shows" % [wheel, phase])
+				angles.append(angle)
 			for phase: int in CarController.PHASES:
 				var next := angles[(phase + 1) % CarController.PHASES]
 				var turn := wrapf(next - angles[phase], -PI, PI) * facing
-				var side := "right" if right else "left"
-				var what := "frame %d, the %s wheel, phase %d" % [f, side, phase]
+				var what := "%s, phase %d" % [wheel, phase]
 				assert_between(turn, PI / 8.0, PI * 7.0 / 8.0, what + ": a quarter turn forward")
