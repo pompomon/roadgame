@@ -6,9 +6,11 @@ extends Legend
 ## pale ghost-fire, not a pumpkin (§5.4 Δ), and hurls it at the car. Pale flames run over the car,
 ## which pales to a ghost of itself, see-through and green, and fades as he wheels round and
 ## gallops off the way he came. His horse's hooves scorch the road behind him, and the hoofprints
-## stay. Its one glow, the ghost-fire's, rises once and fades: it lights in his hand, flies in a
-## shallow arc to the car and fades there, so its light rises at each point at most once (§5.6).
-## There's no gore.
+## stay. He keeps to the middle of the road that runs on ahead of the car, wherever across it the
+## car stopped: a wrong turn can leave the car off the road's middle, even off the road, as it
+## brakes straight on from mid-turn. Its one glow, the ghost-fire's, rises once and fades: it lights
+## in his hand, flies in a shallow arc to the car and fades there, so its light rises at each point
+## at most once (§5.6). There's no gore.
 ## tools/art/legends/headless_horseman.gd draws its sheets with these constants.
 
 ## His frames: galloping, his horse's legs stretched and then gathered; standing; raising the
@@ -78,13 +80,33 @@ static func ahead(heading: Vector2) -> Vector2:
 	return Iso.tile_to_world(PhantomBus.road(heading))
 
 
-## Where he gallops in from and off to, from the car's ground point: HEADLESS_HORSEMAN_FROM_TILES
-## ahead, on the road's middle.
+## From the car's ground point `at`, in tile space, to the middle of the road ahead that it stopped
+## on or beside, in tiles: across `road`, the tile axis ahead, to the middle of the cell that the
+## car is in, if a road runs on from it along `road` in `buffer`, or else of the cell next to it
+## across `road` that is nearer the car, if one runs on from that. A wrong turn can leave the car
+## off its road's middle, even in the next cell across, as it brakes straight on from mid-turn, or
+## heading across its road, beside a junction. If no road runs on ahead from either cell, there is
+## none for him to keep to.
+static func to_middle(at: Vector2, road: Vector2, buffer: RoadBuffer) -> Vector2:
+	var across := Vector2(absf(road.y), absf(road.x))
+	var cell := Vector2i(at.floor())
+	var off := at.dot(across) - floorf(at.dot(across)) - 0.5
+	var along := Heading.from_vec(Vector2i(road))
+	for k: int in [0, -1 if off < 0.0 else 1]:
+		var tile := buffer.tile_at(cell + Vector2i(across) * k)
+		if tile != null and tile.has_exit(along):
+			return across * (k - off)
+	return Vector2.ZERO
+
+
+## Where he gallops in from and off to, from the car's ground point, were the car on its road's
+## middle: HEADLESS_HORSEMAN_FROM_TILES ahead.
 static func far(heading: Vector2) -> Vector2:
 	return ahead(heading) * Tuning.HEADLESS_HORSEMAN_FROM_TILES
 
 
-## Where he halts in front of the car: HEADLESS_HORSEMAN_STOP_TILES ahead.
+## Where he halts in front of the car, were it on its road's middle: HEADLESS_HORSEMAN_STOP_TILES
+## ahead.
 static func halt(heading: Vector2) -> Vector2:
 	return ahead(heading) * Tuning.HEADLESS_HORSEMAN_STOP_TILES
 
@@ -126,8 +148,8 @@ static func kindled(t: float) -> int:
 	return mini(Fire.KINDLE_A + spread, Fire.KINDLE_C)
 
 
-## Where the hoofprints' middle is, from the car's ground point: PRINTS_TILES / 2 on from where he
-## halted, the way he gallops off.
+## Where the hoofprints' middle is, from the car's ground point, were the car on its road's middle:
+## PRINTS_TILES / 2 on from where he halted, the way he gallops off.
 static func prints_at(heading: Vector2) -> Vector2:
 	return halt(heading) + ahead(heading) * (PRINTS_TILES / 2.0)
 
@@ -152,14 +174,19 @@ func _ready() -> void:
 func play(params: DisasterParams) -> void:
 	super(params)
 	var heading := car.sim.forward() if car != null else params.direction
+	# His ride and his prints keep to the road's middle; the ghost-fire still flies to the car.
+	var middle := Vector2.ZERO
+	if car != null:
+		var at := Iso.world_to_tile(params.origin_world)
+		middle = Iso.tile_to_world(to_middle(at, PhantomBus.road(heading), car.sim.buffer))
 	_ahead = ahead(heading)
-	_far = far(heading)
-	_halt = halt(heading)
+	_far = middle + far(heading)
+	_halt = middle + halt(heading)
 	_left = faces_left(heading)
 	_held = _halt + hand(_left)
 	_rider.flip_h = _left
 	_place(_far)
-	_prints.position = prints_at(heading)
+	_prints.position = middle + prints_at(heading)
 	_prints.flip_h = _ahead.x < 0.0
 	_prints.flip_v = _ahead.y < 0.0
 

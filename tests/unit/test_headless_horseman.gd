@@ -30,6 +30,13 @@ const ARC_SHARE := 0.9
 const HEADINGS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 ## The middle of a frame of the hoofprints' sheet, from its top left corner.
 const PRINTS_MIDDLE := Vector2i(HeadlessHorseman.PRINTS.x >> 1, HeadlessHorseman.PRINTS.y >> 1)
+## How far across its dead end from the road's middle a wrong turn can leave the car, in tiles, as
+## it brakes straight on from mid-turn: off the road, in the dead end's cell (OFF_ROAD_TILES), or in
+## the next cell across (BESIDE_TILES), if the steering was let go mid-turn. FAR_OFF_TILES is two
+## cells across, off any road.
+const OFF_ROAD_TILES := 0.47
+const BESIDE_TILES := 0.67
+const FAR_OFF_TILES := 1.67
 
 var _stage: Node2D
 var _car: CarController
@@ -151,6 +158,12 @@ func _past(part: Node2D, heading: Vector2) -> float:
 	return (Iso.world_to_tile(_from_car(part)) - halted).dot(heading)
 
 
+## How far `part` is from its road's middle, `middle` tiles from the car, in tiles across the road,
+## along `across`, a tile axis.
+func _off_middle(part: Node2D, middle: Vector2, across: Vector2) -> float:
+	return absf((Iso.world_to_tile(_from_car(part)) - middle).dot(across))
+
+
 ## Where the middle of his hand's texel, HAND, is, in px from the car, as his place and his flip
 ## show it.
 func _hand(rider: Sprite2D) -> Vector2:
@@ -162,9 +175,10 @@ func _hand(rider: Sprite2D) -> Vector2:
 
 ## Where the hoofprints that show lie on the ground, the car heading `heading`, in tiles: as x and
 ## y, the least and the most of the way along its road past where he halted, and as z, the most
-## from the road's middle. Each texel counts by its middle, as the prints' place and flips show it.
-func _reach(hoofprints: Sprite2D, heading: Vector2) -> Vector3:
-	var halted := heading * Tuning.HEADLESS_HORSEMAN_STOP_TILES
+## from the road's middle, `middle` tiles from the car. Each texel counts by its middle, as the
+## prints' place and flips show it.
+func _reach(hoofprints: Sprite2D, heading: Vector2, middle := Vector2.ZERO) -> Vector3:
+	var halted := middle + heading * Tuning.HEADLESS_HORSEMAN_STOP_TILES
 	var across := Vector2(-heading.y, heading.x)
 	var reach := Vector3(INF, -INF, 0.0)
 	for texel: Vector2i in _prints_texels[hoofprints.frame]:
@@ -273,6 +287,81 @@ static func _opaque(sheet: Image, size: Vector2i, frame: int) -> int:
 			if sheet.get_pixel(frame * size.x + x, y).a > 0.0:
 				count += 1
 	return count
+
+
+## The first tile of the first dead end of each heading in `buffer`, of those with no road in the
+## two cells to either side of it, across its road.
+static func _dead_ends(buffer: RoadBuffer) -> Array[RoadTile]:
+	var found: Array[RoadTile] = []
+	var headings: Array[int] = []
+	for index: int in range(buffer.first_index(), buffer.last_index() + 1):
+		var junction := buffer.path_tile(index)
+		for branch: RoadTile in junction.branches:
+			var exit := branch.branch_exit
+			var across := Vector2i(absi(Heading.VEC[exit].y), absi(Heading.VEC[exit].x))
+			var clear := branch.cell == junction.cell + Heading.VEC[exit] and exit not in headings
+			for k: int in [-2, -1, 1, 2]:
+				clear = clear and buffer.tile_at(branch.cell + across * k) == null
+			if clear:
+				found.append(branch)
+				headings.append(exit)
+	return found
+
+
+## Whether `point`, in tiles, is on the road of the car's buffer.
+func _on_road(point: Vector2) -> bool:
+	var cell := Vector2i(point.floor())
+	return RoadGeometry.is_on_road(_car.sim.buffer.tile_at(cell), point - Vector2(cell))
+
+
+## Plays the Horseman with the car at `at`, in tiles, heading `heading`, and checks that he keeps
+## to the line `middle` tiles from the car, along his way: he gallops in along it and halts on it,
+## in front of the car; the ghost-fire flies only nearer to the car's middle, and its flames run
+## over the car; he gallops off along it, and his hoofprints lie within the road's half-width of
+## it. If `on_road`, he halts on the road, and his hoofprints start and end on it.
+func _assert_rides(
+	at: Vector2, heading: Vector2, middle: Vector2, on_road: bool, what: String
+) -> void:
+	var ends := _ends()
+	var car_middle := WitchHex.car_middle()
+	var across := Vector2(absf(heading.y), absf(heading.x))
+	_car.sim.pos = at
+	_car.position = Iso.tile_to_world(at)
+	var legend := _legend(heading)
+	var rider := _rider(legend)
+	var fire := _fire(legend)
+	var hoofprints := _prints(legend)
+	var on_middle := _off_middle(rider, middle, across) <= NEAR_TILES
+	while _short_of(ends[0]):
+		_step(legend)
+		on_middle = on_middle and _off_middle(rider, middle, across) <= NEAR_TILES
+	_step_to(legend, ends[0])
+	var halted := Iso.world_to_tile(_from_car(rider))
+	_step_to(legend, ends[1])
+	var left: Array[float] = [_hand(rider).distance_to(car_middle)]
+	while _short_of(ends[2]):
+		_step(legend)
+		left.append(_from_car(fire).distance_to(car_middle))
+	_step_to(legend, ends[2])
+	var kindled := _from_car(fire)
+	while _short_of(ends[3]):
+		_step(legend)
+		on_middle = on_middle and _off_middle(rider, middle, across) <= NEAR_TILES
+	var reach := _reach(hoofprints, heading, middle)
+	var halt := middle + heading * Tuning.HEADLESS_HORSEMAN_STOP_TILES
+	var tiles := Vector2.ONE * NEAR_TILES
+	assert_true(on_middle, "%s: he gallops along the line" % what)
+	assert_almost_eq(halted, halt, tiles, "%s: and halts on it" % what)
+	assert_eq(left, Disasters.sorted(left, true), "%s: the fire flies only nearer" % what)
+	assert_lte(left[-1], 2.0 * _largest_step(left), "%s: to the car's middle" % what)
+	assert_almost_eq(kindled, car_middle, NEAR, "%s: its flames run over the car" % what)
+	assert_lte(reach.z, Tuning.ROAD_HALF_WIDTH, "%s: his hoofprints along the line" % what)
+	assert_true(Disasters.shows(hoofprints), "%s: they show" % what)
+	if on_road:
+		var stop := at + halt
+		assert_true(_on_road(stop), "%s: he halts on the road" % what)
+		assert_true(_on_road(stop + heading * reach.x), "%s: the prints start on it" % what)
+		assert_true(_on_road(stop + heading * reach.y), "%s: and end on it" % what)
 
 
 ## His standing part, which play() has put on the stage, out of reach of %names.
@@ -674,6 +763,45 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 		assert_gt(reach.y, last, "%s: all his strides' prints" % what)
 		_step_to(legend, ends[3] + 1.0)
 		assert_true(Disasters.shows(hoofprints), "%s: they stay after its end" % what)
+
+
+func test_he_keeps_to_the_middle_of_a_dead_end_wherever_across_it_the_car_stopped() -> void:
+	# A wrong turn can leave the car off its dead end's middle, even in the next cell across. On a
+	# dead end of each heading, with the car OFF_ROAD_TILES and BESIDE_TILES to either side of its
+	# middle, he keeps to the dead end's middle, and halts and lays his hoofprints on the road. With
+	# the car FAR_OFF_TILES to either side, off any road, he keeps to the car's line.
+	var dead_ends := _dead_ends(_car.sim.buffer)
+	assert_eq(dead_ends.size(), Heading.VEC.size(), "a dead end of each heading")
+	for branch: RoadTile in dead_ends:
+		var heading := Vector2(Heading.VEC[branch.branch_exit])
+		var across := Vector2(absf(heading.y), absf(heading.x))
+		for off: float in [OFF_ROAD_TILES, BESIDE_TILES, FAR_OFF_TILES]:
+			for side: float in [-1.0, 1.0]:
+				var what := "heading %s, %s tiles across" % [heading, side * off]
+				var at := Iso.cell_centre(branch.cell) + across * side * off
+				var on_road := off != FAR_OFF_TILES
+				var middle := -across * side * off if on_road else Vector2.ZERO
+				_assert_rides(at, heading, middle, on_road, what)
+
+
+func test_he_keeps_to_the_road_ahead_when_the_car_stopped_across_a_dead_end() -> void:
+	# A wrong turn can leave the car heading across its dead end, beside its junction. With the car
+	# OFF_ROAD_TILES towards the junction, heading either way across: where the junction's road runs
+	# on ahead of the car, he keeps to its middle, and halts and lays his hoofprints on the road;
+	# where none does, he keeps to the car's line.
+	var kinds: Array[bool] = []
+	for branch: RoadTile in _dead_ends(_car.sim.buffer):
+		var toward := -Vector2(Heading.VEC[branch.branch_exit])
+		var junction := _car.sim.buffer.tile_at(branch.cell + Vector2i(toward))
+		for heading: Vector2 in [Vector2(toward.y, -toward.x), Vector2(-toward.y, toward.x)]:
+			var what := "heading %s across the dead end at %s" % [heading, branch.cell]
+			var at := Iso.cell_centre(branch.cell) + toward * OFF_ROAD_TILES
+			var on_road := junction.has_exit(Heading.from_vec(Vector2i(heading)))
+			var middle := toward * (1.0 - OFF_ROAD_TILES) if on_road else Vector2.ZERO
+			_assert_rides(at, heading, middle, on_road, what)
+			if on_road not in kinds:
+				kinds.append(on_road)
+	assert_eq(kinds.size(), 2, "beside junctions with and without a road ahead")
 
 
 func test_its_one_glow_is_the_ghost_fire_which_lights_in_his_hand_and_fades_on_the_car() -> void:
