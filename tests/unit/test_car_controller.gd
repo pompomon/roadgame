@@ -85,6 +85,59 @@ func test_its_wheels_turn_on_a_phase_each_wheel_roll_tiles_it_moves() -> void:
 	assert_almost_eq(float(turns), expected, 1.0, "a phase each WHEEL_ROLL_TILES")
 
 
+func test_a_drawn_frame_turns_the_wheels_a_phase_at_most_and_forward() -> void:
+	# At GLOBAL_SPEED_CAP the car rolls 0.47 of a phase a physics frame, so below 30 drawn frames a
+	# second, more than one from a drawn frame to the next. Two at once would be a half turn, which
+	# reads as back as well as forward, and three a quarter turn back. So then the wheels turn a
+	# phase a frame, and stand only when their phase comes round to the one shown (VISUALS_PLAN.md
+	# §5.1, W13).
+	for steps: int in [1, 2, 3, 4, 6]:
+		var what := "%d frames a second" % roundi(60.0 / steps)
+		var rolled := 0.0
+		var shown := 0
+		var turns: Array[int] = []
+		var behind := 0
+		for _frame: int in 120:
+			for _step: int in steps:
+				rolled += Tuning.GLOBAL_SPEED_CAP / 60.0
+			var next := CarController.shown_phase(shown, rolled)
+			turns.append(posmod(next - shown, CarController.PHASES))
+			shown = next
+			behind += 1 if shown != CarController.phase(rolled) else 0
+		assert_eq(turns.max(), 1, what + ": a phase at most, forward")
+		if steps <= 2:
+			assert_eq(behind, 0, what + ": each phase as it rolls")
+		else:
+			assert_gt(behind, 0, what + ": behind it")
+			var stood := 0
+			for k: int in range(1, turns.size()):
+				stood += 1 if turns[k - 1] == 0 and turns[k] == 0 else 0
+			assert_eq(stood, 0, what + ": a phase a frame, but for a frame now and then")
+
+
+func test_at_6_frames_a_second_the_body_turns_its_wheels_a_phase_a_frame_at_most() -> void:
+	# The engine runs the physics frames that are due, then _process(), then draws a frame: a slow
+	# device draws one for several. The body shows the phase that shown_phase() picks then, however
+	# far the physics frames rolled.
+	var car := _car()
+	var body: Sprite2D = car.get_node("%Body")
+	car.input.autopilot = Autopilot.new(car.sim)
+	var phase := body.frame_coords.y
+	var turns: Array[int] = []
+	var fast := 0
+	for _frame: int in 120:
+		var from := car.sim.pos
+		for _step: int in 10:
+			car._physics_process(1.0 / 60.0)
+		car._process(1.0 / 6.0)
+		fast += 1 if car.sim.pos.distance_to(from) > 2.0 * Tuning.WHEEL_ROLL_TILES else 0
+		turns.append(posmod(body.frame_coords.y - phase, CarController.PHASES))
+		phase = body.frame_coords.y
+	assert_gt(fast, 10, "frames where it rolls more than two phases")
+	assert_eq(turns.max(), 1, "a phase at most, forward")
+	assert_gt(turns.count(1), 60, "on most frames")
+
+
 func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
 	var car := _car()
 	var body: Sprite2D = car.get_node("%Body")

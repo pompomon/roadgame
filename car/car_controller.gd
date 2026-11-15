@@ -24,6 +24,9 @@ var input: InputRouter
 
 ## How far the car has driven, in tiles, within a turn of its wheels: PHASES phases.
 var _rolled := 0.0
+## The phase of the wheels that the body shows, which follows phase(_rolled) a phase a drawn frame
+## at most (shown_phase()).
+var _phase := 0
 
 @onready var _body: Sprite2D = %Body
 @onready var _dust: CPUParticles2D = %Dust
@@ -40,6 +43,14 @@ func _physics_process(delta: float) -> void:
 	_update_view()
 
 
+## Once a drawn frame, after its physics frames.
+func _process(_delta: float) -> void:
+	var shown := shown_phase(_phase, _rolled)
+	if shown != _phase:
+		_phase = shown
+		_update_view()
+
+
 ## The frame for heading `forward`, in tile space: the nearest of FRAMES screen directions.
 static func frame(forward: Vector2) -> int:
 	var screen := Iso.tile_to_world(forward)
@@ -50,6 +61,15 @@ static func frame(forward: Vector2) -> int:
 ## each WHEEL_ROLL_TILES.
 static func phase(rolled: float) -> int:
 	return posmod(floori(rolled / Tuning.WHEEL_ROLL_TILES), PHASES)
+
+
+## The phase that the body shows in the next drawn frame, after `shown`, once the car has driven
+## `rolled` tiles: phase(rolled), or if that's another, the next after `shown`. So a drawn frame
+## turns the wheels a phase at most, and only forward. Below 30 frames a second, the car at its top
+## speed rolls more than a phase from one to the next, and two at once would be a half turn, which
+## reads as back as well as forward (VISUALS_PLAN.md §5.1, W13).
+static func shown_phase(shown: int, rolled: float) -> int:
+	return shown if shown == phase(rolled) else posmod(shown + 1, PHASES)
 
 
 ## A new sprite of the car as it shows now, for a legend to take in its place (docs/M6.md §5.4):
@@ -81,6 +101,6 @@ func _update_view() -> void:
 	if crashed:
 		_body.frame_coords = Vector2i(WRECK_FRAME, 0)
 	else:
-		_body.frame_coords = Vector2i(frame(sim.forward()), phase(_rolled))
+		_body.frame_coords = Vector2i(frame(sim.forward()), _phase)
 	_dust.emitting = sim.state == CarSim.State.OFFROAD
 	_smoke.emitting = crashed

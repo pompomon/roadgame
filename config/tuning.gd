@@ -79,8 +79,9 @@ const SKID_TRACK := 0.18
 const SKID_ALPHA := 0.5
 const SKID_MARKS := 256
 ## The car's wheels (VISUALS_PLAN.md §5.1) show its sheet's next phase, a quarter turn on, each
-## WHEEL_ROLL_TILES tiles it drives: at GLOBAL_SPEED_CAP, less than a phase a frame even at 30
-## frames a second, so that they never seem to turn back.
+## WHEEL_ROLL_TILES tiles it drives: at GLOBAL_SPEED_CAP, less than a phase a frame at 30 frames a
+## second, so that down to 30 they show each phase. Below, they turn a phase a frame at most, and
+## only forward (CarController.shown_phase()).
 const WHEEL_ROLL_TILES := 0.25
 
 ## Camera (IMPLEMENTATION_PLAN.md M2.5). Road tiles to show across the smaller screen side.
