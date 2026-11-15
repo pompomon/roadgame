@@ -176,6 +176,10 @@ func _path_tile(type: RoadTile.Type) -> RoadTile:
 func _junction() -> RoadTile:
 	if tutorial and _ending and turn_count % 4 == 0:
 		tutorial = false
+		# A finish due by the tutorial's last junction comes now (ENDGAME_PLAN.md §5.1).
+		_finishing = _finish_due()
+		if _finishing:
+			return _finish_tile()
 	if tutorial:
 		return _tutorial_junction()
 	var turn := Heading.turn_for(turn_count + _parity, _heading)

@@ -84,6 +84,22 @@ func test_the_finish_counts_its_turns_from_the_end_of_the_tutorial() -> void:
 	assert_true(path.any(func(tile: RoadTile) -> bool: return tile.area_id == &"after"))
 
 
+## A finish due before the tutorial's last group of junctions is over comes right after the group,
+## where the City's first junction would be: with a road of one area, as `--finish` makes, the
+## turns after the tutorial count from the streak's end, while the group goes on.
+func test_a_finish_due_by_the_end_of_the_tutorial_comes_right_after_it() -> void:
+	for turns: int in [0, 1, 2, 3]:
+		var gen := RoadGenerator.new(1, Fixtures.schedule().ending_at(turns, &"pier"), true)
+		while gen.turn_count < 2:
+			gen.next_tile()
+		gen.end_tutorial(2)
+		_path_to_finish(gen)
+		var expected := maxi(4, 2 + turns)
+		assert_eq(
+			gen.turn_count, expected, "%d turns: the finish after turn %d" % [turns, expected]
+		)
+
+
 ## ENDGAME_PLAN.md E1: a finish changes nothing before it. Up to the finish's first tile, the road
 ## is the endless road's, tile for tile, dead ends too, so a run is the seed's run until the end.
 func test_the_road_before_the_finish_is_the_endless_roads() -> void:
