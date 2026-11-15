@@ -46,6 +46,7 @@ func _initialize() -> void:
 	_save_legend("kelpie", _kelpie)
 	# The Village's legends.
 	_save_legend("witch_hex", _witch_hex)
+	_save_legend("frau_holle", _frau_holle)
 	# The Desert's legends.
 	_save_legend("death_worm", _death_worm)
 	quit()
@@ -396,6 +397,34 @@ func _witch_hex() -> PackedFloat32Array:
 	_add(out, knock, pop, 0.8)
 	_add(out, _swell(_low_pass(_noise(roundi(0.3 * RATE)), 400.0)), lit, 0.4)
 	_add(out, _fade_out(_low_pass(_cackle(280.0, 7), 1200.0)), pop, 0.5)
+	return out
+
+
+## Timed to Tuning.FRAU_HOLLE_BEATS from the end of the delay, when the sound starts: the hush of
+## snow, swelling as it falls and dying away as it settles; the windlass's creak, dropping, as the
+## car tips; and, from the top of its hop, a whistle that drops away down the well as it falls in,
+## its echoes coming back softer and duller.
+func _frau_holle() -> PackedFloat32Array:
+	var beats := Tuning.FRAU_HOLLE_BEATS
+	var tip: float = beats[0] + beats[1]
+	var fall: float = tip + beats[2]
+	var end: float = fall + beats[3]
+	var drop: float = fall + beats[3] * FrauHolle.ARRIVE_SHARE * 0.5
+	var echoes := 3
+	var echo := 0.15
+	var out := _silence(roundi((end + echoes * echo + 0.05) * RATE))
+	var hush := _high_pass(_low_pass(_noise(roundi(end * RATE)), 4000.0), 1000.0)
+	_add(out, _swell(hush), 0.0, 0.8)
+	var creak := _glide(360.0, 260.0, beats[2])
+	_add(creak, _glide(720.0, 520.0, beats[2]), 0.0, 0.5)
+	_add(creak, _low_pass(_noise(creak.size()), 1500.0), 0.0, 0.4)
+	_add(out, _swell(_lfo(creak, roundi(beats[2] * 20.0), 0.9)), tip, 0.6)
+	var whistle := _fade_out(_glide(900.0, 220.0, end - drop))
+	var attack := 0.02 * RATE
+	for i: int in roundi(attack):
+		whistle[i] *= i / attack
+	for k: int in echoes + 1:
+		_add(out, _low_pass(whistle, 4000.0 * pow(0.6, k)), drop + k * echo, pow(0.5, k))
 	return out
 
 

@@ -12,6 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://bwqoctha7qcwi" path="res://assets/village/ground.png" id="art_ground"]
 [ext_resource type="Texture2D" uid="uid://wwhfdbqcmfrd" path="res://assets/village/edge.png" id="art_edge"]
 [ext_resource type="PackedScene" path="res://disasters/legends/witch_hex.tscn" id="2_witch_hex"]
+[ext_resource type="PackedScene" path="res://disasters/legends/frau_holle.tscn" id="3_frau_holle"]
 [ext_resource type="AudioStreamWAV" uid="uid://dgvh1juynu3dm" path="res://assets/audio/music/village.wav" id="audio_music"]
 [ext_resource type="AudioStreamWAV" uid="uid://c3gcwi0tw1le7" path="res://assets/audio/ambient/village.wav" id="audio_ambient"]
 
@@ -29,6 +30,6 @@ side_road_chance = 0.2
 decoy_chance = 0.15
 straight_accel = 0.55
 offroad_speed_mult = 0.55
-disasters = Array[PackedScene]([ExtResource("2_witch_hex")])
+disasters = Array[PackedScene]([ExtResource("2_witch_hex"), ExtResource("3_frau_holle")])
 music = ExtResource("audio_music")
 ambient_loop = ExtResource("audio_ambient")

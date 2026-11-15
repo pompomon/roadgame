@@ -280,6 +280,15 @@ const WITCH_HEX_BEATS: Array[float] = [0.5, 0.5, 0.6, 0.8]
 const WITCH_HEX_SWOOP_PX := Vector2(-140.0, -200.0)
 const WITCH_HEX_FLY_OFF_PX := Vector2(260.0, -220.0)
 const WITCH_HEX_GLOW_ALPHA := 0.7
+## Frau Holle's well (POOLS_PLAN.md §5.4): its beats, in s: snow starts to fall round the car, a
+## stone well rises by the road, the car tips towards it, and it falls in as the snow settles on the
+## well. How far off the road's middle the well stands, beside the car, in tiles; how far the car
+## tips over, and turns on as it falls, in radians; and how high it hops over the well's rim, in px.
+const FRAU_HOLLE_BEATS: Array[float] = [0.6, 0.5, 0.6, 0.7]
+const FRAU_HOLLE_SIDE_TILES := 0.75
+const FRAU_HOLLE_TIP := 0.5
+const FRAU_HOLLE_TUMBLE := 1.5
+const FRAU_HOLLE_HOP_PX := 24.0
 
 # The Desert's legends.
 ## The death worm (docs/M6.md §3.3): its beats, in s: the ground trembles and ripples run through
