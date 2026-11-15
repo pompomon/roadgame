@@ -15,7 +15,7 @@ func before_each() -> void:
 	_lamps = add_child_autofree(Lamps.new())
 	_props = add_child_autofree(Node2D.new())
 	_props.y_sort_enabled = true
-	# Internal children, as PropScatter holds them (VISUALS_PLAN.md W8).
+	# Internal children, as PropScatter holds them (VISUALS_PLAN.md A8).
 	_pool = PropPool.new(_props, Node.INTERNAL_MODE_FRONT)
 
 

@@ -140,7 +140,7 @@ func test_a_drawn_frame_turns_the_wheels_a_phase_at_most_and_the_faster_the_more
 	# wheels a phase at most, and only forward: a phase each WHEEL_ROLL_TILES that the car drives,
 	# counting a phase at most of each frame's drive, and on each frame that drives a phase or more.
 	# So they show each phase while the car rolls less than one a frame, and turn no less often at a
-	# higher speed, however unevenly the frames come (VISUALS_PLAN.md §5.1, W13).
+	# higher speed, however unevenly the frames come (VISUALS_PLAN.md §5.1, A13).
 	for cadence: Array in CADENCES:
 		var fewest := 0
 		for speed: float in SPEEDS:
@@ -165,7 +165,7 @@ func test_once_the_car_stands_its_wheels_stand_however_far_it_rolled_unshown() -
 	# Below 30 drawn frames a second, the car rolls further from one to the next than its wheels
 	# show. They don't make that up later: whenever the car stands, so do they. So too where a sum
 	# of floats, rounded up, leaves them a whole phase rolled, as after 45 frames of 2, 2 and 3
-	# physics frames at 5.5 tiles a second (VISUALS_PLAN.md §5.1, W13).
+	# physics frames at 5.5 tiles a second (VISUALS_PLAN.md §5.1, A13).
 	for cadence: Array in CADENCES:
 		for speed: float in SPEEDS:
 			var car := _cruising(speed)

@@ -116,14 +116,14 @@ func test_rows_show_props_ahead_of_the_car_and_lose_them_with_their_path_tile() 
 	assert_lte(scatter.pool.made, most_shown + largest_row, "the sprites are reused")
 	assert_eq(scatter.pool.hidden() + _shown(scatter), scatter.pool.made, "none lost")
 	assert_eq(_layer.get_child_count(true), scatter.pool.made)
-	assert_eq(_layer.get_child_count(), 0, "internal children, which simulate() walks past (W7)")
+	assert_eq(_layer.get_child_count(), 0, "internal children, which simulate() walks past (A7)")
 
 
 func test_the_layers_own_children_draw_over_the_props_on_their_y() -> void:
 	# Godot y-sorts by y, then by the order of the layer's children, internal ones included
 	# (servers/rendering/renderer_canvas_cull.h:117, ItemYSort). main.gd adds the car once the
 	# first rows show, and the pool makes sprites after that: each still goes before the car, so
-	# that the car draws over a prop on its y (VISUALS_PLAN.md W9).
+	# that the car draws over a prop on its y (VISUALS_PLAN.md A9).
 	var schedule := Fixtures.schedule()
 	var scatter := PropScatter.new(_layer, schedule)
 	var buffer := _buffer(5, schedule)

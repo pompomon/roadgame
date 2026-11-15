@@ -54,7 +54,7 @@ var _clock := 0.0
 ## error, and doesn't show.
 func _init(layer: Node2D, schedule: AreaSchedule) -> void:
 	# Internal children, which simulate() walks past (docs/DAYNIGHT.md C20): the City's lots double
-	# its props (VISUALS_PLAN.md W7). In front of the layer's own children, so that the car draws
+	# its props (VISUALS_PLAN.md A7). In front of the layer's own children, so that the car draws
 	# over a prop on its y.
 	pool = PropPool.new(layer, Node.INTERNAL_MODE_FRONT)
 	for entry: AreaScheduleEntry in schedule.entries:

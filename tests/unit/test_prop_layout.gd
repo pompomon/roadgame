@@ -241,7 +241,7 @@ func test_each_size_of_lot_takes_its_density_and_a_free_lots_cells_their_own() -
 func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
 	# On ground with no road, each cell of a row's tiles shows the prop that its own hash picks, or
 	# none, tile by tile and cell by cell: so an area whose props all take one cell shows each where,
-	# and in the order, it did before lots (VISUALS_PLAN.md W6).
+	# and in the order, it did before lots (VISUALS_PLAN.md A6).
 	var props: Array[PropDef] = [
 		_prop(&"a", Vector2i(8, 8), Vector2i(4, 8), 0.2),
 		_prop(&"b", Vector2i(8, 8), Vector2i(4, 8), 0.05),
@@ -271,9 +271,9 @@ func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
 
 func test_the_city_shows_many_buildings_and_none_stand_in_each_other() -> void:
 	# A building's box is 40 px wide and a ground cell 32 px, so two buildings on cells side by side,
-	# or corner to corner, stand in each other (VISUALS_PLAN.md W3). On lots of 2 × 2 cells they
+	# or corner to corner, stand in each other (VISUALS_PLAN.md A3). On lots of 2 × 2 cells they
 	# never do. And the City is dense: these roads show 2,792 buildings at 0.3 a lot, and 1,868 at
-	# Q2's 0.2, where main's 0.01 a cell showed 402 (W2, §5.3).
+	# Q2's 0.2, where main's 0.01 a cell showed 402 (A2, §5.3).
 	var props := (CITY as AreaDef).props
 	var problems := PackedStringArray()
 	var shown := 0

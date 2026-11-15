@@ -51,7 +51,7 @@ func _physics_process(delta: float) -> void:
 ## to the next, and two phases at once would be a half turn, which reads as back as well as
 ## forward. The rest of a frame's drive is dropped, not made up later, so the wheels stand once the
 ## car stands. Nothing else is, so however unevenly the frames come, they turn no less often at a
-## higher speed (VISUALS_PLAN.md §5.1, W13).
+## higher speed (VISUALS_PLAN.md §5.1, A13).
 func _process(_delta: float) -> void:
 	var drive := minf(_driven, Tuning.WHEEL_ROLL_TILES)
 	_driven = 0.0
