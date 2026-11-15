@@ -90,6 +90,47 @@ func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	assert_false(game_over.get_node("%Fate").visible, "no line")
 
 
+## ENDGAME_PLAN.md §5.3: the run's clock stops while the run pauses. simulate() steps a paused tree
+## too, so only the state can stop it.
+func test_the_runs_clock_stops_while_it_pauses() -> void:
+	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=3"])
+	simulate(main, 60, MainScene.DELTA)
+	GameState.pause()
+	var seconds := GameState.seconds
+	assert_almost_eq(seconds, 60 * MainScene.DELTA, MainScene.DELTA * 1.01, "it ran")
+	simulate(main, 60, MainScene.DELTA)
+	assert_eq(GameState.seconds, seconds, "paused")
+	GameState.resume()
+	var frames := MainScene.run_while(self, main, RUNNING, FRAMES)
+	assert_eq(GameState.state, ARRIVED)
+	assert_almost_eq(GameState.seconds, seconds + frames * MainScene.DELTA, MainScene.DELTA * 2.01)
+
+
+## ENDGAME_PLAN.md W11: an area that starts at the finish's turn, as the Coast does, has no
+## junction, so every turn of the road is behind the car as it enters it. --finish=34 makes Rural
+## one.
+func test_an_area_without_a_junction_has_every_turn_behind_it() -> void:
+	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=34"])
+	MainScene.run_while(self, main, RUNNING, FRAMES)
+	assert_eq(GameState.state, ARRIVED)
+	assert_eq(GameState.turn_index, 34)
+	assert_eq(GameState.area_id, &"rural")
+	var areas: Dictionary = GameState.stats()["areas"]
+	assert_eq(areas[&"city"]["turns"], 34)
+	assert_eq(areas[&"rural"]["turns"], 0, "no turn in it")
+	assert_eq(SaveService.data().arrival_count(), 1)
+
+
+## ENDGAME_PLAN.md §5.7: --finish= takes a number of turns. Anything else is an error, and the run
+## drives the game's road.
+func test_a_bad_finish_argument_is_an_error_and_the_road_is_the_games() -> void:
+	for arg: String in ["--finish=", "--finish=pier", "--finish=-3"]:
+		var main := MainScene.open(self, ["--seed=1", arg])
+		assert_push_error("--finish= needs a number of turns", arg)
+		assert_same(main.get("_schedule"), main.get("_whole_schedule"), arg)
+		main.get_parent().free()
+
+
 ## ENDGAME_PLAN.md §5.6: the Road Home starts in the Desert, heading west, with no tutorial, and
 ## ends at home.
 func test_the_road_home_starts_west_and_ends_at_home() -> void:
