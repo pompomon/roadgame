@@ -181,6 +181,14 @@ static func _frame_of(car_double: Sprite2D) -> int:
 	return roundi(car_double.region_rect.position.x / CarController.FRAME_SIZE.x)
 
 
+## The share of the opaque pixels of frame `frame` of `tuft`'s sheet that are white.
+static func _white(tuft: Sprite2D, frame: int) -> float:
+	var size := WillOWisp.TUFT
+	var image := tuft.texture.get_image().get_region(Rect2i(frame * size.x, 0, size.x, size.y))
+	var share: float = Art.shares(image).get(Art.MakeArt.palette()["white"], 0.0)
+	return share
+
+
 ## What of `wisp` adds light: what it draws, what it has put on the stage, and its particles.
 static func _glows(wisp: WillOWisp) -> Array[CanvasItem]:
 	var items := Disasters.drawables(wisp)
@@ -429,13 +437,19 @@ static func _distance(a: Color, b: Color) -> float:
 func test_bog_cotton_sprouts_where_it_stood_tuft_after_tuft_and_its_seeds_blow_up() -> void:
 	# The tufts stand with the props, where play() put them, hidden till the car shrinks. Then each
 	# takes SPROUT_SHARE of the shrink to grow, from shoots to buds to white heads, the turns spread
-	# over the shrink. The seeds blow up from over the tufts, under the night, from SEED_SHARE of the
-	# shrink till they drift off.
+	# over the shrink: more and more of its frame is white. The seeds blow up from over the tufts,
+	# under the night, from SEED_SHARE of the shrink till they drift off.
 	var ends := _ends()
 	var wisp := _wisp()
 	var tufts := wisp.standing
 	var seeds := wisp.get_node("%Seeds") as CPUParticles2D
 	assert_eq(tufts.size(), WillOWisp.TUFTS.size(), "its tufts")
+	var white: Array[float] = []
+	for frame: int in WillOWisp.TUFT_FRAMES:
+		white.append(_white(tufts[0], frame))
+	assert_eq(white[0], 0.0, "shoots, with no white")
+	assert_gt(white[1], 0.0, "then white buds")
+	assert_gt(white[2], white[1], "then white heads, whiter")
 	for k: int in tufts.size():
 		var which := "tuft %d" % k
 		assert_eq(tufts[k].get_parent(), _stage, "%s: with the props" % which)
