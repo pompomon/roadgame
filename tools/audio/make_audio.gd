@@ -37,6 +37,7 @@ func _initialize() -> void:
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
 	# The City's legends.
 	_save_legend("phantom_bus", _phantom_bus)
+	_save_legend("mothman", _mothman)
 	# Rural's legends.
 	_save_legend("ufo", _ufo)
 	# The Meadows' legends.
@@ -183,6 +184,30 @@ func _phantom_bus() -> PackedFloat32Array:
 		_add(out, _bell(203.0), toll, 0.6)
 	for hiss: float in [board, leave]:
 		_add(out, _decay(_high_pass(_noise(roundi(0.35 * RATE)), 2500.0), 0.1), hiss, 0.5)
+	return out
+
+
+## Timed to Tuning.MOTHMAN_BEATS from the end of the delay, when the sound starts: a dry rustle,
+## as of wings folded tight, as its eyes open; a low, rasping screech, two voices that beat against
+## each other, as it spreads its wings; the rush of air as it swoops; then its heavy wingbeats as
+## it carries the car off, dying away.
+func _mothman() -> PackedFloat32Array:
+	var beats := Tuning.MOTHMAN_BEATS
+	var unfurl: float = beats[0]
+	var swoop: float = unfurl + beats[1]
+	var lift: float = swoop + beats[2]
+	var out := _silence(roundi((lift + beats[3] + 0.2) * RATE))
+	var rustle := _high_pass(_low_pass(_noise(roundi(beats[0] * RATE)), 3500.0), 900.0)
+	_add(out, _swell(_lfo(rustle, 5, 0.6)), 0.0, 0.5)
+	var held: float = beats[1] + 0.2
+	var screech := _glide(620.0, 410.0, held)
+	_add(screech, _glide(637.0, 421.0, held), 0.0)
+	_add(screech, _high_pass(_noise(screech.size()), 1500.0), 0.0, 0.5)
+	_add(out, _decay(_lfo(screech, 24, 0.5), 0.25), unfurl, 0.35)
+	var rush := _high_pass(_low_pass(_noise(roundi(beats[2] * RATE)), 1200.0), 250.0)
+	_add(out, _swell(rush), swoop, 0.7)
+	var flap := _high_pass(_low_pass(_noise(roundi(beats[3] * RATE)), 900.0), 220.0)
+	_add(out, _fade_out(_lfo(flap, 4, 0.9)), lift, 1.3)
 	return out
 
 
