@@ -46,6 +46,7 @@ func _initialize() -> void:
 	# The Meadows' legends.
 	_save_legend("fairy_ring", _fairy_ring)
 	_save_legend("kelpie", _kelpie)
+	_save_legend("will_o_wisp", _will_o_wisp)
 	# The Village's legends.
 	_save_legend("witch_hex", _witch_hex)
 	_save_legend("frau_holle", _frau_holle)
@@ -440,6 +441,36 @@ func _whinny(freq: float, seconds: float) -> PackedFloat32Array:
 			voice += sin(TAU * phase * partial) / partial
 		out[i] = voice * minf(i / (0.03 * RATE), 1.0) * (1.0 - t)
 	return _low_pass(out, 3500.0)
+
+
+## Timed to Tuning.WILL_O_WISP_BEATS from the end of the delay, when the sound starts: a soft bell
+## as each wisp glimmers, each higher than the last; a breathy whisper as they circle, loudest as
+## each passes below the car; then a tone and its fifth, which rise and swell as the car shrinks
+## into a light, and fade as the wisps drift off.
+func _will_o_wisp() -> PackedFloat32Array:
+	var beats := Tuning.WILL_O_WISP_BEATS
+	var circle: float = beats[0]
+	var shrink: float = circle + beats[1]
+	var end: float = shrink + beats[2] + beats[3]
+	var out := _silence(roundi((end + 0.6) * RATE))
+	var steps: Array[int] = [0, 3, 7, 10]
+	for k: int in WillOWisp.WISPS:
+		var at: float = beats[0] * FairyRing.turn_start(k, WillOWisp.WISPS, WillOWisp.SHOW_SHARE)
+		var freq := 880.0 * pow(2.0, steps[k] / 12.0)
+		_add(out, _bell(freq), at, 0.25)
+		_add(out, _bell(freq * 1.01), at, 0.15)
+	var n := roundi((beats[1] + beats[2]) * RATE)
+	var whisper := _high_pass(_low_pass(_noise(n), 3000.0), 800.0)
+	for i: int in n:
+		# 1 each time a wisp passes straight below the car's middle, WISPS times a turn.
+		var turned := WillOWisp.swept(float(i) / RATE)
+		var below := cos(WillOWisp.WISPS * (WillOWisp.START - TAU / 4.0 - TAU * turned))
+		whisper[i] *= 0.6 + 0.4 * below
+	_add(out, _swell(whisper), circle, 0.5)
+	var hum := _glide(330.0, 660.0, beats[2] + beats[3])
+	_add(hum, _glide(495.0, 990.0, beats[2] + beats[3]), 0.0, 0.5)
+	_add(out, _swell(_lfo(hum, 8, 0.3)), shrink, 0.4)
+	return out
 
 
 # The Village's legends.
