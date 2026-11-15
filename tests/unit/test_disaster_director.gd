@@ -238,6 +238,22 @@ func test_a_crash_shakes_the_camera_and_ends_after_crash_seconds() -> void:
 	assert_eq(_car.sim.speed, 0.0, "the car stopped")
 
 
+## ENDGAME_PLAN.md §5.3: after an arrival, ARRIVAL_SECONDS of the car on the finish, with no
+## shake and no disaster.
+func test_an_arrival_ends_after_arrival_seconds_with_no_disaster() -> void:
+	_new_car(CarSim.State.ARRIVED)
+	watch_signals(_director)
+	_director.play_arrival(_car, _camera)
+	assert_eq(_director.sequence, DisasterDirector.Sequence.ARRIVAL)
+	var frames := _run(600)
+	assert_almost_eq(frames * DELTA, Tuning.ARRIVAL_SECONDS, DELTA * 1.01)
+	assert_eq(_camera.offset, Vector2.ZERO, "no shake")
+	simulate(_root, 60, DELTA)
+	assert_signal_emit_count(_director, "sequence_finished", 1)
+	assert_signal_not_emitted(_director, "disaster_started")
+	assert_eq(_layer.get_child_count(), 0, "no disaster")
+
+
 func test_a_car_that_never_stops_times_out_with_an_error() -> void:
 	_new_car(CarSim.State.DISASTER, 2.0)
 	watch_signals(_director)

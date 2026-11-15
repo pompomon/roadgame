@@ -154,6 +154,25 @@ func test_a_seen_card_shows_its_lore_under_its_details() -> void:
 	assert_eq(_lore(cards[2]), "", "none for a disaster without lore")
 
 
+## ENDGAME_PLAN.md §5.5: a legend that an arrival unlocked shows its name, its pool's colour and
+## its lore, and that it hasn't been seen yet; once seen, it is a seen card.
+func test_an_unlocked_legend_shows_until_it_is_seen() -> void:
+	var data := SaveData.new()
+	data.unlock_disaster(&"ghoul")
+	var collection := _collection()
+	var schedule := _schedule()
+	collection.open(data, schedule)
+	var cards := _cards(collection)
+	assert_eq(_card_text(cards[1]), ["Ghoul", CollectionScreen.UNLOCKED])
+	assert_eq(_swatch(cards[1]), schedule.areas()[1].id_color)
+	assert_eq(_lore(cards[1]), GHOUL_LORE)
+	assert_eq(_card_text(cards[0])[0], CollectionScreen.UNKNOWN, "the others stay silhouettes")
+	data.record_disaster(&"ghoul", &"farm", _stats(40.0, 4))
+	collection.open(data, schedule)
+	cards = _cards(collection)
+	assert_eq(_card_text(cards[1]), ["Ghoul", "Seen once\nFirst: Farm, 400 m, 4 turns"])
+
+
 func test_a_first_area_that_the_schedule_lacks_shows_its_id() -> void:
 	var data := SaveData.new()
 	data.record_disaster(&"wraith", &"moon", _stats(1.0, 0))

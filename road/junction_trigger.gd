@@ -8,6 +8,10 @@ extends RefCounted
 ## turns, and the trigger loses the car until it drives on along the path from one path tile to
 ## the next. A wrong exit, a U-turn on the path, a rejoin off the path and the off-road limit are
 ## mistakes. Once the streak reaches TUTORIAL_STREAK, the City's rules hold.
+##
+## On a road with a finish, no junction comes after the last: the car arrives when it enters the
+## finish's first tile on the road, or comes back onto the road on a tile of it (ENDGAME_PLAN.md
+## §5.2).
 
 ## A correct exit: the pattern's turn, or straight on at a decoy, which leaves `turn_index`, the
 ## number of correct turns so far, as it was (docs/ROADGEN.md R2).
@@ -18,6 +22,8 @@ signal disaster_triggered(junction: RoadTile, choice: int)
 signal streak_changed(streak: int)
 ## The tutorial's last correct turn was at `junction`. The trigger now plays by the City's rules.
 signal tutorial_completed(junction: RoadTile)
+## The car reached the finish, with every junction behind it taken. The trigger then stops.
+signal arrived
 
 ## Correct turns so far, after the tutorial.
 var turn_index := 0
@@ -28,8 +34,12 @@ var next_junction: RoadTile
 var tutorial := false
 ## The tutorial's correct turns in a row.
 var streak := 0
+## Whether the car has reached the finish.
+var has_arrived := false
 
 var _buffer: RoadBuffer
+## Whether a mistake ended the run: the car can't arrive after it.
+var _failed := false
 
 
 ## `buffer` must have started.
@@ -54,6 +64,9 @@ func on_cell_crossed(from_cell: Vector2i, to_cell: Vector2i, on_road: bool) -> v
 			return
 	var to := _buffer.tile_at(to_cell)
 	if to == null or to.path_index < 0:
+		return
+	if _is_finish(to):
+		_arrive()
 		return
 	var from := _buffer.tile_at(from_cell)
 	var on_path := from != null and from.path_index >= 0
@@ -85,6 +98,8 @@ func on_rejoin(tile: RoadTile) -> void:
 		if tile.path_index <= index and tile.junction_index < index:
 			return
 		_resolve(next_junction.expected_exit)
+	if _is_finish(tile):
+		_arrive()
 
 
 ## The car reached the off-road limit: after leaving the road near the next junction, or anywhere
@@ -136,15 +151,33 @@ func _lose() -> void:
 func _fail(choice: int) -> void:
 	var junction := next_junction
 	next_junction = null
+	_failed = true
 	disaster_triggered.emit(junction, choice)
 
 
-## The first junction after path index `index`. The buffer always has one: junctions are at most
-## a set piece and a straight apart, which AreaSchedule.validate() keeps within BUFFER_REFILL_AT.
+## Whether `tile` is the finish's, or past it, and the car may arrive there: it has taken every
+## junction, and the run goes on.
+func _is_finish(tile: RoadTile) -> bool:
+	var finish := _buffer.generator.finish_index
+	if finish == -1 or tile.path_index < finish or has_arrived or _failed or tutorial:
+		return false
+	return next_junction == null
+
+
+func _arrive() -> void:
+	has_arrived = true
+	arrived.emit()
+
+
+## The first junction after path index `index`, or null past the road's last. The buffer always has
+## the next one: junctions, and the last junction and the finish, are at most a set piece and a
+## straight apart, which AreaSchedule.validate() keeps within BUFFER_REFILL_AT.
 func _junction_after(index: int) -> RoadTile:
 	for i: int in range(maxi(index + 1, _buffer.first_index()), _buffer.last_index() + 1):
 		var tile := _buffer.path_tile(i)
 		if tile.is_junction():
 			return tile
+	if _buffer.generator.finished():
+		return null
 	push_error("JunctionTrigger: no junction after path index %d" % index)
 	return null

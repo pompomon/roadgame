@@ -22,6 +22,7 @@ func test_new_data_has_the_defaults() -> void:
 	assert_eq(data.atlas, {} as Dictionary[String, Dictionary])
 	assert_eq(data.best, {"distance": 0.0, "turns": 0})
 	assert_eq(data.disasters, {} as Dictionary[String, Dictionary])
+	assert_eq(data.arrivals, {} as Dictionary[String, Dictionary])
 	assert_eq(data.settings, SaveData.DEFAULT_SETTINGS)
 	assert_eq(data.tutorial, {"done": false})
 
@@ -31,6 +32,8 @@ func test_json_round_trip() -> void:
 	data.tutorial["done"] = true
 	data.record_run(_stats(40.5, 9, {&"city": {"distance": 30.25, "turns": 7}}))
 	data.record_disaster(&"tornado", &"city", _stats(40.5, 9, {}))
+	data.record_arrival(&"pier", {"seconds": 512.25, "clean": true})
+	data.unlock_disaster(&"ufo")
 	data.set_setting("music", 0.3)
 	data.set_setting("orientation", "landscape")
 	var again := SaveData.new()
@@ -39,11 +42,13 @@ func test_json_round_trip() -> void:
 	assert_eq(again.atlas, data.atlas)
 	assert_eq(again.best, data.best)
 	assert_eq(again.disasters, data.disasters)
+	assert_eq(again.arrivals, data.arrivals)
 	assert_eq(again.settings, data.settings)
 	assert_eq(again.tutorial, {"done": true})
 	assert_typeof(again.best["turns"], TYPE_INT, "JSON reads every number as a float")
 	assert_typeof(again.atlas["city"]["best_turns"], TYPE_INT)
-	assert_true(data.to_json().contains('"version": 2'))
+	assert_typeof(again.arrivals["pier"]["count"], TYPE_INT)
+	assert_true(data.to_json().contains('"version": 3'))
 
 
 func test_a_v0_file_is_migrated_and_keeps_its_values() -> void:
@@ -67,7 +72,7 @@ func test_each_load_starts_from_the_defaults() -> void:
 	var loads := {
 		"{}": SaveData.Status.LOADED,
 		"not json": SaveData.Status.CORRUPT,
-		'{"version": 3}': SaveData.Status.NEWER,
+		'{"version": 4}': SaveData.Status.NEWER,
 		'{"settings": {"music": 2}}': SaveData.Status.LOADED,
 	}
 	for text: String in loads:
@@ -76,6 +81,7 @@ func test_each_load_starts_from_the_defaults() -> void:
 		assert_eq(data.atlas, {} as Dictionary[String, Dictionary], text)
 		assert_eq(data.best, SaveData.BEST, text)
 		assert_eq(data.disasters, {} as Dictionary[String, Dictionary], text)
+		assert_eq(data.arrivals, {} as Dictionary[String, Dictionary], text)
 		assert_eq(data.settings, SaveData.DEFAULT_SETTINGS, text)
 		assert_eq(data.tutorial, SaveData.TUTORIAL, text)
 	assert_eq(data.problems, PackedStringArray(["settings.music"]), "only the last load's")
@@ -202,7 +208,7 @@ func test_numbers_past_the_largest_exact_whole_number_get_their_defaults() -> vo
 
 func test_a_later_version_is_read_as_far_as_it_is_known() -> void:
 	var data := SaveData.new()
-	var text := JSON.stringify({"version": 3, "best": {"distance": 5, "turns": 1}, "new": 1})
+	var text := JSON.stringify({"version": 4, "best": {"distance": 5, "turns": 1}, "new": 1})
 	assert_eq(data.load_json(text), SaveData.Status.NEWER)
 	assert_eq(data.best, {"distance": 5.0, "turns": 1})
 
@@ -222,7 +228,9 @@ func test_record_disaster_counts_and_keeps_the_first_sighting() -> void:
 	var data := SaveData.new()
 	data.record_disaster(&"sinkhole", &"city", _stats(12.5, 3, {}))
 	data.record_disaster(&"sinkhole", &"village", _stats(99.0, 210, {}))
-	var expected := {"seen": 2, "first_area": "city", "first_distance": 12.5, "first_turns": 3}
+	var expected := {
+		"seen": 2, "first_area": "city", "first_distance": 12.5, "first_turns": 3, "unlocked": false
+	}
 	assert_eq(data.disasters["sinkhole"], expected)
 
 
@@ -238,6 +246,45 @@ func test_the_disasters_seen_are_those_the_collection_shows() -> void:
 	assert_eq(data.disasters.size(), 2, "both entries are kept")
 	data.record_disaster(&"sinkhole", &"city", _stats(12.5, 3, {}))
 	assert_eq(data.seen_disasters(), [&"sinkhole"] as Array[StringName])
+
+
+## ENDGAME_PLAN.md §5.4, §5.5: a version 2 save has no arrivals, and nothing it collected was
+## unlocked.
+func test_a_v2_file_is_migrated_with_no_arrivals_and_nothing_unlocked() -> void:
+	var data := SaveData.new()
+	var text := JSON.stringify(
+		{"version": 2, "disasters": {"ufo": {"seen": 2, "first_area": "rural"}}}
+	)
+	assert_eq(data.load_json(text), SaveData.Status.LOADED)
+	assert_eq(data.problems, PackedStringArray())
+	assert_eq(data.arrivals, {} as Dictionary[String, Dictionary])
+	assert_eq(data.disasters["ufo"]["seen"], 2)
+	assert_false(data.disasters["ufo"]["unlocked"])
+	assert_true(data.to_json().contains('"version": 3'))
+
+
+func test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one() -> void:
+	var data := SaveData.new()
+	data.record_arrival(&"pier", {"seconds": 530.0, "clean": true})
+	data.record_arrival(&"pier", {"seconds": 498.5, "clean": false})
+	data.record_arrival(&"pier", {"seconds": 610.0, "clean": false})
+	data.record_arrival(&"home", {"seconds": 700.0, "clean": false})
+	assert_eq(data.arrivals["pier"], {"count": 3, "best_seconds": 498.5, "clean": true})
+	assert_eq(data.arrivals["home"], {"count": 1, "best_seconds": 700.0, "clean": false})
+	assert_eq(data.arrival_count(), 4)
+
+
+## ENDGAME_PLAN.md W14: an unlocked legend shows in the collection, and weighs less in the picks,
+## as one seen does.
+func test_an_unlocked_disaster_is_collected_as_if_seen() -> void:
+	var data := SaveData.new()
+	data.unlock_disaster(&"mothman")
+	assert_eq(data.disasters["mothman"]["seen"], 0)
+	assert_true(data.disasters["mothman"]["unlocked"])
+	assert_eq(data.seen_disasters(), [&"mothman"] as Array[StringName])
+	data.record_disaster(&"mothman", &"city", _stats(5.0, 1, {}))
+	assert_eq(data.disasters["mothman"]["seen"], 1)
+	assert_eq(data.disasters["mothman"]["first_area"], "city", "its first sighting still counts")
 
 
 func test_set_setting_takes_only_what_the_setting_can_be() -> void:

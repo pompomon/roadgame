@@ -18,7 +18,13 @@ func _game_over() -> GameOver:
 ## Stats as GameState.stats() gives them.
 static func _stats(cause: StringName) -> Dictionary:
 	return {
-		"run_seed": 1234, "turn_index": 7, "distance": 12.34, "area_id": &"rural", "cause": cause
+		"run_seed": 1234,
+		"turn_index": 7,
+		"distance": 12.34,
+		"seconds": 512.9,
+		"clean": true,
+		"area_id": &"rural",
+		"cause": cause,
 	}
 
 
@@ -47,15 +53,25 @@ func test_it_is_hidden_until_it_opens() -> void:
 
 func test_it_shows_why_the_run_ended_and_its_stats() -> void:
 	var causes: Array[StringName] = [
-		CarSim.WRONG_TURN, CarSim.MISSED_TURN, CarSim.HEALTH, CarSim.OFFROAD
+		CarSim.WRONG_TURN, CarSim.MISSED_TURN, CarSim.HEALTH, CarSim.OFFROAD, CarSim.ARRIVAL
 	]
 	assert_eq(GameOver.END_MESSAGES.size(), causes.size(), "a message for each of CarSim's causes")
 	var game_over := _game_over()
 	for cause: StringName in causes:
 		game_over.open(_stats(cause), _rural())
 		assert_eq(_text(game_over, "Cause"), GameOver.END_MESSAGES[cause])
-		assert_eq(_text(game_over, "Stats"), "Distance: 123 m\nTurns: 7\nArea reached: Rural")
+		var stats := "Distance: 123 m\nTurns: 7\nArea reached: Rural"
+		if cause == CarSim.ARRIVAL:
+			stats += "\nTime: 8:32"
+		assert_eq(_text(game_over, "Stats"), stats, cause)
 		game_over.close()
+
+
+## ENDGAME_PLAN.md §5.3: an arrival's time, in whole minutes and seconds.
+func test_the_time_is_in_minutes_and_seconds() -> void:
+	var times := {0.0: "0:00", 59.99: "0:59", 60.0: "1:00", 512.9: "8:32", 3725.0: "62:05"}
+	for seconds: float in times:
+		assert_eq(GameOver.time_text(seconds), times[seconds], str(seconds))
 
 
 func test_a_cause_with_no_message_is_an_error_and_shows_game_over() -> void:

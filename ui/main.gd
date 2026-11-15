@@ -11,12 +11,16 @@ extends Node
 ## A phone can't take them (docs/M4.md P4), so in debug builds the title's Start button chooses the
 ## area that Play starts in instead, which --area presets (docs/ZONE_SELECT.md Z1, Z6). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
-## until the player has finished it (docs/TUTORIAL.md §5.6).
+## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
+## that many turns, at a pier, with the areas before it, and --home drives the Road Home, for tests
+## and manual checks of the end of the road (ENDGAME_PLAN.md §5.7).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
 
 const CAR_SCENE := preload("res://car/car.tscn")
+## The finish of --finish's road, on a schedule with none.
+const DEBUG_FINISH := &"pier"
 
 ## The user arguments. Tests set them before adding the scene to the tree.
 var args := OS.get_cmdline_user_args()
@@ -24,8 +28,11 @@ var args := OS.get_cmdline_user_args()
 var _autopilot := false
 ## The game's schedule. The world, the Atlas and the collection show all of its areas.
 var _whole_schedule: AreaSchedule
-## The run's: the game's, or a copy that starts in --area's area or the title's choice.
+## The run's: the game's, or a copy that starts in --area's area or the title's choice, or that
+## ends after --finish's turns.
 var _schedule: AreaSchedule
+## --finish's turns, or -1.
+var _finish_turns := -1
 ## In a run with the tutorial, where the City's run began (docs/TUTORIAL.md §5.5): the path distance
 ## where the car left the tutorial's last junction, and the turns before the next junction. The
 ## run's distance and turns count from there. 0 in a run without the tutorial.
@@ -34,7 +41,8 @@ var _turn_base := 0
 var _buffer: RoadBuffer
 var _sim: CarSim
 var _car: CarController
-## What the disaster that ended the run did to the car, for the game-over screen (docs/M6.md S8).
+## What the disaster that ended the run did to the car, for the game-over screen (docs/M6.md S8), or
+## the legend that an arrival unlocked (ENDGAME_PLAN.md §5.5).
 var _fate := ""
 
 @onready var _world: WorldRenderer = %World
@@ -49,11 +57,12 @@ var _fate := ""
 
 func _ready() -> void:
 	_autopilot = args.has("--autopilot")
-	_whole_schedule = load("res://areas/schedule.tres")
-	_schedule = _whole_schedule
-	var area := _parse_area(args)
-	if area != &"":
-		_schedule = _whole_schedule.starting_at(area)
+	var path := (
+		"res://areas/schedule_home.tres" if args.has("--home") else "res://areas/schedule.tres"
+	)
+	_whole_schedule = load(path)
+	_finish_turns = _parse_finish(args)
+	_schedule = _run_schedule(_parse_area(args))
 	var start := Time.get_ticks_usec()
 	# Every area's, whichever a run starts in (docs/ZONE_SELECT.md Z2).
 	_world.build(_whole_schedule)
@@ -98,6 +107,8 @@ func _physics_process(delta: float) -> void:
 	if GameState.state == GameState.State.RUNNING:
 		if not GameState.in_tutorial:
 			GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
+			# The run's clock, which stops while it pauses (ENDGAME_PLAN.md §5.3).
+			GameState.seconds += delta
 		# The zone's clock runs with the run, the tutorial's too, and stops when it ends or pauses
 		# (docs/DAYNIGHT.md §5.4). Daylight shows the light after the camera has moved.
 		_daylight.cycle.advance(delta)
@@ -144,8 +155,10 @@ func _start_run(run_seed: int) -> void:
 	_sim.trigger.streak_changed.connect(EventBus.streak_changed.emit)
 	_sim.trigger.tutorial_completed.connect(_on_tutorial_completed)
 	_sim.crashed.connect(_on_crashed)
+	_sim.arrived.connect(_on_arrived)
 	_sim.health_changed.connect(EventBus.health_changed.emit)
 	_sim.offroad_changed.connect(EventBus.car_offroad_changed.emit)
+	_sim.offroad_changed.connect(_on_offroad_changed)
 	_sim.area_changed.connect(_on_area_changed)
 	_input.autopilot = Autopilot.new(_sim) if _autopilot else null
 	_input.enabled = true
@@ -199,8 +212,20 @@ func _play() -> void:
 		return
 	_title.close()
 	if _title.area_choice:
-		_schedule = _whole_schedule.starting_at(_title.start_area.id)
+		_schedule = _run_schedule(_title.start_area.id)
 	_start_run(_parse_seed(args))
+
+
+## The run's schedule: the game's, from the area `id` on unless it's &"", and ending after
+## --finish's turns if there are any.
+func _run_schedule(id: StringName) -> AreaSchedule:
+	var schedule := _whole_schedule
+	if _finish_turns >= 0:
+		var finish := schedule.finish if schedule.has_finish() else DEBUG_FINISH
+		schedule = schedule.ending_at(_finish_turns, finish)
+	if id != &"":
+		schedule = schedule.starting_at(id)
+	return schedule
 
 
 func _show_title() -> void:
@@ -237,6 +262,31 @@ func _on_disaster_triggered(junction: RoadTile, choice: int) -> void:
 func _on_crashed(cause: StringName) -> void:
 	_end_run(cause)
 	_director.play_crash(_car, _camera)
+
+
+## The car reached the finish (ENDGAME_PLAN.md §5.3): the run ends in an arrival, and the car rolls
+## to a stop. A run that drove the whole road, from the route's first area, counts the arrival, and
+## unlocks a legend that the player hasn't collected, at random (§5.5).
+func _on_arrived() -> void:
+	_end_run(CarSim.ARRIVAL)
+	if _drove_whole_road():
+		var data := SaveService.data()
+		var id := LegendUnlock.pick(_whole_schedule, data.seen_disasters(), GameState.run_seed)
+		SaveService.record_arrival(_schedule.finish, GameState.stats(), id)
+		_fate = LegendUnlock.text(_whole_schedule, id)
+	_director.play_arrival(_car, _camera)
+
+
+## Whether the run started in the route's first area: not a run from another area (ZS, and
+## Departures, ENDGAME_PLAN.md Q4).
+func _drove_whole_road() -> bool:
+	return _schedule.entries[0].area == _whole_schedule.entries[0].area
+
+
+## A clean run never leaves the road (ENDGAME_PLAN.md §5.4). The tutorial's mistakes don't count.
+func _on_offroad_changed(is_offroad: bool) -> void:
+	if is_offroad and not GameState.in_tutorial:
+		GameState.clean = false
 
 
 ## The car reached `area`. GameState counts the area's distance and turns from its first tile, which
@@ -281,6 +331,9 @@ func _turns_before(index: int) -> int:
 		var tile := _buffer.path_tile(i)
 		if tile.is_junction():
 			return tile.turn_number
+	# Past the last junction, before the finish, every turn is behind.
+	if _buffer.generator.finished():
+		return _buffer.generator.turn_count
 	# The buffer always holds the next junction (JunctionTrigger._junction_after()).
 	push_error("main: no junction after path index %d" % index)
 	return GameState.turn_index
@@ -301,11 +354,11 @@ func _end_run(cause: StringName) -> void:
 	GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
 	_input.enabled = false
 	GameState.end_run(cause)
-	if _autopilot:
+	if _autopilot and cause != CarSim.ARRIVAL:
 		push_error("main: the autopilot's run ended: %s" % cause)
 
 
-## The disaster or the crash has played: game over.
+## The disaster, the crash or the arrival has played: game over.
 func _on_sequence_finished() -> void:
 	GameState.show_game_over()
 	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id), _fate)
@@ -317,6 +370,9 @@ func _on_sequence_finished() -> void:
 ## or --autopilot, which tests and checks use.
 func _tutorial_wanted() -> bool:
 	if _schedule.entries[0].area != _whole_schedule.entries[0].area:
+		return false
+	# Its loops are laid for a road that starts heading N (ENDGAME_PLAN.md W10).
+	if _schedule.mirrored:
 		return false
 	if args.has("--tutorial"):
 		return true
@@ -340,6 +396,17 @@ static func _parse_area(p_args: PackedStringArray) -> StringName:
 				push_error("main: --area= needs the id of an area")
 			return StringName(id)
 	return &""
+
+
+## The turns of --finish=<turns> in `p_args`, after which the road ends; -1 without it.
+static func _parse_finish(p_args: PackedStringArray) -> int:
+	for arg: String in p_args:
+		if arg.begins_with("--finish="):
+			var text := arg.trim_prefix("--finish=")
+			if text.is_valid_int() and text.to_int() >= 0:
+				return text.to_int()
+			push_error("main: --finish= needs a number of turns, such as --finish=3")
+	return -1
 
 
 ## The hour of --hour=<h> in `p_args`, round the clock, which every zone's clock starts at

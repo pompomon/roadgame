@@ -109,7 +109,11 @@ func test_the_run_and_its_disaster_are_saved() -> void:
 	var id := director.disaster.id
 	assert_signal_emitted_with_parameters(EventBus, "disaster_started", [id, CITY])
 	var expected := {
-		"seen": 1, "first_area": "city", "first_distance": GameState.distance, "first_turns": 2
+		"seen": 1,
+		"first_area": "city",
+		"first_distance": GameState.distance,
+		"first_turns": 2,
+		"unlocked": false,
 	}
 	assert_eq(save.disasters[String(id)], expected)
 

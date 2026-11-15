@@ -7,6 +7,9 @@ extends RefCounted
 ## In the tutorial (docs/TUTORIAL.md §5.3), the car takes damage off the road but never crashes: it
 ## drives on at 0 health, heals on the road, and is put back on the path once it has driven
 ## TUTORIAL_RESCUE_TILES off the road.
+##
+## On a road with a finish, the run ends when the car reaches it (ENDGAME_PLAN.md §5.2): it then
+## rolls to a stop on the finish's set piece, straightening up as it goes.
 
 signal health_changed(value: float)
 signal offroad_changed(is_offroad: bool)
@@ -16,14 +19,18 @@ signal area_changed(area: AreaDef)
 signal crashed(cause: StringName)
 ## The tutorial put the car back on the path.
 signal rescued
+## The car reached the finish: the run is won (ENDGAME_PLAN.md §5.2).
+signal arrived
 
-enum State { DRIVING, BRAKING, OFFROAD, DISASTER, CRASHED }
+enum State { DRIVING, BRAKING, OFFROAD, DISASTER, CRASHED, ARRIVED }
 
 ## Why a run ends (plan.md §2.5). WRONG_TURN and MISSED_TURN are disasters, the others crashes.
 const WRONG_TURN := &"wrong_turn"
 const MISSED_TURN := &"missed_turn"
 const HEALTH := &"health"
 const OFFROAD := &"offroad"
+## The run reached the finish: no disaster and no crash.
+const ARRIVAL := &"arrival"
 
 ## Position in tile space (D1).
 var pos := Vector2.ZERO
@@ -66,6 +73,7 @@ func _init(p_buffer: RoadBuffer) -> void:
 	trigger.disaster_triggered.connect(_on_disaster_triggered)
 	trigger.streak_changed.connect(_on_streak_changed)
 	trigger.tutorial_completed.connect(_on_tutorial_completed)
+	trigger.arrived.connect(_on_arrived)
 	path_tile = buffer.path_tile(buffer.first_index())
 	pos = Iso.cell_centre(path_tile.cell)
 	angle = path_tile.heading * PI / 2.0
@@ -76,10 +84,12 @@ func _init(p_buffer: RoadBuffer) -> void:
 ## Moves the car on by `delta` seconds, with steering `steer` from -1 (left) to 1 (right). One step
 ## must move less than a tile. Once the run is over, the car brakes in a straight line: at BRAKE,
 ## or harder if it must, so that it stops within STOP_SECONDS of the step that ended the run
-## (docs/M3.md J4).
+## (docs/M3.md J4). After it arrives, it rolls to a stop on the finish instead.
 func step(delta: float, steer: float) -> void:
 	if is_over():
-		if _stop_rate == 0.0:
+		if state == State.ARRIVED:
+			_steer(delta, 0.0)
+		elif _stop_rate == 0.0:
 			_stop_rate = maxf(Tuning.BRAKE, speed / Tuning.STOP_SECONDS)
 		speed = move_toward(speed, 0.0, _stop_rate * delta)
 		pos += velocity() * delta
@@ -130,7 +140,7 @@ func forward() -> Vector2:
 
 
 func is_over() -> bool:
-	return state == State.DISASTER or state == State.CRASHED
+	return state == State.DISASTER or state == State.CRASHED or state == State.ARRIVED
 
 
 ## Whether the tutorial has lost the car, which then has no next junction to brake for, but the
@@ -392,6 +402,17 @@ func _on_turn_completed(_turn_index: int) -> void:
 
 func _on_disaster_triggered(_junction: RoadTile, _choice: int) -> void:
 	state = State.DISASTER
+
+
+## The car reached the finish. It brakes evenly, to stop ARRIVE_STOP_SHORT before the centre of
+## the finish's last tile, wherever it reached the finish and however fast; a slow car stops
+## sooner, within ARRIVE_ROLL_SECONDS.
+func _on_arrived() -> void:
+	state = State.ARRIVED
+	var last := buffer.generator.finish_index + Tuning.FINISH_TILES - 1
+	var room := maxf(last - Tuning.ARRIVE_STOP_SHORT - progress, Tuning.ARRIVE_STOP_SHORT)
+	_stop_rate = maxf(speed * speed / (2.0 * room), speed / Tuning.ARRIVE_ROLL_SECONDS)
+	arrived.emit()
 
 
 func _on_streak_changed(_streak: int) -> void:

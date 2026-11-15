@@ -240,3 +240,61 @@ func test_finds_the_next_junction_for_300_turns() -> void:
 		assert_eq(_trigger.turn_index, 300)
 		assert_signal_emit_count(_trigger, "turn_completed", junctions)
 		assert_signal_not_emitted(_trigger, "disaster_triggered")
+
+
+## A road whose second area starts at turn 2, after a tunnel, and that ends at the pier after
+## `turns` turns (ENDGAME_PLAN.md §5.1).
+static func _finish_road(turns: int) -> AreaSchedule:
+	var road := Fixtures.set_piece_schedule(2, &"tunnel", 3)
+	road.finish = &"pier"
+	road.finish_turn = turns
+	return road
+
+
+## The finish's first tile, and the tile before it.
+func _finish() -> RoadTile:
+	return _buffer.path_tile(_buffer.generator.finish_index)
+
+
+func _before_finish() -> RoadTile:
+	return _buffer.path_tile(_buffer.generator.finish_index - 1)
+
+
+func test_the_car_arrives_as_it_enters_the_finish_after_the_last_turn() -> void:
+	_start(1, _finish_road(4))
+	var junctions := _junctions()
+	assert_eq(junctions.size(), 4, "the road's turns, and no junction after the last")
+	for junction: RoadTile in junctions:
+		_leave(junction, junction.expected_exit)
+	assert_eq(_trigger.turn_index, 4)
+	assert_null(_trigger.next_junction, "no junction after the last, and no error")
+	assert_signal_not_emitted(_trigger, "arrived")
+	_trigger.on_cell_crossed(_before_finish().cell, _finish().cell, true)
+	assert_signal_emit_count(_trigger, "arrived", 1)
+	assert_true(_trigger.has_arrived)
+	var past := _finish().cell + Heading.VEC[_finish().heading]
+	_trigger.on_cell_crossed(_finish().cell, past, true)
+	assert_signal_emit_count(_trigger, "arrived", 1, "once")
+
+
+func test_the_car_arrives_as_it_rejoins_the_road_on_the_finish() -> void:
+	_start(1, _finish_road(4))
+	var junctions := _junctions()
+	for junction: RoadTile in junctions.slice(0, 3):
+		_leave(junction, junction.expected_exit)
+	_trigger.on_rejoin(_buffer.path_tile(_buffer.generator.finish_index + 2))
+	assert_signal_emit_count(_trigger, "turn_completed", 4, "the last turn too")
+	assert_signal_emit_count(_trigger, "arrived", 1)
+
+
+func test_no_arrival_off_the_road_or_after_a_disaster() -> void:
+	_start(1, _finish_road(2))
+	var junctions := _junctions()
+	_leave(junctions[0], junctions[0].expected_exit)
+	_trigger.on_cell_crossed(_before_finish().cell, _finish().cell, false)
+	assert_signal_not_emitted(_trigger, "arrived", "off the road")
+	_trigger.on_offroad_limit()
+	assert_signal_emitted(_trigger, "disaster_triggered")
+	_trigger.on_rejoin(_finish())
+	_trigger.on_cell_crossed(_before_finish().cell, _finish().cell, true)
+	assert_signal_not_emitted(_trigger, "arrived", "after the disaster")

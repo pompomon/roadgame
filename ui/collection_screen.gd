@@ -3,13 +3,16 @@ extends MenuScreen
 ## The disaster collection (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): a card for each disaster in
 ## the pools of the schedule's areas, in the order a run can first meet them. A card tells how often
 ## the disaster was seen, where and how far into a run it was seen first, and its lore (docs/M6.md
-## S12); one never seen is a silhouette. Like the HUD, its text uses only characters in the game's
-## font.
+## S12); one never seen is a silhouette, unless an arrival unlocked it (ENDGAME_PLAN.md §5.5): it
+## then shows its name, its area's colour and its lore. Like the HUD, its text uses only characters
+## in the game's font.
 
 const CARD_SCENE := preload("res://ui/menu_card.tscn")
 ## The name of a disaster never seen, and its card's text and swatch.
 const UNKNOWN := "???"
 const NOT_SEEN := "Not seen yet"
+## The text of a card that an arrival unlocked, before the disaster is seen.
+const UNLOCKED := "Unlocked by an arrival\nNot seen yet"
 const SILHOUETTE := Color(0.1, 0.1, 0.12)
 
 @onready var _cards: VBoxContainer = %Cards
@@ -33,6 +36,10 @@ func open(data: SaveData, schedule: AreaSchedule) -> void:
 			var area := _find_area(schedule, entry["first_area"])
 			var color := area.id_color if area != null else SILHOUETTE
 			card.show_entry(disaster["name"], seen_text(entry, area), color, disaster["lore"])
+		elif entry["unlocked"]:
+			var area := LegendUnlock.pool_area(schedule, disaster["id"])
+			var color := area.id_color if area != null else SILHOUETTE
+			card.show_entry(disaster["name"], UNLOCKED, color, disaster["lore"])
 		else:
 			card.show_entry(UNKNOWN, NOT_SEEN, SILHOUETTE)
 	show()
