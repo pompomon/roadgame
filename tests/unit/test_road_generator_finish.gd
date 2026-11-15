@@ -84,6 +84,23 @@ func test_the_finish_counts_its_turns_from_the_end_of_the_tutorial() -> void:
 	assert_true(path.any(func(tile: RoadTile) -> bool: return tile.area_id == &"after"))
 
 
+## ENDGAME_PLAN.md E1: a finish changes nothing before it. Up to the finish's first tile, the road
+## is the endless road's, tile for tile, dead ends too, so a run is the seed's run until the end.
+func test_the_road_before_the_finish_is_the_endless_roads() -> void:
+	for run_seed: int in SEEDS:
+		var road := Fixtures.schedule().ending_at(40, &"pier")
+		var gen := RoadGenerator.new(run_seed, road)
+		var endless := RoadGenerator.new(run_seed, road.endless())
+		var path := _path_to_finish(gen)
+		assert_gt(gen.finish_index, 0, "seed %d: the road ends" % run_seed)
+		for tile: RoadTile in path.slice(0, gen.finish_index):
+			var other := endless.next_tile()
+			assert_eq(_shape(tile), _shape(other), "seed %d, tile %d" % [run_seed, tile.path_index])
+		assert_true(
+			endless.next_tile().is_junction(), "the endless road turns where the pier begins"
+		)
+
+
 func test_a_road_without_a_finish_never_ends() -> void:
 	var gen := RoadGenerator.new(1, _finish_schedule(2, 4).endless())
 	Fixtures.path_until_turn(gen, 300)
@@ -124,6 +141,22 @@ func test_the_road_home_ends_at_home_after_280_turns() -> void:
 		assert_eq(path[gen.finish_index].area_id, &"city", "home is in the City")
 		assert_eq(gen.occupancy.size(), _cells(path), "seed %d: every tile has a cell" % run_seed)
 		assert_eq(gen.dropped_count, 0)
+
+
+## What a tile is, to compare two roads: where it is and leads, its kind, and its dead ends.
+static func _shape(tile: RoadTile) -> Array:
+	var ends: Array = tile.branches.map(func(branch: RoadTile) -> Vector2i: return branch.cell)
+	return [
+		tile.cell,
+		tile.type,
+		tile.heading,
+		tile.exits,
+		tile.area_id,
+		tile.set_piece,
+		tile.turn_number,
+		tile.expected_exit,
+		ends,
+	]
 
 
 ## The cells of `path`'s tiles and their branches.

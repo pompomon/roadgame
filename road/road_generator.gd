@@ -23,7 +23,8 @@ extends RefCounted
 ##
 ## A schedule with a finish ends the road (ENDGAME_PLAN.md §5.1): the straight after its last turn
 ## leads to the finish's FINISH_TILES set-piece tiles, and then to BEYOND tiles that go on forever,
-## so that the buffer always has tiles ahead, but which no car reaches and nothing draws. A
+## so that the buffer always has tiles ahead, but which no car reaches. Nothing is drawn from the
+## road's stream for the finish, so the road before it is the seed's endless road, tile for tile. A
 ## mirrored schedule's road starts heading W, and its first turn is a right: the path is still the
 ## staircase of N and W runs, so all of the above holds, but the pattern starts the other way
 ## (ENDGAME_PLAN.md §5.6).

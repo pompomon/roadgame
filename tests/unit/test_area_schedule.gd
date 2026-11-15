@@ -359,6 +359,23 @@ func test_a_road_that_starts_in_a_later_area_ends_as_many_turns_sooner() -> void
 	assert_false(Fixtures.schedule().starting_at(&"rural").has_finish())
 
 
+## ENDGAME_PLAN.md W17: a home stretch, a last area that starts at the finish's turn, has no
+## junction and no legend, so an endless road leaves it out, and the area before it goes on.
+func test_an_endless_road_leaves_out_the_home_stretch() -> void:
+	var road := Fixtures.set_piece_schedule(3, &"tunnel", 3)
+	road.finish = &"pier"
+	road.finish_turn = 3
+	var endless := road.endless()
+	assert_false(endless.has_finish())
+	assert_eq(endless.entries, road.entries.slice(0, 1), "without the home stretch")
+	assert_eq(endless.validate(), PackedStringArray())
+	road.finish_turn = 4
+	assert_eq(road.endless().entries, road.entries, "a last area with junctions stays")
+	road.finish_turn = 0
+	road.entries[1].turn = 0
+	assert_eq(road.endless().entries, road.entries.slice(0, 1), "never without an area")
+
+
 ## ENDGAME_PLAN.md §5.6: the Road Home is the road back, from the Desert to the City, mirrored.
 func test_the_road_home_is_valid_and_runs_the_other_way() -> void:
 	var home := Fixtures.schedule_home()

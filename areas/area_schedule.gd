@@ -65,10 +65,15 @@ func has_finish() -> bool:
 
 
 ## A copy with no end, whose last area goes on forever: the road of Keep Driving and of the tests
-## that drive past the finish (ENDGAME_PLAN.md W6). It shares this one's entries.
+## that drive past the finish (ENDGAME_PLAN.md W6). It leaves out a home stretch, a last area that
+## starts at the finish's turn, as such an area has no junction and no legend (W17): the area
+## before it goes on instead, as the Desert does on main. It shares this one's entries.
 func endless() -> AreaSchedule:
 	var schedule := AreaSchedule.new()
-	schedule.entries = entries.duplicate()
+	for entry: AreaScheduleEntry in entries:
+		var stretch := has_finish() and entry != null and entry.turn >= finish_turn
+		if not stretch or schedule.entries.is_empty():
+			schedule.entries.append(entry)
 	schedule.mirrored = mirrored
 	return schedule
 
