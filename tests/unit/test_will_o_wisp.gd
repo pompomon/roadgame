@@ -541,7 +541,13 @@ func test_the_five_drift_off_together_up_the_screen_and_fade_and_the_bog_cotton_
 		assert_eq(ups, Disasters.sorted(ups, true), "%s: up the screen" % what)
 		assert_true(gradual, "%s: a little each frame" % what)
 		var mean := way.length() / strides.size()
-		assert_lt(strides[0], mean / 2.0, "%s: slow as it starts" % what)
+		# The first frame stepped leaves them where they were: it is the shrink's last, or the
+		# drift's start, as the legend's clock sums its frames. So the first that moves them.
+		var first := 0
+		while first < strides.size() - 1 and strides[first] <= NEAR.length():
+			first += 1
+		assert_gt(strides[first], NEAR.length(), "%s: they drift" % what)
+		assert_lt(strides[first], mean / 2.0, "%s: slow as it starts" % what)
 		assert_lt(strides[-1], mean / 2.0, "%s: and as it ends" % what)
 		assert_true(together, "%s: together, round the fifth" % what)
 		assert_true(turning, "%s: still circling" % what)
