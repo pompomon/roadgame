@@ -5,12 +5,12 @@ extends Legend
 ## a black horse, the dust flying from its hooves, and halts in front of it. He raises a ball of
 ## pale ghost-fire, not a pumpkin (§5.4 Δ), and hurls it at the car. Pale flames run over the car,
 ## which pales to a ghost of itself, see-through and green, and fades as he wheels round and
-## gallops off the way he came. His horse's hooves scorch the road behind him, and the hoofprints
-## stay. He keeps to the middle of the road that runs on ahead of the car, wherever across it the
-## car stopped: a wrong turn can leave the car off the road's middle, even off the road, as it
-## brakes straight on from mid-turn. Its one glow, the ghost-fire's, rises once and fades: it lights
-## in his hand, flies in a shallow arc to the car and fades there, so its light rises at each point
-## at most once (§5.6). There's no gore.
+## gallops off the way he came. His horse's hooves scorch the road behind him, as far as it runs on,
+## and the hoofprints stay; over the fields they leave none. He keeps to the middle of the road that
+## runs on ahead of the car, wherever across it the car stopped: a wrong turn can leave the car off
+## the road's middle, even off the road, as it brakes straight on from mid-turn. Its one glow, the
+## ghost-fire's, rises once and fades: it lights in his hand, flies in a shallow arc to the car and
+## fades there, so its light rises at each point at most once (§5.6). There's no gore.
 ## tools/art/legends/headless_horseman.gd draws its sheets with these constants.
 
 ## His frames: galloping, his horse's legs stretched and then gathered; standing; raising the
@@ -32,10 +32,11 @@ const GLOW_SCALE := 0.5
 ## horse's hooves scorch as he gallops off, PRINTS_TILES long from where he halted. It is drawn for
 ## a road along the tile x axis that he gallops off down the screen; flip_h and flip_v lay it along
 ## the others. Its frames show the first 1 to STRIDES of its strides, from where he halted, each a
-## pair of prints.
+## pair of prints, in its share of the stretch and within PRINTS_SPREAD tiles across of its middle.
 const PRINTS := Vector2i(96, 48)
 const PRINTS_TILES := 1.25
 const STRIDES := 5
+const PRINTS_SPREAD := 0.15
 ## His horse's legs stretch and gather once each STRIDE_TILES that he gallops.
 const STRIDE_TILES := 0.4
 ## The shares: of the gallop that he takes to show; of the kindle that he takes to wheel round,
@@ -60,6 +61,8 @@ var _halt := Vector2.ZERO
 var _held := Vector2.ZERO
 ## Whether he faces the screen's left as he gallops in.
 var _left := false
+## How many of his strides' prints lie on the road, as strides_on() finds.
+var _strides := STRIDES
 var _taken := false
 var _double: Sprite2D
 
@@ -135,10 +138,18 @@ static func hand(left: bool) -> Vector2:
 
 
 ## Where the ghost-fire is, from the car's ground point, `t` of the hurl done: on its way from
-## `from` to the car's middle, HEADLESS_HORSEMAN_ARC_PX over the straight way at its middle.
+## `from` to the car's middle, its arc() over the straight way at its middle.
 static func flight(from: Vector2, t: float) -> Vector2:
-	var arc := Tuning.HEADLESS_HORSEMAN_ARC_PX * 4.0 * t * (1.0 - t)
-	return from.lerp(WitchHex.car_middle(), t) - Vector2(0.0, arc)
+	var to := WitchHex.car_middle()
+	return from.lerp(to, t) - Vector2(0.0, arc(from.distance_to(to)) * 4.0 * t * (1.0 - t))
+
+
+## How high the ghost-fire arcs over the straight way at its middle, in px, on a throw `length` px
+## long: HEADLESS_HORSEMAN_ARC_PX, but no more than HEADLESS_HORSEMAN_ARC_SHARE of the way. Where
+## the car stopped off its road's middle, the throw can be short, and a higher arc would turn back
+## over points that its glow had left, and light them twice (§5.6).
+static func arc(length: float) -> float:
+	return minf(Tuning.HEADLESS_HORSEMAN_ARC_PX, Tuning.HEADLESS_HORSEMAN_ARC_SHARE * length)
 
 
 ## The ghost-fire's frame `t` of the kindle done: its flames run over the car, more and more, and
@@ -160,6 +171,25 @@ static func laid(past: float) -> int:
 	return clampi(floori(past / PRINTS_TILES * STRIDES), 0, STRIDES)
 
 
+## How many of his strides' prints lie on the road in `buffer`, as he gallops off along `road`, a
+## tile direction, from `from`, where he halted, in tiles: those before the first whose share of the
+## stretch, PRINTS_SPREAD to each side of its middle, leaves the road. It checks the share's two
+## edges at its ends and its middle, an eighth of a tile apart: within a cell, the road holds all of
+## a cross-section between the edges if it holds both, and it leaves an edge for over an eighth of a
+## tile wherever it does (RoadGeometry).
+static func strides_on(from: Vector2, road: Vector2, buffer: RoadBuffer) -> int:
+	var spread := Vector2(-road.y, road.x) * PRINTS_SPREAD
+	var step := PRINTS_TILES / STRIDES
+	for k: int in STRIDES:
+		for along: float in [float(k), k + 0.5, k + 1.0]:
+			for side: float in [-1.0, 1.0]:
+				var point := from + road * step * along + spread * side
+				var cell := Vector2i(point.floor())
+				if not RoadGeometry.is_on_road(buffer.tile_at(cell), point - Vector2(cell)):
+					return k
+	return STRIDES
+
+
 ## What shows of him, the flames, their glow and the ghost, `t` of the kindle done: all, then less
 ## and less from FADE_FROM.
 static func fading(t: float) -> float:
@@ -176,9 +206,14 @@ func play(params: DisasterParams) -> void:
 	var heading := car.sim.forward() if car != null else params.direction
 	# His ride and his prints keep to the road's middle; the ghost-fire still flies to the car.
 	var middle := Vector2.ZERO
+	_strides = STRIDES
 	if car != null:
 		var at := Iso.world_to_tile(params.origin_world)
-		middle = Iso.tile_to_world(to_middle(at, PhantomBus.road(heading), car.sim.buffer))
+		var road := PhantomBus.road(heading)
+		var shift := to_middle(at, road, car.sim.buffer)
+		middle = Iso.tile_to_world(shift)
+		var halted := at + shift + road * Tuning.HEADLESS_HORSEMAN_STOP_TILES
+		_strides = strides_on(halted, road, car.sim.buffer)
 	_ahead = ahead(heading)
 	_far = middle + far(heading)
 	_halt = middle + halt(heading)
@@ -273,7 +308,8 @@ func _kindle(t: float) -> void:
 
 ## He wheels round and gallops off the way he came, `t` of the kindle done, faster and faster, and
 ## fades, his dust with him: it flies from his horse's hooves till DUST_SHARE. They scorch the road
-## behind him: each stride's prints show once he has passed them, and stay.
+## behind him, as far as it runs on: each stride's prints on the road show once he has passed them,
+## and stay. Over the fields they leave none.
 func _gallop_off(t: float) -> void:
 	_rider.flip_h = not _left
 	_rider.modulate.a = fading(t)
@@ -282,6 +318,6 @@ func _gallop_off(t: float) -> void:
 	_rider.frame = stride(past) if off > 0.0 else Pose.STAND
 	_place(_halt + _ahead * past)
 	_dust.emitting = off > 0.0 and t < DUST_SHARE
-	var strides := laid(past)
+	var strides := mini(laid(past), _strides)
 	_prints.modulate.a = 1.0 if strides > 0 else 0.0
 	_prints.frame = maxi(strides - 1, 0)

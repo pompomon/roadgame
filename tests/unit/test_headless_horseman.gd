@@ -7,6 +7,7 @@ extends GutTest
 
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const Art := preload("res://tests/helpers/art_checks.gd")
+const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const HEADLESS_HORSEMAN := preload("res://disasters/legends/headless_horseman.tscn")
 const RURAL := preload("res://areas/rural.tres")
 const GLOW := preload("res://disasters/glow.tres")
@@ -24,19 +25,34 @@ const MOST_A_FRAME := 0.25
 const SLOW_SHARE := 0.25
 ## How many strides his horse takes, at least, as he gallops in and as he gallops off.
 const LEAST_STRIDES := 4
-## The least share of HEADLESS_HORSEMAN_ARC_PX that the ghost-fire rises to over the straight way.
-const ARC_SHARE := 0.9
+## The least share of its arc that the ghost-fire rises to over the straight way.
+const LEAST_ARC_SHARE := 0.9
 ## The car's headings, as tile directions: the roads run along the tile axes.
 const HEADINGS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
 ## The middle of a frame of the hoofprints' sheet, from its top left corner.
 const PRINTS_MIDDLE := Vector2i(HeadlessHorseman.PRINTS.x >> 1, HeadlessHorseman.PRINTS.y >> 1)
 ## How far across its dead end from the road's middle a wrong turn can leave the car, in tiles, as
 ## it brakes straight on from mid-turn: off the road, in the dead end's cell (OFF_ROAD_TILES), or in
-## the next cell across (BESIDE_TILES), if the steering was let go mid-turn. FAR_OFF_TILES is two
-## cells across, off any road.
+## the next cell across (BESIDE_TILES), if the steering was let go mid-turn, as far as a hair short
+## of that cell's middle (NEXT_MIDDLE_TILES), where his throw at the car can be shortest.
+## FAR_OFF_TILES is two cells across, off any road.
 const OFF_ROAD_TILES := 0.47
 const BESIDE_TILES := 0.67
+const NEXT_MIDDLE_TILES := 0.99
 const FAR_OFF_TILES := 1.67
+## Where the car stops on a dead end, in tiles along and across it from its first cell's middle: on
+## the road's middle; each of the above but FAR_OFF_TILES, to either side; and where a review
+## found that the short throw lit points twice (§5.6).
+const STOPS: Array[Vector2] = [
+	Vector2.ZERO,
+	Vector2(0.0, -OFF_ROAD_TILES),
+	Vector2(0.0, OFF_ROAD_TILES),
+	Vector2(0.0, -BESIDE_TILES),
+	Vector2(0.0, BESIDE_TILES),
+	Vector2(0.0, -NEXT_MIDDLE_TILES),
+	Vector2(0.0, NEXT_MIDDLE_TILES),
+	Vector2(-0.248, -0.98573),
+]
 
 var _stage: Node2D
 var _car: CarController
@@ -175,23 +191,41 @@ func _hand(rider: Sprite2D) -> Vector2:
 
 ## Where the hoofprints that show lie on the ground, the car heading `heading`, in tiles: as x and
 ## y, the least and the most of the way along its road past where he halted, and as z, the most
-## from the road's middle, `middle` tiles from the car. Each texel counts by its middle, as the
-## prints' place and flips show it.
+## from the road's middle, `middle` tiles from the car.
 func _reach(hoofprints: Sprite2D, heading: Vector2, middle := Vector2.ZERO) -> Vector3:
 	var halted := middle + heading * Tuning.HEADLESS_HORSEMAN_STOP_TILES
 	var across := Vector2(-heading.y, heading.x)
 	var reach := Vector3(INF, -INF, 0.0)
-	for texel: Vector2i in _prints_texels[hoofprints.frame]:
+	for lying: Vector2 in _lying(hoofprints, hoofprints.frame):
+		var on_road := lying - halted
+		reach.x = minf(reach.x, on_road.dot(heading))
+		reach.y = maxf(reach.y, on_road.dot(heading))
+		reach.z = maxf(reach.z, absf(on_road.dot(across)))
+	return reach
+
+
+## Where the opaque texels of `frame` of the hoofprints' sheet lie on the ground, in tiles from the
+## car: each by its middle, as the prints' place and flips show it.
+func _lying(hoofprints: Sprite2D, frame: int) -> Array[Vector2]:
+	var found: Array[Vector2] = []
+	for texel: Vector2i in _prints_texels[frame]:
 		var local := Vector2(texel) + Vector2(0.5, 0.5)
 		if hoofprints.flip_h:
 			local.x = -local.x
 		if hoofprints.flip_v:
 			local.y = -local.y
-		var on_road := Iso.world_to_tile(_from_car(hoofprints) + local) - halted
-		reach.x = minf(reach.x, on_road.dot(heading))
-		reach.y = maxf(reach.y, on_road.dot(heading))
-		reach.z = maxf(reach.z, absf(on_road.dot(across)))
-	return reach
+		found.append(Iso.world_to_tile(_from_car(hoofprints) + local))
+	return found
+
+
+## How many of the opaque texels of `frame` of the hoofprints' sheet lie off the road of the car's
+## buffer, each by its middle.
+func _off_road(hoofprints: Sprite2D, frame: int) -> int:
+	var count := 0
+	for lying: Vector2 in _lying(hoofprints, frame):
+		if not _on_road(_car.sim.pos + lying):
+			count += 1
+	return count
 
 
 ## How far `color` is from GHOST, the ghost's tint.
@@ -314,11 +348,20 @@ func _on_road(point: Vector2) -> bool:
 	return RoadGeometry.is_on_road(_car.sim.buffer.tile_at(cell), point - Vector2(cell))
 
 
+## Puts the car at `stop`, one of STOPS, on the dead end that `branch` starts; returns its heading.
+func _stop_on(branch: RoadTile, stop: Vector2) -> Vector2:
+	var heading := Vector2(Heading.VEC[branch.branch_exit])
+	var across := Vector2(absf(heading.y), absf(heading.x))
+	_car.sim.pos = Iso.cell_centre(branch.cell) + heading * stop.x + across * stop.y
+	_car.position = Iso.tile_to_world(_car.sim.pos)
+	return heading
+
+
 ## Plays the Horseman with the car at `at`, in tiles, heading `heading`, and checks that he keeps
 ## to the line `middle` tiles from the car, along his way: he gallops in along it and halts on it,
 ## in front of the car; the ghost-fire flies only nearer to the car's middle, and its flames run
-## over the car; he gallops off along it, and his hoofprints lie within the road's half-width of
-## it. If `on_road`, he halts on the road, and his hoofprints start and end on it.
+## over the car; he gallops off along it. If `on_road`, he halts on the road, and his hoofprints
+## lie along the line, all his strides' of them, on the road. If not, he leaves none.
 func _assert_rides(
 	at: Vector2, heading: Vector2, middle: Vector2, on_road: bool, what: String
 ) -> void:
@@ -355,13 +398,85 @@ func _assert_rides(
 	assert_eq(left, Disasters.sorted(left, true), "%s: the fire flies only nearer" % what)
 	assert_lte(left[-1], 2.0 * _largest_step(left), "%s: to the car's middle" % what)
 	assert_almost_eq(kindled, car_middle, NEAR, "%s: its flames run over the car" % what)
-	assert_lte(reach.z, Tuning.ROAD_HALF_WIDTH, "%s: his hoofprints along the line" % what)
-	assert_true(Disasters.shows(hoofprints), "%s: they show" % what)
 	if on_road:
-		var stop := at + halt
-		assert_true(_on_road(stop), "%s: he halts on the road" % what)
-		assert_true(_on_road(stop + heading * reach.x), "%s: the prints start on it" % what)
-		assert_true(_on_road(stop + heading * reach.y), "%s: and end on it" % what)
+		assert_true(_on_road(at + halt), "%s: he halts on the road" % what)
+		assert_true(Disasters.shows(hoofprints), "%s: his hoofprints show" % what)
+		assert_eq(hoofprints.frame, HeadlessHorseman.STRIDES - 1, "%s: all his strides'" % what)
+		assert_lte(reach.z, Tuning.ROAD_HALF_WIDTH, "%s: along the line" % what)
+		assert_eq(_off_road(hoofprints, hoofprints.frame), 0, "%s: on the road" % what)
+	else:
+		assert_false(Disasters.shows(hoofprints), "%s: none over the fields" % what)
+
+
+## Checks the hurl of `legend`, as test_he_hurls_it_at_the_car_in_a_shallow_arc tells.
+func _assert_hurls(legend: HeadlessHorseman, what: String) -> void:
+	var ends := _ends()
+	var middle := WitchHex.car_middle()
+	var rider := _rider(legend)
+	var fire := _fire(legend)
+	var glow := _glow(legend)
+	_step_to(legend, ends[1])
+	var from := _hand(rider)
+	var way := from.distance_to(middle)
+	var arc := minf(Tuning.HEADLESS_HORSEMAN_ARC_PX, Tuning.HEADLESS_HORSEMAN_ARC_SHARE * way)
+	var hurled := true
+	var with_it := true
+	var left: Array[float] = [way]
+	var heights: Array[float] = [0.0]
+	while _short_of(ends[2]):
+		_step(legend)
+		var at := _from_car(fire)
+		hurled = hurled and rider.frame == HeadlessHorseman.Pose.HURL
+		hurled = hurled and fire.frame == HeadlessHorseman.Fire.BALL
+		hurled = hurled and fire.scale == Vector2.ONE and Disasters.shows(fire)
+		with_it = with_it and _near(_from_car(glow), at)
+		var bright := Tuning.HEADLESS_HORSEMAN_GLOW_ALPHA
+		with_it = with_it and absf(glow.modulate.a - bright) <= NEAR_ALPHA
+		left.append(at.distance_to(middle))
+		var straight := from.lerp(middle, (at.x - from.x) / (middle.x - from.x))
+		heights.append(straight.y - at.y)
+	assert_true(hurled, "%s: he hurls a ball of ghost-fire" % what)
+	assert_true(with_it, "%s: its glow with it" % what)
+	assert_eq(left, Disasters.sorted(left, true), "%s: only nearer the car" % what)
+	assert_lte(left[-1], 2.0 * _largest_step(left), "%s: to the car's middle" % what)
+	assert_gte(_smallest(heights), -NEAR.y, "%s: over the straight way" % what)
+	assert_lte(_largest(heights), arc + NEAR.y, "%s: a shallow arc" % what)
+	assert_gte(_largest(heights), LEAST_ARC_SHARE * arc, "%s: an arc" % what)
+	assert_true(_peaked(heights), "%s: rising and falling" % what)
+
+
+## Plays `legend` to its end and checks that its light rises at each point at most once (§5.6).
+func _assert_rises_once(legend: HeadlessHorseman, what: String) -> void:
+	var change := Tuning.FLASH_CHANGE * Color.WHITE.get_luminance()
+	watch_signals(legend)
+	var lights: Array[Dictionary] = []
+	var reds: Array[Dictionary] = []
+	var images: Dictionary[Texture2D, Image] = {}
+	while get_signal_emit_count(legend, "finished") == 0:
+		if lights.size() >= Disasters.MAX_FRAMES:
+			fail_test("%s: it finishes" % what)
+			break
+		_step(legend)
+		var light: Dictionary[Vector2i, float] = {}
+		var red: Dictionary[Vector2i, float] = {}
+		for glow: CanvasItem in _glows(legend):
+			Disasters.shine(glow as Sprite2D, light, red, images)
+		lights.append(light)
+		reds.append(red)
+	var points: Dictionary[Vector2i, bool] = {}
+	for light: Dictionary in lights:
+		for point: Vector2i in light:
+			points[point] = true
+	assert_gt(points.size(), 0, "%s: its glow lights the world" % what)
+	var twice: Array[Vector2i] = []
+	for point: Vector2i in points:
+		var values := PackedFloat32Array()
+		for light: Dictionary in lights:
+			values.append(light.get(point, 0.0))
+		if Disasters._turns(values, change)[0].size() > 1:
+			twice.append(point * Tuning.FLASH_GRID)
+	assert_eq(twice, [] as Array[Vector2i], "%s: lit twice" % what)
+	assert_eq(Disasters.flashing(lights, reds), "", what)
 
 
 ## His standing part, which play() has put on the stage, out of reach of %names.
@@ -542,44 +657,15 @@ func test_he_raises_a_ball_of_ghost_fire_that_grows_in_his_hand() -> void:
 
 
 func test_he_hurls_it_at_the_car_in_a_shallow_arc() -> void:
-	# From his hand to the car's middle, for each heading, its glow with it: only nearer to the
-	# car's middle, over the straight way there, never by more than HEADLESS_HORSEMAN_ARC_PX, rising
-	# and then falling back to it. His arm is thrown out after it.
-	var ends := _ends()
-	var middle := WitchHex.car_middle()
-	var arc := Tuning.HEADLESS_HORSEMAN_ARC_PX
-	for heading: Vector2 in HEADINGS:
-		var what := "heading %s" % heading
-		var legend := _legend(heading)
-		var rider := _rider(legend)
-		var fire := _fire(legend)
-		var glow := _glow(legend)
-		_step_to(legend, ends[1])
-		var from := _hand(rider)
-		var hurled := true
-		var with_it := true
-		var left: Array[float] = [from.distance_to(middle)]
-		var heights: Array[float] = [0.0]
-		while _short_of(ends[2]):
-			_step(legend)
-			var at := _from_car(fire)
-			hurled = hurled and rider.frame == HeadlessHorseman.Pose.HURL
-			hurled = hurled and fire.frame == HeadlessHorseman.Fire.BALL
-			hurled = hurled and fire.scale == Vector2.ONE and Disasters.shows(fire)
-			with_it = with_it and _near(_from_car(glow), at)
-			var bright := Tuning.HEADLESS_HORSEMAN_GLOW_ALPHA
-			with_it = with_it and absf(glow.modulate.a - bright) <= NEAR_ALPHA
-			left.append(at.distance_to(middle))
-			var straight := from.lerp(middle, (at.x - from.x) / (middle.x - from.x))
-			heights.append(straight.y - at.y)
-		assert_true(hurled, "%s: he hurls a ball of ghost-fire" % what)
-		assert_true(with_it, "%s: its glow with it" % what)
-		assert_eq(left, Disasters.sorted(left, true), "%s: only nearer the car" % what)
-		assert_lte(left[-1], 2.0 * _largest_step(left), "%s: to the car's middle" % what)
-		assert_gte(_smallest(heights), -NEAR.y, "%s: over the straight way" % what)
-		assert_lte(_largest(heights), arc + NEAR.y, "%s: a shallow arc" % what)
-		assert_gte(_largest(heights), ARC_SHARE * arc, "%s: an arc" % what)
-		assert_true(_peaked(heights), "%s: rising and falling" % what)
+	# From his hand to the car's middle, wherever the car stopped on a dead end of each heading, its
+	# glow with it: only nearer to the car's middle, over the straight way there, rising and then
+	# falling back to it, never higher than HEADLESS_HORSEMAN_ARC_PX, nor than
+	# HEADLESS_HORSEMAN_ARC_SHARE of the way, which is short where the car stopped far across its
+	# road. His arm is thrown out after it.
+	for branch: RoadTile in _dead_ends(_car.sim.buffer):
+		for stop: Vector2 in STOPS:
+			var heading := _stop_on(branch, stop)
+			_assert_hurls(_legend(heading), "heading %s, stopped at %s" % [heading, stop])
 
 
 func test_its_flames_run_over_the_car_which_pales_to_a_ghost_of_itself_and_fades() -> void:
@@ -667,17 +753,18 @@ func test_its_flames_run_over_the_car_which_pales_to_a_ghost_of_itself_and_fades
 
 
 func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_stay() -> void:
-	# As the fire strikes, for each heading, he turns to face the way he came, and waits where he
-	# halted; then he gallops off along the road, straight back to where he came from, faster and
-	# faster, his horse's legs stretching and gathering in turn, the dust flying from its hooves
-	# till DUST_SHARE; he fades to nothing as he goes, and his dust with him. His horse's hooves
-	# scorch the road behind him: the prints of each stride show only once he has passed them, on
-	# the road between where he halted and where he is, under the props. He has left all of them
-	# before he is gone, and they stay.
+	# On a dead end of each heading, the car on its middle: as the fire strikes, he turns to face
+	# the way he came, and waits where he halted; then he gallops off along the road, straight back
+	# to where he came from, faster and faster, his horse's legs stretching and gathering in turn,
+	# the dust flying from its hooves till DUST_SHARE; he fades to nothing as he goes, and his dust
+	# with him. His horse's hooves scorch the road behind him: the prints of each stride show only
+	# once he has passed them, on the road between where he halted and where he is, under the props.
+	# He has left all of them before he is gone, and they stay.
 	var ends := _ends()
 	var stride_tiles := HeadlessHorseman.PRINTS_TILES / HeadlessHorseman.STRIDES
 	var all_strides := HeadlessHorseman.STRIDES - 1
-	for heading: Vector2 in HEADINGS:
+	for branch: RoadTile in _dead_ends(_car.sim.buffer):
+		var heading := _stop_on(branch, Vector2.ZERO)
 		var what := "heading %s" % heading
 		var far := HeadlessHorseman.far(heading)
 		var halt := HeadlessHorseman.halt(heading)
@@ -701,6 +788,7 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 		var dusty := true
 		var with_him := true
 		var behind := true
+		var in_share := true
 		var on_road := true
 		var left_all := -1.0
 		while _short_of(ends[3]):
@@ -725,7 +813,10 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 				continue
 			var lying := _reach(hoofprints, heading)
 			behind = behind and lying.x >= -NEAR_TILES and lying.y <= past + NEAR_TILES
-			on_road = on_road and lying.z <= Tuning.ROAD_HALF_WIDTH
+			var share := (hoofprints.frame + 1) * stride_tiles
+			in_share = in_share and lying.y <= share + NEAR_TILES
+			in_share = in_share and lying.z <= HeadlessHorseman.PRINTS_SPREAD
+			on_road = on_road and _off_road(hoofprints, hoofprints.frame) == 0
 			if left_all < 0.0 and hoofprints.frame == all_strides:
 				left_all = rider.modulate.a
 		var steps := _strides(path)
@@ -756,26 +847,27 @@ func test_he_wheels_round_and_gallops_off_the_way_he_came_and_his_hoofprints_sta
 			Disasters.particles_show(dust), "%s: and none of it shows once he is gone" % what
 		)
 		assert_true(behind, "%s: each stride's prints once he has passed them" % what)
+		assert_true(in_share, "%s: in its share of the road, near its middle" % what)
 		assert_true(on_road, "%s: on the road" % what)
 		assert_gt(left_all, 0.0, "%s: all of them before he is gone" % what)
 		assert_true(Disasters.shows(hoofprints), "%s: the prints stay" % what)
-		var last := (HeadlessHorseman.STRIDES - 1) * stride_tiles
-		assert_gt(reach.y, last, "%s: all his strides' prints" % what)
+		assert_gt(reach.y, all_strides * stride_tiles, "%s: all his strides' prints" % what)
 		_step_to(legend, ends[3] + 1.0)
 		assert_true(Disasters.shows(hoofprints), "%s: they stay after its end" % what)
 
 
 func test_he_keeps_to_the_middle_of_a_dead_end_wherever_across_it_the_car_stopped() -> void:
 	# A wrong turn can leave the car off its dead end's middle, even in the next cell across. On a
-	# dead end of each heading, with the car OFF_ROAD_TILES and BESIDE_TILES to either side of its
-	# middle, he keeps to the dead end's middle, and halts and lays his hoofprints on the road. With
-	# the car FAR_OFF_TILES to either side, off any road, he keeps to the car's line.
+	# dead end of each heading, with the car OFF_ROAD_TILES, BESIDE_TILES and NEXT_MIDDLE_TILES to
+	# either side of its middle, he keeps to the dead end's middle, and halts and lays his
+	# hoofprints on the road. With the car FAR_OFF_TILES to either side, off any road, he keeps to
+	# the car's line, and leaves no hoofprints on the fields.
 	var dead_ends := _dead_ends(_car.sim.buffer)
 	assert_eq(dead_ends.size(), Heading.VEC.size(), "a dead end of each heading")
 	for branch: RoadTile in dead_ends:
 		var heading := Vector2(Heading.VEC[branch.branch_exit])
 		var across := Vector2(absf(heading.y), absf(heading.x))
-		for off: float in [OFF_ROAD_TILES, BESIDE_TILES, FAR_OFF_TILES]:
+		for off: float in [OFF_ROAD_TILES, BESIDE_TILES, NEXT_MIDDLE_TILES, FAR_OFF_TILES]:
 			for side: float in [-1.0, 1.0]:
 				var what := "heading %s, %s tiles across" % [heading, side * off]
 				var at := Iso.cell_centre(branch.cell) + across * side * off
@@ -802,6 +894,25 @@ func test_he_keeps_to_the_road_ahead_when_the_car_stopped_across_a_dead_end() ->
 			if on_road not in kinds:
 				kinds.append(on_road)
 	assert_eq(kinds.size(), 2, "beside junctions with and without a road ahead")
+
+
+func test_his_hoofprints_lie_only_on_the_road_where_it_ends_short_of_them() -> void:
+	# Where the road that he keeps to ends a stride or two past where he halts, with fields beyond
+	# it and then a road across its line, and the car stopped off its middle, as a review found: his
+	# hoofprints lie on the road as far as it runs on, the strides that fit on it, all on it, and no
+	# more, none on the fields beyond nor on the road across.
+	_car.sim.buffer = Fixtures.dead_end_short_of_a_road()
+	_car.sim.pos = Vector2(1.5, 0.03)
+	_car.position = Iso.tile_to_world(_car.sim.pos)
+	var legend := _legend(Vector2.RIGHT)
+	var hoofprints := _prints(legend)
+	_step_to(legend, _ends()[3])
+	var shown := hoofprints.frame
+	assert_true(Disasters.shows(hoofprints), "his hoofprints show")
+	assert_eq(_off_road(hoofprints, shown), 0, "all on the road")
+	assert_lt(shown, HeadlessHorseman.STRIDES - 1, "not all his strides fit on it")
+	if shown < HeadlessHorseman.STRIDES - 1:
+		assert_gt(_off_road(hoofprints, shown + 1), 0, "but all that do")
 
 
 func test_its_one_glow_is_the_ghost_fire_which_lights_in_his_hand_and_fades_on_the_car() -> void:
@@ -845,43 +956,15 @@ func test_its_one_glow_is_the_ghost_fire_which_lights_in_his_hand_and_fades_on_t
 	assert_eq(_glows(legend), [glow] as Array[CanvasItem], "still its only glow, the car taken")
 
 
-func test_its_light_rises_at_each_point_at_most_once_whichever_way_the_car_heads() -> void:
-	# test_none_flashes plays it one way. For each heading, the ghost-fire takes another path; on
+func test_its_light_rises_at_each_point_at_most_once_wherever_the_car_stopped() -> void:
+	# test_none_flashes plays it one way. Wherever the car stopped on a dead end of each heading,
+	# the ghost-fire takes another path, a short one where the car stopped far across its road; on
 	# each, its light rises at each point of the world by more than FLASH_CHANGE of white's at most
 	# once, so it never flashes (§5.6).
-	var change := Tuning.FLASH_CHANGE * Color.WHITE.get_luminance()
-	for heading: Vector2 in HEADINGS:
-		var what := "heading %s" % heading
-		var legend := _legend(heading)
-		watch_signals(legend)
-		var lights: Array[Dictionary] = []
-		var reds: Array[Dictionary] = []
-		var images: Dictionary[Texture2D, Image] = {}
-		while get_signal_emit_count(legend, "finished") == 0:
-			if lights.size() >= Disasters.MAX_FRAMES:
-				fail_test("%s: it finishes" % what)
-				break
-			_step(legend)
-			var light: Dictionary[Vector2i, float] = {}
-			var red: Dictionary[Vector2i, float] = {}
-			for glow: CanvasItem in _glows(legend):
-				Disasters.shine(glow as Sprite2D, light, red, images)
-			lights.append(light)
-			reds.append(red)
-		var points: Dictionary[Vector2i, bool] = {}
-		for light: Dictionary in lights:
-			for point: Vector2i in light:
-				points[point] = true
-		assert_gt(points.size(), 0, "%s: its glow lights the world" % what)
-		var twice: Array[Vector2i] = []
-		for point: Vector2i in points:
-			var values := PackedFloat32Array()
-			for light: Dictionary in lights:
-				values.append(light.get(point, 0.0))
-			if Disasters._turns(values, change)[0].size() > 1:
-				twice.append(point * Tuning.FLASH_GRID)
-		assert_eq(twice, [] as Array[Vector2i], "%s: lit twice" % what)
-		assert_eq(Disasters.flashing(lights, reds), "", what)
+	for branch: RoadTile in _dead_ends(_car.sim.buffer):
+		for stop: Vector2 in STOPS:
+			var heading := _stop_on(branch, stop)
+			_assert_rises_once(_legend(heading), "heading %s, stopped at %s" % [heading, stop])
 
 
 func test_he_his_ghost_fire_and_his_hoofprints_stand_out_from_the_fields_by_night() -> void:
