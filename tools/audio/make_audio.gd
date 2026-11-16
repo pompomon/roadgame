@@ -43,6 +43,7 @@ func _initialize() -> void:
 	_save_legend("scarecrow", _scarecrow)
 	# The Meadows' legends.
 	_save_legend("fairy_ring", _fairy_ring)
+	_save_legend("kelpie", _kelpie)
 	# The Village's legends.
 	_save_legend("witch_hex", _witch_hex)
 	# The Desert's legends.
@@ -307,6 +308,59 @@ func _fairy_ring() -> PackedFloat32Array:
 	_add(out, _bell(98.0), hold, 1.0)
 	_add(out, _bell(99.5), hold, 0.7)
 	return out
+
+
+## Timed to Tuning.KELPIE_BEATS from the end of the delay, when the sound starts: bubbles, closer
+## and closer together, as the pool wells up, and a splash as the horse breaks out of it; its
+## whinny, high and wavering and falling away, as it waits; the water sloshing as the car rolls in
+## to its side; then a great splash as it plunges, and glugs, lower and softer, as they sink.
+func _kelpie() -> PackedFloat32Array:
+	var beats := Tuning.KELPIE_BEATS
+	var surfaced: float = beats[0] * Kelpie.POOL_SHARE
+	var waits: float = beats[0]
+	var mount: float = waits + beats[1]
+	var plunge: float = mount + beats[2]
+	var out := _silence(roundi((plunge + beats[3] + 0.3) * RATE))
+	for k: int in 10:
+		_add(out, _bubble(_rng.randf_range(450.0, 900.0)), surfaced * sqrt(k / 10.0), 0.3)
+	_add(out, _splash(0.3, 2500.0), surfaced, 1.2)
+	var whinny: float = beats[1] + beats[2] * 0.5
+	_add(out, _whinny(900.0, whinny), waits, 0.3)
+	_add(out, _whinny(915.0, whinny), waits, 0.2)
+	_add(out, _swell(_low_pass(_noise(roundi(beats[2] * RATE)), 700.0)), mount, 1.0)
+	_add(out, _splash(0.6, 1800.0), plunge, 2.5)
+	for k: int in 8:
+		var at := plunge + 0.15 + 0.1 * k + _rng.randf_range(0.0, 0.05)
+		_add(out, _bubble(_rng.randf_range(250.0, 420.0) * pow(0.95, k)), at, 0.5 * pow(0.8, k))
+	return out
+
+
+## A bubble at `freq` Hz: a blip that rises as it bursts.
+func _bubble(freq: float) -> PackedFloat32Array:
+	return _decay(_glide(freq, freq * 1.8, 0.06), 0.02)
+
+
+## A splash `seconds` long: a burst of water, low-passed at `cutoff` Hz, and the hiss of its spray.
+func _splash(seconds: float, cutoff: float) -> PackedFloat32Array:
+	var n := roundi(seconds * RATE)
+	var out := _decay(_low_pass(_noise(n), cutoff), seconds * 0.3)
+	_add(out, _decay(_high_pass(_noise(n), 3000.0), seconds * 0.15), 0.0, 0.3)
+	return out
+
+
+## A horse's whinny from `freq` Hz, `seconds` long: a voice of three partials over a breath of
+## noise, its pitch wavering fast and falling by half, loud at once and dying away.
+func _whinny(freq: float, seconds: float) -> PackedFloat32Array:
+	var out := _low_pass(_noise(roundi(seconds * RATE)), 1500.0)
+	var phase := 0.0
+	for i: int in out.size():
+		var t := float(i) / out.size()
+		phase += freq * pow(0.5, t) * (1.0 + 0.06 * sin(TAU * 28.0 * i / RATE)) / RATE
+		var voice := 0.3 * out[i]
+		for partial: float in [1.0, 2.0, 3.0]:
+			voice += sin(TAU * phase * partial) / partial
+		out[i] = voice * minf(i / (0.03 * RATE), 1.0) * (1.0 - t)
+	return _low_pass(out, 3500.0)
 
 
 # The Village's legends.

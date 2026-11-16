@@ -40,7 +40,7 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 		# Rural's.
 		&"rural": [&"ufo", &"scarecrow"],
 		# The Meadows'.
-		&"meadows": [&"fairy_ring"],
+		&"meadows": [&"fairy_ring", &"kelpie"],
 		# The Village's.
 		&"village": [&"witch_hex"],
 		# The Desert's.

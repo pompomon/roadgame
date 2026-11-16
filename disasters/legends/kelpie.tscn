@@ -1,0 +1,79 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://disasters/legends/kelpie.gd" id="1_kelpie"]
+[ext_resource type="Texture2D" path="res://assets/legends/kelpie/pool.png" id="2_pool"]
+[ext_resource type="Texture2D" path="res://assets/legends/kelpie/weed.png" id="3_weed"]
+[ext_resource type="Texture2D" path="res://assets/legends/kelpie/kelpie.png" id="4_kelpie"]
+
+[sub_resource type="Gradient" id="Gradient_splash"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.333333, 0.666667)
+colors = PackedColorArray(0.619608, 0.780392, 0.941176, 1, 0.941176, 0.941176, 0.909804, 1, 0.2, 0.419608, 0.701961, 1)
+
+[sub_resource type="Gradient" id="Gradient_drips"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.5)
+colors = PackedColorArray(0.619608, 0.780392, 0.941176, 1, 0.941176, 0.941176, 0.909804, 1)
+
+[node name="Kelpie" type="Node2D" node_paths=PackedStringArray("standing")]
+script = ExtResource("1_kelpie")
+standing = [NodePath("Horse")]
+id = &"kelpie"
+display_name = "Kelpie"
+fate = "A kelpie carried you into the loch."
+lore = "Scotland: a water horse that carries its riders into the loch."
+
+[node name="Pool" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+scale = Vector2(0, 0)
+texture = ExtResource("2_pool")
+hframes = 4
+
+[node name="Weed" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("3_weed")
+
+[node name="Horse" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("4_kelpie")
+centered = false
+hframes = 3
+region_enabled = true
+region_rect = Rect2(0, 0, 168, 0)
+
+[node name="Splash" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 40
+lifetime = 0.6
+explosiveness = 0.5
+emission_shape = 3
+emission_rect_extents = Vector2(20, 4)
+direction = Vector2(0, -1)
+spread = 40.0
+gravity = Vector2(0, 300)
+initial_velocity_min = 60.0
+initial_velocity_max = 110.0
+scale_amount_min = 2.0
+scale_amount_max = 3.0
+color_initial_ramp = SubResource("Gradient_splash")
+
+[node name="Drips" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 10
+lifetime = 0.3
+emission_shape = 3
+emission_rect_extents = Vector2(14, 2)
+direction = Vector2(0, 1)
+spread = 10.0
+gravity = Vector2(0, 200)
+initial_velocity_min = 10.0
+initial_velocity_max = 20.0
+scale_amount_min = 1.0
+scale_amount_max = 2.0
+color_initial_ramp = SubResource("Gradient_drips")
