@@ -6,10 +6,11 @@ extends Legend
 ## beside it. The car rolls forward into the grave and sinks, as the earth falls in on it, and a
 ## gravestone rises at the grave's head. The Reaper fades away; the filled grave and its gravestone
 ## stay. Its scythe never moves, and never swings at the car (docs/M6.md Q8): in every frame its
-## blade points away from the car. The grave lies flat under the legend, along the car's road. The
-## car's double sinks into it by showing only the top rows of its frame, cut off at the pit's near
-## lip, as the death worm's throat cuts it; the gravestone rises by showing only the top rows of its
-## frame, as Frau Holle's well does. It has a dusk veil and no glow (§5.6).
+## blade points away from the car. The grave lies flat under the legend, along the car's road, on
+## its middle wherever across it the car stopped; the car's double rolls into it from where the car
+## stopped, turning to face its way. It sinks into it by showing only the top rows of its frame, cut
+## off at the pit's near lip, as the death worm's throat cuts it; the gravestone rises by showing
+## only the top rows of its frame, as Frau Holle's well does. It has a dusk veil and no glow (§5.6).
 ## tools/art/legends/grim_reaper.gd draws its sheets with these constants.
 
 ## The Reaper's frames: stepping, on one foot and then the other; standing; beckoning, its fingers
@@ -69,8 +70,9 @@ var _step_from := Vector2.ZERO
 var _side := 1.0
 var _taken := false
 var _double: Sprite2D
-## Where the double stood as it took the car's place, in the World.
+## Where the double stood as it took the car's place, in the World, and the frame it showed.
 var _from := Vector2.ZERO
+var _first := 0
 
 @onready var _reaper: Sprite2D = %Reaper
 @onready var _grave: Sprite2D = %Grave
@@ -83,9 +85,11 @@ static func duration(params: DisasterParams) -> float:
 
 
 ## Where the grave's middle is, from the car's ground point, the car heading `heading`, in tile
-## space: GRIM_REAPER_AHEAD_TILES ahead along its road, the tile axis nearest to its heading.
-static func grave(heading: Vector2) -> Vector2:
-	return Iso.tile_to_world(PhantomBus.road(heading) * Tuning.GRIM_REAPER_AHEAD_TILES)
+## space, and the middle of the road ahead `middle` from it, in tiles, as Kelpie.to_middle() finds
+## it: on the road's middle, GRIM_REAPER_AHEAD_TILES ahead along its road, the tile axis nearest to
+## its heading.
+static func grave(heading: Vector2, middle := Vector2.ZERO) -> Vector2:
+	return _beside(heading, middle, 0.0)
 
 
 ## Whether the grave lies along the tile y axis, so that its sheet is mirrored.
@@ -93,33 +97,38 @@ static func mirrored(heading: Vector2) -> bool:
 	return absf(PhantomBus.road(heading).y) > 0.5
 
 
-## Where the Reaper stands, from the car's ground point: beside the grave's middle,
-## GRIM_REAPER_SIDE_TILES up-screen of the road's middle, as the phantom bus finds it.
-static func stand(heading: Vector2) -> Vector2:
-	return _beside(heading, Tuning.GRIM_REAPER_SIDE_TILES)
+## Where the Reaper stands, from the car's ground point, `middle` as for grave(): beside the grave's
+## middle, GRIM_REAPER_SIDE_TILES up-screen of the road's middle, or of the car, if it stopped
+## further up the screen than that. So the car is on the grave's side of it, and its double rolls
+## into the grave on that side too, away from the scythe.
+static func stand(heading: Vector2, middle := Vector2.ZERO) -> Vector2:
+	return _beside(heading, _higher(heading, middle), Tuning.GRIM_REAPER_SIDE_TILES)
 
 
 ## Where it steps out from: GRIM_REAPER_STEP_TILES farther off the road.
-static func step_from(heading: Vector2) -> Vector2:
-	return _beside(heading, Tuning.GRIM_REAPER_SIDE_TILES + Tuning.GRIM_REAPER_STEP_TILES)
+static func step_from(heading: Vector2, middle := Vector2.ZERO) -> Vector2:
+	var out := Tuning.GRIM_REAPER_SIDE_TILES + Tuning.GRIM_REAPER_STEP_TILES
+	return _beside(heading, _higher(heading, middle), out)
 
 
-## 1 if the grave is to the screen's right of where the Reaper stands, -1 to its left.
+## 1 if the grave is to the screen's right of where the Reaper stands, -1 to its left, wherever
+## across the road the car stopped: the Reaper stands up-screen of the grave's middle.
 static func side(heading: Vector2) -> float:
 	return 1.0 if grave(heading).x >= stand(heading).x else -1.0
 
 
 ## Where the gravestone stands, from the car's ground point: at the grave's head, the end of its pit
 ## up the screen.
-static func head(heading: Vector2) -> Vector2:
+static func head(heading: Vector2, middle := Vector2.ZERO) -> Vector2:
 	var up_road := -PhantomBus.road(heading).abs()
-	return grave(heading) + Iso.tile_to_world(up_road * (GRAVE_TILES.x / 2.0 + STONE_OUT))
+	var out := up_road * (GRAVE_TILES.x / 2.0 + STONE_OUT)
+	return grave(heading, middle) + Iso.tile_to_world(out)
 
 
 ## Where the earth falls in from, from the car's ground point: EARTH_PX below the middle of the
 ## pit's side up the screen, under the heap.
-static func earth(heading: Vector2) -> Vector2:
-	return _beside(heading, GRAVE_TILES.y / 2.0) + Vector2(0.0, EARTH_PX)
+static func earth(heading: Vector2, middle := Vector2.ZERO) -> Vector2:
+	return _beside(heading, middle, GRAVE_TILES.y / 2.0) + Vector2(0.0, EARTH_PX)
 
 
 ## How many rows of its frame the car's double shows, sunk `sunk` px into the grave.
@@ -152,26 +161,40 @@ static func dug(t: float) -> int:
 	return Dug.AJAR if t >= AJAR_FROM else Dug.CRACKED
 
 
-## A point beside the grave's middle, `out` tiles up-screen of the road's middle.
-static func _beside(heading: Vector2, out: float) -> Vector2:
+## A point beside the grave's middle, `out` tiles up-screen of `from`, from the car's ground point,
+## in tiles: of the road's middle, or of where else across it.
+static func _beside(heading: Vector2, from: Vector2, out: float) -> Vector2:
 	var forward := PhantomBus.road(heading)
 	var across := PhantomBus.side(forward)
-	return Iso.tile_to_world(forward * Tuning.GRIM_REAPER_AHEAD_TILES - across * out)
+	return Iso.tile_to_world(from + forward * Tuning.GRIM_REAPER_AHEAD_TILES - across * out)
+
+
+## Across the road from the car's ground point, in tiles, to the road's middle, `middle` from it,
+## or to the car itself, if it stopped further up the screen.
+static func _higher(heading: Vector2, middle: Vector2) -> Vector2:
+	var up := -PhantomBus.side(PhantomBus.road(heading))
+	return up * maxf(middle.dot(up), 0.0)
 
 
 func play(params: DisasterParams) -> void:
 	super(params)
 	var heading := car.sim.forward() if car != null else params.direction
-	_grave_at = grave(heading)
-	_stand_at = stand(heading)
-	_step_from = step_from(heading)
+	# A wrong turn can leave the car off its road's middle, even in the next cell across: the grave
+	# opens on the road all the same, and the car rolls into it from where it stopped.
+	var middle := Vector2.ZERO
+	if car != null:
+		var at := Iso.world_to_tile(params.origin_world)
+		middle = Kelpie.to_middle(at, PhantomBus.road(heading), car.sim.buffer)
+	_grave_at = grave(heading, middle)
+	_stand_at = stand(heading, middle)
+	_step_from = step_from(heading, middle)
 	_side = side(heading)
 	_grave.position = _grave_at
 	_grave.flip_h = mirrored(heading)
 	_reaper.flip_h = _side < 0.0
 	_reaper.global_position = to_global(_step_from)
-	_stone.global_position = to_global(head(heading))
-	var earth_at := earth(heading)
+	_stone.global_position = to_global(head(heading, middle))
+	var earth_at := earth(heading, middle)
 	_earth.position = earth_at
 	_earth.direction = (_grave_at - earth_at).normalized()
 
@@ -203,14 +226,16 @@ func _step(t: float) -> void:
 
 
 ## The car rolls into the grave and sinks, `t` of the sink done: its double takes its place, once,
-## rolls to the grave's middle and sinks, faster and faster, as the earth falls in on it. The grave
-## fills, and the earth goes, the gravestone rises, and the Reaper lowers its hand and fades away.
+## rolls to the grave's middle, turning to face it, and sinks, faster and faster, as the earth falls
+## in on it. The grave fills, and the earth goes, the gravestone rises, and the Reaper lowers its
+## hand and fades away.
 func _sink(t: float) -> void:
 	if not _taken:
 		_taken = true
 		_double = take_car()
 		if _double != null:
 			_from = _double.global_position
+			_first = roundi(_double.region_rect.position.x / CarController.FRAME_SIZE.x)
 	_reaper.frame = Pose.STAND
 	_reaper.modulate.a = 1.0 - clampf((t - FADE_FROM) / (1.0 - FADE_FROM), 0.0, 1.0)
 	var filled := t >= SUNK_AT
@@ -223,9 +248,15 @@ func _sink(t: float) -> void:
 	_show_stone(stone_rows(1.0 - (1.0 - risen) * (1.0 - risen)))
 	if _double == null:
 		return
-	var rolled := smoothstep(0.0, 1.0, minf(t / ROLL_SHARE, 1.0))
+	var rolled := minf(t / ROLL_SHARE, 1.0)
 	var sinking := clampf((t - ROLL_SHARE) / (SUNK_AT - ROLL_SHARE), 0.0, 1.0)
-	_double.global_position = _from.lerp(to_global(_grave_at), rolled)
+	var to := to_global(_grave_at)
+	_double.global_position = _from.lerp(to, smoothstep(0.0, 1.0, rolled))
+	# It rolls straight, so it turns from the frame that it stopped in to face the way to the grave,
+	# as the kelpie's mount turns it: a wrong turn can leave it turned off its road, or off its
+	# middle.
+	var frame := Kelpie.steer(_first, _from, _from, to, rolled)
+	_double.region_rect.position.x = CarController.FRAME_SIZE.x * frame
 	var sunk := roundi(SINK_PX * sinking * sinking)
 	var shown := kept(sunk)
 	_double.offset = Vector2(-CarController.FOOT.x, sunk - CarController.FOOT.y)
