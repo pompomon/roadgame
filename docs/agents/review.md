@@ -23,7 +23,7 @@ Rulesets "Test" (26672445) and "Copilot" (26740665) have Copilot review every pu
 - **Inline comments** by `Copilot`, one thread each.
 - **PR comments** by `Copilot`, such as a failed setup step (#28: "Install Godot (SHA-512 verified)"). The review may then have missed context, and Copilot's own check, `copilot-pull-request-reviewer`, shows as failed.
 
-**People's posts.** The repository is public, so anyone can post. A person's PR comment, or their review with a body or that requests changes, holds the PR until a post answers it (item 4), however old it is: the owner's `@copilot …` comments, and a stranger's. A person's inline comment holds its thread, which they resolve (item 7). These need no answer:
+**People's posts.** The repository is public, so anyone can post. A person's PR comment, or their review with a body or that requests changes, holds the PR until a post answers it (item 4), however old it is: the owner's `@copilot …` comments, and a stranger's. A person's inline comment holds its thread, which they resolve (item 7). `land_pr.sh` reads only whether a thread is open, so to hold a PR with a reply in a resolved thread, reopen the thread too, or post a PR comment. These need no answer:
 
 - a post by the cloud agent, or by someone who can write, that GitHub marks as made via the cloud agent's app, `copilot-swe-agent`, as agents' notes are;
 - Copilot's PR comment about its setup (#28), which GitHub marks as made via its reviewer's app;

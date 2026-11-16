@@ -19,7 +19,7 @@ IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings 
 
 **State.** M0–M6 are merged, and so are four plans of their own: the road generator, the zone select, the tutorial, and the day and the night (#1–#76). M7 is next: Ship, with orientation and foldables, haptics, the Web's audio, the signed release and device QA. IP §4 M7 gathers the notes for it.
 
-**Layout.** `autoload/`: the `EventBus`, `GameState`, `SaveService` and `AudioDirector` singletons. `road/`: the generator and the junctions. `car/`: `CarSim` (the pure simulation), `Autopilot`, `CarController` and `InputRouter`. `world/`: the projection, the renderer, props, shadows, lamps, the camera, and the day and the night. `disasters/`: the director and the legends. `setpieces/`: the tunnel and the bridge. `ui/`: `main.tscn` (the main scene), the HUD, game over and the title. `audio/`: the music and the ambience. `areas/`: `AreaDef` and one `.tres` per area. `config/tuning.gd`: the tuning constants. `assets/`: the art, the font and the sounds, made by `tools/art/` and `tools/audio/`. `tests/`: `unit/`, `sim/`, `integration/` and `helpers/`. `tools/ci/`: the CI scripts (§3). `tools/agent/`: `watch_pr.sh` and `land_pr.sh` (§5). `addons/gut/`: GUT 9.7.1, unmodified.
+**Layout.** `autoload/`: the `EventBus`, `GameState`, `SaveService` and `AudioDirector` singletons. `road/`: the generator and the junctions. `car/`: `CarSim` (the pure simulation), `Autopilot`, `CarController` and `InputRouter`. `world/`: the projection, the renderer, props, shadows, lamps, the camera, and the day and the night. `disasters/`: the director and the legends. `setpieces/`: the tunnel and the bridge. `ui/`: `main.tscn` (the main scene), the HUD, game over and the title. `audio/`: the music and the ambience. `areas/`: `AreaDef` and one `.tres` per area. `config/tuning.gd`: the tuning constants. `assets/`: the art, the font and the sounds, made by `tools/art/` and `tools/audio/`. `tests/`: `unit/`, `sim/`, `integration/` and `helpers/`. `tools/ci/`: the CI scripts (§3). `tools/agent/`: `watch_pr.sh` and `land_pr.sh` (§5), and their tests in `test/`. `addons/gut/`: GUT 9.7.1, unmodified.
 
 **Read more** when you need it:
 
@@ -69,7 +69,7 @@ tools/ci/smoke.sh          # runs the main scene for 60 simulated seconds
 git status --porcelain     # must print nothing, or CI's test job fails
 ```
 
-While you work, `tools/ci/run_tests.sh -gselect=test_hud` runs each test script whose name contains `test_hud`, with the same checks. Run the whole suite before each push. Put the counts in the PR: scripts loaded, tests, asserts, GUT time, and `smoke.sh`'s `autopilot: tile …, turns …, area …` line.
+While you work, `tools/ci/run_tests.sh -gselect=test_hud` runs each test script whose name contains `test_hud`, with the same checks. Run the whole suite before each push. Put the counts in the PR: scripts loaded, tests, asserts, GUT time, and `smoke.sh`'s `autopilot: tile …, turns …, area …` line. If you change `tools/agent/`, run `python3 tools/agent/test/scenarios.py` too, as CI's `lint` job does (`ci` instructions).
 
 ## 4. Branches and commits
 
