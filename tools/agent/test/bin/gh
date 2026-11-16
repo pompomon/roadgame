@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Fake gh for tools/agent/test/scenarios.py: answers the calls that land_pr.sh and watch_pr.sh make
+from the JSON fixtures in $FAKE_DIR, through jq for --jq, and logs each call to calls.log.
+
+NAME@k.json replaces NAME.json once the phase is k. The phase advances on each status check
+rollup query, which land_pr.sh makes once a pass of its gate, or, given trigger.json, on each call
+whose arguments contain its string instead. Given fail_on.json, each call whose arguments contain
+its string fails. A merge writes merge_args, and merged unless merge_fail.json is there; a PATCH of
+a PR's base appends to retargeted."""
+import json
+import os
+import re
+import subprocess
+import sys
+
+# scenarios.py drops these, so that a gh that isn't this one couldn't log in.
+for var in ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"):
+    if var in os.environ:
+        sys.exit(f"fake gh: {var} is set")
+sys.stdout.reconfigure(encoding="utf-8")
+d = os.environ["FAKE_DIR"]
+args = sys.argv[1:]
+with open(os.path.join(d, "calls.log"), "a", encoding="utf-8") as log:
+    log.write("gh " + " ".join(args) + "\n")
+
+
+def phase():
+    try:
+        with open(os.path.join(d, "phase")) as f:
+            return int(f.read())
+    except FileNotFoundError:
+        return 0
+
+
+def advance():
+    nxt = phase() + 1
+    with open(os.path.join(d, "phase"), "w") as f:
+        f.write(str(nxt))
+
+
+def load(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def optional(name):
+    path = os.path.join(d, name + ".json")
+    return load(path) if os.path.exists(path) else None
+
+
+def fixture(name):
+    best = os.path.join(d, name + ".json")
+    for k in range(1, phase() + 1):
+        path = os.path.join(d, f"{name}@{k}.json")
+        if os.path.exists(path):
+            best = path
+    return load(best)
+
+
+def emit(data, jq):
+    if jq is None:
+        print(json.dumps(data))
+        return
+    r = subprocess.run(["jq", "-r", jq], input=json.dumps(data), encoding="utf-8", capture_output=True)
+    if r.returncode != 0:
+        sys.exit("fake gh: jq failed: " + r.stderr)
+    sys.stdout.write(r.stdout)
+
+
+def pr_data():
+    data = fixture("pr")
+    if os.path.exists(os.path.join(d, "merged")):
+        data.update(merged=True, state="closed", merge_commit_sha="f00d" + "0" * 36)
+    return data
+
+
+def retargets():
+    """The bases that PATCHes gave PRs, by number."""
+    path = os.path.join(d, "retargeted")
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return dict(line.split() for line in f)
+
+
+VALUED = ("--repo", "-R", "--commit", "--branch", "--workflow", "--event", "--limit", "--json",
+          "--status", "--hostname", "--match-head-commit")
+# gh run list's JSON fields, in gh 2.x.
+RUN_FIELDS = {"attempt", "conclusion", "createdAt", "databaseId", "displayTitle", "event", "headBranch",
+              "headSha", "name", "number", "startedAt", "status", "updatedAt", "url", "workflowDatabaseId",
+              "workflowName"}
+
+
+def parse(rest):
+    opts = {"jq": None, "method": "GET", "fields": {}, "typed": set(), "pos": []}
+    i = 0
+    while i < len(rest):
+        a = rest[i]
+        if a == "--jq":
+            opts["jq"] = rest[i + 1]
+            i += 2
+        elif a in ("-X", "--method"):
+            opts["method"] = rest[i + 1]
+            i += 2
+        elif a in ("-f", "-F", "--field", "--raw-field"):
+            key, _, value = rest[i + 1].partition("=")
+            opts["fields"][key] = value
+            if a in ("-F", "--field"):
+                opts["typed"].add(key)
+            i += 2
+        elif a in VALUED:
+            opts[a.lstrip("-")] = rest[i + 1]
+            i += 2
+        elif a.startswith("-"):
+            opts[a.lstrip("-")] = True
+            i += 1
+        else:
+            opts["pos"].append(a)
+            i += 1
+    return opts
+
+
+joined = " ".join(args)
+fail_on = optional("fail_on")
+if fail_on and fail_on in joined:
+    sys.exit("fake gh: failing, as fail_on.json says")
+trigger = optional("trigger")
+if trigger and trigger in joined:
+    advance()
+
+cmd, rest = args[0], args[1:]
+if cmd == "repo":
+    print("pompomon/roadgame")
+elif cmd == "run" and rest[0] == "list":
+    o = parse(rest[1:])
+    if "json" not in o:
+        sys.exit("fake gh: run list prints a table without --json")
+    fields = o["json"].split(",")
+    for field in fields:
+        if field not in RUN_FIELDS:
+            sys.exit(f'Unknown JSON field: "{field}"')
+    # gh filters by these flags, then takes the newest --limit runs: each fixture lists the newest first.
+    filters = {"branch": "headBranch", "commit": "headSha", "event": "event"}
+    name = "runs_main" if "branch" in o else "runs_commit"
+    runs = fixture(name)
+    for run in runs:
+        for field in fields + [filters[k] for k in filters if k in o]:
+            if field not in run:
+                sys.exit(f"fake gh: a run in {name}.json has no {field}")
+    runs = [r for r in runs if all(r[field] == o[k] for k, field in filters.items() if k in o)]
+    emit([{f: r[f] for f in fields} for r in runs[:int(o.get("limit", 20))]], o["jq"])
+elif cmd == "pr" and rest[0] == "merge":
+    o = parse(rest[1:])
+    with open(os.path.join(d, "merge_args"), "w") as f:
+        f.write(" ".join(rest) + "\n")
+    if os.path.exists(os.path.join(d, "merge_fail.json")):
+        sys.exit('GraphQL: Required status check "test" is expected. (mergePullRequest)')
+    if o.get("match-head-commit") != pr_data()["head"]["sha"]:
+        sys.exit("GraphQL: Head branch was modified. (mergePullRequest)")
+    open(os.path.join(d, "merged"), "w").close()
+    print("✓ Squashed and merged pull request")
+elif cmd == "api":
+    o = parse(rest)
+    endpoint = o["pos"][0]
+    path = endpoint.split("?")[0]
+    parts = path.split("/")
+    if endpoint == "graphql":
+        query = o["fields"].get("query", "")
+        # GitHub rejects a missing variable, and an Int given as a string: -f sends strings, -F numbers.
+        for var, kind in re.findall(r"\$(\w+): (\w+)!", query):
+            if var not in o["fields"]:
+                sys.exit(f"gh: Variable ${var} of type {kind}! was provided invalid value")
+            if kind == "Int" and (var not in o["typed"] or not o["fields"][var].isdigit()):
+                sys.exit(f"gh: Variable ${var} of type Int! was provided invalid value")
+        if "reviewThreads" in query:
+            emit(fixture("threads"), o["jq"])
+        elif "timelineItems" in query:
+            emit(fixture("bases"), o["jq"])
+        elif "statusCheckRollup" in query:
+            data = fixture("rollup")
+            if not trigger:
+                advance()
+            emit(data, o["jq"])
+        else:
+            sys.exit("fake gh: unknown graphql query")
+    elif path == "repos/pompomon/roadgame":
+        emit({"default_branch": "main"}, o["jq"])
+    elif len(parts) == 5 and parts[3] == "pulls":
+        n = parts[4]
+        if o["method"] == "PATCH":
+            with open(os.path.join(d, "retargeted"), "a") as f:
+                f.write(f"{n} {o['fields'].get('base')}\n")
+            emit({"number": int(n), "base": {"ref": o["fields"].get("base")}}, o["jq"])
+        elif n == str(pr_data()["number"]):
+            emit(pr_data(), o["jq"])
+        else:
+            # A PR above this one: above_pr.json if it's that PR, else still based on this one's branch,
+            # until a PATCH retargets it.
+            data = fixture("above_pr") if os.path.exists(os.path.join(d, "above_pr.json")) else None
+            if data is None or str(data["number"]) != n:
+                base = retargets().get(n, pr_data()["head"]["ref"])
+                data = {"number": int(n), "state": "open", "base": {"ref": base}}
+            emit(data, o["jq"])
+    elif path == "repos/pompomon/roadgame/pulls":
+        if "state=closed" not in endpoint:
+            emit(fixture("above"), o["jq"])
+        else:
+            head = re.search(r"head=[^:&]+:([^&]+)", endpoint).group(1)
+            emit(fixture("plans" if head.endswith("/plan") else "below"), o["jq"])
+    elif parts[3] == "compare":
+        emit(fixture("compare"), o["jq"])
+    elif parts[3] == "rules":
+        emit(fixture("rules"), o["jq"])
+    elif parts[-1] == "reviews":
+        emit(fixture("reviews"), o["jq"])
+    elif parts[3] == "pulls" and parts[-1] == "comments":
+        emit(fixture("inline_comments"), o["jq"])
+    elif parts[3] == "issues":
+        emit(fixture("issue_comments"), o["jq"])
+    elif parts[3] == "git":
+        emit(fixture("mainref"), o["jq"])
+    elif parts[-1] == "check-runs":
+        emit(fixture("checkruns"), o["jq"])
+    elif parts[3] == "commits":
+        emit({"commit": {"committer": {"date": "2026-11-15T04:41:51Z"}}}, o["jq"])
+    else:
+        sys.exit("fake gh: unknown endpoint " + endpoint)
+else:
+    sys.exit("fake gh: unknown command " + joined)
