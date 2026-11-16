@@ -83,25 +83,6 @@ static func ahead(heading: Vector2) -> Vector2:
 	return Iso.tile_to_world(PhantomBus.road(heading))
 
 
-## From the car's ground point `at`, in tile space, to the middle of the road ahead that it stopped
-## on or beside, in tiles: across `road`, the tile axis ahead, to the middle of the cell that the
-## car is in, if a road runs on from it along `road` in `buffer`, or else of the cell next to it
-## across `road` that is nearer the car, if one runs on from that. A wrong turn can leave the car
-## off its road's middle, even in the next cell across, as it brakes straight on from mid-turn, or
-## heading across its road, beside a junction. If no road runs on ahead from either cell, there is
-## none for him to keep to.
-static func to_middle(at: Vector2, road: Vector2, buffer: RoadBuffer) -> Vector2:
-	var across := Vector2(absf(road.y), absf(road.x))
-	var cell := Vector2i(at.floor())
-	var off := at.dot(across) - floorf(at.dot(across)) - 0.5
-	var along := Heading.from_vec(Vector2i(road))
-	for k: int in [0, -1 if off < 0.0 else 1]:
-		var tile := buffer.tile_at(cell + Vector2i(across) * k)
-		if tile != null and tile.has_exit(along):
-			return across * (k - off)
-	return Vector2.ZERO
-
-
 ## Where he gallops in from and off to, from the car's ground point, were the car on its road's
 ## middle: HEADLESS_HORSEMAN_FROM_TILES ahead.
 static func far(heading: Vector2) -> Vector2:
@@ -210,7 +191,7 @@ func play(params: DisasterParams) -> void:
 	if car != null:
 		var at := Iso.world_to_tile(params.origin_world)
 		var road := PhantomBus.road(heading)
-		var shift := to_middle(at, road, car.sim.buffer)
+		var shift := Kelpie.to_middle(at, road, car.sim.buffer)
 		middle = Iso.tile_to_world(shift)
 		var halted := at + shift + road * Tuning.HEADLESS_HORSEMAN_STOP_TILES
 		_strides = strides_on(halted, road, car.sim.buffer)
