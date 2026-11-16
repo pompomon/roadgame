@@ -159,6 +159,16 @@ func record_disaster(id: StringName, area_id: StringName, stats: Dictionary) -> 
 	disasters[String(id)] = entry
 
 
+## The ids of the disasters seen at least once: those that the collection shows (plan.md §2.6),
+## and that weigh less in a run's picks (POOLS_PLAN.md Q2, Q3).
+func seen_disasters() -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for id: String in disasters:
+		if disasters[id]["seen"] > 0:
+			ids.append(StringName(id))
+	return ids
+
+
 ## Sets a setting. An unknown key, or a value it can't take, is an error and changes nothing.
 func set_setting(key: String, value: Variant) -> bool:
 	if not DEFAULT_SETTINGS.has(key) or not _setting_ok(key, value):

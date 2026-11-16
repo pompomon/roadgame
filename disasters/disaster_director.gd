@@ -1,8 +1,9 @@
 class_name DisasterDirector
 extends Node
 ## Plays the end of a run (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1, M3.3). After a wrong or
-## missed turn it waits for the car to stop, picks a disaster from the area's pool with the run's
-## disaster stream, and plays it on World's DisasterLayer. After a crash it shakes the camera and
+## missed turn it waits for the car to stop, and plays the area's disaster for the run, which its
+## picks drew as the car reached the area (POOLS_PLAN.md §5.1), on World's DisasterLayer, with
+## params from the run's disaster stream. After a crash it shakes the camera and
 ## waits CRASH_SECONDS while the car stops and smokes. Either way it then emits sequence_finished,
 ## once, and DISASTER_TIMEOUT after the end of the run at the latest. Its time comes from
 ## _physics_process, as a disaster's must (docs/M3.md J2).
@@ -21,6 +22,8 @@ var layer: Node2D
 ## Where a legend stands its parts: World's Props (docs/M6.md S2).
 var stage: Node2D
 var sequence := Sequence.NONE
+## This run's disaster for each area that the car has reached.
+var picks := DisasterPicks.new()
 ## The disaster playing, or null, and its params.
 var disaster: DisasterBase
 var params: DisasterParams
@@ -38,14 +41,23 @@ var _play_time := 0.0
 var _shown := false
 
 
-## Clears the last run's sequence and takes this run's disaster stream.
-func start_run(run_seed: int) -> void:
+## Clears the last run's sequence and takes this run's disaster stream and picks, in which the
+## disasters with ids in `seen` weigh less (POOLS_PLAN.md Q2).
+func start_run(run_seed: int, seen: Array[StringName] = []) -> void:
 	clear()
 	_rng = stream(run_seed)
+	picks = DisasterPicks.new(run_seed, seen)
 
 
-## The disaster stream of the run with `run_seed`, apart from the road's, so that the same seed
-## gives the same road and the same disasters (plan.md §3.5, IMPLEMENTATION_PLAN.md §5.3).
+## The car reached `area`: its disaster for the run is picked now (POOLS_PLAN.md Q4). A pick is
+## the same whenever it's made, so a wrong turn in an area that this missed plays the same one.
+func enter_area(area: AreaDef) -> void:
+	picks.pick(area)
+
+
+## The disaster stream of the run with `run_seed`, for the disaster's params, apart from the
+## road's and the picks', so that the same seed gives the same road, and the same params for the
+## same disaster (plan.md §3.5, IMPLEMENTATION_PLAN.md §5.3).
 static func stream(run_seed: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("%d:disaster" % run_seed)
@@ -87,13 +99,6 @@ func clear() -> void:
 	_shown = false
 
 
-## The scene `rng` draws from `pool`, or null if the pool is empty.
-static func pick(pool: Array[PackedScene], rng: RandomNumberGenerator) -> PackedScene:
-	if pool.is_empty():
-		return null
-	return pool[rng.randi_range(0, pool.size() - 1)]
-
-
 func _physics_process(delta: float) -> void:
 	if sequence == Sequence.NONE or sequence == Sequence.FINISHED:
 		return
@@ -123,7 +128,7 @@ func _begin(car: CarController, camera: CameraRig) -> bool:
 
 
 func _start_disaster() -> void:
-	var scene := pick(_area.disasters, _rng)
+	var scene := picks.pick(_area)
 	var node: Node = scene.instantiate() if scene != null else null
 	disaster = node as DisasterBase
 	if disaster == null:

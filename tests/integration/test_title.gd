@@ -35,6 +35,16 @@ static func _title(main: Node) -> TitleScreen:
 	return main.get_node("%Title")
 
 
+## The place of the disaster `id` among the collection's cards, which follow the pools: in the City,
+## not always the first (POOLS_PLAN.md V7).
+static func _card_of(main: Node, id: StringName) -> int:
+	var disasters := CollectionScreen.disasters(_title(main).schedule)
+	for k: int in disasters.size():
+		if disasters[k]["id"] == id:
+			return k
+	return -1
+
+
 ## The cars in World's Props layer, which y-sorts them with the props (docs/M5.md §5.6).
 static func _cars(main: Node) -> int:
 	var cars := 0
@@ -140,7 +150,9 @@ func test_the_atlas_and_the_collection_show_a_wrong_turn() -> void:
 	MainScene.press_key(main, KEY_ENTER)
 	_to_game_over(main)
 	var distance := Hud.distance_text(GameState.distance)
-	var seen := (main.get_node("%Director") as DisasterDirector).disaster.display_name
+	var seen := (main.get_node("%Director") as DisasterDirector).disaster
+	var at := _card_of(main, seen.id)
+	var seen_name := seen.display_name
 	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
 	var title := _title(main)
 	assert_eq((title.get_node("%Best") as Label).text, "Best: %s, 2 turns" % distance)
@@ -154,9 +166,9 @@ func test_the_atlas_and_the_collection_show_a_wrong_turn() -> void:
 	title.go_back()
 	(title.get_node("%DisastersButton") as Button).pressed.emit()
 	cards = title.get_node("%Collection/%Cards").get_children()
-	assert_eq((cards[0].get_node("%Title") as Label).text, seen, "the City's disaster")
+	assert_eq((cards[at].get_node("%Title") as Label).text, seen_name, "the City's disaster")
 	assert_eq(
-		(cards[0].get_node("%Details") as Label).text,
+		(cards[at].get_node("%Details") as Label).text,
 		"Seen once\nFirst: City, %s, 2 turns" % distance
 	)
 
