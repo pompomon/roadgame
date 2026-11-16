@@ -10,8 +10,8 @@ Usage: tools/agent/land_pr.sh <pr> [--check] [--minutes 20] [--interval 60] [--r
 Lands a PR of a plan whose plan PR the owner merged. It checks the gate (docs/agents/stacks.md
 step 4) every --interval seconds, for up to --minutes while required checks or main's CI run are
 still running, and squash-merges the PR with GitHub's default message, pinned to the head commit
-that watch_pr.sh found reviewed. Then it retargets the open PRs based on the PR's branch to its
-base. --check only reports the gate.
+that watch_pr.sh found reviewed. Then it retargets the open PRs still based on the PR's branch to
+its base. --check only reports the gate.
 
 Exit codes:
   0  Merged, or it already was. With --check: the gate passes, though checks may still be running
@@ -300,18 +300,20 @@ for ref in "$default" "$head_ref"; do
 done
 echo "Landing $repo#$pr, $head_ref into $base, at ${head0:0:7}."
 
-# Retargets the open PRs based on the landed PR's branch to its base, before anyone deletes that
-# branch, which would close them (stacks.md step 6). GitHub may already have done it.
+# Retargets the open PRs still based on the landed PR's branch to its base, before anyone deletes
+# that branch, which would close them (stacks.md step 6). GitHub may already have done it, and a PR
+# that someone retargeted elsewhere since open_above read it stays as it is.
 retarget() {
   local m now
   for m in "$@"; do
     now=$(gh api "repos/$repo/pulls/$m" --jq '"\(.state) \(.base.ref)"') || now=""
     case "$now" in
       "open $base") echo "#$m already targets $base." ;;
-      open\ *)
+      "open $head_ref")
         gh api -X PATCH "repos/$repo/pulls/$m" -f base="$base" --jq '"Retargeted #\(.number) to \(.base.ref)."' \
           || echo "warning: could not retarget #$m to $base: do it with gh pr edit $m --base $base" >&2
         ;;
+      open\ *) echo "#$m targets ${now#open } now, not $head_ref: left as it is." ;;
       closed\ *)
         echo "warning: #$m is closed now. If deleting $head_ref closed it, restore that branch, reopen #$m and retarget it (stacks.md step 6)." >&2
         ;;

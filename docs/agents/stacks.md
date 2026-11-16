@@ -12,7 +12,7 @@ AGENTS.md §4 has the branch names and the commit format. This is how a plan's P
    - its base is `main`, and was all the while it ran, and it's open, not a draft and not labelled `needs-owner`;
    - if it was based on other branches before, a PR from each of them has merged into `main`. Retargeted to `main` before the PR below it landed, it would bring that PR in with its own;
    - its diff with `main`'s tip, which is what the merge brings in whatever the PR's base, changes none of the paths that the owner lands (AGENTS.md §5 step 4), counting a renamed file's old path too. GitHub lists up to 300 files, so a diff of 300 or more is the owner's;
-   - `watch_pr.sh <n> --minutes 0` exits 0, on each pass: Copilot reviewed the head, and nothing needs an answer;
+   - `watch_pr.sh <n> --minutes 0` exits 0, on each pass: Copilot reviewed the head, and nothing needs an answer. If that review isn't clean, a post answers it, starting with a link to it (review.md §2 item 4);
    - nothing came while it ran but Copilot's reviews that `watch_pr.sh` judged: any other review or comment stops it, to be answered first;
    - no review thread is open;
    - it's up to date with `main` and doesn't conflict with it;
@@ -20,7 +20,7 @@ AGENTS.md §4 has the branch names and the commit format. This is how a plan's P
    - the latest run of each required check on the head passed, among the PR's own runs, as GitHub's merge box counts them;
    - the CI run of `main`'s tip passed, so nothing lands on a broken `main`. For a known flake (review.md §4), it prints the command that re-runs it; tell the owner of anything else.
 
-   It checks the gate every `--interval` (60) seconds, for up to `--minutes` (20) while checks or `main`'s CI run are still running. On each pass it reads the PR and its feedback last, after `watch_pr.sh`, so a label, a retarget or a comment that comes while it checks still stops it. Then it squash-merges the PR with GitHub's default message, pinned with `--match-head-commit` to the head that Copilot reviewed: GitHub refuses the merge if anyone pushed since. Then it retargets the open PRs based on the PR's branch to `main`. `--check` only reports the gate.
+   It checks the gate every `--interval` (60) seconds, for up to `--minutes` (20) while checks or `main`'s CI run are still running. On each pass it reads the PR and its feedback last, after `watch_pr.sh`, so a label, a retarget or a comment that comes while it checks still stops it. Then it squash-merges the PR with GitHub's default message, pinned with `--match-head-commit` to the head that Copilot reviewed: GitHub refuses the merge if anyone pushed since. Then it retargets the open PRs still based on the PR's branch to `main`. `--check` only reports the gate.
 
    | Exit | Do |
    |---|---|

@@ -17,8 +17,9 @@ Exit codes:
      unless the owner lands it (AGENTS.md §5). Or the PR is closed, even if feedback came with
      that (printed above)
   2  Feedback that needs an answer (printed above the summary): anything new but a clean Copilot
-     review, or Copilot's review of the head that was already there, isn't clean, and has no
-     thread reply or post by anyone but Copilot after it. Handle it, push, reply, run this again.
+     review, or Copilot's review of the head that was already there isn't clean, and no post
+     starts with a link to it (docs/agents/review.md §2 item 4). Handle it, push, reply, run this
+     again.
      If the head moved too, the last line says so: pull first
   3  No Copilot review of the head commit in time (docs/agents/review.md §3 says what to do)
   4  The head commit changed while watching, and nothing new needs an answer: pull, run this again
@@ -76,11 +77,16 @@ tab=$(printf '\t')
 # their HTML and line breaks and are cut to 300 characters. Comment-only reviews without a body
 # are the containers of thread replies; their comments are listed on their own. A sixth field
 # marks Copilot's reviews of any commit, "true" if clean (approval recommended, no open or
-# previously missed issues) and "false" if not; and thread replies, "reply", whoever posted them
-# (the cloud agent replies as Copilot, like Copilot's own inline comments, but those never reply
-# in a thread). Reviews have a seventh, the commit they review, so one request finds both the new
-# items and Copilot's review of the head.
-jq_text='def text: (. // "") | gsub("<[^>]*>"; "") | gsub("\\s+"; " ") | ltrimstr(" ") | .[0:300];'
+# previously missed issues) and "false" if not. Reviews have a seventh, the commit they review, so
+# one request finds both the new items and Copilot's review of the head. The eighth is the review
+# that the post answers, by id: the one that its raw body starts with a link to, as
+# "Re [Copilot's review of <sha>](<review URL>)" (docs/agents/review.md §2 item 4). A link
+# anywhere else in a post, even after "Re [", doesn't answer anything. The whitespace classes are
+# ASCII so that jq and gh's gojq read a body the same way.
+jq_text='def text: (. // "") | gsub("<[^>]*>"; "") | gsub("\\s+"; " ") | ltrimstr(" ") | .[0:300];
+  def answers: [.body // "" | sub("^[ \\t\\r\\n]+"; "")
+      | match("^Re \\[[^\\]\\n]*\\]\\([^) \\t\\r\\n]*#pullrequestreview-([0-9]+)\\)").captures[0].string]
+    | first // "";'
 items() {
   gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" --jq "$jq_text"'
     .[] | select(.state != "PENDING" and ((.body // "") != "" or .state != "COMMENTED"))
@@ -92,13 +98,12 @@ items() {
        then .body // "" | test("Approval recommended") and test("No open issues")
                           and (test("previously missed") | not) | tostring
        else "" end,
-       .commit_id // ""] | @tsv' &&
+       .commit_id // "", answers] | @tsv' &&
     gh api --paginate "repos/$repo/pulls/$pr/comments?per_page=100" --jq "$jq_text"'
     .[] | ["inline-\(.id)", .created_at, .user.login,
-           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url,
-           if .in_reply_to_id then "reply" else "" end] | @tsv' &&
+           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url, "", "", answers] | @tsv' &&
     gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" --jq "$jq_text"'
-    .[] | ["comment-\(.id)", .created_at, .user.login, (.body | text), .html_url] | @tsv'
+    .[] | ["comment-\(.id)", .created_at, .user.login, (.body | text), .html_url, "", "", answers] | @tsv'
 }
 
 # Copilot's latest review of the head commit, from the items: id, whether it is clean, text.
@@ -138,15 +143,15 @@ reviewed="" polls_after_review=0 attention=0 moved="" failures=0
 if [ -n "$review" ]; then
   reviewed=1
   echo "Copilot had already reviewed $short."
-  # Started late: unless that review is clean, it needs an answer if nothing but Copilot's own
-  # feedback came after it.
+  # Started late: unless that review is clean, it needs an answer, a post by anyone but Copilot's
+  # reviewer that starts with a link to it (docs/agents/review.md §2 item 4). A thread reply alone
+  # doesn't answer what has no thread, and a post that only mentions the review answers nothing.
   if [ "$state" = open ] && [ "$(printf '%s' "$review" | cut -f2)" != true ]; then
-    at=$(awk -F '\t' -v k="review-$(printf '%s' "$review" | cut -f1)" '$1 == k { print $2 }' "$tmp/all")
-    if ! awk -F '\t' -v at="$at" '$2 > at && ($6 == "reply" ||
-           ($3 != "Copilot" && $3 !~ /^copilot-pull-request-reviewer/)) { found = 1 }
+    if ! awk -F '\t' -v id="$(printf '%s' "$review" | cut -f1)" '
+           $3 !~ /^copilot-pull-request-reviewer/ && $8 == id { found = 1 }
            END { exit !found }' "$tmp/all"; then
       attention=1
-      echo "It isn't clean, and nothing but Copilot's feedback came after it: it needs an answer."
+      echo "It isn't clean, and no post starts with a link to it: answer it in one that does (docs/agents/review.md §2 item 4)."
     fi
   fi
 fi
