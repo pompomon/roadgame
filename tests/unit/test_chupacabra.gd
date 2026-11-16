@@ -530,10 +530,11 @@ func test_the_cars_colours_drain_to_grey_as_dust_flakes_off_it_leaving_its_husk(
 func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_and_fades() -> void:
 	# For each heading, the car stopped on its road or mid-turn off it: it stays perched till
 	# HOP_FROM of the drain, facing as it came; then it turns back, and hops down to where it
-	# crouched, straight, its feet in an arc up and down to the ground; from SLINK_FROM it slinks
-	# off along the way it came, straight, only farther, faster and faster, its legs taking turns,
-	# to where it came from. It shows whole till FADE_FROM, and then fades, bit by bit, to nothing.
-	# It sorts in front of the car all the while.
+	# crouched, straight, bit by bit, its feet in an arc up off the roof and down to the ground;
+	# from SLINK_FROM it slinks off along the way it came, straight, only farther, faster and
+	# faster, its legs taking turns, to where it came from. It shows whole as it perches and hops
+	# down, and till FADE_FROM, and then fades, bit by bit, to nothing. It sorts in front of the
+	# car all the while.
 	var ends := _ends()
 	var shares: Array[float] = [Chupacabra.HOP_FROM, Chupacabra.SLINK_FROM]
 	for heading: Vector2 in HEADINGS:
@@ -548,6 +549,7 @@ func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_an
 			var waited := true
 			var hop: Array[Vector2] = [Chupacabra.PERCH]
 			var lifts: Array[float] = [Chupacabra.ROOF_PX]
+			var moves: Array[Vector2] = [_from_car(beast)]
 			var hopping := true
 			var slink: Array[Vector2] = []
 			var frames: Array[int] = []
@@ -555,12 +557,17 @@ func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_an
 			var facing := true
 			var alphas: Array[float] = [beast.modulate.a]
 			var whole := true
+			var unfaded := true
 			var in_front := true
 			while _short_of(ends[3]):
 				_step(legend)
 				var through := _through(3)
 				alphas.append(beast.modulate.a)
 				in_front = in_front and _from_car(beast).y > 0.0
+				if through < Chupacabra.SLINK_FROM:
+					moves.append(_from_car(beast))
+				if _clear_of(3, Chupacabra.SLINK_FROM) and through < Chupacabra.SLINK_FROM:
+					unfaded = unfaded and beast.modulate.a == 1.0
 				if _clear_of(3, Chupacabra.FADE_FROM) and through < Chupacabra.FADE_FROM:
 					whole = whole and beast.modulate.a == 1.0
 				if not _clear_of_each(3, shares):
@@ -594,6 +601,9 @@ func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_an
 			assert_true(facing, "%s: then it turns back" % what)
 			assert_true(hopping, "%s: and hops down" % what)
 			assert_true(_straight(hop, Chupacabra.PERCH, by), "%s: to its crouch" % what)
+			var most := MOST_A_FRAME * by.distance_to(Chupacabra.PERCH)
+			assert_lte(_largest(_strides(moves)), most, "%s: down bit by bit" % what)
+			assert_gt(_largest(lifts), Chupacabra.ROOF_PX, "%s: up off the roof first" % what)
 			assert_true(_arcs(lifts), "%s: its feet in an arc" % what)
 			assert_true(on_ground, "%s: then it slinks off on the ground" % what)
 			assert_true(_straight(slink, by, from), "%s: the way it came" % what)
@@ -602,6 +612,7 @@ func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_an
 			assert_eq(strides, _creeping(strides.size()), "%s: its legs take turns" % what)
 			assert_gte(strides.size(), LEAST_STRIDES, "%s: slinking" % what)
 			assert_almost_eq(slink[-1], from, NEAR, "%s: to where it came from" % what)
+			assert_true(unfaded, "%s: all of it as it perches and hops down" % what)
 			assert_true(whole, "%s: all of it till FADE_FROM" % what)
 			assert_eq(alphas, Disasters.sorted(alphas, true), "%s: then it fades" % what)
 			assert_lte(_largest_step(alphas), MOST_A_FRAME, "%s: bit by bit" % what)
