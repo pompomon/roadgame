@@ -22,27 +22,6 @@ const MOST_A_FRAME := 0.25
 const HALF_TIPPED := 1.0 / 3.0
 ## The car's headings, as tile directions: the roads run along the tile axes.
 const HEADINGS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
-## How far across its dead end from the road's middle a wrong turn can leave the car, in tiles, as
-## it brakes straight on from mid-turn, as test_kelpie.gd finds: off the road, in the dead end's
-## cell (OFF_ROAD_TILES), or in the next cell across (BESIDE_TILES), as far as a hair short of that
-## cell's middle (NEXT_MIDDLE_TILES). FAR_OFF_TILES is two cells across, off any road.
-const OFF_ROAD_TILES := 0.47
-const BESIDE_TILES := 0.67
-const NEXT_MIDDLE_TILES := 0.99
-const FAR_OFF_TILES := 1.67
-## Where the car stops on a dead end, in tiles down-screen of its first cell's middle: on the road's
-## middle, and each of the above to either side of it.
-const STOPS: Array[float] = [
-	0.0,
-	-OFF_ROAD_TILES,
-	OFF_ROAD_TILES,
-	-BESIDE_TILES,
-	BESIDE_TILES,
-	-NEXT_MIDDLE_TILES,
-	NEXT_MIDDLE_TILES,
-	-FAR_OFF_TILES,
-	FAR_OFF_TILES,
-]
 
 var _stage: Node2D
 var _car: CarController
@@ -250,31 +229,6 @@ func _count(frame: int, paint: String) -> int:
 	return count
 
 
-## The first tile of the first dead end of each heading in `buffer`, of those with no road in the
-## two cells to either side of it, across its road, as test_kelpie.gd finds them.
-static func _dead_ends(buffer: RoadBuffer) -> Array[RoadTile]:
-	var found: Array[RoadTile] = []
-	var headings: Array[int] = []
-	for index: int in range(buffer.first_index(), buffer.last_index() + 1):
-		var junction := buffer.path_tile(index)
-		for branch: RoadTile in junction.branches:
-			var exit := branch.branch_exit
-			var across := Vector2i(absi(Heading.VEC[exit].y), absi(Heading.VEC[exit].x))
-			var clear := branch.cell == junction.cell + Heading.VEC[exit] and exit not in headings
-			for k: int in [-2, -1, 1, 2]:
-				clear = clear and buffer.tile_at(branch.cell + across * k) == null
-			if clear:
-				found.append(branch)
-				headings.append(exit)
-	return found
-
-
-## Whether `point`, in tiles, is on the road of the car's buffer.
-func _on_road(point: Vector2) -> bool:
-	var cell := Vector2i(point.floor())
-	return RoadGeometry.is_on_road(_car.sim.buffer.tile_at(cell), point - Vector2(cell))
-
-
 ## How many of the opaque texels of the bottom row of `well`'s frame, where it stands on the
 ## ground, lie on the road of the car's buffer, each by its middle, the car's ground point being
 ## `at`, in tiles.
@@ -286,7 +240,7 @@ func _foot_on_road(well: Sprite2D, at: Vector2) -> int:
 		if _texel(well.frame, texel).a == 0.0:
 			continue
 		var ground := _from_car(well) + Vector2(texel) + Vector2(0.5, 0.5)
-		if _on_road(at + Iso.world_to_tile(ground)):
+		if Disasters.on_road(_car.sim.buffer, at + Iso.world_to_tile(ground)):
 			count += 1
 	return count
 
@@ -548,15 +502,15 @@ func test_it_rises_beside_the_road_wherever_across_it_the_car_stopped() -> void:
 	# drops into its mouth. With the car FAR_OFF_TILES to either side, off any road, the well rises
 	# FRAU_HOLLE_SIDE_TILES up-screen of the car.
 	var ends := _ends()
-	var dead_ends := _dead_ends(_car.sim.buffer)
+	var dead_ends := Disasters.dead_ends(_car.sim.buffer)
 	assert_eq(dead_ends.size(), HEADINGS.size(), "a dead end of each heading")
 	for branch: RoadTile in dead_ends:
 		var heading := Vector2(Heading.VEC[branch.branch_exit])
 		var down := PhantomBus.side(heading)
-		for across: float in STOPS:
+		for across: float in Disasters.STOPS:
 			var what := "heading %s, %s tiles down-screen" % [heading, across]
 			var at := Iso.cell_centre(branch.cell) + down * across
-			var below := across > 0.0 and absf(across) != FAR_OFF_TILES
+			var below := across > 0.0 and absf(across) != Disasters.FAR_OFF_TILES
 			var from := Iso.tile_to_world(-down * across) if below else Vector2.ZERO
 			var well_at := from + FrauHolle.well(heading)
 			var mouth := well_at + FrauHolle.MOUTH
