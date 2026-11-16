@@ -257,6 +257,16 @@ const UFO_DROP_PX := 160.0
 const UFO_ZIP_PX := Vector2(240.0, -360.0)
 const UFO_RIM_HZ := 2.0
 const UFO_BEAM_ALPHA := 0.5
+## The scarecrow (POOLS_PLAN.md §5.4): its beats, in s: it turns its head to the car, its crows
+## rise from its arms, they flock over the car, and they carry it off. How far ahead of the car it
+## stands, along the car's road, and how far off the road's middle, in tiles; how far its crows
+## carry the car, in px, to the side that the params' direction picks and up the screen, over the
+## fields; and how high they hold it off the ground, in px.
+const SCARECROW_BEATS: Array[float] = [0.6, 0.4, 0.8, 0.7]
+const SCARECROW_AHEAD_TILES := 1.25
+const SCARECROW_SIDE_TILES := 0.75
+const SCARECROW_CARRY_PX := Vector2(320.0, -80.0)
+const SCARECROW_LIFT_PX := 10.0
 
 # The Meadows' legends.
 ## The fairy ring (docs/M6.md §3.3): its beats, in s: the toadstools sprout, their glows swell and
