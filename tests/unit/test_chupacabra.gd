@@ -530,11 +530,11 @@ func test_the_cars_colours_drain_to_grey_as_dust_flakes_off_it_leaving_its_husk(
 func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_and_fades() -> void:
 	# For each heading, the car stopped on its road or mid-turn off it: it stays perched till
 	# HOP_FROM of the drain, facing as it came; then it turns back, and hops down to where it
-	# crouched, straight, bit by bit, its feet in an arc up off the roof and down to the ground;
-	# from SLINK_FROM it slinks off along the way it came, straight, only farther, faster and
-	# faster, its legs taking turns, to where it came from. It shows whole as it perches and hops
-	# down, and till FADE_FROM, and then fades, bit by bit, to nothing. It sorts in front of the
-	# car all the while.
+	# crouched, straight, bit by bit till it slinks, its feet in an arc up off the roof and down to
+	# the ground; from SLINK_FROM it slinks off along the way it came, straight, only farther,
+	# faster and faster, its legs taking turns, to where it came from. It shows whole as it perches
+	# and hops down, and till FADE_FROM, and then fades, bit by bit, to nothing. It sorts in front
+	# of the car all the while.
 	var ends := _ends()
 	var shares: Array[float] = [Chupacabra.HOP_FROM, Chupacabra.SLINK_FROM]
 	for heading: Vector2 in HEADINGS:
@@ -564,7 +564,7 @@ func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_an
 				var through := _through(3)
 				alphas.append(beast.modulate.a)
 				in_front = in_front and _from_car(beast).y > 0.0
-				if through < Chupacabra.SLINK_FROM:
+				if slink.is_empty():
 					moves.append(_from_car(beast))
 				if _clear_of(3, Chupacabra.SLINK_FROM) and through < Chupacabra.SLINK_FROM:
 					unfaded = unfaded and beast.modulate.a == 1.0
