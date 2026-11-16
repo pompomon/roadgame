@@ -44,7 +44,7 @@ func test_a_released_sprite_shows_the_next_prop() -> void:
 	var rock := _prop(&"rock", 1, Rect2i(40, 0, 12, 6), Vector2i(6, 5))
 	var sprite := _pool.acquire(mill)
 	sprite.frame = 3
-	# PropScatter fades a see-through prop where it would hide the car (VISUALS_PLAN.md §5.9).
+	# PropScatter fades a see-through prop where it would hide the car (docs/VISUALS.md §5.9).
 	sprite.modulate.a = 0.2
 	_pool.release(sprite)
 	assert_false(sprite.visible)

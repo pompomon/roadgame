@@ -3,7 +3,7 @@ extends SceneTree
 ## FRAME_SIZE in a row, and its skid mark, assets/car/skid.png. Frame f faces the direction f of
 ## CarController.frame(), clockwise from straight up; the last is the wreck. Each frame has the
 ## car's ground centre at FOOT. Row k has the wheels a quarter turn on from row k - 1, as they roll
-## forward (VISUALS_PLAN.md §5.1): CarController.PHASES rows, with the same silhouette. They are
+## forward (docs/VISUALS.md §5.1): CarController.PHASES rows, with the same silhouette. They are
 ## placeholders an artist may replace with art that keeps that layout and the master palette
 ## (tests/unit/test_car_art.gd). The car is boxes and wheels, splatted in fine steps into a depth
 ## buffer and shaded by the side they are on. The output is the same on every run. From the

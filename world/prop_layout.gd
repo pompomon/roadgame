@@ -11,7 +11,7 @@ extends RefCounted
 ## first. Each lot that no larger prop stands on shows one prop of its size or none: its hash with
 ## props_seed picks one by their densities, or by a street by their street densities (§5.8). A lot
 ## of one cell has the cell's own hash, so props that take one cell stand where they stood before
-## lots (VISUALS_PLAN.md §5.4). A prop whose frame would touch a road tile's diamond is left out,
+## lots (docs/VISUALS.md §5.4). A prop whose frame would touch a road tile's diamond is left out,
 ## and its lot stays free, so that no prop hides the road or the car on it; but for a see-through
 ## one, which may rise over the road behind it, and fades where it would hide the car (§5.9).
 

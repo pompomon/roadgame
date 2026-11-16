@@ -3,7 +3,7 @@ extends Resource
 ## A prop that an area scatters on its ground (plan.md §5.2, docs/M5.md §5.6): a sprite from the
 ## area's props sheet, which stands with its foot on the centre of a ground cell. PropScatter gives
 ## each lot of ground beside the road one prop or none, by the lot's hash and the densities: most
-## props take a lot of one cell, and a building a lot of 2 × 2 (VISUALS_PLAN.md §5.4), more often
+## props take a lot of one cell, and a building a lot of 2 × 2 (docs/VISUALS.md §5.4), more often
 ## by a street (§5.8).
 
 ## How its shadow falls (docs/DAYNIGHT.md §5.11). UPRIGHT: as a prop that stands at a point and
@@ -35,12 +35,12 @@ enum Shadow { UPRIGHT, WALL, NONE }
 ## The chance that a lot of its size beside the road shows it.
 @export_range(0.0, 1.0, 0.001) var density := 0.0
 ## The chance that a lot of its size by a street shows it: a lot with a side on a road tile's, but
-## not just a corner. -1 for `density`'s (VISUALS_PLAN.md §5.8).
+## not just a corner. -1 for `density`'s (docs/VISUALS.md §5.8).
 @export_range(-1.0, 1.0, 0.001) var street_density := -1.0
 ## Whether it may rise over the road behind it. A prop that may not is left out where its frame
 ## would touch a road tile's diamond (PropLayout.touches_road()). One that may is a box whose base,
 ## which its shadow falls from the middle of, lies in its lot, as a building's does: so it never
-## stands on the road. It fades wherever it would hide the car or a legend (VISUALS_PLAN.md §5.9).
+## stands on the road. It fades wherever it would hide the car or a legend (docs/VISUALS.md §5.9).
 @export var see_through := false
 @export var shadow := Shadow.UPRIGHT
 ## How far above the foot, in pixels of the frame, the point that its shadow falls from is: the

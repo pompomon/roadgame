@@ -1,5 +1,5 @@
 extends GutTest
-## SeeThrough (VISUALS_PLAN.md §5.9): a see-through prop, such as the City's building, shows
+## SeeThrough (docs/VISUALS.md §5.9): a see-through prop, such as the City's building, shows
 ## PROP_SEE_THROUGH of itself where it would hide the car, as the tunnel does (docs/M4.md K5), and
 ## comes back as they part, with no jump as the car comes in front of it.
 
@@ -40,7 +40,7 @@ func test_a_prop_shows_little_of_itself_over_the_car_and_comes_back_as_they_part
 
 func test_it_changes_little_as_the_car_comes_in_front_and_is_whole_once_well_in_front() -> void:
 	# Props y-sorts: the prop draws over an actor while the actor's y is above its foot's, and the
-	# actor over it after (VISUALS_PLAN.md A9). An actor as tall as a legend's standing part comes
+	# actor over it after (docs/VISUALS.md A9). An actor as tall as a legend's standing part comes
 	# down past the prop's foot a pixel at a time: the prop shows as much of itself either side of
 	# the tie, and is whole once the actor is PROP_FADE_PX in front, though their rects still meet.
 	var steps := PackedFloat32Array()

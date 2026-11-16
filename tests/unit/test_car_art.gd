@@ -1,7 +1,7 @@
 extends GutTest
 ## The car's sheet (plan.md §5.3, docs/M5.md §5.7): a frame for each of CarController's directions
 ## and the wreck, each whole within its frame, in a row for each phase of the wheels
-## (VISUALS_PLAN.md §5.1). test_area_art.gd checks its colours.
+## (docs/VISUALS.md §5.1). test_area_art.gd checks its colours.
 
 const Art := preload("res://tests/helpers/art_checks.gd")
 const MakeArt := preload("res://tools/art/make_art.gd")
@@ -114,7 +114,7 @@ func test_seen_side_on_the_wheels_roll_forward() -> void:
 	# Side on, the outer faces of the two nearer wheels show whole, one each side of the foot. From
 	# each row to the next, the mark on each turns about a quarter of the way round, its top
 	# towards the car's front: on the screen, clockwise when the car faces right and anticlockwise
-	# when it faces left (VISUALS_PLAN.md §5.1).
+	# when it faces left (docs/VISUALS.md §5.1).
 	var image := _body().texture.get_image()
 	var palette := MakeArt.palette()
 	var mark := Art.pixel(palette[MakeCar.MARK_COLOR])

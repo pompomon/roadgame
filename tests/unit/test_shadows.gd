@@ -181,7 +181,7 @@ func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	var body: Sprite2D = car.get_node("%Body")
 	var cycle := _clock(9.0)
 	car.sim.angle = PI / 2.0
-	# Its wheels in a phase past the first: every row has the first's outline (VISUALS_PLAN.md §5.1).
+	# Its wheels in a phase past the first: every row has the first's outline (docs/VISUALS.md §5.1).
 	for _i: int in 120:
 		if body.frame_coords.y != 0:
 			break
