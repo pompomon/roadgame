@@ -17,9 +17,9 @@ Exit codes:
      unless the owner lands it (AGENTS.md §5). Or the PR is closed, even if feedback came with
      that (printed above)
   2  Feedback that needs an answer (printed above the summary): anything new but a clean Copilot
-     review, or Copilot's review of the head that was already there isn't clean, and no post
-     starts with a link to it (docs/agents/review.md §2 item 4). Handle it, push, reply, run this
-     again.
+     review. Or, already there, Copilot's review of the head unless it's clean, or a person's PR
+     comment or review however old, and no post starts with a link to it (docs/agents/review.md
+     §2 item 4). Handle it, push, reply, run this again.
      If the head moved too, the last line says so: pull first
   3  No Copilot review of the head commit in time (docs/agents/review.md §3 says what to do)
   4  The head commit changed while watching, and nothing new needs an answer: pull, run this again
@@ -78,15 +78,35 @@ tab=$(printf '\t')
 # are the containers of thread replies; their comments are listed on their own. A sixth field
 # marks Copilot's reviews of any commit, "true" if clean (approval recommended, no open or
 # previously missed issues) and "false" if not. Reviews have a seventh, the commit they review, so
-# one request finds both the new items and Copilot's review of the head. The eighth is the review
-# that the post answers, by id: the one that its raw body starts with a link to, as
-# "Re [Copilot's review of <sha>](<review URL>)" (docs/agents/review.md §2 item 4). A link
-# anywhere else in a post, even after "Re [", doesn't answer anything. The whitespace classes are
-# ASCII so that jq and gh's gojq read a body the same way.
+# one request finds both the new items and Copilot's review of the head.
+# The eighth is the key of the review or PR comment that the post answers: the one that its raw
+# body starts with a link to, as "Re [Copilot's review of <sha>](<review URL>)" or
+# "Re [<login>'s comment](<comment URL>)" (docs/agents/review.md §2 item 4). A link anywhere else
+# in a post, even after "Re [", answers nothing. The repository is public, so only a post by
+# someone who can write to it answers anything, or a PR comment by the cloud agent, which GitHub
+# marks as made via its app, copilot-swe-agent: only people who can write can start it.
+# The ninth is "true" for a person's post, which needs an answer however old it is: a PR comment,
+# or a review with a body or that requests changes, by anyone but Copilot's reviewer. None is
+# needed for a post made via copilot-swe-agent by someone who can write or by the cloud agent (an
+# agent's note), for the reviewer's notice of a failed setup, or for a post by someone who can
+# write that starts with "Re [<label>](<URL>)", as answers and notes do.
+# Copilot's bots are known by their type and exact login, as anyone can pick a login such as
+# copilot-pull-request-reviewer-x. The whitespace classes are ASCII so that jq and gh's gojq read
+# a body the same way.
 jq_text='def text: (. // "") | gsub("<[^>]*>"; "") | gsub("\\s+"; " ") | ltrimstr(" ") | .[0:300];
-  def answers: [.body // "" | sub("^[ \\t\\r\\n]+"; "")
-      | match("^Re \\[[^\\]\\n]*\\]\\([^) \\t\\r\\n]*#pullrequestreview-([0-9]+)\\)").captures[0].string]
-    | first // "";'
+  def opening: .body // "" | sub("^[ \\t\\r\\n]+"; "");
+  def app: .performed_via_github_app.slug // "";
+  def bot(login): .user.type == "Bot" and .user.login == login;
+  def reviewer: bot("copilot-pull-request-reviewer[bot]");
+  def trusted: (.author_association // "" | test("^(OWNER|MEMBER|COLLABORATOR)$"))
+    or (bot("Copilot") and app == "copilot-swe-agent");
+  def note: trusted and (opening | test("^Re \\[[^\\]\\n]*\\]\\([^) \\t\\r\\n]+\\)"));
+  def answers: if trusted then [opening
+      | match("^Re \\[[^\\]\\n]*\\]\\([^) \\t\\r\\n]*#(pullrequestreview|issuecomment)-([0-9]+)\\)")
+      | "\(if .captures[0].string == "issuecomment" then "comment" else "review" end)-\(.captures[1].string)"]
+    | first // "" else "" end;
+  def via_copilot: (trusted and app == "copilot-swe-agent")
+    or (bot("Copilot") and app == "copilot-pull-request-reviewer");'
 items() {
   gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" --jq "$jq_text"'
     .[] | select(.state != "PENDING" and ((.body // "") != "" or .state != "COMMENTED"))
@@ -94,16 +114,20 @@ items() {
        "review of \(.commit_id[0:7])\(if .state == "COMMENTED" then ""
                                        else " (\(.state | ascii_downcase))" end): \(.body | text)",
        .html_url,
-       if .user.login | startswith("copilot-pull-request-reviewer")
+       if reviewer
        then .body // "" | test("Approval recommended") and test("No open issues")
                           and (test("previously missed") | not) | tostring
        else "" end,
-       .commit_id // "", answers] | @tsv' &&
+       .commit_id // "", answers,
+       if reviewer or .state == "DISMISSED" then ""
+       elif .state == "CHANGES_REQUESTED" or ((.body // "") != "" and (note | not)) then "true"
+       else "" end] | @tsv' &&
     gh api --paginate "repos/$repo/pulls/$pr/comments?per_page=100" --jq "$jq_text"'
     .[] | ["inline-\(.id)", .created_at, .user.login,
-           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url, "", "", answers] | @tsv' &&
+           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url, "", "", answers, ""] | @tsv' &&
     gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" --jq "$jq_text"'
-    .[] | ["comment-\(.id)", .created_at, .user.login, (.body | text), .html_url, "", "", answers] | @tsv'
+    .[] | ["comment-\(.id)", .created_at, .user.login, (.body | text), .html_url, "", "", answers,
+           if via_copilot or note then "" else "true" end] | @tsv'
 }
 
 # Copilot's latest review of the head commit, from the items: id, whether it is clean, text.
@@ -143,16 +167,27 @@ reviewed="" polls_after_review=0 attention=0 moved="" failures=0
 if [ -n "$review" ]; then
   reviewed=1
   echo "Copilot had already reviewed $short."
-  # Started late: unless that review is clean, it needs an answer, a post by anyone but Copilot's
-  # reviewer that starts with a link to it (docs/agents/review.md §2 item 4). A thread reply alone
-  # doesn't answer what has no thread, and a post that only mentions the review answers nothing.
+  # Started late: unless that review is clean, it needs an answer, a post that starts with a link
+  # to it (docs/agents/review.md §2 item 4). A thread reply alone doesn't answer what has no
+  # thread, and a post that only mentions the review answers nothing.
   if [ "$state" = open ] && [ "$(printf '%s' "$review" | cut -f2)" != true ]; then
-    if ! awk -F '\t' -v id="$(printf '%s' "$review" | cut -f1)" '
-           $3 !~ /^copilot-pull-request-reviewer/ && $8 == id { found = 1 }
-           END { exit !found }' "$tmp/all"; then
+    if ! awk -F '\t' -v key="review-$(printf '%s' "$review" | cut -f1)" '
+           $8 == key { found = 1 } END { exit !found }' "$tmp/all"; then
       attention=1
       echo "It isn't clean, and no post starts with a link to it: answer it in one that does (docs/agents/review.md §2 item 4)."
     fi
+  fi
+fi
+# A person's post needs an answer however old it is, so that neither a late start nor a restart
+# of land_pr.sh clears it.
+if [ "$state" = open ]; then
+  awk -F '\t' '$8 != "" { answered[$8] = 1 } $9 == "true" { ask[NR] = $1; line[NR] = $0 }
+               END { for (i = 1; i <= NR; i++) if ((i in ask) && !(ask[i] in answered)) print line[i] }' \
+    "$tmp/all" > "$tmp/unanswered"
+  if [ -s "$tmp/unanswered" ]; then
+    attention=1
+    echo "From people, and no post starts with a link to it: answer each in one that does (docs/agents/review.md §2 item 4):"
+    show "$tmp/unanswered"
   fi
 fi
 

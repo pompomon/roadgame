@@ -115,13 +115,19 @@ rollup_jq='.data.repository.pullRequest.commits.nodes[0].commit | .oid as $oid
                                 else "COMPLETED" end), .state, (.isRequired | tostring)]
     end | @tsv'
 
-# Every review, inline comment and PR comment: key, author, URL. Comment-only reviews without a body
-# hold thread replies, which come as inline comments (watch_pr.sh).
+# Copilot's reviewer, by its bot's type and exact login, as anyone can pick a login such as
+# copilot-pull-request-reviewer-x (watch_pr.sh).
+reviewer_jq='def reviewer: .user.type == "Bot" and .user.login == "copilot-pull-request-reviewer[bot]";'
+
+# Every review, inline comment and PR comment: key, author, URL, and "copilot" for a review by
+# Copilot's reviewer. Comment-only reviews without a body hold thread replies, which come as
+# inline comments (watch_pr.sh).
 feedback() {
   {
-    gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" --jq '.[]
+    gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" --jq "$reviewer_jq"' .[]
       | select(.state != "PENDING" and ((.body // "") != "" or .state != "COMMENTED"))
-      | ["review-\(.id)", (.user.login // "ghost"), .html_url] | @tsv' &&
+      | ["review-\(.id)", (.user.login // "ghost"), .html_url, (if reviewer then "copilot" else "" end)]
+      | @tsv' &&
       gh api --paginate "repos/$repo/pulls/$pr/comments?per_page=100" \
         --jq '.[] | ["inline-\(.id)", (.user.login // "ghost"), .html_url] | @tsv' &&
       gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" \
@@ -287,7 +293,7 @@ gate() {
 # Copilot's reviews before watch_pr.sh runs, which it judges: their keys.
 copilot_reviews() {
   gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" \
-    --jq '.[] | select((.user.login // "") | startswith("copilot-pull-request-reviewer")) | "review-\(.id)"' \
+    --jq "$reviewer_jq"' .[] | select(reviewer) | "review-\(.id)"' \
     > "$tmp/judged"
 }
 
@@ -333,13 +339,13 @@ last_look() { open_above && feedback && read_pr; }
 pr_lines() {
   # watch_pr.sh judges Copilot's reviews, but only those that came before it ran.
   awk -F '\t' 'FILENAME == ARGV[1] { seen[$0] = 1; next }
-               !($1 in seen) && $2 !~ /^copilot-pull-request-reviewer/' "$tmp/seen" "$tmp/feedback" \
+               !($1 in seen) && $4 != "copilot"' "$tmp/seen" "$tmp/feedback" \
     > "$tmp/new"
   awk -F '\t' 'FILENAME == ARGV[1] { judged[$0] = 1; next }
-               !($1 in judged) && $2 ~ /^copilot-pull-request-reviewer/' "$tmp/judged" "$tmp/feedback" \
+               !($1 in judged) && $4 == "copilot"' "$tmp/judged" "$tmp/feedback" \
     >> "$tmp/new"
   local who url
-  while IFS=$'\t' read -r _ who url; do
+  while IFS=$'\t' read -r _ who url _; do
     no "new since this started, by $who: $url. Answer it (review.md §2), then run this again"
   done < "$tmp/new"
 
@@ -384,7 +390,9 @@ if [ "$merged" = true ]; then
   exit 0
 fi
 
-# The feedback so far. Anything else that comes while this runs needs an answer first.
+# The feedback so far. On each pass, watch_pr.sh checks that Copilot's review of the head and each
+# person's post, however old, have an answer (docs/agents/review.md §2 item 4), so a restart
+# clears no hold. Anything else that comes while this runs stops it, to be answered first.
 try3 feedback || gh_down
 cut -f1 "$tmp/feedback" | LC_ALL=C sort -u > "$tmp/seen"
 
