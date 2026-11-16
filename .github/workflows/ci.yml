@@ -35,6 +35,8 @@ jobs:
           python-version: "3.12"
       - run: pip install -r tools/ci/requirements.txt
       - run: tools/ci/lint.sh
+      - name: Agent scripts against a fake gh (tools/agent/test/)
+        run: python3 tools/agent/test/scenarios.py
       - name: actionlint
         run: |
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12

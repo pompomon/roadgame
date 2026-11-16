@@ -49,7 +49,7 @@ static func _tap(main: Node, button: Button) -> void:
 ## World or Props layer shows none.
 static func _prop_sheets(main: Node) -> Array[String]:
 	var sheets: Array[String] = []
-	for node: Node in main.get_node("%World/%Props").get_children():
+	for node: Node in main.get_node("%World/%Props").get_children(true):
 		var sprite := node as Sprite2D
 		if (
 			sprite != null
