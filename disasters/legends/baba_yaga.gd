@@ -79,13 +79,13 @@ static func stop(heading: Vector2) -> Vector2:
 
 ## How far across its road the hut stops from stop(), in tiles, the car's ground point at `at`, in
 ## tile space, heading `heading`, on `buffer`'s road. A wrong turn can leave the car off the middle
-## of the road ahead that it stopped on or beside (HeadlessHorseman.to_middle()). Where it stopped
+## of the road ahead that it stopped on or beside (Kelpie.to_middle()). Where it stopped
 ## down-screen of it, up-screen as far as the middle, so that the hut stops beside the road, not on
 ## it; where up-screen of it, none, so that the hut stops up-screen of the car, off the road too,
 ## and the car still rolls up-screen to its door. With no road ahead, none.
 static func shift(at: Vector2, heading: Vector2, buffer: RoadBuffer) -> Vector2:
 	var road := PhantomBus.road(heading)
-	var middle := HeadlessHorseman.to_middle(at, road, buffer)
+	var middle := Kelpie.to_middle(at, road, buffer)
 	return middle if middle.dot(PhantomBus.side(road)) < 0.0 else Vector2.ZERO
 
 
