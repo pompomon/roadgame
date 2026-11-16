@@ -22,6 +22,27 @@ const MOST_A_FRAME := 0.25
 const HALF_TIPPED := 1.0 / 3.0
 ## The car's headings, as tile directions: the roads run along the tile axes.
 const HEADINGS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
+## How far across its dead end from the road's middle a wrong turn can leave the car, in tiles, as
+## it brakes straight on from mid-turn, as test_kelpie.gd finds: off the road, in the dead end's
+## cell (OFF_ROAD_TILES), or in the next cell across (BESIDE_TILES), as far as a hair short of that
+## cell's middle (NEXT_MIDDLE_TILES). FAR_OFF_TILES is two cells across, off any road.
+const OFF_ROAD_TILES := 0.47
+const BESIDE_TILES := 0.67
+const NEXT_MIDDLE_TILES := 0.99
+const FAR_OFF_TILES := 1.67
+## Where the car stops on a dead end, in tiles down-screen of its first cell's middle: on the road's
+## middle, and each of the above to either side of it.
+const STOPS: Array[float] = [
+	0.0,
+	-OFF_ROAD_TILES,
+	OFF_ROAD_TILES,
+	-BESIDE_TILES,
+	BESIDE_TILES,
+	-NEXT_MIDDLE_TILES,
+	NEXT_MIDDLE_TILES,
+	-FAR_OFF_TILES,
+	FAR_OFF_TILES,
+]
 
 var _stage: Node2D
 var _car: CarController
@@ -229,6 +250,66 @@ func _count(frame: int, paint: String) -> int:
 	return count
 
 
+## The first tile of the first dead end of each heading in `buffer`, of those with no road in the
+## two cells to either side of it, across its road, as test_kelpie.gd finds them.
+static func _dead_ends(buffer: RoadBuffer) -> Array[RoadTile]:
+	var found: Array[RoadTile] = []
+	var headings: Array[int] = []
+	for index: int in range(buffer.first_index(), buffer.last_index() + 1):
+		var junction := buffer.path_tile(index)
+		for branch: RoadTile in junction.branches:
+			var exit := branch.branch_exit
+			var across := Vector2i(absi(Heading.VEC[exit].y), absi(Heading.VEC[exit].x))
+			var clear := branch.cell == junction.cell + Heading.VEC[exit] and exit not in headings
+			for k: int in [-2, -1, 1, 2]:
+				clear = clear and buffer.tile_at(branch.cell + across * k) == null
+			if clear:
+				found.append(branch)
+				headings.append(exit)
+	return found
+
+
+## Whether `point`, in tiles, is on the road of the car's buffer.
+func _on_road(point: Vector2) -> bool:
+	var cell := Vector2i(point.floor())
+	return RoadGeometry.is_on_road(_car.sim.buffer.tile_at(cell), point - Vector2(cell))
+
+
+## How many of the opaque texels of the bottom row of `well`'s frame, where it stands on the
+## ground, lie on the road of the car's buffer, each by its middle, the car's ground point being
+## `at`, in tiles.
+func _foot_on_road(well: Sprite2D, at: Vector2) -> int:
+	var half := FrauHolle.WELL.x >> 1
+	var count := 0
+	for x: int in FrauHolle.WELL.x:
+		var texel := Vector2i(x - half, -1)
+		if _texel(well.frame, texel).a == 0.0:
+			continue
+		var ground := _from_car(well) + Vector2(texel) + Vector2(0.5, 0.5)
+		if _on_road(at + Iso.world_to_tile(ground)):
+			count += 1
+	return count
+
+
+## Checks that the snow of `holle` falls on the car and on the well, which stands `well_at` from
+## the car, in px: from a rect over them both, from either side of their frames, from over the
+## well's top, down, in front of them.
+func _assert_snows_on_them(holle: FrauHolle, well_at: Vector2, what: String) -> void:
+	var snow := _snow(holle)
+	var over := _from_car(snow)
+	var extents := snow.emission_rect_extents
+	var rect := CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	var half := FrauHolle.WELL.x / 2.0
+	var left := minf(-CarController.FOOT.x, well_at.x - half)
+	var right := maxf(CarController.FRAME_SIZE.x - CarController.FOOT.x, well_at.x + half)
+	assert_eq(snow.emission_shape, rect, "%s: from a rect" % what)
+	assert_lte(over.x - extents.x, left, "%s: over the car and the well" % what)
+	assert_gte(over.x + extents.x, right, "%s: from either side of them" % what)
+	assert_lte(over.y - extents.y, well_at.y - FrauHolle.WELL.y, "%s: from over them" % what)
+	assert_gt(snow.direction.y, 0.0, "%s: down" % what)
+	assert_gt(Disasters.z(snow), 0, "%s: in front of them" % what)
+
+
 func test_snow_starts_to_fall_round_the_car() -> void:
 	# From the start, over the car and over where the well rises, in front of all that stands: it
 	# falls on them. It falls till the car has fallen in.
@@ -246,16 +327,7 @@ func test_snow_starts_to_fall_round_the_car() -> void:
 				falling = falling and snow.emitting == (_through(0) > 0.0)
 			fell = fell or snow.emitting
 		assert_true(falling and fell, "%s: it falls from the start till the end" % what)
-		var over := _from_car(snow)
-		var extents := snow.emission_rect_extents
-		var rect := CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-		assert_eq(snow.emission_shape, rect, "%s: from a rect" % what)
-		assert_almost_eq(over.x, 0.0, NEAR.x, "%s: round the car" % what)
-		var wide := absf(well_at.x) + FrauHolle.WELL.x / 2.0
-		assert_gte(extents.x, wide, "%s: and the well" % what)
-		assert_lte(over.y - extents.y, well_at.y - FrauHolle.WELL.y, "%s: from over them" % what)
-		assert_gt(snow.direction.y, 0.0, "%s: down" % what)
-		assert_gt(Disasters.z(snow), 0, "%s: in front of them" % what)
+		_assert_snows_on_them(holle, well_at, what)
 
 
 func test_a_stone_well_rises_out_of_the_ground_beside_the_road() -> void:
@@ -465,6 +537,57 @@ func test_the_snow_settles_on_the_well_which_stays() -> void:
 		var car_double := _double(holle)
 		var gone := car_double == null or not Disasters.shows(car_double)
 		assert_true(gone, "%s: and its double" % what)
+
+
+func test_it_rises_beside_the_road_wherever_across_it_the_car_stopped() -> void:
+	# A wrong turn can leave the car off its road's middle, even in the next cell across, as it
+	# brakes straight on from mid-turn, as a review found. On a dead end of each heading, the car at
+	# each of STOPS: the well rises beside the car, FRAU_HOLLE_SIDE_TILES up-screen of the road's
+	# middle, or of the car, if it stopped further up the screen, all of its foot off the road; the
+	# snow falls on them both; and the car's double, in front of the well, hops up over its rim and
+	# drops into its mouth. With the car FAR_OFF_TILES to either side, off any road, the well rises
+	# FRAU_HOLLE_SIDE_TILES up-screen of the car.
+	var ends := _ends()
+	var dead_ends := _dead_ends(_car.sim.buffer)
+	assert_eq(dead_ends.size(), HEADINGS.size(), "a dead end of each heading")
+	for branch: RoadTile in dead_ends:
+		var heading := Vector2(Heading.VEC[branch.branch_exit])
+		var down := PhantomBus.side(heading)
+		for across: float in STOPS:
+			var what := "heading %s, %s tiles down-screen" % [heading, across]
+			var at := Iso.cell_centre(branch.cell) + down * across
+			var below := across > 0.0 and absf(across) != FAR_OFF_TILES
+			var from := Iso.tile_to_world(-down * across) if below else Vector2.ZERO
+			var well_at := from + FrauHolle.well(heading)
+			var mouth := well_at + FrauHolle.MOUTH
+			_car.sim.pos = at
+			_car.position = Iso.tile_to_world(at)
+			var holle := _holle(heading)
+			var well := _well(holle)
+			_step_to(holle, ends[1])
+			assert_almost_eq(_from_car(well), well_at, NEAR, "%s: where it rises" % what)
+			assert_eq(_foot_on_road(well, at), 0, "%s: its foot, off the road" % what)
+			_assert_snows_on_them(holle, well_at, what)
+			_step_to(holle, ends[2])
+			var car_double := _double(holle)
+			if car_double == null:
+				fail_test("%s: it took the car" % what)
+				continue
+			var highest := INF
+			var arrived := true
+			while _short_of(ends[3]):
+				_step(holle)
+				var share := FrauHolle.ARRIVE_SHARE
+				if not _clear_of(3, share):
+					continue
+				var middle := _drawn(car_double, FrauHolle.MIDDLE)
+				if _through(3) < share:
+					highest = minf(highest, middle.y + _snap(car_double))
+				else:
+					arrived = arrived and _snapped_near(car_double, middle, mouth)
+			assert_gt(_from_car(car_double).y, _from_car(well).y, "%s: in front of the well" % what)
+			assert_lt(highest, mouth.y, "%s: it hops up over the rim" % what)
+			assert_true(arrived, "%s: and drops into the mouth" % what)
 
 
 func test_it_plays_in_the_light_of_the_hour_with_no_veil_and_no_glow() -> void:
