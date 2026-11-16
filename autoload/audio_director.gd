@@ -49,6 +49,7 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 	# The Desert's legends.
 	&"death_worm": preload("res://assets/audio/sfx/death_worm.wav"),
 	&"marfa_lights": preload("res://assets/audio/sfx/marfa_lights.wav"),
+	&"chupacabra": preload("res://assets/audio/sfx/chupacabra.wav"),
 }
 
 ## Off on the Dummy driver, which headless runs use (the tests and smoke.sh): a sound that still

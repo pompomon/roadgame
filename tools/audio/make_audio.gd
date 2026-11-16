@@ -54,6 +54,7 @@ func _initialize() -> void:
 	# The Desert's legends.
 	_save_legend("death_worm", _death_worm)
 	_save_legend("marfa_lights", _marfa_lights)
+	_save_legend("chupacabra", _chupacabra)
 	quit()
 
 
@@ -656,6 +657,72 @@ func _marfa_lights() -> PackedFloat32Array:
 	var hiss := _high_pass(_low_pass(_noise(roundi((beats[3] + 0.3) * RATE)), 3000.0), 600.0)
 	_add(hiss, _lfo(_low_pass(_noise(hiss.size()), 500.0), 12, 0.8), 0.0, 1.5)
 	_add(out, _swell(hiss), beckoned, 0.6)
+	return out
+
+
+## Timed to Tuning.CHUPACABRA_BEATS from the end of the delay, when the sound starts: the beast's
+## hiss as it creeps in, its claws ticking on the road at each stride, slower and slower; its
+## chitter as it crouches, louder and louder; a shriek as it leaps, and a hollow knock as it lands
+## on the car's roof; a dry rattle as the car's colours drain, dying away with them; a tick as it
+## hops down, and its claws ticking off, faster and faster, fading with it. The ticks fall as the
+## beast's legs take turns, for a car stopped on its road's middle. Pitched for a phone's speaker,
+## which plays nothing under about 200 Hz.
+func _chupacabra() -> PackedFloat32Array:
+	var beats := Tuning.CHUPACABRA_BEATS
+	var crouch: float = beats[0]
+	var pounce: float = crouch + beats[1]
+	var drain: float = pounce + beats[2]
+	var end: float = drain + beats[3]
+	var out := _silence(roundi((end + 0.4) * RATE))
+	var hiss := _high_pass(_low_pass(_noise(roundi(crouch * RATE)), 5000.0), 1500.0)
+	_add(out, _swell(hiss), 0.0, 0.3)
+	var creep_tiles := Tuning.CHUPACABRA_FROM_TILES - Tuning.CHUPACABRA_BY_TILES
+	var strides := floori(creep_tiles / Chupacabra.STEP_TILES)
+	for k: int in range(1, strides + 1):
+		var t := 1.0 - sqrt(maxf(1.0 - k * Chupacabra.STEP_TILES / creep_tiles, 0.0))
+		_add(out, _tick(), crouch * t, lerpf(0.3, 0.8, minf(t / Chupacabra.SHOW_SHARE, 1.0)))
+	var chitters := 3
+	for k: int in chitters:
+		var at := crouch + beats[1] * k / chitters
+		_add(out, _chitter(2000.0 * pow(1.12, k)), at, lerpf(0.4, 0.8, float(k) / (chitters - 1)))
+	var landed := pounce + beats[2] * Chupacabra.LEAP_SHARE
+	_add(out, _swell(_glide(1400.0, 2600.0, landed - pounce)), pounce, 0.3)
+	_add(out, _knock(), landed, 1.0)
+	var drained := beats[3] * Chupacabra.DRAIN_SHARE
+	var rattle := _high_pass(_low_pass(_noise(roundi(drained * RATE)), 6000.0), 2000.0)
+	_add(out, _decay(_lfo(rattle, roundi(drained * 22.0), 0.9), drained * 0.5), drain, 0.8)
+	_add(out, _tick(), drain + beats[3] * Chupacabra.SLINK_FROM, 0.8)
+	for k: int in range(1, strides + 1):
+		var off := minf(sqrt(k * Chupacabra.STEP_TILES / creep_tiles), 1.0)
+		var t := Chupacabra.SLINK_FROM + (1.0 - Chupacabra.SLINK_FROM) * off
+		_add(out, _tick(), drain + beats[3] * t, 0.6 * Chupacabra.fading(t))
+	return out
+
+
+## A claw's tick on the road: a click of bright noise, and a high note.
+func _tick() -> PackedFloat32Array:
+	var out := _decay(_high_pass(_noise(roundi(0.03 * RATE)), 2500.0), 0.006)
+	_add(out, _decay(_tone(1800.0, 0.03, "sine"), 0.008), 0.0, 0.4)
+	return out
+
+
+## A chitter from `freq` Hz: four clicks, each a short note a little higher than the last over a
+## click of noise.
+func _chitter(freq: float) -> PackedFloat32Array:
+	var click := 0.03
+	var out := _silence(roundi(click * 5 * RATE))
+	for k: int in 4:
+		var note := _decay(_tone(freq * pow(1.06, k), click, "triangle"), 0.008)
+		_add(note, _decay(_high_pass(_noise(note.size()), 3000.0), 0.004), 0.0, 0.6)
+		_add(out, note, k * click)
+	return out
+
+
+## A hollow knock on the car's roof: a thud of noise, and the ring of the metal, three partials.
+func _knock() -> PackedFloat32Array:
+	var out := _decay(_high_pass(_low_pass(_noise(roundi(0.2 * RATE)), 3000.0), 300.0), 0.02)
+	for partial: float in [1.0, 2.3, 3.9]:
+		_add(out, _decay(_tone(420.0 * partial, 0.2, "sine"), 0.06 / partial), 0.0, 0.6 / partial)
 	return out
 
 
