@@ -96,6 +96,17 @@ func outline(color_name := "ink") -> void:
 		image.set_pixelv(pixel, paint)
 
 
+## Copies the left half of the frame being drawn onto its right half, mirrored about its middle,
+## for a part that is the same on each side: a point `x` pixels from the foot goes to `-x - 1` in a
+## frame of even width. Lines can't be drawn mirrored so: they round their points down.
+func mirror() -> void:
+	var bounds := _bounds()
+	for y: int in range(bounds.position.y, bounds.end.y):
+		for x: int in bounds.size.x >> 1:
+			var from := Vector2i(bounds.position.x + x, y)
+			image.set_pixelv(Vector2i(bounds.end.x - 1 - x, y), image.get_pixelv(from))
+
+
 ## Saves the sheet as a PNG at `path`, making its folder.
 func save(path: String) -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
