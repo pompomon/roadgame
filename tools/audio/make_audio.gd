@@ -50,6 +50,7 @@ func _initialize() -> void:
 	# The Village's legends.
 	_save_legend("witch_hex", _witch_hex)
 	_save_legend("frau_holle", _frau_holle)
+	_save_legend("baba_yaga", _baba_yaga)
 	# The Desert's legends.
 	_save_legend("death_worm", _death_worm)
 	_save_legend("marfa_lights", _marfa_lights)
@@ -535,6 +536,61 @@ func _frau_holle() -> PackedFloat32Array:
 	for k: int in echoes + 1:
 		_add(out, _low_pass(whistle, 4000.0 * pow(0.6, k)), drop + k * echo, pow(0.5, k))
 	return out
+
+
+## Timed to Tuning.BABA_YAGA_BEATS from the end of the delay, when the sound starts: the hut's
+## footfalls, heavy thuds, louder and further apart as it stomps in and stops; its logs creaking as
+## it turns; a thud as it squats and a heavier one as it sits; its door creaking open; the slam as
+## the door shuts behind the car; a creak as it rises; and its footfalls going off, closer together
+## and softer as it fades. Pitched for a phone's speaker, which plays nothing under about 200 Hz:
+## the thuds' knocks reach above it.
+func _baba_yaga() -> PackedFloat32Array:
+	var beats := Tuning.BABA_YAGA_BEATS
+	var turn: float = beats[0]
+	var open: float = turn + beats[1]
+	var swallow: float = open + beats[2]
+	var end: float = swallow + beats[3]
+	var out := _silence(roundi((end + 0.4) * RATE))
+	var strides := roundi(Tuning.BABA_YAGA_FROM_TILES / BabaYaga.STRIDE_TILES)
+	for k: int in range(1, strides + 1):
+		var t := 1.0 - sqrt(1.0 - float(k) / strides)
+		_add(out, _footfall(), beats[0] * t, lerpf(0.3, 1.0, minf(t / BabaYaga.SHOW_SHARE, 1.0)))
+	var turning := beats[1] * (1.0 - BabaYaga.THREE_QUARTER_FROM)
+	_add(out, _creak(300.0, 240.0, turning, 6), open - turning, 0.6)
+	_add(out, _footfall(), open + beats[2] * BabaYaga.SQUAT_FROM, 0.5)
+	_add(out, _footfall(), open + beats[2] * BabaYaga.CROUCH_FROM, 1.0)
+	var opening := beats[2] * (1.0 - BabaYaga.OPEN_FROM)
+	_add(out, _creak(520.0, 780.0, opening, 12), open + beats[2] * BabaYaga.OPEN_FROM, 0.5)
+	var slam := _decay(_high_pass(_low_pass(_noise(roundi(0.3 * RATE)), 2000.0), 250.0), 0.05)
+	_add(slam, _decay(_tone(220.0, 0.3, "sine"), 0.08), 0.0, 0.8)
+	_add(slam, _decay(_tone(330.0, 0.3, "sine"), 0.05), 0.0, 0.4)
+	_add(out, slam, swallow + beats[3] * BabaYaga.ROLL_SHARE, 1.2)
+	var rising := beats[3] * (BabaYaga.OFF_FROM - BabaYaga.RISE_FROM)
+	_add(out, _creak(240.0, 320.0, rising, 4), swallow + beats[3] * BabaYaga.RISE_FROM, 0.5)
+	var off_strides := roundi(Tuning.BABA_YAGA_OFF_TILES / BabaYaga.STRIDE_TILES)
+	for k: int in range(1, off_strides + 1):
+		var off := 1.0 - BabaYaga.OFF_FROM
+		var t := BabaYaga.OFF_FROM + off * sqrt(float(k) / off_strides)
+		_add(out, _footfall(), swallow + beats[3] * t, BabaYaga.fading(t))
+	return out
+
+
+## A heavy footfall on the road: a thud, with a knock of noise and a hollow note of wood.
+func _footfall() -> PackedFloat32Array:
+	var out := _thump(0.25, 140.0, 50.0)
+	var knock := _high_pass(_low_pass(_noise(roundi(0.12 * RATE)), 900.0), 200.0)
+	_add(out, _decay(knock, 0.03), 0.0, 1.2)
+	_add(out, _decay(_tone(260.0, 0.12, "sine"), 0.04), 0.0, 0.5)
+	return out
+
+
+## Wood creaking, from `from` to `to` Hz over `seconds`: a note and its octave over a breath of
+## noise, juddering `cycles` times as it sticks and slips.
+func _creak(from: float, to: float, seconds: float, cycles: int) -> PackedFloat32Array:
+	var out := _glide(from, to, seconds)
+	_add(out, _glide(from * 2.0, to * 2.0, seconds), 0.0, 0.5)
+	_add(out, _low_pass(_noise(out.size()), 1500.0), 0.0, 0.4)
+	return _swell(_lfo(out, cycles, 0.9))
 
 
 # The Desert's legends.
