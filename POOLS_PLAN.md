@@ -584,7 +584,7 @@ The negative case, N25, sets every opaque pixel of the figure to its area's main
 |---|---|---|
 | A pick | 2.37 µs; all five 11.86 µs | Unchanged: a pick's cost hardly depends on the pool |
 | The boot's loading | The schedule's deep load 155.6 ms; a legend's first load 7.2–7.4 ms (the bus 8.8; the first of all about 21, which loads what legends share) and 170–250 KB; its sound, in `AudioDirector.EFFECTS`, 0.09–0.11 ms and 24–32 KB | About 74 ms and 1.9–2.8 MB more, on the desktop: the scenes 73 ms and 1.7–2.5 MB, the sounds about 1 ms and 0.3 MB. **Δ** 114 ms and 2.1 MB more, measured (E11): from Godot's banner to `grey box: tilesets built in`, 444 ms against 330 ms on PR 1's head (1438a81) and 320 ms on `pl/prototype`, the median of 7 cold starts each; the schedule's first load, as `main.gd` makes it, 182.0 ms against 73.2 ms, with 2.11 MB more (P4's 155.6 ms was without the cache). Compiling the ten legends' scripts takes 100 ms of it, about 10 ms each, where the worm's or the UFO's takes 7.1–7.3 ms, timed alike; their scenes' sheets and nodes 7 ms |
-| The builds | A legend's sound 23.6–31.6 KB once imported, its sheets 0.4–3.7 KB each; the Web build 11.2 MB, the APK 58.2 MB | 0.3–0.5 MB more |
+| The builds | A legend's sound 23.6–31.6 KB once imported, its sheets 0.4–3.7 KB each; the Web build 11.2 MB, the APK 58.2 MB | 0.3–0.5 MB more. **Δ** 0.29 MB more for the Web and 0.32 MB for the APK, zipped as CI keeps them: PR 11's build, run 43956193906, is 11.51 MB and 58.56 MB, and bba50c8's, with none of the ten, 11.23 MB and 58.24 MB. Each legend PR's build grew by 24–36 KB for the Web and 26–33 KB for the APK; PR 2's APK by 40 KB, with PR 1's code |
 | GUT | About 0.5 s for each legend: about 0.47 s in `test_every_disaster_of_every_pool_plays`, and its own tests | About 5 s more, about 97 s locally. **Δ** 109.1 s locally, 9.1 s more than PR 1's head (1438a81, 100.0 s, with `main`'s #93 and #94). By JUnit's times, the ten legends' own tests take 6.4 s, the wisps' 2.9 s and the Horseman's 1.3 s, most of it in their tests of the light at each point; `test_every_disaster_of_every_pool_plays` 2.1 s more, about 0.21 s a legend; `test_disasters.gd`'s shared tests 1.9 s more, and PR 2's art test 0.5 s |
 | A frame | A legend plays as the ★s do | Unchanged |
 
@@ -625,7 +625,7 @@ PR 1 adds `disaster_picks.gd` and `test_disaster_picks.gd`, 15 tests, and 187 as
 
 The `test` job took 2 min 42 s on `main`, 2 min 27 s on 0e1a76c, 2 min 46 s on c4fd24d and 2 min 27 s on d3a09a8. Locally, every check passed: `lint.sh` printed `Success: no problems found` and `162 files would be left unchanged`, the version pins and the Actions storage passed, `smoke.sh` printed no error line, and `git status --porcelain` printed nothing after them. GUT's time varies from run to run: in CI, from 79.0 s to 91.8 s over the prototype's three runs, and locally by a few seconds.
 
-**Δ** The PRs, each on the head that landed, in CI's `test` job, and PR 11 locally too. Each printed `smoke.sh`'s `autopilot: tile 165, turns 35, area rural`, as `main` does, and every check passed:
+**Δ** The PRs, each on the head that landed, in CI's `test` job, and PR 11 locally too. PR 11's rows are on dac312c and 23e717f, its first push: later pushes that change only this plan leave the counts as they are, as no check reads it. Each printed `smoke.sh`'s `autopilot: tile 165, turns 35, area rural`, as `main` does, and every check passed:
 
 | Head | Where | Scripts loaded | Test scripts | Tests | Asserts | GUT time | `test` job |
 |---|---|---|---|---|---|---|---|
@@ -641,8 +641,9 @@ The `test` job took 2 min 42 s on `main`, 2 min 27 s on 0e1a76c, 2 min 46 s on c
 | PR 9, #91 (1e0dfd9) | Run 43916429048 | 189 | 88 | 687 | 435,338 | 107.3 s | 3 min 4 s |
 | PR 10, #96 (48bf1a9) | Run 43920373017 | 192 | 89 | 695 | 436,661 | 115.3 s | 3 min 14 s |
 | PR 11, #98 (dac312c) | Local | 195 | 90 | 703 | 437,643 | 109.1 s | |
+| PR 11, #98 (23e717f) | Run 43956137165 | 195 | 90 | 703 | 437,643 | 148.5 s | 3 min 35 s |
 
-`main` at 14f5747 had VIS PRs 1 and 2 (#93, #94), which added 2 scripts, a test script, 19 tests and 2,523 asserts to 2d93074's. Each PR added what §4.2's "Expect" line says, with its **Δ**. GUT's time in CI ranged from 91.2 s to 145.4 s over these runs, as the runners vary: PR 1's took 134.7 s, and PR 2's, with one more legend, 91.2 s.
+`main` at 14f5747 had VIS PRs 1 and 2 (#93, #94), which added 2 scripts, a test script, 19 tests and 2,523 asserts to 2d93074's. Each PR added what §4.2's "Expect" line says, with its **Δ**. GUT's time in CI ranged from 91.2 s to 148.5 s over these runs, as the runners vary: PR 1's took 134.7 s, and PR 2's, with one more legend, 91.2 s; on PR 11's 23e717f, the PR's run took 148.5 s and its dispatch run, 43956193906, 113.9 s.
 
 ### 6.2 Negative cases
 
@@ -745,6 +746,7 @@ PR 11's ran on dac312c: `main`'s 5, and without `integer_division` only `junctio
 | 8, #90 | [Comment](https://github.com/pompomon/roadgame/pull/90#issuecomment-6900715559) | [Comment](https://github.com/pompomon/roadgame/pull/90#issuecomment-6923212695), on bf8638d's build | [43912530040](https://github.com/pompomon/roadgame/actions/runs/43912530040) |
 | 9, #91 | [Comment](https://github.com/pompomon/roadgame/pull/91#issuecomment-6901900170) | [Comment](https://github.com/pompomon/roadgame/pull/91#issuecomment-6923967590), on 1e0dfd9's build | [43916410321](https://github.com/pompomon/roadgame/actions/runs/43916410321) |
 | 10, #96 | [Comment](https://github.com/pompomon/roadgame/pull/96#issuecomment-6903123857) | [Comment](https://github.com/pompomon/roadgame/pull/96#issuecomment-6924600775), on 48bf1a9's build | [43920358190](https://github.com/pompomon/roadgame/actions/runs/43920358190) |
+| 11, #98 | [Comment](https://github.com/pompomon/roadgame/pull/98#issuecomment-6929287618) | [Comment](https://github.com/pompomon/roadgame/pull/98#issuecomment-6929701014), on 23e717f's build | [43956193906](https://github.com/pompomon/roadgame/actions/runs/43956193906) |
 
 ### 6.5 Measurements
 
@@ -779,7 +781,7 @@ The probes ran headless with Godot 4.7.2, on `main` (2d93074) or the prototype; 
 
 | When | Action | How |
 |---|---|---|
-| On PR 11, #98 | E12 on the Fold4, on both screens, for all ten legends: PRs 2–10 left theirs to PR 11's build (`AGENTS.md` §5) | §6.4: PR 11's APK from its last build (§6.4), with the Start choice and Retry, in each area; at noon and midnight, its Web build in the Fold4's Chrome, in Incognito, with the first seed that picks each legend on it from an empty collection. **Δ** With all ten, the seeds of PRs 3–6's E12 comments pick later legends (P15), so: the City's 0 the Mothman and 1 the Reaper; the Rural's 2 the scarecrow and 0 the Horseman; the Meadows' 3 the kelpie and 0 the wisps; the Village's 0 Frau Holle's well and 2 the hut; the Desert's 8 the Marfa lights and 1 the chupacabra. PR 11's body lists their URLs |
+| On PR 11, #98 | E12 on the Fold4, on both screens, for all ten legends: PRs 2–10 left theirs to PR 11's build (`AGENTS.md` §5) | §6.4: PR 11's APK from its last build, run [43956193906](https://github.com/pompomon/roadgame/actions/runs/43956193906) on 23e717f, kept till 2026-11-17 21:03 UTC; after that, PR 11's body has the command that builds it again. With the Start choice and Retry, in each area; at noon and midnight, its Web build in the Fold4's Chrome, in Incognito, with the first seed that picks each legend on it from an empty collection. **Δ** With all ten, the seeds of PRs 3–6's E12 comments pick later legends (P15), so: the City's 0 the Mothman and 1 the Reaper; the Rural's 2 the scarecrow and 0 the Horseman; the Meadows' 3 the kelpie and 0 the wisps; the Village's 0 Frau Holle's well and 2 the hut; the Desert's 8 the Marfa lights and 1 the chupacabra. PR 11's body lists their URLs |
 | On PR 11, #98 | E11: time the boot | §6.4: three cold starts each of `pl/prototype`'s debug APK and PR 11's, each built and downloaded the same day. On the desktop, PR 11 added 114 ms and 2.1 MB, not 74 ms (§5.7), so the Fold4 may well go over §6.4's 0.1 s |
 | To land PL | **Δ** Agents landed PRs 1–10 in order on 2026-11-16 (§4.4 **Δ**). Merge PR 11 once E11 and E12 pass, then PR 12, which starts from `main` once PR 11 has merged (§4.3) | Squash it. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.4) |
 | After PR 12 | Tag the prototype, which this plan cites, and delete the `pl/` branches | `git fetch origin pl/prototype && git push origin FETCH_HEAD:refs/tags/archive/pl/prototype`, then `git push origin --delete pl/plan pl/prototype pl/1-picks pl/2-mothman pl/3-scarecrow pl/4-kelpie pl/5-frau-holle pl/6-marfa-lights pl/7-grim-reaper pl/8-headless-horseman pl/9-will-o-wisp pl/10-baba-yaga pl/11-chupacabra pl/12-docs`, less any already deleted (docs/agents/planning.md §6) |
