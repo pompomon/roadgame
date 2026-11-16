@@ -28,6 +28,10 @@ const ARRIVE_SHARE := 0.6
 const DUSTED_FROM := 0.3
 const CAPPED_FROM := 0.7
 const FALLEN_SCALE := 0.1
+## The middle of the rect that the snow falls from, in px from the middle between the car and the
+## well: over them both, as far apart as they stand, which is up to a tile and
+## FRAU_HOLLE_SIDE_TILES.
+const SNOW := Vector2(0.0, -56.0)
 
 ## Where the well stands, from the legend's origin, and which way the car tips: 1 for the screen's
 ## right, -1 for its left.
@@ -46,13 +50,14 @@ static func duration(params: DisasterParams) -> float:
 	return params.delay + Beats.total(Tuning.FRAU_HOLLE_BEATS)
 
 
-## Where the well stands, from the car's ground point, the car heading `heading`, in tile space:
-## beside the car, FRAU_HOLLE_SIDE_TILES up-screen of the middle of its road, the tile axis nearest
-## to its heading.
-static func well(heading: Vector2) -> Vector2:
-	return Iso.tile_to_world(
-		-PhantomBus.side(PhantomBus.road(heading)) * Tuning.FRAU_HOLLE_SIDE_TILES
-	)
+## Where the well stands, from the car's ground point, the car heading `heading`, in tile space,
+## and the middle of the road ahead `middle` from it, in tiles, as Kelpie.to_middle() finds it:
+## beside the car, across its road, the tile axis nearest to its heading, FRAU_HOLLE_SIDE_TILES
+## up-screen of the road's middle, off the road; or of the car, if it stopped further up the screen
+## than that, so that the well stands up-screen of the car's double, which sorts in front of it.
+static func well(heading: Vector2, middle := Vector2.ZERO) -> Vector2:
+	var up := -PhantomBus.side(PhantomBus.road(heading))
+	return Iso.tile_to_world(up * (maxf(middle.dot(up), 0.0) + Tuning.FRAU_HOLLE_SIDE_TILES))
 
 
 ## How many rows of its frame the well shows, `risen` of the way out of the ground, from 0 to 1.
@@ -69,9 +74,16 @@ static func cap(t: float) -> int:
 
 func play(params: DisasterParams) -> void:
 	super(params)
-	_well_at = well(car.sim.forward() if car != null else params.direction)
+	var heading := car.sim.forward() if car != null else params.direction
+	# A wrong turn can leave the car off its road's middle, even beside its road.
+	var middle := Vector2.ZERO
+	if car != null:
+		var at := Iso.world_to_tile(params.origin_world)
+		middle = Kelpie.to_middle(at, PhantomBus.road(heading), car.sim.buffer)
+	_well_at = well(heading, middle)
 	_side = -1.0 if _well_at.x < 0.0 else 1.0
 	_well.global_position = to_global(_well_at)
+	_snow.position = _well_at / 2.0 + SNOW
 
 
 func _beats() -> Array[float]:
