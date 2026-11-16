@@ -32,27 +32,6 @@ const HEADINGS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vecto
 ## How many frames of its sheet the car may have stopped turned off its road, either way: up to
 ## 45°, for it straightens slowly once the player lets go (Tuning.STRAIGHTEN_RATE).
 const TURNED_OFF: Array[int] = [0, -2, 2]
-## How far across its dead end from the road's middle a wrong turn can leave the car, in tiles, as
-## it brakes straight on from mid-turn: off the road, in the dead end's cell (OFF_ROAD_TILES), or in
-## the next cell across (BESIDE_TILES), if the steering was let go mid-turn, as far as a hair short
-## of that cell's middle (NEXT_MIDDLE_TILES). FAR_OFF_TILES is two cells across, off any road.
-const OFF_ROAD_TILES := 0.47
-const BESIDE_TILES := 0.67
-const NEXT_MIDDLE_TILES := 0.99
-const FAR_OFF_TILES := 1.67
-## Where the car stops on a dead end, in tiles down-screen of its first cell's middle: on the road's
-## middle, and each of the above to either side of it.
-const STOPS: Array[float] = [
-	0.0,
-	-OFF_ROAD_TILES,
-	OFF_ROAD_TILES,
-	-BESIDE_TILES,
-	BESIDE_TILES,
-	-NEXT_MIDDLE_TILES,
-	NEXT_MIDDLE_TILES,
-	-FAR_OFF_TILES,
-	FAR_OFF_TILES,
-]
 
 var _stage: Node2D
 var _car: CarController
@@ -257,31 +236,6 @@ static func _lowest_row(sheet: Image, frame: int) -> int:
 	return -1
 
 
-## The first tile of the first dead end of each heading in `buffer`, of those with no road in the
-## two cells to either side of it, across its road.
-static func _dead_ends(buffer: RoadBuffer) -> Array[RoadTile]:
-	var found: Array[RoadTile] = []
-	var headings: Array[int] = []
-	for index: int in range(buffer.first_index(), buffer.last_index() + 1):
-		var junction := buffer.path_tile(index)
-		for branch: RoadTile in junction.branches:
-			var exit := branch.branch_exit
-			var across := Vector2i(absi(Heading.VEC[exit].y), absi(Heading.VEC[exit].x))
-			var clear := branch.cell == junction.cell + Heading.VEC[exit] and exit not in headings
-			for k: int in [-2, -1, 1, 2]:
-				clear = clear and buffer.tile_at(branch.cell + across * k) == null
-			if clear:
-				found.append(branch)
-				headings.append(exit)
-	return found
-
-
-## Whether `point`, in tiles, is on the road of the car's buffer.
-func _on_road(point: Vector2) -> bool:
-	var cell := Vector2i(point.floor())
-	return RoadGeometry.is_on_road(_car.sim.buffer.tile_at(cell), point - Vector2(cell))
-
-
 ## How many of the opaque texels of `water`'s still pool lie on the road of the car's buffer, each
 ## by its middle, the car's ground point being `at`, in tiles.
 func _pool_on_road(water: Sprite2D, at: Vector2) -> int:
@@ -292,7 +246,7 @@ func _pool_on_road(water: Sprite2D, at: Vector2) -> int:
 			if _pool_sheet.get_pixel(x, y).a == 0.0:
 				continue
 			var local := (Vector2(x, y) + Vector2(0.5, 0.5) - half) * water.scale
-			if _on_road(at + Iso.world_to_tile(_from_car(water) + local)):
+			if Disasters.on_road(_car.sim.buffer, at + Iso.world_to_tile(_from_car(water) + local)):
 				count += 1
 	return count
 
@@ -625,15 +579,15 @@ func test_it_lies_by_the_road_ahead_wherever_across_it_the_car_stopped() -> void
 	# middle beside the pool. With the car FAR_OFF_TILES to either side, off any road, they lie by
 	# the car's line.
 	var ends := _ends()
-	var dead_ends := _dead_ends(_car.sim.buffer)
+	var dead_ends := Disasters.dead_ends(_car.sim.buffer)
 	assert_eq(dead_ends.size(), HEADINGS.size(), "a dead end of each heading")
 	for branch: RoadTile in dead_ends:
 		var heading := Vector2(Heading.VEC[branch.branch_exit])
 		var down := PhantomBus.side(heading)
-		for across: float in STOPS:
+		for across: float in Disasters.STOPS:
 			var what := "heading %s, %s tiles down-screen" % [heading, across]
 			var at := Iso.cell_centre(branch.cell) + down * across
-			var on_road := absf(across) != FAR_OFF_TILES
+			var on_road := absf(across) != Disasters.FAR_OFF_TILES
 			var middle := Iso.tile_to_world(-down * across) if on_road else Vector2.ZERO
 			_car.sim.pos = at
 			_car.position = Iso.tile_to_world(at)
@@ -655,7 +609,7 @@ func test_it_lies_by_the_road_ahead_wherever_across_it_the_car_stopped() -> void
 			if on_road:
 				assert_eq(_pool_on_road(water, at), 0, "%s: the pool, off the road" % what)
 				var lying := at + Iso.world_to_tile(_from_car(weed))
-				assert_true(_on_road(lying), "%s: the weed, on it" % what)
+				assert_true(Disasters.on_road(_car.sim.buffer, lying), "%s: the weed, on it" % what)
 
 
 func test_it_plays_in_the_light_of_the_hour_with_no_veil_and_no_glow() -> void:

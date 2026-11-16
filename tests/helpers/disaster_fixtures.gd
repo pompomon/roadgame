@@ -12,6 +12,27 @@ const DELTA := 1.0 / 60.0
 ## More physics frames than a disaster takes, so that a test that waits for a phase fails instead
 ## of hanging.
 const MAX_FRAMES := 600
+## How far across its dead end from the road's middle a wrong turn can leave the car, in tiles, as
+## it brakes straight on from mid-turn: off the road, in the dead end's cell (OFF_ROAD_TILES), or in
+## the next cell across (BESIDE_TILES), if the steering was let go mid-turn, as far as a hair short
+## of that cell's middle (NEXT_MIDDLE_TILES). FAR_OFF_TILES is two cells across, off any road.
+const OFF_ROAD_TILES := 0.47
+const BESIDE_TILES := 0.67
+const NEXT_MIDDLE_TILES := 0.99
+const FAR_OFF_TILES := 1.67
+## Where the legends' tests stop the car on each of dead_ends(), in tiles down-screen of its first
+## cell's middle: on the road's middle, and each of the above to either side of it.
+const STOPS: Array[float] = [
+	0.0,
+	-OFF_ROAD_TILES,
+	OFF_ROAD_TILES,
+	-BESIDE_TILES,
+	BESIDE_TILES,
+	-NEXT_MIDDLE_TILES,
+	NEXT_MIDDLE_TILES,
+	-FAR_OFF_TILES,
+	FAR_OFF_TILES,
+]
 
 
 ## Every disaster in the game's pools, once each, in the schedule's order.
@@ -66,6 +87,31 @@ static func camera(test: GutTest) -> CameraRig:
 	var made := CameraRig.new()
 	test.add_child_autofree(made)
 	return made
+
+
+## The first tile of the first dead end of each heading in `buffer`, of those with no road in the
+## two cells to either side of it, across its road.
+static func dead_ends(buffer: RoadBuffer) -> Array[RoadTile]:
+	var found: Array[RoadTile] = []
+	var headings: Array[int] = []
+	for index: int in range(buffer.first_index(), buffer.last_index() + 1):
+		var junction := buffer.path_tile(index)
+		for branch: RoadTile in junction.branches:
+			var exit := branch.branch_exit
+			var across := Vector2i(absi(Heading.VEC[exit].y), absi(Heading.VEC[exit].x))
+			var clear := branch.cell == junction.cell + Heading.VEC[exit] and exit not in headings
+			for k: int in [-2, -1, 1, 2]:
+				clear = clear and buffer.tile_at(branch.cell + across * k) == null
+			if clear:
+				found.append(branch)
+				headings.append(exit)
+	return found
+
+
+## Whether `point`, in tiles, is on the road of `buffer`.
+static func on_road(buffer: RoadBuffer, point: Vector2) -> bool:
+	var cell := Vector2i(point.floor())
+	return RoadGeometry.is_on_road(buffer.tile_at(cell), point - Vector2(cell))
 
 
 ## `scene`'s disaster, for `car` and `camera`, which may be null, under `test`.

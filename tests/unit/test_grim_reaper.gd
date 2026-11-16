@@ -32,6 +32,10 @@ const ALONG_COS := 0.999
 const WALL_FOOT := 3
 ## The car's headings, as tile directions: the roads run along the tile axes.
 const HEADINGS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT]
+## How far the car may have stopped turned off its road, either way, in degrees in tile space: up
+## to nearly 45°, past which its road is the other tile axis, for it straightens slowly once the
+## player lets go (Tuning.STRAIGHTEN_RATE).
+const TURNED_OFF: Array[float] = [0.0, -44.0, 44.0]
 ## The palette's colours that the scythe is drawn in, and nothing else of the Reaper: its shaft,
 ## its blade and the blade's edge.
 const SCYTHE: Array[String] = ["plank", "asphalt light", "white"]
@@ -72,13 +76,13 @@ func before_each() -> void:
 
 
 ## The Grim Reaper, playing for the car with the car's place as its origin, as the director gives
-## it, the car heading `heading`, a tile direction.
-func _legend(heading := Vector2.UP) -> GrimReaper:
+## it, the car heading `heading`, a tile direction, turned `turned` radians clockwise off it.
+func _legend(heading := Vector2.UP, turned := 0.0) -> GrimReaper:
 	_car.modulate.a = 1.0
 	# CarSim.forward() is (sin a, -cos a).
-	_car.sim.angle = atan2(heading.x, -heading.y)
+	_car.sim.angle = atan2(heading.x, -heading.y) + turned
 	var body := _car.get_node("%Body") as Sprite2D
-	body.frame = CarController.frame(heading)
+	body.frame = CarController.frame(_car.sim.forward())
 	var legend := Disasters.disaster(self, GRIM_REAPER, _car, _camera) as GrimReaper
 	legend.stage = _stage
 	_params = Disasters.params()
@@ -236,6 +240,23 @@ static func _frame_of(car_double: Sprite2D) -> int:
 	return roundi(car_double.region_rect.position.x / CarController.FRAME_SIZE.x)
 
 
+## Whether `frames`, which the car's double shows step by step, turn a frame at a time toward `way`,
+## in px, and never past it: how far they have turned, summed so that it doesn't wrap round, stays
+## between none and how far `way` is from the first, give or take half a frame, for frames round.
+static func _turns_toward(frames: Array[int], way: Vector2) -> bool:
+	var step := TAU / CarController.FRAMES
+	var off := angle_difference(frames[0] * step, atan2(way.x, -way.y))
+	var faced := 0.0
+	for k: int in range(1, frames.size()):
+		var turn := posmod(frames[k] - frames[k - 1] + 1, CarController.FRAMES) - 1
+		if absi(turn) > 1:
+			return false
+		faced += turn * step
+		if faced < minf(off, 0.0) - step / 2.0 or faced > maxf(off, 0.0) + step / 2.0:
+			return false
+	return true
+
+
 ## The lowest row of `frame` of the car's sheet `sheet` with an opaque texel, or -1.
 static func _lowest_row(sheet: Image, frame: int) -> int:
 	for row: int in range(CarController.FRAME_SIZE.y - 1, -1, -1):
@@ -281,9 +302,13 @@ func _differences(a: int, b: int) -> Array[Vector2i]:
 	return found
 
 
-## Which side of the Reaper's foot its scythe shows on, as its frame and its flip show it: -1 for
-## the screen's left, 1 for its right, and 0 if it reaches over the foot.
-func _scythe_side(reaper: Sprite2D) -> float:
+## Whether the scythe of `legend`'s Reaper, as its frame and its flip show it, lies wholly on the
+## side of its foot away from each of the car, its double and the grave that shows, or the Reaper
+## doesn't show (docs/M6.md Q8).
+func _scythe_away(legend: GrimReaper) -> bool:
+	var reaper := _reaper(legend)
+	if not Disasters.shows(reaper):
+		return true
 	var least := INF
 	var most := -INF
 	for texel: Vector2i in _scythes[reaper.frame]:
@@ -291,9 +316,13 @@ func _scythe_side(reaper: Sprite2D) -> float:
 		var left := float(-texel.x - 1) if reaper.flip_h else float(texel.x)
 		least = minf(least, left)
 		most = maxf(most, left + 1.0)
-	if most <= 0.0:
-		return -1.0
-	return 1.0 if least >= 0.0 else 0.0
+	# -1 for the screen's left, 1 for its right, and 0 if it reaches over the foot.
+	var side := -1.0 if most <= 0.0 else (1.0 if least >= 0.0 else 0.0)
+	for target: Node2D in [_car, _grave(legend), _double(legend)]:
+		if target != null and Disasters.shows(target):
+			if side * (target.global_position.x - reaper.global_position.x) >= 0.0:
+				return false
+	return true
 
 
 ## The texel of `frame` of the grave's sheet at `at` from its middle.
@@ -547,20 +576,15 @@ func test_it_beckons_with_one_bony_hand_its_scythe_held_still_away_from_the_car(
 		var stand := GrimReaper.stand(heading)
 		var legend := _legend(heading)
 		var reaper := _reaper(legend)
-		var grave := _grave(legend)
 		var frames: Array[int] = []
 		var still := true
 		var away := true
 		watch_signals(legend)
 		while get_signal_emit_count(legend, "finished") == 0 and _frames < Disasters.MAX_FRAMES:
 			_step(legend)
+			away = away and _scythe_away(legend)
 			if not Disasters.shows(reaper):
 				continue
-			var side := _scythe_side(reaper)
-			for target: Node2D in [_car, grave, _double(legend)]:
-				if target != null and Disasters.shows(target):
-					var toward := target.global_position.x - reaper.global_position.x
-					away = away and side * toward < 0.0
 			if _inside(1) or _inside(2):
 				frames.append(reaper.frame)
 				still = still and _near(_from_car(reaper), stand)
@@ -625,10 +649,12 @@ func test_the_road_opens_into_a_grave_in_front_of_the_car() -> void:
 		assert_true(on_road, "%s: on the road, ahead of the car" % what)
 
 
-func test_the_car_rolls_forward_into_the_grave() -> void:
+func test_the_car_rolls_forward_into_the_grave_however_it_had_turned() -> void:
 	# Its double takes its place in the same frame, as the last beat starts, facing as the car
 	# stopped, on the stage with the props. It rolls straight ahead into the grave's middle, slowly
-	# at first and at the last, whole: each frame of the car ends above the grave's near lip.
+	# at first and at the last, whole: each frame of the car ends above the grave's near lip. However
+	# the car had turned off its road, as a review found, it turns toward the way it rolls, never
+	# past it, to face it at the end, so it doesn't slide sideways.
 	var sheet := (_car.get_node("%Body") as Sprite2D).texture.get_image()
 	var lowest := -1
 	for frame: int in CarController.FRAMES:
@@ -637,54 +663,60 @@ func test_the_car_rolls_forward_into_the_grave() -> void:
 	assert_lt(lowest, depth, "the car shows whole down to the grave's lip till it sinks")
 	var ends := _ends()
 	for heading: Vector2 in HEADINGS:
-		var what := "heading %s" % heading
 		var at := GrimReaper.grave(heading)
-		var legend := _legend(heading)
-		var there := true
-		while _double(legend) == null and not _reached(ends[3]):
-			there = there and _car.modulate.a == 1.0
-			_step(legend)
-		var car_double := _double(legend)
-		if car_double == null:
-			fail_test("%s: it took the car" % what)
-			continue
-		var into := _through(3) * Tuning.GRIM_REAPER_BEATS[3]
-		assert_between(into, -DELTA, 2.0 * DELTA, "%s: as the last beat starts" % what)
-		assert_true(there, "%s: the car stays where it stopped till then" % what)
-		assert_eq(_car.modulate.a, 0.0, "%s: the double took the car's place" % what)
-		assert_true(Disasters.shows(car_double), "%s: in the same frame" % what)
-		assert_eq(car_double.get_parent(), _stage, "%s: on the stage" % what)
-		assert_eq(Disasters.z(car_double), 0, "%s: with the props" % what)
-		var staged: Array[Sprite2D] = [_reaper(legend), _stone(legend), car_double]
-		assert_eq(legend.staged(), staged, "%s: it frees what it stands up" % what)
-		var faces := CarController.frame(heading)
-		assert_eq(_frame_of(car_double), faces, "%s: facing as the car stopped" % what)
-		var path: Array[Vector2] = [Vector2.ZERO, _from_car(car_double)]
-		var whole := true
-		while _short_of(_at(3, GrimReaper.ROLL_SHARE)):
-			_step(legend)
+		for turned: float in TURNED_OFF:
+			var what := "heading %s, turned %s° off it" % [heading, turned]
+			var legend := _legend(heading, deg_to_rad(turned))
+			var first := CarController.frame(_car.sim.forward())
+			var there := true
+			while _double(legend) == null and not _reached(ends[3]):
+				there = there and _car.modulate.a == 1.0
+				_step(legend)
+			var car_double := _double(legend)
+			if car_double == null:
+				fail_test("%s: it took the car" % what)
+				continue
+			var into := _through(3) * Tuning.GRIM_REAPER_BEATS[3]
+			assert_between(into, -DELTA, 2.0 * DELTA, "%s: as the last beat starts" % what)
+			assert_true(there, "%s: the car stays where it stopped till then" % what)
+			assert_eq(_car.modulate.a, 0.0, "%s: the double took the car's place" % what)
+			assert_true(Disasters.shows(car_double), "%s: in the same frame" % what)
+			assert_eq(car_double.get_parent(), _stage, "%s: on the stage" % what)
+			assert_eq(Disasters.z(car_double), 0, "%s: with the props" % what)
+			var staged: Array[Sprite2D] = [_reaper(legend), _stone(legend), car_double]
+			assert_eq(legend.staged(), staged, "%s: it frees what it stands up" % what)
+			var frames: Array[int] = [_frame_of(car_double)]
+			assert_eq(frames[0], first, "%s: facing as the car stopped" % what)
+			var path: Array[Vector2] = [Vector2.ZERO, _from_car(car_double)]
+			var whole := true
+			while _short_of(_at(3, GrimReaper.ROLL_SHARE)):
+				_step(legend)
+				path.append(_from_car(car_double))
+				frames.append(_frame_of(car_double))
+				whole = whole and Disasters.shows(car_double)
+				whole = whole and car_double.offset == -Vector2(CarController.FOOT)
+				whole = whole and car_double.region_rect.size.y > lowest
+			_step_to(legend, _at(3, GrimReaper.ROLL_SHARE))
 			path.append(_from_car(car_double))
-			whole = whole and Disasters.shows(car_double)
-			whole = whole and car_double.offset == -Vector2(CarController.FOOT)
-			whole = whole and car_double.region_rect.size.y > lowest
-		_step_to(legend, _at(3, GrimReaper.ROLL_SHARE))
-		path.append(_from_car(car_double))
-		var gone: Array[float] = []
-		for point: Vector2 in path:
-			gone.append(point.length())
-		var steps := _strides(path)
-		if steps.is_empty():
-			fail_test("%s: it rolled" % what)
-			continue
-		var longest := _largest(steps)
-		assert_true(_straight(path, Vector2.ZERO, at), "%s: straight ahead" % what)
-		assert_eq(gone, Disasters.sorted(gone), "%s: forward only" % what)
-		assert_lte(gone[-1], at.length() + NEAR.x, "%s: never past the grave's middle" % what)
-		assert_lt(steps[0], SLOW_SHARE * longest, "%s: slowly at first" % what)
-		assert_lt(steps[-1], SLOW_SHARE * longest, "%s: and at the last" % what)
-		assert_lte(longest, MOST_A_FRAME * at.length(), "%s: bit by bit" % what)
-		assert_true(whole, "%s: whole" % what)
-		assert_almost_eq(path[-1], at, NEAR, "%s: into the grave's middle" % what)
+			frames.append(_frame_of(car_double))
+			var gone: Array[float] = []
+			for point: Vector2 in path:
+				gone.append(point.length())
+			var steps := _strides(path)
+			if steps.is_empty():
+				fail_test("%s: it rolled" % what)
+				continue
+			var longest := _largest(steps)
+			assert_true(_straight(path, Vector2.ZERO, at), "%s: straight ahead" % what)
+			assert_eq(gone, Disasters.sorted(gone), "%s: forward only" % what)
+			assert_lte(gone[-1], at.length() + NEAR.x, "%s: never past the grave's middle" % what)
+			assert_lt(steps[0], SLOW_SHARE * longest, "%s: slowly at first" % what)
+			assert_lt(steps[-1], SLOW_SHARE * longest, "%s: and at the last" % what)
+			assert_lte(longest, MOST_A_FRAME * at.length(), "%s: bit by bit" % what)
+			assert_true(whole, "%s: whole" % what)
+			assert_almost_eq(path[-1], at, NEAR, "%s: into the grave's middle" % what)
+			assert_true(_turns_toward(frames, at), "%s: turning toward the way it rolls" % what)
+			assert_eq(frames[-1], CarController.frame(heading), "%s: to face that way" % what)
 
 
 func test_it_sinks_as_the_earth_falls_in_on_it() -> void:
@@ -863,6 +895,72 @@ func test_a_gravestone_rises_at_its_head_and_the_reaper_fades_away() -> void:
 		var car_double := _double(legend)
 		var buried := car_double == null or not Disasters.shows(car_double)
 		assert_true(buried, "%s: and its double" % what)
+
+
+func test_it_opens_on_the_road_wherever_across_it_the_car_stopped() -> void:
+	# A wrong turn can leave the car off its road's middle, even in the next cell across, as a
+	# review found. On a dead end of each heading, the car at each of STOPS: the grave opens on the
+	# road's middle ahead, all of its pit on the road, with its gravestone and its earth. The Reaper
+	# stands GRIM_REAPER_SIDE_TILES up-screen of the road's middle, or of the car if it stopped
+	# further up the screen, its scythe away from the car, its double and the grave. The double
+	# rolls straight into the grave, turning to face the way it rolls. With the car FAR_OFF_TILES to
+	# either side, off any road, they lie by the car's line.
+	var pit := _pit()
+	var dead_ends := Disasters.dead_ends(_car.sim.buffer)
+	assert_eq(dead_ends.size(), HEADINGS.size(), "a dead end of each heading")
+	for branch: RoadTile in dead_ends:
+		var heading := Vector2(Heading.VEC[branch.branch_exit])
+		var down := PhantomBus.side(heading)
+		for across: float in Disasters.STOPS:
+			var what := "heading %s, %s tiles down-screen" % [heading, across]
+			var at := Iso.cell_centre(branch.cell) + down * across
+			var on_road := absf(across) != Disasters.FAR_OFF_TILES
+			var middle := Iso.tile_to_world(-down * across) if on_road else Vector2.ZERO
+			var into := middle + GrimReaper.grave(heading)
+			var stand := (middle if across > 0.0 else Vector2.ZERO) + GrimReaper.stand(heading)
+			_car.sim.pos = at
+			_car.position = Iso.tile_to_world(at)
+			var legend := _legend(heading)
+			var path: Array[Vector2] = [Vector2.ZERO]
+			var frames: Array[int] = []
+			var still := true
+			var away := true
+			watch_signals(legend)
+			while get_signal_emit_count(legend, "finished") == 0 and _frames < Disasters.MAX_FRAMES:
+				_step(legend)
+				away = away and _scythe_away(legend)
+				if _inside(1) or _inside(2):
+					still = still and _near(_from_car(_reaper(legend)), stand)
+				# While the car's double rolls in whole, before it has sunk at all.
+				var taken := _double(legend)
+				if taken != null and taken.offset == -Vector2(CarController.FOOT):
+					path.append(_from_car(taken))
+					frames.append(_frame_of(taken))
+			assert_signal_emit_count(legend, "finished", 1, "%s: it has finished" % what)
+			var grave := _grave(legend)
+			var off_road := 0
+			for texel: Vector2i in pit:
+				var ground := at + _on_ground(grave, texel)
+				off_road += 0 if Disasters.on_road(_car.sim.buffer, ground) else 1
+			var told := "%s: the grave opens on the road's middle ahead" % what
+			assert_almost_eq(_from_car(grave), into, NEAR, told)
+			if on_road:
+				assert_eq(off_road, 0, "%s: all of its pit on the road" % what)
+			var head := middle + GrimReaper.head(heading)
+			assert_almost_eq(_from_car(_stone(legend)), head, NEAR, "%s: its gravestone" % what)
+			var earth := middle + GrimReaper.earth(heading)
+			assert_almost_eq(_from_car(_earth(legend)), earth, NEAR, "%s: its earth" % what)
+			assert_true(still, "%s: the Reaper stands beside it" % what)
+			assert_true(away, "%s: its scythe away from the car, its double and the grave" % what)
+			if frames.is_empty():
+				fail_test("%s: it took the car" % what)
+				continue
+			assert_true(_straight(path, Vector2.ZERO, into), "%s: the car rolls straight" % what)
+			assert_almost_eq(path[-1], into, NEAR, "%s: into the grave's middle" % what)
+			assert_eq(frames[0], CarController.frame(heading), "%s: facing as it stopped" % what)
+			assert_true(_turns_toward(frames, into), "%s: turning toward the way it rolls" % what)
+			var rolls := CarController.frame(Iso.world_to_tile(into))
+			assert_eq(frames[-1], rolls, "%s: to face that way" % what)
 
 
 func test_it_plays_at_dusk_with_no_glow() -> void:
