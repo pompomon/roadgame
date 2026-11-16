@@ -17,7 +17,7 @@ Write `M<n>_PLAN.md` at the root, on branch `m<n>/plan`, in the shape of `git sh
 - §1 the goal and exit criteria E#, each with how it is checked.
 - §2 the findings by severity: what's wrong, the evidence, the fix.
 - §3 decisions and open questions Q#, each with a default.
-- §4 the work breakdown: one PR per reviewable piece, with its files, steps and expected test counts; how the stack lands (§4.5); a table of review fixes, filled in later (§4.6).
+- §4 the work breakdown: one PR per reviewable piece, with its files, steps and expected test counts; how the stack lands, and which PRs the owner lands beyond AGENTS.md §5 step 4's (§4.5); a table of review fixes, filled in later (§4.6). Put the changes to the owner's paths (AGENTS.md §5 step 4) in the last PR or in a `docs/` or `ci/` PR, so that agents can land the others.
 - §5 the design; §6 verification: local checks with counts (§6.1), negative cases (§6.2), editor warnings (§6.3), what only CI or a device can check (§6.4), measurements; §7 owner actions; §8 risks; §9 notes for later milestones.
 
 ## 4. Negative cases
@@ -29,9 +29,9 @@ For each rule and each fix, write the temporary change that breaks it and the ch
 
 ## 5. The plan PR
 
-Open it docs only, with base `main`, after a review by a different model (review.md §1). The owner answers the Q#s or accepts the defaults. If nobody answers, go on with the defaults and say so.
+Open it docs only, with base `main`, after a review by a different model (review.md §1). The owner answers the Q#s or accepts the defaults, and approves the plan by merging its PR: none of the plan's other PRs lands before that. If nobody answers the Q#s, go on with the defaults and say so.
 
-Keep the plan current while its PRs are reviewed: its status line, the review-fix table, the counts and the device results. The stack's last PR can carry the final sync, as M2 PR 4 did in aac0b4b.
+Keep the plan current while its PRs are reviewed: its status line, the review-fix table, the counts and the device results. The stack's last PR can carry the final sync, as M2 PR 4 did in aac0b4b. It also gathers the device checks that each PR listed (§6.4) into one list, with a build of its branch (`gh workflow run ci.yml --ref <branch> -f upload-builds=true`), and mentions @pompomon: the owner lands it once they pass.
 
 ## 6. Summarise it when it lands
 
@@ -40,5 +40,5 @@ Finished plans don't stay at the root. Once the plan's last PR has merged, a doc
 - Define every ID that code, tests or docs cite, as a bold label: `- **H16.** …`. Keep the decisions, the design that the code follows, the measurements that tuning values come from, and what's still open. Leave out the steps, the review rounds and the counts.
 - Its header points to the full plan: `git show <sha>:<NAME>_PLAN.md`, with the last commit that has it.
 - Move its open owner actions and its notes for later milestones into IP.
-- End its PR's owner actions with the plan's branches. The plan cites the prototype's commits, so the owner tags it before deleting them (docs/README.md): `git fetch origin m<n>/prototype && git push origin FETCH_HEAD:refs/tags/archive/m<n>/prototype`, then `git push origin --delete m<n>/plan m<n>/prototype …`.
+- End its PR's owner actions with the plan's branches. The plan cites the prototype's commits, so the owner tags it before deleting them (docs/README.md): `git fetch origin m<n>/prototype && git push origin FETCH_HEAD:refs/tags/archive/m<n>/prototype`, then `git push origin --delete m<n>/plan m<n>/prototype …`, leaving out the branches that GitHub deleted on merge.
 - Rewrite the citations outside `docs/` from `<NAME>_PLAN.md` to `docs/<NAME>.md` (the same length, so lines don't need rewrapping), add a line to `docs/README.md`, and check that every cited ID is defined.

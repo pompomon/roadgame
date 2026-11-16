@@ -181,7 +181,12 @@ func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	var body: Sprite2D = car.get_node("%Body")
 	var cycle := _clock(9.0)
 	car.sim.angle = PI / 2.0
-	await wait_physics_frames(2)
+	# Its wheels in a phase past the first: every row has the first's outline (VISUALS_PLAN.md §5.1).
+	for _i: int in 120:
+		if body.frame_coords.y != 0:
+			break
+		await wait_physics_frames(1)
+	assert_ne(body.frame_coords.y, 0, "its wheels rolled")
 	_shadows.refresh(cycle, car)
 	var cast := _shadows.car_cast()
 	assert_not_null(cast)
@@ -189,7 +194,7 @@ func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	assert_null(cast.sprite.material, "laid by its transform")
 	assert_true(cast.sprite.visible)
 	assert_eq(cast.sprite.texture, body.texture)
-	assert_eq(cast.sprite.frame, body.frame, "the body's frame")
+	assert_eq(cast.sprite.frame, body.frame_coords.x, "the body's frame")
 	var first := cast.sprite.frame
 	assert_eq(cast.sprite.region_rect.size.y, float(CarController.FOOT.y), "rows above its foot")
 	var top := Vector2(CarController.FOOT) - Vector2(0.0, 6.0)
@@ -199,7 +204,7 @@ func test_the_cars_shadow_follows_its_frame_and_fades_with_it() -> void:
 	car.scale = Vector2.ONE * 0.5
 	car.modulate.a = 0.4
 	_shadows.refresh(cycle, car)
-	assert_eq(cast.sprite.frame, body.frame, "its new frame")
+	assert_eq(cast.sprite.frame, body.frame_coords.x, "its new frame")
 	assert_ne(cast.sprite.frame, first, "turned")
 	assert_almost_eq(_laid(cast, top), car.position + 3.0 * cycle.shadow, Vector2.ONE * 1e-3)
 	assert_almost_eq(cast.sprite.self_modulate.a, 0.4, 1e-6, "as clear as the car")
