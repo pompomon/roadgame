@@ -13,16 +13,18 @@ commit is in. --minutes 0 only prints the current state.
 
 Exit codes:
   0  Copilot reviewed the head commit, nothing that needs an answer arrived, and no check failed
-     but Copilot's own (checks may still be running: the summary says). Or the PR is closed, even
-     if feedback came with that (printed above)
+     but Copilot's own (checks may still be running: the summary says): land it with land_pr.sh,
+     unless the owner lands it (AGENTS.md §5). Or the PR is closed, even if feedback came with
+     that (printed above)
   2  Feedback that needs an answer (printed above the summary): anything new but a clean Copilot
-     review, or Copilot's review of the head that was already there, isn't clean, and has no
-     thread reply or post by anyone but Copilot after it. Handle it, push, reply, run this again.
+     review. Or, already there, Copilot's review of the head unless it's clean, or a person's PR
+     comment or review however old, and no review or PR comment starts with a link to it
+     (docs/agents/review.md §2 item 4). Handle it, push, reply, run this again.
      If the head moved too, the last line says so: pull first
   3  No Copilot review of the head commit in time (docs/agents/review.md §3 says what to do)
   4  The head commit changed while watching, and nothing new needs an answer: pull, run this again
-  5  A check other than Copilot's own failed on the head commit (named in the summary;
-     docs/agents/review.md §4)
+  5  A check other than Copilot's own failed on the head commit, in its latest run (named in the
+     summary; docs/agents/review.md §4)
   1  Usage error, or gh failed 3 times in a row
 EOF
 }
@@ -75,11 +77,38 @@ tab=$(printf '\t')
 # their HTML and line breaks and are cut to 300 characters. Comment-only reviews without a body
 # are the containers of thread replies; their comments are listed on their own. A sixth field
 # marks Copilot's reviews of any commit, "true" if clean (approval recommended, no open or
-# previously missed issues) and "false" if not; and thread replies, "reply", whoever posted them
-# (the cloud agent replies as Copilot, like Copilot's own inline comments, but those never reply
-# in a thread). Reviews have a seventh, the commit they review, so one request finds both the new
-# items and Copilot's review of the head.
-jq_text='def text: (. // "") | gsub("<[^>]*>"; "") | gsub("\\s+"; " ") | ltrimstr(" ") | .[0:300];'
+# previously missed issues) and "false" if not. Reviews have a seventh, the commit they review, so
+# one request finds both the new items and Copilot's review of the head.
+# The eighth is the key of the review or PR comment that a review or PR comment answers: the one
+# that its raw body starts with a link to, as "Re [Copilot's review of <sha>](<review URL>)" or
+# "Re [<login>'s comment](<comment URL>)" (docs/agents/review.md §2 item 4). A link anywhere else
+# in a post, even after "Re [", answers nothing. Nor does a thread reply, even one that starts
+# with the link: it answers its thread, which land_pr.sh holds until it's resolved, not what has
+# no thread. The repository is public, so only a post by someone who can write to it answers
+# anything, or a PR comment by the cloud agent, which GitHub marks as made via its app,
+# copilot-swe-agent: only people who can write can start it.
+# The ninth is "true" for a person's post, which needs an answer however old it is: a PR comment,
+# or a review with a body or that requests changes, by anyone but Copilot's reviewer. None is
+# needed for a post made via copilot-swe-agent by someone who can write or by the cloud agent (an
+# agent's note), for the reviewer's notice of a failed setup, or for a post by someone who can
+# write that starts with "Re [<label>](<URL>)", as answers and notes do.
+# Copilot's bots are known by their type and exact login, as anyone can pick a login such as
+# copilot-pull-request-reviewer-x. The whitespace classes are ASCII so that jq and gh's gojq read
+# a body the same way.
+jq_text='def text: (. // "") | gsub("<[^>]*>"; "") | gsub("\\s+"; " ") | ltrimstr(" ") | .[0:300];
+  def opening: .body // "" | sub("^[ \\t\\r\\n]+"; "");
+  def app: .performed_via_github_app.slug // "";
+  def bot(login): .user.type == "Bot" and .user.login == login;
+  def reviewer: bot("copilot-pull-request-reviewer[bot]");
+  def trusted: (.author_association // "" | test("^(OWNER|MEMBER|COLLABORATOR)$"))
+    or (bot("Copilot") and app == "copilot-swe-agent");
+  def note: trusted and (opening | test("^Re \\[[^\\]\\n]*\\]\\([^) \\t\\r\\n]+\\)"));
+  def answers: if trusted then [opening
+      | match("^Re \\[[^\\]\\n]*\\]\\([^) \\t\\r\\n]*#(pullrequestreview|issuecomment)-([0-9]+)\\)")
+      | "\(if .captures[0].string == "issuecomment" then "comment" else "review" end)-\(.captures[1].string)"]
+    | first // "" else "" end;
+  def via_copilot: (trusted and app == "copilot-swe-agent")
+    or (bot("Copilot") and app == "copilot-pull-request-reviewer");'
 items() {
   gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" --jq "$jq_text"'
     .[] | select(.state != "PENDING" and ((.body // "") != "" or .state != "COMMENTED"))
@@ -87,17 +116,20 @@ items() {
        "review of \(.commit_id[0:7])\(if .state == "COMMENTED" then ""
                                        else " (\(.state | ascii_downcase))" end): \(.body | text)",
        .html_url,
-       if .user.login | startswith("copilot-pull-request-reviewer")
+       if reviewer
        then .body // "" | test("Approval recommended") and test("No open issues")
                           and (test("previously missed") | not) | tostring
        else "" end,
-       .commit_id // ""] | @tsv' &&
+       .commit_id // "", answers,
+       if reviewer or .state == "DISMISSED" then ""
+       elif .state == "CHANGES_REQUESTED" or ((.body // "") != "" and (note | not)) then "true"
+       else "" end] | @tsv' &&
     gh api --paginate "repos/$repo/pulls/$pr/comments?per_page=100" --jq "$jq_text"'
     .[] | ["inline-\(.id)", .created_at, .user.login,
-           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url,
-           if .in_reply_to_id then "reply" else "" end] | @tsv' &&
+           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url, "", "", "", ""] | @tsv' &&
     gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" --jq "$jq_text"'
-    .[] | ["comment-\(.id)", .created_at, .user.login, (.body | text), .html_url] | @tsv'
+    .[] | ["comment-\(.id)", .created_at, .user.login, (.body | text), .html_url, "", "", answers,
+           if via_copilot or note then "" else "true" end] | @tsv'
 }
 
 # Copilot's latest review of the head commit, from the items: id, whether it is clean, text.
@@ -137,16 +169,28 @@ reviewed="" polls_after_review=0 attention=0 moved="" failures=0
 if [ -n "$review" ]; then
   reviewed=1
   echo "Copilot had already reviewed $short."
-  # Started late: unless that review is clean, it needs an answer if nothing but Copilot's own
-  # feedback came after it.
+  # Started late: unless that review is clean, it needs an answer, a review or PR comment that
+  # starts with a link to it (docs/agents/review.md §2 item 4). A thread reply doesn't answer what
+  # has no thread, even one that starts with the link, and a post that only mentions the review
+  # answers nothing.
   if [ "$state" = open ] && [ "$(printf '%s' "$review" | cut -f2)" != true ]; then
-    at=$(awk -F '\t' -v k="review-$(printf '%s' "$review" | cut -f1)" '$1 == k { print $2 }' "$tmp/all")
-    if ! awk -F '\t' -v at="$at" '$2 > at && ($6 == "reply" ||
-           ($3 != "Copilot" && $3 !~ /^copilot-pull-request-reviewer/)) { found = 1 }
-           END { exit !found }' "$tmp/all"; then
+    if ! awk -F '\t' -v key="review-$(printf '%s' "$review" | cut -f1)" '
+           $8 == key { found = 1 } END { exit !found }' "$tmp/all"; then
       attention=1
-      echo "It isn't clean, and nothing but Copilot's feedback came after it: it needs an answer."
+      echo "It isn't clean, and no review or PR comment starts with a link to it: answer it in a PR comment that does (docs/agents/review.md §2 item 4)."
     fi
+  fi
+fi
+# A person's post needs an answer however old it is, so that neither a late start nor a restart
+# of land_pr.sh clears it.
+if [ "$state" = open ]; then
+  awk -F '\t' '$8 != "" { answered[$8] = 1 } $9 == "true" { ask[NR] = $1; line[NR] = $0 }
+               END { for (i = 1; i <= NR; i++) if ((i in ask) && !(ask[i] in answered)) print line[i] }' \
+    "$tmp/all" > "$tmp/unanswered"
+  if [ -s "$tmp/unanswered" ]; then
+    attention=1
+    echo "From people, and no review or PR comment starts with a link to it: answer each in a PR comment that does (docs/agents/review.md §2 item 4):"
+    show "$tmp/unanswered"
   fi
 fi
 
@@ -197,11 +241,15 @@ if [ -n "$review" ]; then
 else
   echo "Copilot's review of $short: none yet"
 fi
-# The head's check runs, all pages: status, conclusion, name. Copilot's own check doesn't make
-# this exit 5: its setup failures also arrive as a PR comment (docs/agents/review.md §2).
+# The head's check runs, all pages: status, conclusion, name. GitHub lists the latest attempt of
+# every workflow run on the head, so a check can come twice; only its latest run counts. Then the
+# duplicate PR run that ci.yml's concurrency cancels doesn't make this exit 5 (#48–#52), nor does
+# Copilot's own check: its setup failures also arrive as a PR comment (docs/agents/review.md §2).
 read_checks() {
   gh api --paginate "repos/$repo/commits/$head/check-runs?per_page=100" \
-    --jq '.check_runs[] | [.status, (.conclusion // ""), .name] | @tsv' > "$tmp/checks"
+    --jq '.check_runs[] | [.id, .status, (.conclusion // ""), .name] | @tsv' > "$tmp/runs" &&
+    awk -F '\t' '!($4 in id) || $1 + 0 > id[$4] + 0 { id[$4] = $1; run[$4] = $2 "\t" $3 "\t" $4 }
+                 END { for (n in run) print run[n] }' "$tmp/runs" > "$tmp/checks"
 }
 checks_read=""
 if try3 read_checks; then checks_read=1; fi
@@ -247,4 +295,4 @@ elif [ -z "$review" ]; then
   echo "Exit 3: no Copilot review of $short within $minutes min."
   exit 3
 fi
-echo "Exit 0: Copilot reviewed $short, and nothing new needs an answer."
+echo "Exit 0: Copilot reviewed $short, and nothing new needs an answer. Next: land it, unless the owner lands it (AGENTS.md §5)."
