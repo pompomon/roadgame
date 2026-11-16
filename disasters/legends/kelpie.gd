@@ -6,7 +6,9 @@ extends Legend
 ## into the pool with the car in another splash, and the water closes over them. The still pool
 ## stays, and waterweed that the splash threw onto the road. The horse rises and sinks, and the car
 ## sinks, by showing only the top rows of their frames, as the death worm does (docs/M6.md §5.4).
-## It has no veil and no glow: it plays in the light of the hour (§5.6).
+## The pool lies by the middle of the road that runs on ahead of the car, wherever across it the car
+## stopped: a wrong turn can leave the car off the road's middle, even off the road, as it brakes
+## straight on from mid-turn. It has no veil and no glow: it plays in the light of the hour (§5.6).
 ## tools/art/legends/kelpie.gd draws its sheets with these constants.
 
 ## The horse's frames: its head high as it rises, lowered to the car as it waits, and plunging head
@@ -62,9 +64,29 @@ static func duration(params: DisasterParams) -> float:
 	return params.delay + Beats.total(Tuning.KELPIE_BEATS)
 
 
-## Where the pool lies, from the car's ground point, the car heading `heading`, in tile space: by
-## the road ahead, KELPIE_AHEAD_TILES along the car's road, the tile axis nearest to its heading,
-## and KELPIE_SIDE_TILES up-screen of the road's middle, as the scarecrow stands.
+## From the car's ground point `at`, in tile space, to the middle of the road ahead that it stopped
+## on or beside, in tiles: across `road`, the tile axis ahead, to the middle of the cell that the
+## car is in, if a road runs on from it along `road` in `buffer`, or else of the cell next to it
+## across `road` that is nearer the car, if one runs on from that. A wrong turn can leave the car
+## off its road's middle, even in the next cell across, as it brakes straight on from mid-turn, or
+## heading across its road, beside a junction. If no road runs on ahead from either cell, there is
+## none for the pool to lie by, and it lies by the car's line.
+static func to_middle(at: Vector2, road: Vector2, buffer: RoadBuffer) -> Vector2:
+	var across := Vector2(absf(road.y), absf(road.x))
+	var cell := Vector2i(at.floor())
+	var off := at.dot(across) - floorf(at.dot(across)) - 0.5
+	var along := Heading.from_vec(Vector2i(road))
+	for k: int in [0, -1 if off < 0.0 else 1]:
+		var tile := buffer.tile_at(cell + Vector2i(across) * k)
+		if tile != null and tile.has_exit(along):
+			return across * (k - off)
+	return Vector2.ZERO
+
+
+## Where the pool lies, from the car's ground point, were the car on its road's middle, the car
+## heading `heading`, in tile space: by the road ahead, KELPIE_AHEAD_TILES along the car's road,
+## the tile axis nearest to its heading, and KELPIE_SIDE_TILES up-screen of the road's middle, as
+## the scarecrow stands.
 static func pool(heading: Vector2) -> Vector2:
 	var forward := PhantomBus.road(heading)
 	var across := PhantomBus.side(forward)
@@ -73,8 +95,9 @@ static func pool(heading: Vector2) -> Vector2:
 	)
 
 
-## The middle of the road beside the pool, from the car's ground point, the car heading `heading`:
-## where the car turns off the road for the pool, and where the weed lies.
+## The middle of the road beside the pool, from the car's ground point, were the car on its road's
+## middle, the car heading `heading`: where the car turns off the road for the pool, and where the
+## weed lies.
 static func beside(heading: Vector2) -> Vector2:
 	return Iso.tile_to_world(PhantomBus.road(heading) * Tuning.KELPIE_AHEAD_TILES)
 
@@ -115,8 +138,14 @@ static func ripple(t: float, spreads: int) -> int:
 func play(params: DisasterParams) -> void:
 	super(params)
 	var heading := car.sim.forward() if car != null else params.direction
-	_pool_at = pool(heading)
-	_beside = beside(heading)
+	# The pool lies by the road's middle, and the weed on it; the car rolls there from where it
+	# stopped.
+	var middle := Vector2.ZERO
+	if car != null:
+		var at := Iso.world_to_tile(params.origin_world)
+		middle = Iso.tile_to_world(to_middle(at, PhantomBus.road(heading), car.sim.buffer))
+	_pool_at = middle + pool(heading)
+	_beside = middle + beside(heading)
 	_pool.position = _pool_at
 	_weed.position = _beside
 	_splash.position = _pool_at + STAND
