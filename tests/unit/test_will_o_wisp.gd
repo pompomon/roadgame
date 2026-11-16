@@ -626,50 +626,62 @@ func test_its_glows_are_its_five_wisps_pale_green_and_steady_each_rising_and_fal
 
 
 func test_as_they_circle_their_light_rises_at_each_point_at_most_twice_a_second() -> void:
-	# test_none_flashes plays them one way. They drift off either way. On each, as they glimmer,
-	# circle and close in, their light rises at each point of the world, by more than FLASH_CHANGE
-	# of white's, at most twice in any FLASH_SECONDS, though four pass each point of their ring each
-	# turn. Drifting off, the ring sweeps points that they passed as they circled, so the light
-	# there can rise a third time within the second: as many times as §5.6 allows, and no more.
+	# test_none_flashes plays them one way, with the car on a point of the grid that the light is
+	# added up at. They drift off either way, and a car stops anywhere, so they play with it at each
+	# px of a cell of the grid: which points the ring passes over turns on where it is. On each, as
+	# they glimmer, circle and close in, their light rises at each point of the world, by more than
+	# FLASH_CHANGE of white's, at most twice in any FLASH_SECONDS, though four pass each point of
+	# their ring each turn. Drifting off, the ring sweeps points that they passed as they circled,
+	# so the light there can rise a third time within the second: as many times as §5.6 allows, and
+	# no more.
+	var home := _car.position
+	for direction: Vector2 in [Vector2.RIGHT, Vector2.LEFT]:
+		for y: int in Tuning.FLASH_GRID:
+			for x: int in Tuning.FLASH_GRID:
+				_car.position = home + Vector2(x, y)
+				_check_rises(direction, "drifting %s, the car (%d, %d) px on" % [direction, x, y])
+
+
+## Plays them for test 7, drifting off to `direction`, and checks how often the light at each point
+## rises. `what` says which play.
+func _check_rises(direction: Vector2, what: String) -> void:
 	var change := Tuning.FLASH_CHANGE * Color.WHITE.get_luminance()
 	var window := roundi(Tuning.FLASH_SECONDS / DELTA)
-	for direction: Vector2 in [Vector2.RIGHT, Vector2.LEFT]:
-		var what := "drifting %s" % direction
-		var wisp := _wisp(direction)
-		watch_signals(wisp)
-		var lights: Array[Dictionary] = []
-		var reds: Array[Dictionary] = []
-		var images: Dictionary[Texture2D, Image] = {}
-		while get_signal_emit_count(wisp, "finished") == 0:
-			if lights.size() >= Disasters.MAX_FRAMES:
-				fail_test("%s: it finishes" % what)
-				break
-			_step(wisp)
-			var light: Dictionary[Vector2i, float] = {}
-			var red: Dictionary[Vector2i, float] = {}
-			for glow: CanvasItem in _glows(wisp):
-				Disasters.shine(glow as Sprite2D, light, red, images)
-			lights.append(light)
-			reds.append(red)
-		var points: Dictionary[Vector2i, bool] = {}
+	var wisp := _wisp(direction)
+	watch_signals(wisp)
+	var lights: Array[Dictionary] = []
+	var reds: Array[Dictionary] = []
+	var images: Dictionary[Texture2D, Image] = {}
+	while get_signal_emit_count(wisp, "finished") == 0:
+		if lights.size() >= Disasters.MAX_FRAMES:
+			fail_test("%s: it finishes" % what)
+			break
+		_step(wisp)
+		var light: Dictionary[Vector2i, float] = {}
+		var red: Dictionary[Vector2i, float] = {}
+		for glow: CanvasItem in _glows(wisp):
+			Disasters.shine(glow as Sprite2D, light, red, images)
+		lights.append(light)
+		reds.append(red)
+	var points: Dictionary[Vector2i, bool] = {}
+	for light: Dictionary in lights:
+		for point: Vector2i in light:
+			points[point] = true
+	assert_gt(points.size(), 0, "%s: they light the world" % what)
+	# The frame that lights[k] shows is the (k + 1)th since play().
+	var drift_from := _params.delay + _ends()[2] - DELTA / 2.0
+	var circling := 0
+	for point: Vector2i in points:
+		var values := PackedFloat32Array()
 		for light: Dictionary in lights:
-			for point: Vector2i in light:
-				points[point] = true
-		assert_gt(points.size(), 0, "%s: they light the world" % what)
-		# The frame that lights[k] shows is the (k + 1)th since play().
-		var drift_from := _params.delay + _ends()[2] - DELTA / 2.0
-		var circling := 0
-		for point: Vector2i in points:
-			var values := PackedFloat32Array()
-			for light: Dictionary in lights:
-				values.append(light.get(point, 0.0))
-			var before := PackedInt32Array()
-			for frame: int in Disasters._turns(values, change)[0]:
-				if (frame + 1) * DELTA < drift_from:
-					before.append(frame)
-			circling = maxi(circling, _most_in(before, window))
-		assert_lte(circling, RISES_MOST, "%s: at most twice a second as they circle" % what)
-		assert_eq(Disasters.flashing(lights, reds), "", "%s: never flashing" % what)
+			values.append(light.get(point, 0.0))
+		var before := PackedInt32Array()
+		for frame: int in Disasters._turns(values, change)[0]:
+			if (frame + 1) * DELTA < drift_from:
+				before.append(frame)
+		circling = maxi(circling, _most_in(before, window))
+	assert_lte(circling, RISES_MOST, "%s: at most twice a second as they circle" % what)
+	assert_eq(Disasters.flashing(lights, reds), "", "%s: never flashing" % what)
 
 
 func test_its_wisps_and_bog_cotton_stand_out_from_the_meadows_by_night() -> void:
