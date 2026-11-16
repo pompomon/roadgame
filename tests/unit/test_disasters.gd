@@ -36,9 +36,9 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 	# plan.md §4.3 and IMPLEMENTATION_PLAN.md M4.2.
 	var pools := {
 		# The City's.
-		&"city": [&"phantom_bus"],
+		&"city": [&"phantom_bus", &"mothman"],
 		# Rural's.
-		&"rural": [&"ufo"],
+		&"rural": [&"ufo", &"scarecrow"],
 		# The Meadows'.
 		&"meadows": [&"fairy_ring"],
 		# The Village's.
@@ -170,6 +170,23 @@ func test_each_seeds_its_particles_from_its_params_and_scales_them() -> void:
 			assert_true(particles[k].use_fixed_seed, "%s is seeded" % what)
 			assert_eq(particles[k].seed, params.particle_seed, "%s's seed" % what)
 			assert_almost_eq(_amounts(particles[k]), before[k] * scaled, Vector4.ONE * 1e-3, what)
+
+
+func test_the_params_scale_a_range_with_no_width_once() -> void:
+	# Godot raises a range's max to a min set above it, so a max read after its min is set would be
+	# scaled twice, as the scarecrow's crows, all one size, were.
+	for factor: float in [0.5, Tuning.PARTICLE_SCALE_MAX]:
+		var emitter := CPUParticles2D.new()
+		emitter.initial_velocity_min = 10.0
+		emitter.initial_velocity_max = 10.0
+		emitter.scale_amount_min = 1.0
+		emitter.scale_amount_max = 1.0
+		var params := Disasters.params(factor)
+		params.particle_scale = factor
+		DisasterBase.apply_params(emitter, params)
+		var expected := Vector4(10.0, 10.0, 1.0, 1.0) * factor
+		assert_almost_eq(_amounts(emitter), expected, Vector4.ONE * 1e-6, "by %.2f" % factor)
+		emitter.free()
 
 
 ## The speeds and sizes of `particles`.

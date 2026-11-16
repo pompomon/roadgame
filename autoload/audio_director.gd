@@ -32,8 +32,10 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 	&"junction": preload("res://assets/audio/sfx/junction.wav"),
 	# The City's legends.
 	&"phantom_bus": preload("res://assets/audio/sfx/phantom_bus.wav"),
+	&"mothman": preload("res://assets/audio/sfx/mothman.wav"),
 	# Rural's legends.
 	&"ufo": preload("res://assets/audio/sfx/ufo.wav"),
+	&"scarecrow": preload("res://assets/audio/sfx/scarecrow.wav"),
 	# The Meadows' legends.
 	&"fairy_ring": preload("res://assets/audio/sfx/fairy_ring.wav"),
 	# The Village's legends.

@@ -1,0 +1,71 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://disasters/legends/mothman.gd" id="1_mothman"]
+[ext_resource type="Texture2D" path="res://disasters/glow.tres" id="2_glow"]
+[ext_resource type="Material" path="res://disasters/glow_material.tres" id="3_add"]
+[ext_resource type="Texture2D" path="res://assets/legends/mothman/mothman.png" id="4_mothman"]
+[ext_resource type="Texture2D" path="res://assets/legends/mothman/feather.png" id="5_feather"]
+
+[sub_resource type="Gradient" id="Gradient_dust"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.5)
+colors = PackedColorArray(0.54902, 0.580392, 0.631373, 1, 0.639216, 0.666667, 0.709804, 1)
+
+[sub_resource type="Gradient" id="Gradient_fade"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[node name="Mothman" type="Node2D" node_paths=PackedStringArray("standing")]
+script = ExtResource("1_mothman")
+veil_kind = 2
+standing = [NodePath("Feather"), NodePath("Moth")]
+id = &"mothman"
+display_name = "Mothman"
+fate = "Mothman carried you off."
+lore = "Point Pleasant, West Virginia, 1966: a winged man with red eyes."
+
+[node name="Feather" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("5_feather")
+centered = false
+offset = Vector2(-8, -12)
+hframes = 3
+
+[node name="Dust" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 32
+lifetime = 0.6
+explosiveness = 0.2
+texture = ExtResource("2_glow")
+emission_shape = 3
+emission_rect_extents = Vector2(20, 6)
+direction = Vector2(0, -1)
+spread = 180.0
+gravity = Vector2(0, -10)
+initial_velocity_min = 20.0
+initial_velocity_max = 40.0
+scale_amount_min = 0.15
+scale_amount_max = 0.3
+color_ramp = SubResource("Gradient_fade")
+color_initial_ramp = SubResource("Gradient_dust")
+
+[node name="Moth" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+z_as_relative = false
+texture = ExtResource("4_mothman")
+centered = false
+offset = Vector2(-36, -56)
+hframes = 4
+
+[node name="Eyes" type="Sprite2D" parent="Moth"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+self_modulate = Color(0.784314, 0.196078, 0.196078, 1)
+z_index = 3
+z_as_relative = false
+material = ExtResource("3_add")
+texture = ExtResource("2_glow")

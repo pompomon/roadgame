@@ -37,8 +37,10 @@ func _initialize() -> void:
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
 	# The City's legends.
 	_save_legend("phantom_bus", _phantom_bus)
+	_save_legend("mothman", _mothman)
 	# Rural's legends.
 	_save_legend("ufo", _ufo)
+	_save_legend("scarecrow", _scarecrow)
 	# The Meadows' legends.
 	_save_legend("fairy_ring", _fairy_ring)
 	# The Village's legends.
@@ -186,6 +188,30 @@ func _phantom_bus() -> PackedFloat32Array:
 	return out
 
 
+## Timed to Tuning.MOTHMAN_BEATS from the end of the delay, when the sound starts: a dry rustle,
+## as of wings folded tight, as its eyes open; a low, rasping screech, two voices that beat against
+## each other, as it spreads its wings; the rush of air as it swoops; then its heavy wingbeats as
+## it carries the car off, dying away.
+func _mothman() -> PackedFloat32Array:
+	var beats := Tuning.MOTHMAN_BEATS
+	var unfurl: float = beats[0]
+	var swoop: float = unfurl + beats[1]
+	var lift: float = swoop + beats[2]
+	var out := _silence(roundi((lift + beats[3] + 0.2) * RATE))
+	var rustle := _high_pass(_low_pass(_noise(roundi(beats[0] * RATE)), 3500.0), 900.0)
+	_add(out, _swell(_lfo(rustle, 5, 0.6)), 0.0, 0.5)
+	var held: float = beats[1] + 0.2
+	var screech := _glide(620.0, 410.0, held)
+	_add(screech, _glide(637.0, 421.0, held), 0.0)
+	_add(screech, _high_pass(_noise(screech.size()), 1500.0), 0.0, 0.5)
+	_add(out, _decay(_lfo(screech, 24, 0.5), 0.25), unfurl, 0.35)
+	var rush := _high_pass(_low_pass(_noise(roundi(beats[2] * RATE)), 1200.0), 250.0)
+	_add(out, _swell(rush), swoop, 0.7)
+	var flap := _high_pass(_low_pass(_noise(roundi(beats[3] * RATE)), 900.0), 220.0)
+	_add(out, _fade_out(_lfo(flap, 4, 0.9)), lift, 1.3)
+	return out
+
+
 # Rural's legends.
 
 
@@ -212,6 +238,37 @@ func _ufo() -> PackedFloat32Array:
 	_add(out, _swell(_glide(900.0, 1800.0, held)), beam, 0.15)
 	_add(out, _fade_out(_glide(300.0, 3000.0, beats[4])), zip, 0.5)
 	return out
+
+
+## Timed to Tuning.SCARECROW_BEATS from the end of the delay, when the sound starts: a slow wooden
+## creak as the scarecrow turns its head; harsh caws, falling, as its crows rise, and a few more as
+## they flock; then the rush of their wings, which swells as they settle over the car and dies
+## away as they carry it off.
+func _scarecrow() -> PackedFloat32Array:
+	var beats := Tuning.SCARECROW_BEATS
+	var caw: float = beats[0]
+	var flock: float = caw + beats[1]
+	var tail := 0.3
+	var out := _silence(roundi((flock + beats[2] + beats[3] + tail) * RATE))
+	var creak := _glide(140.0, 95.0, beats[0])
+	_add(creak, _low_pass(_noise(creak.size()), 1200.0), 0.0, 0.6)
+	_add(out, _swell(_lfo(creak, 9, 0.8)), 0.0, 0.5)
+	for k: int in 7:
+		var at := caw + _rng.randf_range(0.0, beats[1] if k < 5 else beats[1] + beats[2])
+		_add(out, _caw(_rng.randf_range(520.0, 760.0)), at, 0.4 if k < 5 else 0.2)
+	var flight := roundi((beats[2] + beats[3] + tail) * RATE)
+	var wings := _high_pass(_low_pass(_noise(flight), 1600.0), 300.0)
+	_add(out, _swell(_lfo(wings, 14, 0.6)), flock, 0.8)
+	return out
+
+
+## A crow's caw at about `freq` Hz: harsh, and falling.
+func _caw(freq: float) -> PackedFloat32Array:
+	var length := 0.18
+	var out := _high_pass(_noise(roundi(length * RATE)), 1000.0)
+	for partial: float in [1.0, 2.0, 3.0, 4.0]:
+		_add(out, _glide(freq * partial, freq * partial * 0.85, length), 0.0, 1.0 / partial)
+	return _swell(_low_pass(out, 3000.0))
 
 
 # The Meadows' legends.

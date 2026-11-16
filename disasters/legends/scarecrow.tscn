@@ -1,0 +1,52 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://disasters/legends/scarecrow.gd" id="1_scarecrow"]
+[ext_resource type="Texture2D" path="res://assets/legends/scarecrow/crow.png" id="2_crow"]
+[ext_resource type="Texture2D" path="res://assets/legends/scarecrow/scarecrow.png" id="3_scarecrow"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_crows"]
+particles_animation = true
+particles_anim_h_frames = 4
+particles_anim_v_frames = 1
+particles_anim_loop = true
+
+[node name="Scarecrow" type="Node2D" node_paths=PackedStringArray("standing")]
+script = ExtResource("1_scarecrow")
+standing = [NodePath("Figure")]
+id = &"scarecrow"
+display_name = "Scarecrow"
+fate = "The scarecrow sent its crows for you."
+lore = "Farm tales tell of a scarecrow that turns its head as you pass."
+
+[node name="Crows" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+material = SubResource("CanvasItemMaterial_crows")
+emitting = false
+amount = 16
+lifetime = 2.4
+explosiveness = 0.9
+local_coords = true
+texture = ExtResource("2_crow")
+emission_shape = 3
+emission_rect_extents = Vector2(16, 4)
+direction = Vector2(0, -1)
+spread = 90.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 40.0
+initial_velocity_max = 60.0
+orbit_velocity_min = -0.1
+orbit_velocity_max = 0.1
+damping_min = 60.0
+damping_max = 60.0
+anim_speed_min = 6.0
+anim_speed_max = 8.0
+anim_offset_max = 1.0
+
+[node name="Figure" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("3_scarecrow")
+centered = false
+offset = Vector2(-24, -60)
+hframes = 3
