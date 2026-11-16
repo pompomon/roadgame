@@ -19,14 +19,14 @@ IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings 
 
 **State.** M0–M6 are merged, and so are four plans of their own: the road generator, the zone select, the tutorial, and the day and the night (#1–#76). M7 is next: Ship, with orientation and foldables, haptics, the Web's audio, the signed release and device QA. IP §4 M7 gathers the notes for it.
 
-**Layout.** `autoload/`: the `EventBus`, `GameState`, `SaveService` and `AudioDirector` singletons. `road/`: the generator and the junctions. `car/`: `CarSim` (the pure simulation), `Autopilot`, `CarController` and `InputRouter`. `world/`: the projection, the renderer, props, shadows, lamps, the camera, and the day and the night. `disasters/`: the director and the legends. `setpieces/`: the tunnel and the bridge. `ui/`: `main.tscn` (the main scene), the HUD, game over and the title. `audio/`: the music and the ambience. `areas/`: `AreaDef` and one `.tres` per area. `config/tuning.gd`: the tuning constants. `assets/`: the art, the font and the sounds, made by `tools/art/` and `tools/audio/`. `tests/`: `unit/`, `sim/`, `integration/` and `helpers/`. `tools/ci/`: the CI scripts (§3). `tools/agent/watch_pr.sh` (§5). `addons/gut/`: GUT 9.7.1, unmodified.
+**Layout.** `autoload/`: the `EventBus`, `GameState`, `SaveService` and `AudioDirector` singletons. `road/`: the generator and the junctions. `car/`: `CarSim` (the pure simulation), `Autopilot`, `CarController` and `InputRouter`. `world/`: the projection, the renderer, props, shadows, lamps, the camera, and the day and the night. `disasters/`: the director and the legends. `setpieces/`: the tunnel and the bridge. `ui/`: `main.tscn` (the main scene), the HUD, game over and the title. `audio/`: the music and the ambience. `areas/`: `AreaDef` and one `.tres` per area. `config/tuning.gd`: the tuning constants. `assets/`: the art, the font and the sounds, made by `tools/art/` and `tools/audio/`. `tests/`: `unit/`, `sim/`, `integration/` and `helpers/`. `tools/ci/`: the CI scripts (§3). `tools/agent/`: `watch_pr.sh` and `land_pr.sh` (§5), and their tests in `test/`. `addons/gut/`: GUT 9.7.1, unmodified.
 
 **Read more** when you need it:
 
 | When you | Read |
 |---|---|
 | plan a milestone or a feature, or land its last PR | `docs/agents/planning.md` |
-| stack PRs, or update one after its base is merged | `docs/agents/stacks.md` |
+| stack PRs, land one, or update one after its base is merged | `docs/agents/stacks.md` |
 | set up the checks, run the game, build it, or check it in a browser | `docs/agents/checks.md` |
 | ask for a review, answer one, watch a PR, or fix CI | `docs/agents/review.md` |
 | change legends, light, tests or CI | `.github/instructions/`: `legends`, `light`, `tests` and `ci` |
@@ -69,31 +69,32 @@ tools/ci/smoke.sh          # runs the main scene for 60 simulated seconds
 git status --porcelain     # must print nothing, or CI's test job fails
 ```
 
-While you work, `tools/ci/run_tests.sh -gselect=test_hud` runs each test script whose name contains `test_hud`, with the same checks. Run the whole suite before each push. Put the counts in the PR: scripts loaded, tests, asserts, GUT time, and `smoke.sh`'s `autopilot: tile …, turns …, area …` line.
+While you work, `tools/ci/run_tests.sh -gselect=test_hud` runs each test script whose name contains `test_hud`, with the same checks. Run the whole suite before each push. Put the counts in the PR: scripts loaded, tests, asserts, GUT time, and `smoke.sh`'s `autopilot: tile …, turns …, area …` line. If you change `tools/agent/`, run `python3 tools/agent/test/scenarios.py` too, as CI's `lint` job does (`ci` instructions).
 
 ## 4. Branches and commits
 
 - **Branches:** `m<n>/plan`; `m<n>/prototype`, which never gets a PR; `m<n>/<k>-<slug>` for PR k of milestone n, such as `m2/2-car-sim`. A plan of its own takes a short prefix, such as `dn/`. `ci/<slug>` and `docs/<slug>` are for the rest.
 - **Commits:** `<area>: <what, in lower case> (M<n> PR <k>)`, such as `car: count only the part of a step off the road (M2 PR 2)`. The body says why, and names the tests and negative cases. Every commit, merges included, ends with `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
 - **Never rebase or force-push** a branch that has a PR. Merge instead: review replies cite commit SHAs, and later branches merge earlier ones.
-- **Stacked PRs.** PR k+1 branches from PR k's branch and targets it, with one worktree per branch. A review fix goes on the branch of the PR that adds the file, then merges up. Only PRs whose base is `main` get merged. See `docs/agents/stacks.md`, also for updating a stack after a squash.
+- **Stacked PRs.** PR k+1 branches from PR k's branch and targets it, with one worktree per branch. A review fix goes on the branch of the PR that adds the file, then merges up. Only PRs whose base is `main` get merged, and once the owner has merged the plan's PR, agents land them (§5). See `docs/agents/stacks.md`, also for updating a stack after a squash.
 
 ## 5. Pull requests and reviews
 
 **The body** (no template; keep it current with `gh pr edit <n> --body-file <file>`):
 - a first paragraph: which PR of its plan this is, what it does, and a link to its section of the plan;
-- **Stack:** the chain of PRs and their bases, and "Merge PRs only when their base is `main`.";
+- **Stack:** the chain of PRs and their bases, "Merge PRs only when their base is `main`.", and who lands this one: an agent, or the owner and why (step 4);
 - `## Changes`: a table of area, files and differences from the plan, with the finding IDs;
 - `## Verification (local, Godot 4.7.2)`: the checks' counts (§3), the CI `test` time, and each negative case with the tests it fails;
 - `## Internal review`, `## Review fixes` (each with a link to the comment, its tests and its negative case), `## Manual checks (E#)`, and **Acceptance:** the E#s that it meets.
 
 **The loop** (`docs/agents/review.md`):
 1. Before you open a PR, and before you push non-trivial fixes, have a subagent of a **different model family** review the change: `code-review` for a diff, `rubber-duck` for a plan. Check each finding yourself, and fix the real ones.
-2. Copilot code review reviews every push. After each push, once your replies are posted, run `tools/agent/watch_pr.sh <n>`, with a long wait such as `initial_wait: 600`. Its exit says what to do: 0, done, and the PR waits for the owner; 2, feedback to handle; 3, no review, so `gh pr edit <n> --add-reviewer @copilot`; 4, someone pushed, so pull; 5, a check failed; 1, `gh` failed. GitHub holds the CI run of each push from an agent's session (`action_required`), so its checks show only Copilot's: start the run with `gh run rerun <run-id>`, from `gh run list --branch <branch>`.
-3. Answer each finding. Fix it with a test and a negative case, put all of a round's fixes in one push, and reply in its thread, starting `**Fixed in <sha>.**`. Or decline it with what you ran and what that showed. Don't resolve threads.
+2. Copilot code review reviews every push. After each push, once your replies are posted, run `tools/agent/watch_pr.sh <n>`, with a long wait such as `initial_wait: 600`. Its exit says what to do: 0, land it (step 4); 2, feedback to handle; 3, no review, so `gh pr edit <n> --add-reviewer @copilot`; 4, someone pushed, so pull; 5, a check failed; 1, `gh` failed. If GitHub holds a push's CI run (`action_required`), its checks show only Copilot's: start the run with `gh run rerun <run-id>`, from `gh run list --branch <branch>`.
+3. Answer each finding. Fix it with a test and a negative case, put all of a round's fixes in one push, and reply in its thread, starting `**Fixed in <sha>.**`. Or decline it with what you ran and what that showed. A review that you answer without a push also needs a PR comment that starts with a link to it, once you've answered all of it, and so does a person's PR comment or review, such as the owner's `@copilot …` (review.md §2 item 4). Start every PR comment you post with `Re [<what it answers or is about>](<link>)`. Then resolve Copilot's thread (review.md §2), but leave a thread that a person started for them to resolve.
+4. **Land.** Once the owner has merged a plan's PR, which approves the plan, agents land its other PRs, bottom up: `tools/agent/land_pr.sh <n>` checks the gate (stacks.md step 4), squash-merges the PR at the head that Copilot reviewed, and retargets the PRs above it. The owner lands the rest: plan PRs; `docs/` and `ci/` PRs; the plan's last PR, after the device checks; PRs that the plan's §4 marks; PRs that change `AGENTS.md`, `.github/`, `docs/agents/`, `docs/README.md`, `tools/ci/`, `tools/agent/`, `export_presets.cfg` or `addons/`; PRs that add a Q#, change an E# or the scope, or decline a finding as out of the PR's scope; and PRs still drawing new findings after 5 rounds of review. Label each of those `needs-owner` and say why in a comment; only the owner removes the label. The owner holds any other PR the same way, or with a review thread.
 
-**Where to check what** (`docs/agents/checks.md`): rules and numbers in GUT; how the game looks, sounds and plays in a desktop run with Movie Maker's frames; what only the Web does in the Web build, in Chrome and Firefox. Only what Android or the Fold4 alone does is left to the owner, on the debug APK: Back, leaving and resuming, both screens and folding, the frame rate, haptics and touch. List it in the PR body, and mention @pompomon.
+**Where to check what** (`docs/agents/checks.md`): rules and numbers in GUT; how the game looks, sounds and plays in a desktop run with Movie Maker's frames; what only the Web does in the Web build, in Chrome and Firefox. Only what Android or the Fold4 alone does is left to the owner, on the debug APK: Back, leaving and resuming, both screens and folding, the frame rate, haptics and touch. List it in the PR body and the plan's §6.4. It doesn't hold the PR: the plan's last PR gathers the list, with a build, and mentions @pompomon (planning.md §5).
 
 ## 6. Owner-only actions
 
-Only the owner (@pompomon) merges PRs (squash, in stack order) and deletes branches; changes rulesets, secrets, the release keystore and Pages settings; runs device checks on the Galaxy Z Fold4; answers the Q#s; and resolves review threads. Agents push to their own branches and open PRs, reply to reviews, re-run CI, build artifacts and request Copilot reviews. Prepare each owner action so that it takes one step: exact commands, links and the expected results.
+Only the owner (@pompomon) approves plans, by merging their PRs; lands the PRs that §5 step 4 leaves to the owner (squash, in stack order), and removes `needs-owner`; deletes the branches that GitHub doesn't delete on merge; changes rulesets, repository settings, secrets, the release keystore and Pages settings; runs device checks on the Galaxy Z Fold4; answers the Q#s; and resolves the review threads that people start. Agents push to their own branches and open PRs, reply to reviews and resolve Copilot's threads, re-run CI, build artifacts, request Copilot reviews, and land the other PRs of approved plans (§5 step 4). Prepare each owner action so that it takes one step: exact commands, links and the expected results.

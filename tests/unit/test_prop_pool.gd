@@ -44,12 +44,15 @@ func test_a_released_sprite_shows_the_next_prop() -> void:
 	var rock := _prop(&"rock", 1, Rect2i(40, 0, 12, 6), Vector2i(6, 5))
 	var sprite := _pool.acquire(mill)
 	sprite.frame = 3
+	# PropScatter fades a see-through prop where it would hide the car (VISUALS_PLAN.md §5.9).
+	sprite.modulate.a = 0.2
 	_pool.release(sprite)
 	assert_false(sprite.visible)
 	assert_eq(_pool.hidden(), 1)
 	var again := _pool.acquire(rock)
 	assert_same(again, sprite, "the same sprite")
 	assert_true(again.visible)
+	assert_eq(again.modulate, Color.WHITE, "whole")
 	assert_eq([again.hframes, again.frame], [1, 0], "the last prop's frame is gone")
 	assert_eq(again.region_rect, Rect2(40, 0, 12, 6))
 	assert_eq(again.offset, Vector2(-6, -5))
