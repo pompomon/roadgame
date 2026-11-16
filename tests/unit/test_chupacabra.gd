@@ -371,7 +371,8 @@ func test_it_crouches_by_the_car_and_leaps_onto_its_roof_where_it_perches() -> v
 	var car_sheet := (_car.get_node("%Body") as Sprite2D).texture.get_image()
 	var size := CarController.FRAME_SIZE
 	var feet := CarController.FOOT.y + roundi(Chupacabra.PERCH.y - Chupacabra.ROOF_PX) - 1
-	assert_lt(feet - CarController.FOOT.y, WitchHex.car_middle().y, "its feet above the middle")
+	var up := float(feet - CarController.FOOT.y)
+	assert_lt(up, WitchHex.car_middle().y, "its feet above the middle")
 	for frame: int in CarController.WRECK_FRAME + 1:
 		var under := car_sheet.get_pixel(frame * size.x + CarController.FOOT.x, feet)
 		assert_gt(under.a, 0.0, "the car's frame %d: its feet on the car" % frame)
@@ -443,8 +444,8 @@ func test_the_cars_colours_drain_to_grey_as_dust_flakes_off_it_leaving_its_husk(
 	# its place, in the same frame, where it stood, facing as it did, with the props; and the car's
 	# husk shows under it, whole, in its frame and place. The double fades from the start of the
 	# drain to nothing by DRAIN_SHARE, bit by bit, so the car's colours drain to the husk's greys;
-	# and dust flakes off the car's middle while it fades, and stops once it has. All the while the
-	# beast perches on it, in front of them.
+	# and dust flakes off the car's middle while it fades, and stops once it has. All the while it
+	# fades, the beast perches on it, in front of them: it hops down only once the car has drained.
 	var car_sheet := (_car.get_node("%Body") as Sprite2D).texture.get_image()
 	var size := CarController.FRAME_SIZE
 	for frame: int in CarController.WRECK_FRAME + 1:
@@ -513,17 +514,17 @@ func test_the_cars_colours_drain_to_grey_as_dust_flakes_off_it_leaving_its_husk(
 					drained = drained and Disasters.shows(car_double) == draining
 					dusty = dusty and dust.emitting == draining
 					dusty = dusty and (Disasters.particles_show(dust) or not draining)
+					if draining:
+						perched = perched and _placed(beast, Chupacabra.PERCH, Chupacabra.ROOF_PX)
+						perched = perched and beast.frame == Chupacabra.Pose.PERCH
+						perched = perched and beast.global_position.y > car_double.global_position.y
 				dusty = dusty and _near(_from_car(dust), WitchHex.car_middle())
-				if _clear_of(3, Chupacabra.HOP_FROM) and through < Chupacabra.HOP_FROM:
-					perched = perched and _placed(beast, Chupacabra.PERCH, Chupacabra.ROOF_PX)
-					perched = perched and beast.frame == Chupacabra.Pose.PERCH
-					perched = perched and beast.global_position.y > car_double.global_position.y
 			assert_true(whole, "%s: the husk shows whole in the car's frame and place" % what)
 			assert_eq(alphas, Disasters.sorted(alphas, true), "%s: the double fades" % what)
 			assert_lte(_largest_step(alphas), MOST_A_FRAME, "%s: bit by bit" % what)
 			assert_true(drained, "%s: to nothing by DRAIN_SHARE" % what)
 			assert_true(dusty, "%s: dust flakes off its middle while it drains" % what)
-			assert_true(perched, "%s: the beast perched on it, in front" % what)
+			assert_true(perched, "%s: the beast perched on it while it drains, in front" % what)
 
 
 func test_it_turns_hops_down_and_slinks_off_the_way_it_came_faster_and_faster_and_fades() -> void:
