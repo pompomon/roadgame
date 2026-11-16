@@ -30,7 +30,7 @@ const FADE_SHARE := 0.4
 ## of its middle and REAR px under its ground point, under its back wheels. It follows the lights
 ## FOLLOW_PX up the screen, to where its tracks meet. Their sheet, TRACKS px, stands on its bottom
 ## row under the back wheels, and its top row is where the car goes.
-const GAUGE := 9
+const GAUGE := 7
 const REAR := 7
 const FOLLOW_PX := 88
 const TRACKS := Vector2i(2 * GAUGE + 2, FOLLOW_PX + REAR)

@@ -48,6 +48,11 @@ const PROP_AHEAD := 24
 const PROP_SPREAD := 9
 const PROP_MAX_SIZE := Vector2i(64, 72)
 const PROP_BELOW := 8
+## A see-through prop, such as the City's building (VISUALS_PLAN.md §5.9): its opacity where it
+## would hide the car or a legend, as the tunnel's, which rises to 1 as their frames part by
+## PROP_FADE_PX screen pixels, or as the car comes that far in front of it.
+const PROP_SEE_THROUGH := 0.2
+const PROP_FADE_PX := 48.0
 ## The props' lights (docs/DAYNIGHT.md §5.12): at night they glow LAMP_COLOR over the veil, which
 ## they light, LAMP_ALPHA at their centres, and the ground below a lamp LAMP_POOL_SHARE as brightly.
 ## They add to no channel more than the veil takes away from it, so they come on as the light
@@ -78,6 +83,11 @@ const SKID_REAR := 0.09
 const SKID_TRACK := 0.18
 const SKID_ALPHA := 0.5
 const SKID_MARKS := 256
+## The car's wheels (VISUALS_PLAN.md §5.1) show its sheet's next phase, a quarter turn on, each
+## WHEEL_ROLL_TILES tiles it drives: at GLOBAL_SPEED_CAP, less than a phase a frame at 30 frames a
+## second, so that down to 30 they show each phase. Below, a drawn frame rolls them a phase at most,
+## and drops the rest of its drive (CarController._process()).
+const WHEEL_ROLL_TILES := 0.25
 
 ## Camera (IMPLEMENTATION_PLAN.md M2.5). Road tiles to show across the smaller screen side.
 const VISIBLE_TILES := 5.0
