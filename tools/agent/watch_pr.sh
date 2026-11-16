@@ -18,8 +18,8 @@ Exit codes:
      that (printed above)
   2  Feedback that needs an answer (printed above the summary): anything new but a clean Copilot
      review. Or, already there, Copilot's review of the head unless it's clean, or a person's PR
-     comment or review however old, and no post starts with a link to it (docs/agents/review.md
-     §2 item 4). Handle it, push, reply, run this again.
+     comment or review however old, and no review or PR comment starts with a link to it
+     (docs/agents/review.md §2 item 4). Handle it, push, reply, run this again.
      If the head moved too, the last line says so: pull first
   3  No Copilot review of the head commit in time (docs/agents/review.md §3 says what to do)
   4  The head commit changed while watching, and nothing new needs an answer: pull, run this again
@@ -79,12 +79,14 @@ tab=$(printf '\t')
 # marks Copilot's reviews of any commit, "true" if clean (approval recommended, no open or
 # previously missed issues) and "false" if not. Reviews have a seventh, the commit they review, so
 # one request finds both the new items and Copilot's review of the head.
-# The eighth is the key of the review or PR comment that the post answers: the one that its raw
-# body starts with a link to, as "Re [Copilot's review of <sha>](<review URL>)" or
+# The eighth is the key of the review or PR comment that a review or PR comment answers: the one
+# that its raw body starts with a link to, as "Re [Copilot's review of <sha>](<review URL>)" or
 # "Re [<login>'s comment](<comment URL>)" (docs/agents/review.md §2 item 4). A link anywhere else
-# in a post, even after "Re [", answers nothing. The repository is public, so only a post by
-# someone who can write to it answers anything, or a PR comment by the cloud agent, which GitHub
-# marks as made via its app, copilot-swe-agent: only people who can write can start it.
+# in a post, even after "Re [", answers nothing. Nor does a thread reply, even one that starts
+# with the link: it answers its thread, which land_pr.sh holds until it's resolved, not what has
+# no thread. The repository is public, so only a post by someone who can write to it answers
+# anything, or a PR comment by the cloud agent, which GitHub marks as made via its app,
+# copilot-swe-agent: only people who can write can start it.
 # The ninth is "true" for a person's post, which needs an answer however old it is: a PR comment,
 # or a review with a body or that requests changes, by anyone but Copilot's reviewer. None is
 # needed for a post made via copilot-swe-agent by someone who can write or by the cloud agent (an
@@ -124,7 +126,7 @@ items() {
        else "" end] | @tsv' &&
     gh api --paginate "repos/$repo/pulls/$pr/comments?per_page=100" --jq "$jq_text"'
     .[] | ["inline-\(.id)", .created_at, .user.login,
-           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url, "", "", answers, ""] | @tsv' &&
+           "\(.path):\(.line // .original_line // "?"): \(.body | text)", .html_url, "", "", "", ""] | @tsv' &&
     gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" --jq "$jq_text"'
     .[] | ["comment-\(.id)", .created_at, .user.login, (.body | text), .html_url, "", "", answers,
            if via_copilot or note then "" else "true" end] | @tsv'
@@ -167,14 +169,15 @@ reviewed="" polls_after_review=0 attention=0 moved="" failures=0
 if [ -n "$review" ]; then
   reviewed=1
   echo "Copilot had already reviewed $short."
-  # Started late: unless that review is clean, it needs an answer, a post that starts with a link
-  # to it (docs/agents/review.md §2 item 4). A thread reply alone doesn't answer what has no
-  # thread, and a post that only mentions the review answers nothing.
+  # Started late: unless that review is clean, it needs an answer, a review or PR comment that
+  # starts with a link to it (docs/agents/review.md §2 item 4). A thread reply doesn't answer what
+  # has no thread, even one that starts with the link, and a post that only mentions the review
+  # answers nothing.
   if [ "$state" = open ] && [ "$(printf '%s' "$review" | cut -f2)" != true ]; then
     if ! awk -F '\t' -v key="review-$(printf '%s' "$review" | cut -f1)" '
            $8 == key { found = 1 } END { exit !found }' "$tmp/all"; then
       attention=1
-      echo "It isn't clean, and no post starts with a link to it: answer it in one that does (docs/agents/review.md §2 item 4)."
+      echo "It isn't clean, and no review or PR comment starts with a link to it: answer it in a PR comment that does (docs/agents/review.md §2 item 4)."
     fi
   fi
 fi
@@ -186,7 +189,7 @@ if [ "$state" = open ]; then
     "$tmp/all" > "$tmp/unanswered"
   if [ -s "$tmp/unanswered" ]; then
     attention=1
-    echo "From people, and no post starts with a link to it: answer each in one that does (docs/agents/review.md §2 item 4):"
+    echo "From people, and no review or PR comment starts with a link to it: answer each in a PR comment that does (docs/agents/review.md §2 item 4):"
     show "$tmp/unanswered"
   fi
 fi

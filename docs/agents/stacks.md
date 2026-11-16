@@ -12,7 +12,7 @@ AGENTS.md §4 has the branch names and the commit format. This is how a plan's P
    - its base is `main`, and was all the while it ran, and it's open, not a draft and not labelled `needs-owner`;
    - if it was based on other branches before, a PR from each of them has merged into `main`. Retargeted to `main` before the PR below it landed, it would bring that PR in with its own;
    - its diff with `main`'s tip, which is what the merge brings in whatever the PR's base, changes none of the paths that the owner lands (AGENTS.md §5 step 4), counting a renamed file's old path too. GitHub lists up to 300 files, so a diff of 300 or more is the owner's;
-   - `watch_pr.sh <n> --minutes 0` exits 0, on each pass: Copilot reviewed the head, and nothing needs an answer. If that review isn't clean, a post answers it, starting with a link to it (review.md §2 item 4). So does one for each person's PR comment or review, however old, so a restart clears no hold;
+   - `watch_pr.sh <n> --minutes 0` exits 0, on each pass: Copilot reviewed the head, and nothing needs an answer. If that review isn't clean, a PR comment answers it, starting with a link to it (review.md §2 item 4); a thread reply doesn't. So does one for each person's PR comment or review, however old, so a restart clears no hold;
    - nothing came while it ran but Copilot's reviews that `watch_pr.sh` judged: any other review or comment stops it, to be answered first;
    - no review thread is open;
    - it's up to date with `main` and doesn't conflict with it;

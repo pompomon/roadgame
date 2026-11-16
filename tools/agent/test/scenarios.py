@@ -182,6 +182,12 @@ def answer(what, link, i=8, **kw):
     return comment(f"Re [{what}]({link}): done.", i, **kw)
 
 
+def reply(body, i=8, who="pompomon", assoc="OWNER"):
+    """A reply in a review thread, after the head's review: by default one posted with gh as the owner."""
+    return {"id": i, "created_at": "2026-11-15T05:10:00Z", "user": user(who), "author_association": assoc,
+            "path": "a.gd", "line": 1, "body": body, "in_reply_to_id": 5, "html_url": f"https://example/i{i}"}
+
+
 # watch_pr.sh's first read, of the PR's state and head; land_pr.sh's open_above, after watch_pr.sh.
 WATCH_READ = "\\(.state) \\(.merged)"
 ABOVE_READ = "state=open&base="
@@ -315,18 +321,25 @@ LAND = [
      False, []),
     ("unanswered-review", [], [with_(["reviews", 0, "body"], UNCLEAN)],
      2, ["no    watch_pr.sh exits 2"], False, []),
-    # An unclean review of the head is answered only by a post that starts with a link to it (review.md §2).
+    # An unclean review of the head is answered only by a review or PR comment that starts with a
+    # link to it (review.md §2).
     ("unrelated-comment-after-review", [], [with_(["reviews", 0, "body"], UNCLEAN),
                                             extra("issue_comments", [comment("Re-running CI.")])], 2,
-     ["It isn't clean, and no post starts with a link to it", "no    watch_pr.sh exits 2"], False, []),
+     ["It isn't clean, and no review or PR comment starts with a link to it", "no    watch_pr.sh exits 2"], False, []),
     ("linked-answer", [], [with_(["reviews", 0, "body"], UNCLEAN),
                            extra("issue_comments", [comment(f"Re [Copilot's review of 532908a]({LINK}): declined.")])],
      0, ["ok    watch_pr.sh exits 0", "Exit 0: landed."], True, [82]),
+    # A writer's thread reply that starts with a link to the review answers its thread, now
+    # resolved, not the review's findings that have no thread.
+    ("linked-thread-reply", [], [with_(["reviews", 0, "body"], UNCLEAN), extra("inline_comments", [
+        reply(f"Re [Copilot's review of 532908a]({LINK}): declined.")])],
+     2, ["It isn't clean, and no review or PR comment starts with a link to it", "no    watch_pr.sh exits 2"],
+     False, []),
     # Copilot's reviewer is known by its bot's exact login: a lookalike's clean review neither
     # stands for Copilot's, nor passes as one that watch_pr.sh judged when it comes while this waits.
     ("lookalike-clean-review", [], [with_(["reviews", 0, "body"], UNCLEAN),
                                     lambda s: s["reviews"].append(lookalike())], 2,
-     ["It isn't clean, and no post starts with a link to it", "no    watch_pr.sh exits 2"], False, []),
+     ["It isn't clean, and no review or PR comment starts with a link to it", "no    watch_pr.sh exits 2"], False, []),
     ("lookalike-approval-while-waiting", ["--minutes", "2", "--interval", "10"], [
         rollup_nodes(running_nodes), extra("rollup@1", rollup(ok_nodes)),
         extra("reviews@2", BASE["reviews"] + [lookalike("APPROVED", "")])], 2,
@@ -365,10 +378,10 @@ LAND = [
     ("slow-merged-meanwhile", ["--minutes", "2", "--interval", "10"], [
         rollup_nodes(running_nodes), extra("pr@2", "MERGED")], 0,
      ["merged while this waited, as f00d000"], False, []),
-    # A person's post that was there before it started holds it until a post answers it, so a
+    # A person's post that was there before it started holds it until a PR comment answers it, so a
     # restart clears no hold (docs/agents/review.md §2).
     ("old-comment", [], [extra("issue_comments", [person("Fine?", at="2026-11-15T04:50:00Z")])], 2,
-     ["no    watch_pr.sh exits 2", "From people, and no post starts with a link to it",
+     ["no    watch_pr.sh exits 2", "From people, and no review or PR comment starts with a link to it",
       "pompomon: Fine?", "https://example/c7"], False, []),
     ("old-comment-answered", [], [extra("issue_comments", [
         person("Fine?", at="2026-11-15T04:50:00Z"),
@@ -395,7 +408,7 @@ LAND = [
         extra("reviews@2", BASE["reviews"] + [dict(BASE["reviews"][0], id=2, submitted_at="2026-11-15T05:10:00Z",
                                                    body=UNCLEAN)])], 2,
      ["waiting: required checks running", "no    watch_pr.sh exits 2",
-      "It isn't clean, and no post starts with a link to it"], False, []),
+      "It isn't clean, and no review or PR comment starts with a link to it"], False, []),
     ("slow-new-clean-review", ["--minutes", "2", "--interval", "10"], [
         rollup_nodes(running_nodes), extra("rollup@1", rollup(ok_nodes)),
         extra("reviews@2", BASE["reviews"] + [dict(BASE["reviews"][0], id=2,
@@ -460,15 +473,19 @@ WATCH = [
     ("later-run-passed", checks(rerun_pass), 0, "Checks on 532908a: 1 success"),
     ("later-run-failed", checks(rerun_fail), 5, "Failed checks: test"),
     ("later-run-running", checks(running), 0, "Checks on 532908a: 1 in_progress"),
-    # Started late, after an unclean review of the head: only a post that starts with a link to it
-    # answers it (review.md §2 item 4).
+    # Started late, after an unclean review of the head: only a review or PR comment that starts
+    # with a link to it answers it (review.md §2 item 4).
     ("late-unclean-unrelated-comment", [unclean, extra("issue_comments", [comment("Re-running CI.")])], 2,
-     "It isn't clean, and no post starts with a link to it"),
+     "It isn't clean, and no review or PR comment starts with a link to it"),
     ("late-unclean-thread-reply", [unclean, extra("inline_comments", [
         {"id": 8, "created_at": "2026-11-15T05:10:00Z", "user": {"login": "Copilot", "type": "Bot"},
          "path": "a.gd", "line": 1, "body": "Declined: it can't happen.", "in_reply_to_id": 5,
          "html_url": "https://example/i8"}])], 2,
-     "It isn't clean, and no post starts with a link to it"),
+     "It isn't clean, and no review or PR comment starts with a link to it"),
+    # Nor does a writer's thread reply that starts with a link to it: that answers its thread.
+    ("late-unclean-linked-thread-reply", [unclean, extra("inline_comments", [
+        reply(f"Re [Copilot's review of 532908a]({LINK}): declined.")])], 2,
+     "It isn't clean, and no review or PR comment starts with a link to it"),
     ("late-unclean-linked", [unclean, extra("issue_comments", [
         comment(f"Re [Copilot's review of 532908a]({LINK}): declined.")])], 0,
      "Exit 0: Copilot reviewed 532908a"),
@@ -484,25 +501,25 @@ WATCH = [
     # A post that only mentions the review, or links it further on, doesn't answer it.
     ("late-unclean-link-in-passing", [unclean, extra("issue_comments", [
         comment(f"Still on [Copilot's review of 532908a]({LINK}): no answer yet.")])], 2,
-     "It isn't clean, and no post starts with a link to it"),
+     "It isn't clean, and no review or PR comment starts with a link to it"),
     # "Re [" with no link after it answers nothing, and breaks nothing.
     ("late-unclean-re-without-link", [unclean, extra("issue_comments", [comment("Re [CI] re-running it.")])], 2,
-     "It isn't clean, and no post starts with a link to it"),
+     "It isn't clean, and no review or PR comment starts with a link to it"),
     ("late-unclean-link-further-on", [unclean, extra("issue_comments", [
         comment(f"Re [the CI run](https://example/runs/1): re-running it.\n\n"
                 f"I'm still on [Copilot's review]({LINK}).")])],
-     2, "It isn't clean, and no post starts with a link to it"),
+     2, "It isn't clean, and no review or PR comment starts with a link to it"),
     # "Re [" that isn't a link to the review answers nothing, even with the link further on.
     ("late-unclean-re-header-unlinked", [unclean, extra("issue_comments", [
         comment(f"Re [CI] re-running the workflow.\n\nStill investigating [this review]({LINK}); no answer yet.")])],
-     2, "It isn't clean, and no post starts with a link to it"),
+     2, "It isn't clean, and no review or PR comment starts with a link to it"),
     ("late-unclean-re-header-unlinked-same-line", [unclean, extra("issue_comments", [
         comment(f"Re [CI] re-running it; still investigating [this review]({LINK}).")])],
-     2, "It isn't clean, and no post starts with a link to it"),
+     2, "It isn't clean, and no review or PR comment starts with a link to it"),
     # Nor does a link to it that starts a later line.
     ("late-unclean-link-not-at-start", [unclean, extra("issue_comments", [
         comment(f"Re-running CI.\n\nRe [Copilot's review of 532908a]({LINK}): to follow.")])],
-     2, "It isn't clean, and no post starts with a link to it"),
+     2, "It isn't clean, and no review or PR comment starts with a link to it"),
     # Blank lines before the link don't matter.
     ("late-unclean-linked-after-blank-line", [unclean, extra("issue_comments", [
         comment(f"\r\n\n  Re [Copilot's review of 532908a]({LINK}): declined.")])], 0,
@@ -510,26 +527,26 @@ WATCH = [
     # Review 12 isn't review 1.
     ("late-unclean-other-review-linked", [unclean, extra("issue_comments", [
         comment("Re [Copilot's review](https://github.com/pompomon/roadgame/pull/81#pullrequestreview-12): fixed.")])],
-     2, "It isn't clean, and no post starts with a link to it"),
+     2, "It isn't clean, and no review or PR comment starts with a link to it"),
     # Copilot's reviewer doesn't answer itself, even in a later review that links the head's.
     ("late-unclean-reviewer-links", [unclean, lambda s: s["reviews"].append(dict(
         s["reviews"][0], id=2, submitted_at="2026-11-15T05:10:00Z", commit_id=OLD, html_url="https://example/r2",
         body=f"Re [the review of 532908a]({LINK}): one more issue."))], 2,
-     "It isn't clean, and no post starts with a link to it"),
+     "It isn't clean, and no review or PR comment starts with a link to it"),
     # The repository is public: only a post by someone who can write, or by the cloud agent, answers.
     ("late-unclean-stranger-linked", [unclean, extra("issue_comments", [
         comment(f"Re [Copilot's review of 532908a]({LINK}): declined.", who="someone", assoc="NONE", app=None)])],
-     2, "It isn't clean, and no post starts with a link to it"),
+     2, "It isn't clean, and no review or PR comment starts with a link to it"),
     # A link to PR comment 1 isn't one to review 1.
     ("late-unclean-comment-linked", [unclean, extra("issue_comments", [
         answer("the comment", f"{P}#issuecomment-1")])], 2,
-     "It isn't clean, and no post starts with a link to it"),
+     "It isn't clean, and no review or PR comment starts with a link to it"),
     # A lookalike's clean review isn't Copilot's.
     ("late-unclean-lookalike-clean", [unclean, lambda s: s["reviews"].append(lookalike())], 2,
-     "It isn't clean, and no post starts with a link to it"),
+     "It isn't clean, and no review or PR comment starts with a link to it"),
     # A person's post needs an answer, however old (docs/agents/review.md §2).
     ("person-comment-unanswered", [extra("issue_comments", [person("Please rename it.")])], 2,
-     "From people, and no post starts with a link to it"),
+     "From people, and no review or PR comment starts with a link to it"),
     ("person-comment-before-head", [extra("issue_comments", [person("Please rename it.", at="2026-11-15T04:00:00Z")])],
      2, "pompomon: Please rename it."),
     ("person-comment-answered", [extra("issue_comments", [
@@ -563,6 +580,10 @@ WATCH = [
     # Review 7 isn't PR comment 7.
     ("person-comment-review-linked", [extra("issue_comments", [
         person("Please rename it."), answer("pompomon's comment", f"{P}#pullrequestreview-7")])], 2,
+     "pompomon: Please rename it."),
+    # A writer's thread reply answers its thread, not a person's PR comment or review.
+    ("person-comment-linked-in-thread", [extra("issue_comments", [person("Please rename it.")]), extra(
+        "inline_comments", [reply(f"Re [pompomon's comment]({P}#issuecomment-7): renamed.")])], 2,
      "pompomon: Please rename it."),
     ("stranger-comment", [extra("issue_comments", [person("This looks wrong.", who="someone", assoc="NONE")])],
      2, "someone: This looks wrong."),
@@ -600,6 +621,9 @@ WATCH = [
         answer("pompomon's review", f"{P}#pullrequestreview-3")])], 0, "Exit 0: Copilot reviewed 532908a"),
     ("person-review-comment-linked", [review(3, "COMMENTED", "Rename it."), extra("issue_comments", [
         answer("pompomon's review", f"{P}#issuecomment-3")])], 2, "pompomon: review of 532908a: Rename it."),
+    ("person-review-linked-in-thread", [review(3, "COMMENTED", "Rename it."), extra("inline_comments", [
+        reply(f"Re [pompomon's review]({P}#pullrequestreview-3): renamed.")])], 2,
+     "pompomon: review of 532908a: Rename it."),
     ("changes-requested-empty", [review(3, "CHANGES_REQUESTED", "")], 2, "review of 532908a (changes_requested)"),
     ("approved-with-body", [review(3, "APPROVED", "Fine, but rename it.")], 2, "(approved): Fine, but rename it."),
     ("approved-empty", [review(3, "APPROVED", "")], 0, "Exit 0: Copilot reviewed 532908a"),
