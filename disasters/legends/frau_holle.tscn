@@ -32,7 +32,6 @@ region_rect = Rect2(0, 0, 168, 0)
 [node name="Snow" type="CPUParticles2D" parent="."]
 unique_name_in_owner = true
 z_index = 1
-position = Vector2(0, -60)
 emitting = false
 amount = 96
 lifetime = 1.6
