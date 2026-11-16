@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://disasters/legends/frau_holle.gd" id="1_frau_holle"]
+[ext_resource type="Texture2D" path="res://assets/legends/frau_holle/well.png" id="2_well"]
+
+[sub_resource type="Gradient" id="Gradient_flakes"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.7)
+colors = PackedColorArray(0.941176, 0.941176, 0.909804, 1, 0.619608, 0.780392, 0.941176, 1)
+
+[sub_resource type="Gradient" id="Gradient_melt"]
+offsets = PackedFloat32Array(0, 0.8, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[node name="FrauHolle" type="Node2D" node_paths=PackedStringArray("standing")]
+script = ExtResource("1_frau_holle")
+standing = [NodePath("Well")]
+id = &"frau_holle"
+display_name = "Frau Holle's Well"
+fate = "You fell down Frau Holle's well."
+lore = "Grimm, 1812: when Frau Holle shakes out her bed, it snows."
+
+[node name="Well" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("2_well")
+centered = false
+hframes = 3
+region_enabled = true
+region_rect = Rect2(0, 0, 168, 0)
+
+[node name="Snow" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 96
+lifetime = 1.6
+emission_shape = 3
+emission_rect_extents = Vector2(110, 40)
+direction = Vector2(0, 1)
+spread = 20.0
+gravity = Vector2(0, 20)
+initial_velocity_min = 25.0
+initial_velocity_max = 45.0
+scale_amount_min = 1.5
+scale_amount_max = 2.5
+color_ramp = SubResource("Gradient_melt")
+color_initial_ramp = SubResource("Gradient_flakes")
