@@ -2,7 +2,9 @@ class_name PropDef
 extends Resource
 ## A prop that an area scatters on its ground (plan.md §5.2, docs/M5.md §5.6): a sprite from the
 ## area's props sheet, which stands with its foot on the centre of a ground cell. PropScatter gives
-## each ground cell beside the road one prop or none, by the cell's hash and the densities.
+## each lot of ground beside the road one prop or none, by the lot's hash and the densities: most
+## props take a lot of one cell, and a building a lot of 2 × 2 (VISUALS_PLAN.md §5.4), more often
+## by a street (§5.8).
 
 ## How its shadow falls (docs/DAYNIGHT.md §5.11). UPRIGHT: as a prop that stands at a point and
 ## is as wide whichever way the light comes from, such as a tree: the rows of its frame above that
@@ -26,8 +28,20 @@ enum Shadow { UPRIGHT, WALL, NONE }
 ## on, which glow more faintly.
 @export var lights: Array[Rect2] = []
 @export var light_pools: Array[Rect2] = []
-## The chance that a ground cell beside the road shows it.
+## The ground it takes, in cells a side: a lot of `lot` × `lot` cells, aligned with its tile's
+## corner, whose front cell its foot stands on the centre of. No other prop stands on a lot that
+## shows it, so a box wider than a cell, such as a building, stands in no other prop.
+@export_range(1, 4) var lot := 1
+## The chance that a lot of its size beside the road shows it.
 @export_range(0.0, 1.0, 0.001) var density := 0.0
+## The chance that a lot of its size by a street shows it: a lot with a side on a road tile's, but
+## not just a corner. -1 for `density`'s (VISUALS_PLAN.md §5.8).
+@export_range(-1.0, 1.0, 0.001) var street_density := -1.0
+## Whether it may rise over the road behind it. A prop that may not is left out where its frame
+## would touch a road tile's diamond (PropLayout.touches_road()). One that may is a box whose base,
+## which its shadow falls from the middle of, lies in its lot, as a building's does: so it never
+## stands on the road. It fades wherever it would hide the car or a legend (VISUALS_PLAN.md §5.9).
+@export var see_through := false
 @export var shadow := Shadow.UPRIGHT
 ## How far above the foot, in pixels of the frame, the point that its shadow falls from is: the
 ## centre of a box's footprint, or where a wall's base line crosses the foot's column.
@@ -57,10 +71,29 @@ func validate() -> PackedStringArray:
 		problems.append("prop %s is wider than PROP_MAX_SIZE allows" % id)
 	if foot.y > Tuning.PROP_MAX_SIZE.y or region.size.y - foot.y > Tuning.PROP_BELOW:
 		problems.append("prop %s is taller than PROP_MAX_SIZE and PROP_BELOW allow" % id)
+	if lot < 1 or Iso.GROUND_PER_TILE % lot != 0:
+		problems.append("prop %s: a lot of %d cells doesn't divide a tile" % [id, lot])
 	if density < 0.0 or density > 1.0:
 		problems.append("prop %s: density is outside 0..1" % id)
+	if street_density != -1.0 and (street_density < 0.0 or street_density > 1.0):
+		problems.append("prop %s: street_density is outside 0..1, and isn't -1" % id)
 	if shadow not in Shadow.values():
 		problems.append("prop %s: its shadow is %d" % [id, shadow])
 	elif shadow != Shadow.NONE and (shadow_rise < 0 or shadow_rise >= foot.y):
 		problems.append("prop %s: its shadow rises outside its frame" % id)
+	# A box's base reaches 2 * shadow_rise back from its foot, which is half a cell from its lot's
+	# front corner: in cells' heights, 4 * shadow_rise / cell height <= 2 * lot - 1.
+	if (
+		see_through
+		and (
+			shadow != Shadow.UPRIGHT
+			or 4 * shadow_rise * Iso.GROUND_PER_TILE > (2 * lot - 1) * Iso.TILE_H
+		)
+	):
+		problems.append("prop %s is see-through, but not a box on its lot" % id)
 	return problems
+
+
+## The chance that a lot of its size shows it, by a street or not.
+func chance(by_street: bool) -> float:
+	return street_density if by_street and street_density >= 0.0 else density
