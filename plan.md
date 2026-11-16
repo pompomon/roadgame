@@ -208,7 +208,7 @@ Each disaster is a self-contained scene (animation, GPU particles, shaders, soun
 | Set pieces | Tunnel, Bridge+River | Separate scenes |
 
 Shared assets:
-- Car: 16 directions at about 32×24 px, plus a crash frame.
+- Car: 16 directions at 36×28 px, each with its wheels in 4 phases of a turn, plus a crash frame.
 - Effects: dust, smoke, skid marks.
 - UI: HUD, health bar, pixel font, pause and menus.
 - One master palette of 36 colours, `assets/palette.gpl`, with a sub-palette for each area. M6 added four of them for night magic (`docs/M6.md` S9).

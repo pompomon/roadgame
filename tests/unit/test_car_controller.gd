@@ -1,6 +1,7 @@
 extends GutTest
 ## CarController and the car scene (IMPLEMENTATION_PLAN.md M2.4, M3.3): the sprite frame for a
-## heading, and the car's view of its CarSim. A legend's double of the car (docs/M6.md §5.4).
+## heading, the row for its wheels' phase (VISUALS_PLAN.md §5.1), and the car's view of its CarSim.
+## A legend's double of the car (docs/M6.md §5.4).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const CAR_SCENE := preload("res://car/car.tscn")
@@ -11,6 +12,31 @@ const SMOKE_CONTRAST := 0.1
 ## The least share of a road sheet, ground or edge that one of its colours must have for a puff to
 ## count as being over it: a puff covers a few hundred pixels, more than any speck of the rest.
 const MAIN_SHARE := 0.05
+## The physics frames that each drawn frame comes after, in turn: steadily at 60, 30, 20, 15 and 10
+## frames a second, and unevenly, as on a device that can't keep up.
+const CADENCES: Array[Array] = [
+	[1], [2], [3], [4], [6], [2, 3], [3, 2], [2, 2, 3], [3, 2, 4, 3, 5, 3, 2, 6]
+]
+## The speeds that a cruising car holds, in tiles a second. From 2.5, 3.75 and 5, it rolls a phase
+## or more a drawn frame at 10, 15 and 20 drawn frames a second.
+const SPEEDS: Array[float] = [1.5, 3.5, 5.5, 6.0, Tuning.GLOBAL_SPEED_CAP]
+## How far float sums of a run's drive may fall short of a whole phase, or pass it.
+const ROUNDING := 1e-6
+
+
+## Drives straight on at a speed of its own, whatever the steering.
+class Cruise:
+	extends CarSim
+
+	var cruise: float
+
+	func _init(p_buffer: RoadBuffer, p_cruise: float) -> void:
+		super(p_buffer)
+		cruise = p_cruise
+
+	func step(delta: float, _steering: float) -> void:
+		speed = cruise
+		pos += velocity() * delta
 
 
 func _car() -> CarController:
@@ -22,6 +48,29 @@ func _car() -> CarController:
 	add_child_autofree(car)
 	car.add_child(car.input)
 	return car
+
+
+## A car whose sim drives straight on at `speed` tiles a second.
+func _cruising(speed: float) -> CarController:
+	var car := _car()
+	car.sim = Cruise.new(car.sim.buffer, speed)
+	return car
+
+
+## Runs `frames` drawn frames of `car` as the engine does: the physics frames that are due, the next
+## count of `cadence` in turn at 60 a second, then _process(). Returns how many phases on its wheels
+## turned in each.
+func _draw_frames(car: CarController, frames: int, cadence: Array) -> Array[int]:
+	var body: Sprite2D = car.get_node("%Body")
+	var turns: Array[int] = []
+	for drawn: int in frames:
+		var steps: int = cadence[drawn % cadence.size()]
+		var phase := body.frame_coords.y
+		for _step: int in steps:
+			car._physics_process(1.0 / 60.0)
+		car._process(steps / 60.0)
+		turns.append(posmod(body.frame_coords.y - phase, CarController.PHASES))
+	return turns
 
 
 func test_the_grid_headings_get_the_nearest_of_16_frames() -> void:
@@ -42,7 +91,7 @@ func test_it_steps_its_sim_with_the_input_and_moves_with_it() -> void:
 	assert_gt(car.sim.pos.distance_to(start), 0.5, "a second of driving")
 	assert_eq(car.position, Iso.tile_to_world(car.sim.pos))
 	var body: Sprite2D = car.get_node("%Body")
-	assert_eq(body.frame, CarController.frame(car.sim.forward()))
+	assert_eq(body.frame_coords.x, CarController.frame(car.sim.forward()))
 
 
 func test_the_body_shows_the_frame_of_each_heading() -> void:
@@ -53,8 +102,110 @@ func test_the_body_shows_the_frame_of_each_heading() -> void:
 	for heading: int in 4:
 		car.sim.angle = heading * PI / 2.0
 		await wait_physics_frames(2)
-		frames.append(body.frame)
+		frames.append(body.frame_coords.x)
 	assert_eq(frames, [3, 5, 11, 13] as Array[int], "N, E, S and W")
+
+
+func test_its_wheels_turn_on_a_phase_each_wheel_roll_tiles_it_moves() -> void:
+	# Never back, nor two phases at once, at the speeds it reaches; braking for a disaster, until it
+	# stands, and then not at all.
+	var car := _car()
+	var body: Sprite2D = car.get_node("%Body")
+	car.input.autopilot = Autopilot.new(car.sim)
+	var moved := 0.0
+	var turns := 0
+	var jumps := 0
+	var phase := body.frame_coords.y
+	for step: int in 360:
+		if step == 240:
+			car.sim.state = CarSim.State.DISASTER
+		var from := car.sim.pos
+		simulate(car, 1, 1.0 / 60.0)
+		moved += car.sim.pos.distance_to(from)
+		var turned := posmod(body.frame_coords.y - phase, CarController.PHASES)
+		jumps += 1 if turned > 1 else 0
+		turns += turned
+		phase = body.frame_coords.y
+	assert_eq(car.sim.speed, 0.0, "it stands")
+	assert_eq(jumps, 0, "a phase at a time, on")
+	assert_gt(turns, 2 * CarController.PHASES, "round more than twice")
+	var expected := moved / Tuning.WHEEL_ROLL_TILES
+	assert_almost_eq(float(turns), expected, 1.0, "a phase each WHEEL_ROLL_TILES")
+
+
+func test_a_drawn_frame_turns_the_wheels_a_phase_at_most_and_the_faster_the_more_often() -> void:
+	# At GLOBAL_SPEED_CAP the car rolls 0.47 of a phase a physics frame, so below 30 drawn frames a
+	# second, more than one from a drawn frame to the next. Two at once would be a half turn, which
+	# reads as back as well as forward, and three a quarter turn back. So a drawn frame turns the
+	# wheels a phase at most, and only forward: a phase each WHEEL_ROLL_TILES that the car drives,
+	# counting a phase at most of each frame's drive, and on each frame that drives a phase or more.
+	# So they show each phase while the car rolls less than one a frame, and turn no less often at a
+	# higher speed, however unevenly the frames come (VISUALS_PLAN.md §5.1, A13).
+	for cadence: Array in CADENCES:
+		var fewest := 0
+		for speed: float in SPEEDS:
+			var what := "%s physics frames a drawn frame, at %.1f tiles a second" % [cadence, speed]
+			var turns := _draw_frames(_cruising(speed), 120, cadence)
+			var turned := turns.count(1)
+			assert_eq(turns.max(), 1, what + ": a phase at most, forward")
+			var phases := 0.0
+			var stuck := 0
+			for drawn: int in turns.size():
+				var steps: int = cadence[drawn % cadence.size()]
+				var drive := speed * steps / 60.0 / Tuning.WHEEL_ROLL_TILES
+				phases += minf(drive, 1.0)
+				stuck += 1 if drive >= 1.0 + ROUNDING and turns[drawn] == 0 else 0
+			assert_almost_eq(float(turned), phases, 1.0 + ROUNDING, what + ": each phase it drives")
+			assert_eq(stuck, 0, what + ": each frame that drives a phase turns them")
+			assert_gte(turned, fewest, what + ": no fewer than slower")
+			fewest = turned
+
+
+func test_once_the_car_stands_its_wheels_stand_however_far_it_rolled_unshown() -> void:
+	# Below 30 drawn frames a second, the car rolls further from one to the next than its wheels
+	# show. They don't make that up later: whenever the car stands, so do they. So too where a sum
+	# of floats, rounded up, leaves them a whole phase rolled, as after 45 frames of 2, 2 and 3
+	# physics frames at 5.5 tiles a second (VISUALS_PLAN.md §5.1, A13).
+	for cadence: Array in CADENCES:
+		for speed: float in SPEEDS:
+			var car := _cruising(speed)
+			var sim := car.sim as Cruise
+			var stood: Array[int] = []
+			for drawn: int in 120:
+				var steps: Array = [cadence[drawn % cadence.size()]]
+				sim.cruise = speed
+				_draw_frames(car, 1, steps)
+				sim.cruise = 0.0
+				stood.append_array(_draw_frames(car, 2, steps))
+			var what := "%s physics frames a drawn frame, at %.1f tiles a second" % [cadence, speed]
+			assert_eq(stood.max(), 0, what + ": they stand whenever it does")
+
+
+func test_at_6_frames_a_second_the_wheels_turn_a_phase_at_most_and_stand_with_the_car() -> void:
+	# A slow device draws a frame for several physics frames. The body shows the wheels' next phase
+	# then at most, however far the car rolled, and not the rest once it brakes for a disaster
+	# until it stands.
+	var car := _car()
+	car.input.autopilot = Autopilot.new(car.sim)
+	var turns: Array[int] = []
+	var stood: Array[int] = []
+	var fast := 0
+	for frame: int in 150:
+		if frame == 120:
+			car.sim.state = CarSim.State.DISASTER
+		var from := car.sim.pos
+		var turned: int = _draw_frames(car, 1, [10])[0]
+		var moved := car.sim.pos.distance_to(from)
+		fast += 1 if moved > 2.0 * Tuning.WHEEL_ROLL_TILES else 0
+		if moved == 0.0:
+			stood.append(turned)
+		else:
+			turns.append(turned)
+	assert_gt(fast, 10, "frames where it rolls more than two phases")
+	assert_eq(turns.max(), 1, "a phase at most, forward")
+	assert_gt(turns.count(1), 60, "on most frames")
+	assert_gt(stood.size(), 20, "it stands")
+	assert_eq(stood.max(), 0, "and so do its wheels")
 
 
 func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
@@ -63,13 +214,19 @@ func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
 	var sheet := body.texture.get_image()
 	var frame_size := body.texture.get_size() / Vector2(body.hframes, body.vframes)
 	car.input.enabled = false
+	# Its wheels in a phase past the first, as most of the time.
+	for _i: int in 120:
+		if body.frame_coords.y != 0:
+			break
+		await wait_physics_frames(1)
+	assert_ne(body.frame_coords.y, 0, "its wheels rolled")
 	for heading: int in 4:
 		car.sim.angle = heading * PI / 2.0
 		await wait_physics_frames(2)
 		var made := car.double()
 		add_child(made)
 		made.global_position = car.global_position
-		var what := "frame %d" % body.frame
+		var what := "frame %s" % body.frame_coords
 		assert_eq(made.texture, body.texture, what + ": the body's sheet")
 		assert_true(made.region_enabled, what + ": a part of it")
 		assert_eq(
@@ -123,6 +280,13 @@ func test_a_crashed_car_shows_its_wreck_and_smokes() -> void:
 	await wait_physics_frames(2)
 	assert_false(smoke.emitting, "driving")
 	assert_ne(body.frame, CarController.WRECK_FRAME, "driving")
+	# Its wheels in their second phase, so that the wreck must show its first row, whatever the
+	# phase (VISUALS_PLAN.md §5.1): two frames don't roll them on to the first again.
+	for _i: int in 120:
+		if body.frame_coords.y == 1:
+			break
+		await wait_physics_frames(1)
+	assert_eq(body.frame_coords.y, 1, "its wheels rolled")
 	car.sim.state = CarSim.State.CRASHED
 	await wait_physics_frames(2)
 	assert_eq(body.frame, CarController.WRECK_FRAME, "the wreck")
