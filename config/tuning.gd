@@ -298,6 +298,14 @@ const FAIRY_RING_GLOW_ALPHA := 0.6
 const KELPIE_BEATS: Array[float] = [0.6, 0.5, 0.5, 0.8]
 const KELPIE_AHEAD_TILES := 1.0
 const KELPIE_SIDE_TILES := 0.8
+## The Will-o'-the-Wisp (POOLS_PLAN.md §5.4): its beats, in s: night falls and the wisps glimmer
+## round the car, they circle it, closing in, it shrinks into a light, and it drifts off with them
+## as they fade. How many turns a second they circle at most; how far they drift, in px, up the
+## screen and to the side that the params' direction picks; and how much light each adds.
+const WILL_O_WISP_BEATS: Array[float] = [0.6, 0.8, 0.5, 0.6]
+const WILL_O_WISP_CIRCLE_HZ := 0.4
+const WILL_O_WISP_DRIFT_PX := Vector2(40.0, -56.0)
+const WILL_O_WISP_ALPHA := 0.7
 
 # The Village's legends.
 ## The witch's hex (docs/M6.md §3.3): its beats, in s: the witch swoops in and circles the car,
