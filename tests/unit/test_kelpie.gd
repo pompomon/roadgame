@@ -32,6 +32,27 @@ const HEADINGS: Array[Vector2] = [Vector2.UP, Vector2.RIGHT, Vector2.DOWN, Vecto
 ## How many frames of its sheet the car may have stopped turned off its road, either way: up to
 ## 45°, for it straightens slowly once the player lets go (Tuning.STRAIGHTEN_RATE).
 const TURNED_OFF: Array[int] = [0, -2, 2]
+## How far across its dead end from the road's middle a wrong turn can leave the car, in tiles, as
+## it brakes straight on from mid-turn: off the road, in the dead end's cell (OFF_ROAD_TILES), or in
+## the next cell across (BESIDE_TILES), if the steering was let go mid-turn, as far as a hair short
+## of that cell's middle (NEXT_MIDDLE_TILES). FAR_OFF_TILES is two cells across, off any road.
+const OFF_ROAD_TILES := 0.47
+const BESIDE_TILES := 0.67
+const NEXT_MIDDLE_TILES := 0.99
+const FAR_OFF_TILES := 1.67
+## Where the car stops on a dead end, in tiles down-screen of its first cell's middle: on the road's
+## middle, and each of the above to either side of it.
+const STOPS: Array[float] = [
+	0.0,
+	-OFF_ROAD_TILES,
+	OFF_ROAD_TILES,
+	-BESIDE_TILES,
+	BESIDE_TILES,
+	-NEXT_MIDDLE_TILES,
+	NEXT_MIDDLE_TILES,
+	-FAR_OFF_TILES,
+	FAR_OFF_TILES,
+]
 
 var _stage: Node2D
 var _car: CarController
@@ -40,11 +61,13 @@ var _params: DisasterParams
 ## Physics frames stepped since play().
 var _frames := 0
 var _sheet: Image
+var _pool_sheet: Image
 
 
 func before_all() -> void:
 	var kelpie := KELPIE.instantiate() as Kelpie
 	_sheet = (kelpie.get_node("%Horse") as Sprite2D).texture.get_image()
+	_pool_sheet = (kelpie.get_node("%Pool") as Sprite2D).texture.get_image()
 	kelpie.free()
 
 
@@ -232,6 +255,46 @@ static func _lowest_row(sheet: Image, frame: int) -> int:
 			if sheet.get_pixel(frame * CarController.FRAME_SIZE.x + x, row).a > 0.0:
 				return row
 	return -1
+
+
+## The first tile of the first dead end of each heading in `buffer`, of those with no road in the
+## two cells to either side of it, across its road.
+static func _dead_ends(buffer: RoadBuffer) -> Array[RoadTile]:
+	var found: Array[RoadTile] = []
+	var headings: Array[int] = []
+	for index: int in range(buffer.first_index(), buffer.last_index() + 1):
+		var junction := buffer.path_tile(index)
+		for branch: RoadTile in junction.branches:
+			var exit := branch.branch_exit
+			var across := Vector2i(absi(Heading.VEC[exit].y), absi(Heading.VEC[exit].x))
+			var clear := branch.cell == junction.cell + Heading.VEC[exit] and exit not in headings
+			for k: int in [-2, -1, 1, 2]:
+				clear = clear and buffer.tile_at(branch.cell + across * k) == null
+			if clear:
+				found.append(branch)
+				headings.append(exit)
+	return found
+
+
+## Whether `point`, in tiles, is on the road of the car's buffer.
+func _on_road(point: Vector2) -> bool:
+	var cell := Vector2i(point.floor())
+	return RoadGeometry.is_on_road(_car.sim.buffer.tile_at(cell), point - Vector2(cell))
+
+
+## How many of the opaque texels of `water`'s still pool lie on the road of the car's buffer, each
+## by its middle, the car's ground point being `at`, in tiles.
+func _pool_on_road(water: Sprite2D, at: Vector2) -> int:
+	var half := Vector2(Kelpie.POOL) / 2.0
+	var count := 0
+	for y: int in Kelpie.POOL.y:
+		for x: int in Kelpie.POOL.x:
+			if _pool_sheet.get_pixel(x, y).a == 0.0:
+				continue
+			var local := (Vector2(x, y) + Vector2(0.5, 0.5) - half) * water.scale
+			if _on_road(at + Iso.world_to_tile(_from_car(water) + local)):
+				count += 1
+	return count
 
 
 func test_a_dark_pool_wells_up_by_the_road_ahead_and_a_black_horse_rises_out_of_it() -> void:
@@ -552,6 +615,47 @@ func test_the_still_pool_stays_and_the_weed_the_splash_threw_onto_the_road() -> 
 		assert_false(_splash(kelpie).emitting, "%s: the water has settled" % what)
 		assert_false(_drips(kelpie).emitting, "%s: and dripped" % what)
 		assert_eq(_car.modulate.a, 0.0, "%s: the car is gone" % what)
+
+
+func test_it_lies_by_the_road_ahead_wherever_across_it_the_car_stopped() -> void:
+	# A wrong turn can leave the car off its road's middle, even in the next cell across, as it
+	# brakes straight on from mid-turn, as a review found. On a dead end of each heading, the car
+	# at each of STOPS: the pool lies by the road ahead, KELPIE_SIDE_TILES up-screen of its middle,
+	# all of it off the road; the car rolls up to the horse's side; and the weed lies on the road's
+	# middle beside the pool. With the car FAR_OFF_TILES to either side, off any road, they lie by
+	# the car's line.
+	var ends := _ends()
+	var dead_ends := _dead_ends(_car.sim.buffer)
+	assert_eq(dead_ends.size(), HEADINGS.size(), "a dead end of each heading")
+	for branch: RoadTile in dead_ends:
+		var heading := Vector2(Heading.VEC[branch.branch_exit])
+		var down := PhantomBus.side(heading)
+		for across: float in STOPS:
+			var what := "heading %s, %s tiles down-screen" % [heading, across]
+			var at := Iso.cell_centre(branch.cell) + down * across
+			var on_road := absf(across) != FAR_OFF_TILES
+			var middle := Iso.tile_to_world(-down * across) if on_road else Vector2.ZERO
+			_car.sim.pos = at
+			_car.position = Iso.tile_to_world(at)
+			var kelpie := _kelpie(heading)
+			_step_to(kelpie, ends[2])
+			var car_double := _double(kelpie)
+			if car_double == null:
+				fail_test("%s: it took the car" % what)
+				continue
+			var mount := middle + Kelpie.pool(heading) + Kelpie.MOUNT
+			assert_almost_eq(_from_car(car_double), mount, NEAR, "%s: to the horse's side" % what)
+			_step_to(kelpie, ends[3])
+			var water := _pool(kelpie)
+			var weed := _weed(kelpie)
+			var by := middle + Kelpie.pool(heading)
+			assert_almost_eq(_from_car(water), by, NEAR, "%s: the pool lies by the road" % what)
+			var beside := middle + Kelpie.beside(heading)
+			assert_almost_eq(_from_car(weed), beside, NEAR, "%s: the weed beside it" % what)
+			if on_road:
+				assert_eq(_pool_on_road(water, at), 0, "%s: the pool, off the road" % what)
+				var lying := at + Iso.world_to_tile(_from_car(weed))
+				assert_true(_on_road(lying), "%s: the weed, on it" % what)
 
 
 func test_it_plays_in_the_light_of_the_hour_with_no_veil_and_no_glow() -> void:
