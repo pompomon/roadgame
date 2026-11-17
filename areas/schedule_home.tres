@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="AreaSchedule" format=3]
+
+[ext_resource type="Script" path="res://areas/area_schedule_entry.gd" id="1_d7bx6"]
+[ext_resource type="Resource" path="res://areas/desert.tres" id="2_ebk6g"]
+[ext_resource type="Resource" path="res://areas/village.tres" id="3_h5fti"]
+[ext_resource type="Resource" path="res://areas/meadows.tres" id="4_4nhs0"]
+[ext_resource type="Resource" path="res://areas/rural.tres" id="5_5gob0"]
+[ext_resource type="Resource" path="res://areas/city.tres" id="6_y0i0o"]
+[ext_resource type="Script" path="res://areas/area_schedule.gd" id="7_ojfv4"]
+
+[sub_resource type="Resource" id="Resource_h0des"]
+script = ExtResource("1_d7bx6")
+area = ExtResource("2_ebk6g")
+
+[sub_resource type="Resource" id="Resource_h1vil"]
+script = ExtResource("1_d7bx6")
+turn = 60
+area = ExtResource("3_h5fti")
+
+[sub_resource type="Resource" id="Resource_h2mea"]
+script = ExtResource("1_d7bx6")
+turn = 80
+area = ExtResource("4_4nhs0")
+
+[sub_resource type="Resource" id="Resource_h3rur"]
+script = ExtResource("1_d7bx6")
+turn = 180
+area = ExtResource("5_5gob0")
+set_piece = &"bridge"
+set_piece_length = 5
+
+[sub_resource type="Resource" id="Resource_h4cit"]
+script = ExtResource("1_d7bx6")
+turn = 246
+area = ExtResource("6_y0i0o")
+set_piece = &"tunnel"
+set_piece_length = 6
+
+[resource]
+script = ExtResource("7_ojfv4")
+entries = Array[ExtResource("1_d7bx6")]([SubResource("Resource_h0des"), SubResource("Resource_h1vil"), SubResource("Resource_h2mea"), SubResource("Resource_h3rur"), SubResource("Resource_h4cit")])
+finish = &"home"
+finish_turn = 280
+mirrored = true

@@ -315,3 +315,77 @@ func test_a_schedule_cannot_start_in_an_area_it_lacks() -> void:
 	var schedule := Fixtures.schedule()
 	assert_same(schedule.starting_at(&"moon"), schedule)
 	assert_push_error("no area moon")
+
+
+## ENDGAME_PLAN.md §5.1: a road with a finish ends in its last area, at a turn the last area has
+## reached.
+func test_validate_reports_a_finish_that_cannot_be_reached() -> void:
+	var schedule := Fixtures.schedule()
+	schedule.finish_turn = 300
+	assert_eq(" | ".join(schedule.validate()), "finish_turn is 300, but there is no finish")
+	schedule.finish = &"pier"
+	assert_eq(schedule.validate(), PackedStringArray())
+	schedule.finish_turn = 219
+	assert_eq(
+		" | ".join(schedule.validate()),
+		"the finish (turn 219) comes before the last area (turn 220)"
+	)
+	schedule.finish_turn = 220
+	assert_eq(schedule.validate(), PackedStringArray(), "a finish as the last area starts")
+
+
+func test_a_road_can_end_early_or_never_and_keep_its_areas() -> void:
+	var schedule := Fixtures.schedule()
+	var short := schedule.ending_at(110, &"pier")
+	assert_eq(short.validate(), PackedStringArray())
+	assert_eq([short.finish, short.finish_turn], [&"pier", 110])
+	assert_eq(short.entries, schedule.entries.slice(0, 3), "the areas it reaches")
+	assert_false(schedule.has_finish(), "the schedule itself stays")
+	var endless := short.endless()
+	assert_false(endless.has_finish())
+	assert_eq(endless.finish_turn, 0)
+	assert_eq(endless.entries, short.entries)
+	var home := Fixtures.schedule_home()
+	assert_true(home.ending_at(3, &"pier").mirrored, "the mirror stays")
+	assert_true(home.endless().mirrored)
+
+
+func test_a_road_that_starts_in_a_later_area_ends_as_many_turns_sooner() -> void:
+	var schedule := Fixtures.schedule().ending_at(240, &"pier")
+	var rural := schedule.starting_at(&"rural")
+	assert_eq([rural.finish, rural.finish_turn], [&"pier", 206])
+	assert_eq(schedule.starting_at(&"desert").finish_turn, 20)
+	assert_eq(rural.validate(), PackedStringArray())
+	assert_false(Fixtures.schedule().starting_at(&"rural").has_finish())
+
+
+## ENDGAME_PLAN.md W17: a home stretch, a last area that starts at the finish's turn, has no
+## junction and no legend, so an endless road leaves it out, and the area before it goes on.
+func test_an_endless_road_leaves_out_the_home_stretch() -> void:
+	var road := Fixtures.set_piece_schedule(3, &"tunnel", 3)
+	road.finish = &"pier"
+	road.finish_turn = 3
+	var endless := road.endless()
+	assert_false(endless.has_finish())
+	assert_eq(endless.entries, road.entries.slice(0, 1), "without the home stretch")
+	assert_eq(endless.validate(), PackedStringArray())
+	road.finish_turn = 4
+	assert_eq(road.endless().entries, road.entries, "a last area with junctions stays")
+	road.finish_turn = 0
+	road.entries[1].turn = 0
+	assert_eq(road.endless().entries, road.entries.slice(0, 1), "never without an area")
+
+
+## ENDGAME_PLAN.md §5.6: the Road Home is the road back, from the Desert to the City, mirrored.
+func test_the_road_home_is_valid_and_runs_the_other_way() -> void:
+	var home := Fixtures.schedule_home()
+	assert_eq(home.validate(), PackedStringArray())
+	assert_true(home.mirrored)
+	assert_eq([home.finish, home.finish_turn], [&"home", 280])
+	var areas: Array[StringName] = []
+	for area: AreaDef in home.areas():
+		areas.append(area.id)
+	var forward: Array[StringName] = []
+	for area: AreaDef in Fixtures.schedule().areas():
+		forward.push_front(area.id)
+	assert_eq(areas, forward)
