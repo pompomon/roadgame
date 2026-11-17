@@ -87,7 +87,7 @@ const SHADOWS := {
 	&"bones": PropDef.Shadow.NONE,
 }
 const WALL_RISE := 2
-## The props that take a lot of more than one ground cell (VISUALS_PLAN.md §5.4), in cells a side:
+## The props that take a lot of more than one ground cell (docs/VISUALS.md §5.4), in cells a side:
 ## the building's box is wider than a cell, so two on cells side by side would stand in each other.
 const LOTS := {&"building": 2}
 ## The chance that a lot by a street shows a prop, where it isn't its density (§5.8): the City's

@@ -37,7 +37,7 @@ func _prop(id: StringName, size: Vector2i, foot: Vector2i, density: float) -> Pr
 
 
 ## A prop with a box as wide as a building's, on a lot of 2 × 2 cells: its foot on the lot's front
-## cell, and its box reaching back over the rest (VISUALS_PLAN.md §5.4).
+## cell, and its box reaching back over the rest (docs/VISUALS.md §5.4).
 func _block(density: float) -> PropDef:
 	var def := _prop(&"block", Vector2i(42, 58), Vector2i(21, 57), density)
 	def.lot = 2
@@ -253,7 +253,7 @@ func test_each_size_of_lot_takes_its_density_and_a_free_lots_cells_their_own() -
 func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
 	# On ground with no road, each cell of a row's tiles shows the prop that its own hash picks, or
 	# none, tile by tile and cell by cell: so an area whose props all take one cell shows each where,
-	# and in the order, it did before lots (VISUALS_PLAN.md A6).
+	# and in the order, it did before lots (docs/VISUALS.md A6).
 	var props: Array[PropDef] = [
 		_prop(&"a", Vector2i(8, 8), Vector2i(4, 8), 0.2),
 		_prop(&"b", Vector2i(8, 8), Vector2i(4, 8), 0.05),
@@ -283,7 +283,7 @@ func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
 
 func test_the_city_shows_many_buildings_and_none_stand_in_each_other() -> void:
 	# A building's box is 40 px wide and a ground cell 32 px, so two buildings on cells side by side,
-	# or corner to corner, stand in each other (VISUALS_PLAN.md A3). On lots of 2 × 2 cells they
+	# or corner to corner, stand in each other (docs/VISUALS.md A3). On lots of 2 × 2 cells they
 	# never do. And the City is dense: these roads show 4,951 buildings at 0.35 a lot and 0.6 by a
 	# street, see-through (§5.3, §5.8, §5.9). Without its street density they show 4,427, and not
 	# see-through 3,256, as no lot by a street then shows one (A16); main's 0.01 a cell showed 402.

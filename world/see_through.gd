@@ -1,6 +1,6 @@
 class_name SeeThrough
 extends RefCounted
-## How a see-through prop fades (VISUALS_PLAN.md §5.9). A building may rise over the road behind it
+## How a see-through prop fades (docs/VISUALS.md §5.9). A building may rise over the road behind it
 ## (PropDef.see_through), so where it would hide the car, or a sprite that a legend stood on the
 ## Props layer, it shows PROP_SEE_THROUGH of itself, as the tunnel does (docs/M4.md K5), and comes
 ## back as they part. Visual only: what shows, and nothing that a seed plays.

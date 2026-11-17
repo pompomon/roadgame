@@ -8,7 +8,7 @@ extends RefCounted
 ## below the first path tile get the props of its area at the start, and lose them with it.
 ## WorldRenderer makes it, binds it with itself and updates it every frame. A see-through prop, such
 ## as the City's building, fades where it would hide the car or a legend's sprite on the layer
-## (VISUALS_PLAN.md §5.9).
+## (docs/VISUALS.md §5.9).
 
 ## The scale under which a sprite on the layer doesn't show: Node2D stores a zero scale as
 ## CMP_EPSILON (scene/2d/node_2d.cpp, set_scale), so a legend's part that waits at a scale of zero,
@@ -69,7 +69,7 @@ var _faded: Dictionary[Shown, float] = {}
 func _init(layer: Node2D, schedule: AreaSchedule) -> void:
 	_layer = layer
 	# Internal children, which simulate() walks past (docs/DAYNIGHT.md C20): the City's lots double
-	# its props (VISUALS_PLAN.md A7). In front of the layer's own children, so that the car draws
+	# its props (docs/VISUALS.md A7). In front of the layer's own children, so that the car draws
 	# over a prop on its y.
 	pool = PropPool.new(layer, Node.INTERNAL_MODE_FRONT)
 	for entry: AreaScheduleEntry in schedule.entries:

@@ -2,7 +2,7 @@ class_name CarController
 extends Node2D
 ## Steps a CarSim every physics frame with the InputRouter's steering, and draws it
 ## (IMPLEMENTATION_PLAN.md M2.4). Its body is a frame of the car's sheet (docs/M5.md §5.7): the
-## nearest of 16 directions, in the row of its wheels' phase as they roll (VISUALS_PLAN.md
+## nearest of 16 directions, in the row of its wheels' phase as they roll (docs/VISUALS.md
 ## §5.1), or after a crash the wreck, which smokes (M3.3). Dust flies while the car is off the
 ## road. It lives under World/Props, which y-sorts it. It sets its position and its
 ## body's frame every frame, so a disaster may change only its scale, modulate and rotation
@@ -51,7 +51,7 @@ func _physics_process(delta: float) -> void:
 ## to the next, and two phases at once would be a half turn, which reads as back as well as
 ## forward. The rest of a frame's drive is dropped, not made up later, so the wheels stand once the
 ## car stands. Nothing else is, so however unevenly the frames come, they turn no less often at a
-## higher speed (VISUALS_PLAN.md §5.1, A13).
+## higher speed (docs/VISUALS.md §5.1, A13).
 func _process(_delta: float) -> void:
 	var drive := minf(_driven, Tuning.WHEEL_ROLL_TILES)
 	_driven = 0.0
@@ -96,7 +96,7 @@ func body_frame() -> int:
 
 
 ## Where the body shows on the car's parent: around its frame, as the car is scaled and turned. A
-## see-through prop fades where it would hide it (VISUALS_PLAN.md §5.9).
+## see-through prop fades where it would hide it (docs/VISUALS.md §5.9).
 func body_rect() -> Rect2:
 	return get_transform() * _body.get_transform() * _body.get_rect()
 

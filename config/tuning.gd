@@ -48,7 +48,7 @@ const PROP_AHEAD := 24
 const PROP_SPREAD := 9
 const PROP_MAX_SIZE := Vector2i(64, 72)
 const PROP_BELOW := 8
-## A see-through prop, such as the City's building (VISUALS_PLAN.md §5.9): its opacity where it
+## A see-through prop, such as the City's building (docs/VISUALS.md §5.9): its opacity where it
 ## would hide the car or a legend, as the tunnel's, which rises to 1 as their frames part by
 ## PROP_FADE_PX screen pixels, or as the car comes that far in front of it.
 const PROP_SEE_THROUGH := 0.2
@@ -83,7 +83,7 @@ const SKID_REAR := 0.09
 const SKID_TRACK := 0.18
 const SKID_ALPHA := 0.5
 const SKID_MARKS := 256
-## The car's wheels (VISUALS_PLAN.md §5.1) show its sheet's next phase, a quarter turn on, each
+## The car's wheels (docs/VISUALS.md §5.1) show its sheet's next phase, a quarter turn on, each
 ## WHEEL_ROLL_TILES tiles it drives: at GLOBAL_SPEED_CAP, less than a phase a frame at 30 frames a
 ## second, so that down to 30 they show each phase. Below, a drawn frame rolls them a phase at most,
 ## and drops the rest of its drive (CarController._process()).

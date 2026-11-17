@@ -1,6 +1,6 @@
 extends GutTest
 ## CarController and the car scene (IMPLEMENTATION_PLAN.md M2.4, M3.3): the sprite frame for a
-## heading, the row for its wheels' phase (VISUALS_PLAN.md §5.1), and the car's view of its CarSim.
+## heading, the row for its wheels' phase (docs/VISUALS.md §5.1), and the car's view of its CarSim.
 ## A legend's double of the car (docs/M6.md §5.4).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -140,7 +140,7 @@ func test_a_drawn_frame_turns_the_wheels_a_phase_at_most_and_the_faster_the_more
 	# wheels a phase at most, and only forward: a phase each WHEEL_ROLL_TILES that the car drives,
 	# counting a phase at most of each frame's drive, and on each frame that drives a phase or more.
 	# So they show each phase while the car rolls less than one a frame, and turn no less often at a
-	# higher speed, however unevenly the frames come (VISUALS_PLAN.md §5.1, A13).
+	# higher speed, however unevenly the frames come (docs/VISUALS.md §5.1, A13).
 	for cadence: Array in CADENCES:
 		var fewest := 0
 		for speed: float in SPEEDS:
@@ -165,7 +165,7 @@ func test_once_the_car_stands_its_wheels_stand_however_far_it_rolled_unshown() -
 	# Below 30 drawn frames a second, the car rolls further from one to the next than its wheels
 	# show. They don't make that up later: whenever the car stands, so do they. So too where a sum
 	# of floats, rounded up, leaves them a whole phase rolled, as after 45 frames of 2, 2 and 3
-	# physics frames at 5.5 tiles a second (VISUALS_PLAN.md §5.1, A13).
+	# physics frames at 5.5 tiles a second (docs/VISUALS.md §5.1, A13).
 	for cadence: Array in CADENCES:
 		for speed: float in SPEEDS:
 			var car := _cruising(speed)
@@ -244,7 +244,7 @@ func test_its_double_shows_what_the_body_shows_where_it_shows_it() -> void:
 
 
 func test_its_body_rect_is_where_its_body_shows_however_a_disaster_moves_and_scales_it() -> void:
-	# A see-through prop fades where it would hide the body (VISUALS_PLAN.md §5.9), and a disaster
+	# A see-through prop fades where it would hide the body (docs/VISUALS.md §5.9), and a disaster
 	# sinks the car by its scale (docs/M3.md J3). The car's parent here draws where World does.
 	var car := _car()
 	var body: Sprite2D = car.get_node("%Body")
@@ -292,7 +292,7 @@ func test_a_crashed_car_shows_its_wreck_and_smokes() -> void:
 	assert_false(smoke.emitting, "driving")
 	assert_ne(body.frame, CarController.WRECK_FRAME, "driving")
 	# Its wheels in their second phase, so that the wreck must show its first row, whatever the
-	# phase (VISUALS_PLAN.md §5.1): two frames don't roll them on to the first again.
+	# phase (docs/VISUALS.md §5.1): two frames don't roll them on to the first again.
 	for _i: int in 120:
 		if body.frame_coords.y == 1:
 			break

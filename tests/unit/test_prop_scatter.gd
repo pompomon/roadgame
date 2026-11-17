@@ -142,7 +142,7 @@ func test_the_layers_own_children_draw_over_the_props_on_their_y() -> void:
 	# Godot y-sorts by y, then by the order of the layer's children, internal ones included
 	# (servers/rendering/renderer_canvas_cull.h:117, ItemYSort). main.gd adds the car once the
 	# first rows show, and the pool makes sprites after that: each still goes before the car, so
-	# that the car draws over a prop on its y (VISUALS_PLAN.md A9).
+	# that the car draws over a prop on its y (docs/VISUALS.md A9).
 	var schedule := Fixtures.schedule()
 	var scatter := PropScatter.new(_layer, schedule)
 	var buffer := _buffer(5, schedule)
@@ -319,7 +319,7 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	var shapeless := _prop(&"shapeless", 1, 0.0, 0.1)
 	shapeless.set(&"shadow", PropDef.Shadow.size())
 	# A lot that doesn't divide a tile, and one of 2 × 2 cells, whose densities add up apart
-	# (VISUALS_PLAN.md §5.4).
+	# (docs/VISUALS.md §5.4).
 	var odd := _prop(&"odd", 1, 0.0, 0.1)
 	odd.lot = 3
 	var block := _prop(&"block", 1, 0.0, 0.5)
@@ -510,7 +510,7 @@ static func _apart(
 func test_see_through_props_fade_where_they_would_hide_the_car_or_a_legends_sprite() -> void:
 	# A see-through prop shows as much of itself as SeeThrough.opacity() gives for the actor on the
 	# layer that it would hide most: the car's body, or a sprite that a legend stood there, such as
-	# the car's double (VISUALS_PLAN.md §5.9). Its silhouette, with its glows, fades with it. Other
+	# the car's double (docs/VISUALS.md §5.9). Its silhouette, with its glows, fades with it. Other
 	# props, and sprites that don't show, fade nothing, and each prop comes back whole as the actors
 	# go.
 	var building := _building(&"building", 0.5, true)
