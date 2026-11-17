@@ -165,8 +165,10 @@ func test_the_title_starts_the_runs_in_the_chosen_area_as_the_area_argument_does
 	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
 	assert_eq(start.text, "Start in: Desert", "the title keeps the choice")
 	_tap(main, start)
+	assert_eq(start.text, "Start in: Coast", "after the Desert, the Coast (ENDGAME_PLAN.md §5.8)")
+	_tap(main, start)
 	_tap(main, play)
-	assert_eq(MainScene.car(main).sim.area.id, &"city", "after the Desert, the City")
+	assert_eq(MainScene.car(main).sim.area.id, &"city", "after the Coast, the City")
 	var city: Array[String] = ["res://assets/city/props.png"]
 	assert_eq(_prop_sheets(main), city)
 	main.get_parent().free()
@@ -179,8 +181,8 @@ func test_the_area_argument_presets_the_choice_and_the_world_has_every_area() ->
 	await wait_process_frames(2)
 	var start := _start(main)
 	assert_eq(start.text, "Start in: Village")
-	_tap(main, start)
-	_tap(main, start)
+	for area: int in 3:
+		_tap(main, start)
 	assert_eq(start.text, "Start in: City")
 	_tap(main, main.get_node("%Title/%Play"))
 	assert_eq(MainScene.car(main).sim.area.id, &"city")

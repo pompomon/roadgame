@@ -5,13 +5,16 @@ extends SceneTree
 ## mono 16-bit WAV at 22,050 Hz, peaking no higher than its kind's Tuning.*_PEAK (docs/M5.md L29),
 ## to which this scales each one. Loops carry their loop points in a "smpl" chunk, which Godot's
 ## importer reads (edit/loop_mode "Detect From WAV"). The output is the same on every run: noise
-## comes from one seeded generator. From the repository root:
+## comes from seeded generators. From the repository root:
 ##   godot --headless -s tools/audio/make_audio.gd
 ## then tools/ci/import.sh, and commit the WAV files with their .import files.
 
 const RATE := 22050
 const OUT := "res://assets/audio/"
 const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert"]
+## The areas added since, each made from a generator seeded by its id alone, as each legend's sound
+## is, so that none of the sounds made before it changes.
+const LATER_AREAS: Array[StringName] = [&"coast"]
 ## Each area's tune: tempo, root note (MIDI), scale steps, chord degrees per bar, and drums.
 const TUNES := {
 	&"city": [132, 57, [0, 2, 3, 5, 7, 8, 10], [0, 5, 3, 4], 2],
@@ -19,6 +22,7 @@ const TUNES := {
 	&"meadows": [112, 60, [0, 2, 4, 7, 9], [0, 3, 1, 4], 1],
 	&"village": [96, 53, [0, 2, 4, 5, 7, 9, 10], [0, 6, 3, 0], 1],
 	&"desert": [90, 52, [0, 1, 4, 5, 7, 8, 10], [0, 1, 0, 6], 0],
+	&"coast": [104, 62, [0, 2, 4, 5, 7, 9, 11], [0, 4, 5, 3], 1],
 }
 
 var _rng := RandomNumberGenerator.new()
@@ -27,14 +31,16 @@ var _rng := RandomNumberGenerator.new()
 func _initialize() -> void:
 	_rng.seed = 5
 	for area: StringName in AREAS:
-		_save("music/%s" % area, _music(TUNES[area]), Tuning.MUSIC_PEAK, true)
-		_save("ambient/%s" % area, _ambient(area), Tuning.AMBIENT_PEAK, true)
+		_save_area(area)
 	_save("sfx/engine", _engine(), Tuning.LOOP_PEAK, true)
 	_save("sfx/rumble", _rumble(), Tuning.LOOP_PEAK, true)
 	_save("sfx/screech", _screech(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/damage", _thump(0.2, 90.0, 40.0), Tuning.EFFECT_PEAK, false)
 	_save("sfx/crash", _crash(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
+	for area: StringName in LATER_AREAS:
+		_rng.seed = hash(String(area))
+		_save_area(area)
 	# The City's legends.
 	_save_legend("phantom_bus", _phantom_bus)
 	_save_legend("mothman", _mothman)
@@ -56,6 +62,12 @@ func _initialize() -> void:
 	_save_legend("marfa_lights", _marfa_lights)
 	_save_legend("chupacabra", _chupacabra)
 	quit()
+
+
+## Saves `area`'s music and its ambient loop.
+func _save_area(area: StringName) -> void:
+	_save("music/%s" % area, _music(TUNES[area]), Tuning.MUSIC_PEAK, true)
+	_save("ambient/%s" % area, _ambient(area), Tuning.AMBIENT_PEAK, true)
 
 
 func _music(tune: Array) -> PackedFloat32Array:
@@ -111,6 +123,12 @@ func _ambient(area: StringName) -> PackedFloat32Array:
 			_add(out, _bell(660.0), 0.5, 0.3)
 		&"desert":
 			_add(out, _lfo(_high_pass(_low_pass(_noise(n), 3000.0), 900.0), 2, 0.2), 0.0, 1.0)
+		&"coast":
+			# Two waves break, each a deep swell with foam hissing over it, and gulls cry.
+			_add(out, _lfo(_low_pass(_noise(n), 300.0), 2, 0.85), 0.0, 1.2)
+			_add(out, _lfo(_high_pass(_low_pass(_noise(n), 4000.0), 1500.0), 2, 0.95), 0.0, 0.5)
+			for at: float in [0.9, 1.25, 3.2]:
+				_add(out, _gull(_rng.randf_range(1400.0, 1800.0)), at, 0.25)
 	return out
 
 
@@ -792,6 +810,22 @@ func _cackle(freq: float, count: int) -> PackedFloat32Array:
 			_add(ha, _glide(pitch * partial, pitch * partial * 0.8, syllable), 0.0, 1.0 / partial)
 		_add(out, _swell(ha), k * syllable)
 	return _low_pass(out, 2500.0)
+
+
+## A gull's cry, a nasal "kyow": a voice of three partials that rises to `freq` Hz in its first
+## fifth and falls by a third after.
+func _gull(freq: float) -> PackedFloat32Array:
+	var out := _silence(roundi(0.3 * RATE))
+	var phase := 0.0
+	for i: int in out.size():
+		var t := float(i) / out.size()
+		var pitch := 0.8 + t if t < 0.2 else 1.0 - (t - 0.2) * 0.4
+		phase += freq * pitch / RATE
+		var voice := 0.0
+		for partial: float in [1.0, 2.0, 3.0]:
+			voice += sin(TAU * phase * partial) / partial
+		out[i] = voice * sin(PI * t)
+	return out
 
 
 func _bell(freq: float) -> PackedFloat32Array:

@@ -327,7 +327,7 @@ func test_every_area_has_its_own_music_and_ambient_loop() -> void:
 				assert_gt(wav.loop_end, wav.loop_begin, track.resource_path)
 			assert_does_not_have(tracks, track, track.resource_path if track != null else "")
 			tracks.append(track)
-	assert_eq(tracks.size(), 10)
+	assert_eq(tracks.size(), 12)
 
 
 func test_the_loops_loop_and_the_one_shot_sounds_do_not() -> void:

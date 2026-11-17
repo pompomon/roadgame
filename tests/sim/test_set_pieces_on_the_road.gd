@@ -61,7 +61,7 @@ func test_rivers_keep_a_bank_clear_of_every_other_road() -> void:
 	var nearest := INF
 	var nearest_across := INF
 	var rivers := 0
-	var schedules: Array[AreaSchedule] = [Fixtures.schedule(), Fixtures.bridge_every_turn(BRIDGES)]
+	var schedules: Array[AreaSchedule] = [Fixtures.endless(), Fixtures.bridge_every_turn(BRIDGES)]
 	for schedule: AreaSchedule in schedules:
 		var last_turn := schedule.entries[-1].turn + 2
 		for run_seed: int in SEEDS:

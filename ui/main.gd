@@ -12,8 +12,8 @@ extends Node
 ## area that Play starts in instead, which --area presets (docs/ZONE_SELECT.md Z1, Z6). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
-## that many turns, at a pier, with the areas before it, and --home drives the Road Home, for tests
-## and manual checks of the end of the road (ENDGAME_PLAN.md §5.7).
+## that many turns, at most its own, with the areas before it, and --home drives the Road Home, for
+## tests and manual checks of the end of the road (ENDGAME_PLAN.md §5.7).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
@@ -61,7 +61,7 @@ func _ready() -> void:
 		"res://areas/schedule_home.tres" if args.has("--home") else "res://areas/schedule.tres"
 	)
 	_whole_schedule = load(path)
-	_finish_turns = _parse_finish(args)
+	_finish_turns = _parse_finish(args, _whole_schedule)
 	_schedule = _run_schedule(_parse_area(args))
 	var start := Time.get_ticks_usec()
 	# Every area's, whichever a run starts in (docs/ZONE_SELECT.md Z2).
@@ -398,14 +398,21 @@ static func _parse_area(p_args: PackedStringArray) -> StringName:
 	return &""
 
 
-## The turns of --finish=<turns> in `p_args`, after which the road ends; -1 without it.
-static func _parse_finish(p_args: PackedStringArray) -> int:
+## The turns of --finish=<turns> in `p_args`, after which the road ends; -1 without it. The road can
+## end sooner than `schedule`'s, not later: past its finish, a home stretch would get junctions,
+## with no pool to play a disaster from (ENDGAME_PLAN.md W17).
+static func _parse_finish(p_args: PackedStringArray, schedule: AreaSchedule) -> int:
 	for arg: String in p_args:
 		if arg.begins_with("--finish="):
 			var text := arg.trim_prefix("--finish=")
-			if text.is_valid_int() and text.to_int() >= 0:
+			if not text.is_valid_int() or text.to_int() < 0:
+				push_error("main: --finish= needs a number of turns, such as --finish=3")
+			elif schedule.has_finish() and text.to_int() > schedule.finish_turn:
+				push_error(
+					"main: --finish= needs at most %d turns, the road's own" % schedule.finish_turn
+				)
+			else:
 				return text.to_int()
-			push_error("main: --finish= needs a number of turns, such as --finish=3")
 	return -1
 
 

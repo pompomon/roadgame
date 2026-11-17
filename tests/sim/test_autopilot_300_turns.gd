@@ -14,7 +14,7 @@ const MAX_STEPS := 60 * 60 * 20
 
 func test_300_turns_on_20_seeds() -> void:
 	for run_seed: int in SEEDS:
-		_drive(RoadGenerator.new(run_seed, Fixtures.schedule()), "seed %d" % run_seed)
+		_drive(RoadGenerator.new(run_seed, Fixtures.endless()), "seed %d" % run_seed)
 
 
 ## Straight on at each decoy, and the turn at each side road (docs/ROADGEN.md R1).

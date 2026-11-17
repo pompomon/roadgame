@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="AreaDef" format=3]
+
+[ext_resource type="Script" path="res://areas/prop_def.gd" id="props_script"]
+[ext_resource type="Resource" path="res://areas/props/coast/dune_grass.tres" id="prop_dune_grass"]
+[ext_resource type="Resource" path="res://areas/props/coast/beach_hut.tres" id="prop_beach_hut"]
+[ext_resource type="Resource" path="res://areas/props/coast/umbrella.tres" id="prop_umbrella"]
+[ext_resource type="Resource" path="res://areas/props/coast/driftwood.tres" id="prop_driftwood"]
+[ext_resource type="Resource" path="res://areas/props/coast/shell.tres" id="prop_shell"]
+[ext_resource type="Resource" path="res://areas/props/coast/rock.tres" id="prop_rock"]
+[ext_resource type="Resource" path="res://areas/props/coast/lighthouse.tres" id="prop_lighthouse"]
+[ext_resource type="Script" path="res://areas/area_def.gd" id="1_area"]
+[ext_resource type="Texture2D" uid="uid://ceicx7ur8dqpx" path="res://assets/coast/road.png" id="art_road"]
+[ext_resource type="Texture2D" uid="uid://b45xnck46a5ih" path="res://assets/coast/ground.png" id="art_ground"]
+[ext_resource type="Texture2D" uid="uid://cppeigc6utvxo" path="res://assets/coast/edge.png" id="art_edge"]
+[ext_resource type="AudioStreamWAV" uid="uid://064nfqigvq27" path="res://assets/audio/music/coast.wav" id="audio_music"]
+[ext_resource type="AudioStreamWAV" uid="uid://b86eb2g3y13tb" path="res://assets/audio/ambient/coast.wav" id="audio_ambient"]
+
+[resource]
+script = ExtResource("1_area")
+id = &"coast"
+display_name = "Coast"
+props = Array[ExtResource("props_script")]([ExtResource("prop_dune_grass"), ExtResource("prop_beach_hut"), ExtResource("prop_umbrella"), ExtResource("prop_driftwood"), ExtResource("prop_shell"), ExtResource("prop_rock"), ExtResource("prop_lighthouse")])
+id_color = Color(0.87, 0.84, 0.72, 1)
+road_sheet = ExtResource("art_road")
+ground = ExtResource("art_ground")
+ground_edge = ExtResource("art_edge")
+min_straight = 20
+max_straight = 20
+straight_accel = 0.7
+junction_brake_distance = 1.5
+junction_speed = 2.4
+offroad_speed_mult = 0.45
+offroad_damage_per_sec = 35.0
+music = ExtResource("audio_music")
+ambient_loop = ExtResource("audio_ambient")

@@ -588,3 +588,49 @@ static func _unlike(lamps: Lamps) -> int:
 	for lit: Lamps.Lit in lamps.shown():
 		unlike += int(lit.sprite.modulate.a != lit.prop.modulate.a)
 	return unlike
+
+
+## How many props of `scatter`'s rows stand on the sea past `pier`'s shore (Pier.at_sea()).
+static func _on_the_sea(scatter: PropScatter, pier: RoadTile) -> int:
+	var on_the_sea := 0
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			var cell := Vector2i(Iso.world_to_tile(sprite.position).floor())
+			on_the_sea += int(Pier.at_sea(cell, pier))
+	return on_the_sea
+
+
+## ENDGAME_PLAN.md §5.8: no prop stands on the sea, past the shore where the pier begins. On a
+## short road, a row that reaches the sea can show before the pier is made: it loses those props
+## then, and their sprites go back to the pool. Roads that end heading N and W, and one whose rows
+## all show after its pier is made.
+func test_no_prop_stands_on_the_sea() -> void:
+	var scatter := PropScatter.new(_layer, Fixtures.schedule())
+	for road: Array in [[12, 5, true], [11, 8, true], [12, 2, false]]:
+		var schedule := Fixtures.schedule().ending_at(road[0], &"pier")
+		var ahead := RoadGenerator.new(road[1], schedule)
+		var pier := ahead.next_tile()
+		while not ahead.finished():
+			pier = ahead.next_tile()
+		var buffer := _buffer(road[1], schedule)
+		scatter.bind(buffer)
+		buffer.start()
+		var early := 0
+		var wrong := PackedStringArray()
+		for index: int in range(1, pier.path_index + 30):
+			var on_the_sea := _on_the_sea(scatter, pier)
+			if not buffer.generator.finished():
+				early = maxi(early, on_the_sea)
+			elif on_the_sea > 0:
+				wrong.append("car on %d: %d" % [buffer.car_index(), on_the_sea])
+			buffer.on_car_path_index(index)
+			scatter.update(DELTA)
+		var road_name := "%d turns, seed %d, heading %d" % [road[0], road[1], pier.heading]
+		assert_eq(early > 0, road[2], "%s: props on the sea before the pier is made" % road_name)
+		assert_eq(
+			wrong.slice(0, 3), PackedStringArray(), "%s: %d steps wrong" % [road_name, wrong.size()]
+		)
+		assert_eq(
+			scatter.pool.hidden() + _shown(scatter), scatter.pool.made, "%s: none lost" % road_name
+		)
+	assert_eq(_layer.get_child_count(true), scatter.pool.made)

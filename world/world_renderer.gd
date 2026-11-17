@@ -86,6 +86,8 @@ func build(schedule: AreaSchedule) -> void:
 	for entry: AreaScheduleEntry in schedule.entries:
 		if entry.set_piece != &"" and set_piece_scenes.get(entry.set_piece) == null:
 			push_error("WorldRenderer: no scene for set piece %s" % entry.set_piece)
+	if schedule.has_finish() and set_piece_scenes.get(schedule.finish) == null:
+		push_error("WorldRenderer: no scene for the finish %s" % schedule.finish)
 	_scatter = PropScatter.new(%Props as Node2D, schedule)
 	_scatter.shadows = _shadows
 

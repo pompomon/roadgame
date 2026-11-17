@@ -5,11 +5,15 @@
 [ext_resource type="PackedScene" path="res://setpieces/tunnel.tscn" id="2_tunnel"]
 [ext_resource type="PackedScene" path="res://setpieces/bridge.tscn" id="3_bridge"]
 [ext_resource type="Script" path="res://world/lamps.gd" id="5_lamps"]
+[ext_resource type="PackedScene" path="res://setpieces/pier.tscn" id="6_pier"]
+[ext_resource type="PackedScene" path="res://setpieces/home.tscn" id="7_home"]
 
 [node name="World" type="Node2D"]
 script = ExtResource("1_renderer")
 set_piece_scenes = Dictionary[StringName, PackedScene]({
 &"bridge": ExtResource("3_bridge"),
+&"home": ExtResource("7_home"),
+&"pier": ExtResource("6_pier"),
 &"tunnel": ExtResource("2_tunnel")
 })
 

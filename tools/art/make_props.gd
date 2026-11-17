@@ -17,6 +17,9 @@ const GREY_ROCK := ["asphalt light", "city light", "asphalt"]
 const HOUSE := ["white", "line", "village roof", "city brick", "plank", "meadows water"]
 const COTTAGE := ["village light", "village dark", "rural dark", "plank", "plank", "yellow"]
 const TRAFFIC_LIGHT := ["asphalt", "shadow", "asphalt light", "red", "yellow", "meadows light"]
+const BEACH_HUT := [
+	"white", "line", "red", "village roof", "plank", "shadow", "foam", "meadows water"
+]
 ## Each area's props, in the order PropLayout picks them, by id: frames, frames per second,
 ## density, and colours, by their names in the palette. A prop's id names its _paint_ function. A
 ## prop of LOTS takes a lot of more than one cell, and its density is the chance of a lot.
@@ -66,6 +69,17 @@ const PROPS := {
 		&"dry_bush": [1, 0.0, 0.012, ["rural dirt", "plank"]],
 		&"tumbleweed": [4, 6.0, 0.004, ["rural dirt", "plank"]],
 	},
+	&"coast":
+	{
+		&"dune_grass": [4, 3.0, 0.02, ["desert cactus", "meadows ground", "rural dirt"]],
+		&"beach_hut": [1, 0.0, 0.006, BEACH_HUT],
+		&"umbrella": [1, 0.0, 0.005, ["white", "red", "line", "village roof", "asphalt light"]],
+		&"driftwood": [1, 0.0, 0.006, ["plank", "rural dirt", "coast light"]],
+		&"shell": [1, 0.0, 0.008, ["coast shell", "white", "coast dark"]],
+		&"rock": [1, 0.0, 0.006, GREY_ROCK],
+		&"lighthouse":
+		[1, 0.0, 0.002, ["white", "line", "red", "village roof", "asphalt", "yellow"]],
+	},
 }
 ## Lights (docs/DAYNIGHT.md §5.12): a window painted the palette's yellow is lit, and glows
 ## WINDOW_HALO pixels round it. A lamp's head, LAMP_HEAD, glows LAMP_HALO pixels round it, and
@@ -74,8 +88,14 @@ const WINDOW_HALO := 2.0
 const LAMP_HEAD := Rect2i(4, -36, 4, 2)
 const LAMP_HALO := 4.0
 const LAMP_POOL := Vector2(64, 32)
-## Props drawn without an ink outline: flat ones, which it would make look like holes.
-const FLAT: Array[StringName] = [&"flowers", &"pond"]
+## The lighthouse's tower: its half-width at its foot and its height, then its half-width at its
+## top. Its lamp glows LAMP_HALO pixels round it, and lights no pool: its beam is out to sea.
+const LIGHTHOUSE_TOWER := Vector2(8, 44)
+const LIGHTHOUSE_TOP := 5.0
+const LIGHTHOUSE_LAMP := Rect2i(-3, -51, 6, 5)
+## Props drawn without an ink outline: flat ones, which it would make look like holes, and the dune
+## grass, whose blades it would fill in.
+const FLAT: Array[StringName] = [&"flowers", &"pond", &"dune_grass"]
 ## How the props' shadows fall (docs/DAYNIGHT.md §5.11), where not as an upright prop's: the fence
 ## is a wall, whose base line rises WALL_RISE pixels above its foot where it crosses the foot's
 ## column, and the props that lie flat cast none. A box's shadow falls from the centre of its
@@ -85,6 +105,7 @@ const SHADOWS := {
 	&"flowers": PropDef.Shadow.NONE,
 	&"pond": PropDef.Shadow.NONE,
 	&"bones": PropDef.Shadow.NONE,
+	&"shell": PropDef.Shadow.NONE,
 }
 const WALL_RISE := 2
 ## The props that take a lot of more than one ground cell (docs/VISUALS.md §5.4), in cells a side:
@@ -538,6 +559,94 @@ func _paint_tumbleweed(image: Image, c: Array[Color], frame: int) -> float:
 		var chord := Vector2.from_angle(angle + 2.2) * 6.0
 		_line(image, centre + Vector2.from_angle(angle) * 6.0, centre + chord, c[k % 2])
 	return 6.0
+
+
+## Blades of marram grass that lean with the wind and back, their tips a pixel a frame, some with
+## a seed head.
+func _paint_dune_grass(image: Image, c: Array[Color], frame: int) -> float:
+	var leans: Array[float] = [0.0, 1.0, 2.0, 1.0]
+	for k: int in 7:
+		var stem := Vector2(-6 + 2 * k, -1)
+		var tip := stem + Vector2(0.8 * (k - 3) + leans[frame], -9 - (k * 5) % 4)
+		_line(image, stem, tip, c[k % 2])
+		if k % 3 == 1:
+			_rect(image, Rect2i(Vector2i(tip.floor()) + Vector2i(0, -2), Vector2i(1, 3)), c[2])
+	return 6.0
+
+
+## A beach hut: a little house whose walls are striped, two pixels in every four, lighter on the
+## lit face.
+func _paint_beach_hut(image: Image, c: Array[Color], _frame: int) -> float:
+	_house(image, c, 10, 13, 9)
+	for y: int in image.get_height():
+		for x: int in image.get_width():
+			var wall := image.get_pixel(x, y)
+			if posmod(x - canvas_foot().x, 4) >= 2:
+				continue
+			if wall.is_equal_approx(c[0]):
+				image.set_pixel(x, y, c[6])
+			elif wall.is_equal_approx(c[1]):
+				image.set_pixel(x, y, c[7])
+	return 0.0
+
+
+## A beach umbrella: a pole under a canopy of four panels, red and white, the right two shaded.
+func _paint_umbrella(image: Image, c: Array[Color], _frame: int) -> float:
+	_rect(image, Rect2i(0, -22, 1, 22), c[4])
+	var apex := Vector2(0.5, -29)
+	for k: int in 4:
+		var rim: Array[Vector2] = []
+		for edge: int in [k, k + 1]:
+			rim.append(Vector2(-13.5 + 7 * edge, -21 + 2 * sin(PI * edge / 4.0)))
+		_poly(image, [apex, rim[0], rim[1]], c[k])
+	return 10.0
+
+
+## A bleached log lying on the sand, with the stub of a branch.
+func _paint_driftwood(image: Image, c: Array[Color], _frame: int) -> float:
+	_line(image, Vector2(-11, -3), Vector2(9, -8), c[0], 3)
+	_line(image, Vector2(-10, -3), Vector2(8, -7.5), c[2])
+	_line(image, Vector2(3, -7), Vector2(6, -12), c[1], 2)
+	return 9.0
+
+
+## Two shells on the sand: a scallop, ribbed, and a smaller one.
+func _paint_shell(image: Image, c: Array[Color], _frame: int) -> float:
+	_ellipse(image, Vector2(-2, -3), Vector2(3.5, 3), c[0])
+	for x: int in [-4, -2, 0]:
+		_line(image, Vector2(-2, -1), Vector2(x, -5), c[2])
+	_ellipse(image, Vector2(5, -2), Vector2(2, 1.5), c[1])
+	return 0.0
+
+
+## A lighthouse: a tapering tower in red and white bands, lit on its left, under a gallery, a
+## lantern whose lamp is lit, and a dome.
+func _paint_lighthouse(image: Image, c: Array[Color], _frame: int) -> float:
+	var bands := 4
+	for band: int in bands:
+		var low := -LIGHTHOUSE_TOWER.y * band / bands
+		var high := -LIGHTHOUSE_TOWER.y * (band + 1) / bands
+		var wide := lerpf(LIGHTHOUSE_TOWER.x, LIGHTHOUSE_TOP, float(band) / bands)
+		var narrow := lerpf(LIGHTHOUSE_TOWER.x, LIGHTHOUSE_TOP, float(band + 1) / bands)
+		var paint := 2 * (band % 2)
+		var left: Array[Vector2] = [
+			Vector2(-wide, low), Vector2(0, low), Vector2(0, high), Vector2(-narrow, high)
+		]
+		_poly(image, left, c[paint])
+		var right: Array[Vector2] = [
+			Vector2(0, low), Vector2(wide, low), Vector2(narrow, high), Vector2(0, high)
+		]
+		_poly(image, right, c[paint + 1])
+	var lamp := LIGHTHOUSE_LAMP
+	var floor_y := lamp.end.y
+	_rect(image, Rect2i(-7, floor_y, 14, 2), c[4])
+	_rect(image, lamp, c[5])
+	for post: int in [lamp.position.x - 1, lamp.end.x]:
+		_rect(image, Rect2i(post, lamp.position.y - 1, 1, lamp.size.y + 1), c[4])
+	var eave := Vector2(0, lamp.position.y)
+	_poly(image, [eave + Vector2(-5, 0), eave + Vector2(5, 0), eave + Vector2(0, -5)], c[3])
+	_add_once(_lights, Rect2(lamp).grow(LAMP_HALO))
+	return 7.0
 
 
 # Shapes, in pixels from the foot.

@@ -61,9 +61,9 @@ func _wrong_turn_in(area: AreaDef, run_seed: int) -> StringName:
 
 
 func test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool() -> void:
-	var schedule: AreaSchedule = load("res://areas/schedule.tres")
 	var played: Array[StringName] = []
-	for entry: AreaScheduleEntry in schedule.entries:
+	# Not the Coast's, which has no junction (ENDGAME_PLAN.md W19).
+	for entry: AreaScheduleEntry in Fixtures.endless().entries:
 		played.append(_wrong_turn_in(entry.area, 1))
 	assert_eq(played.size(), 5, "the five areas")
 	assert_does_not_have(played, &"", "each played one of its pool")
@@ -72,7 +72,7 @@ func test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool() -> void:
 func test_every_disaster_of_every_pool_plays() -> void:
 	# Each in a run of its own, with the first seed that picks it while the collection is empty, as
 	# each run adds the disaster it shows to the collection, where it weighs less (Q2).
-	for area: AreaDef in Fixtures.schedule().areas():
+	for area: AreaDef in Fixtures.endless().areas():
 		for scene: PackedScene in area.disasters:
 			var id := DisasterPicks.id_of(scene)
 			var run_seed := _seed_for(area, scene)

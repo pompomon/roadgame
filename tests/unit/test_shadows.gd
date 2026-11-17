@@ -5,7 +5,7 @@ extends GutTest
 const CAR_SCENE := preload("res://car/car.tscn")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const FOOT := Vector2(300.0, 200.0)
-const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert"]
+const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert", &"coast"]
 
 var _shadows: Shadows
 

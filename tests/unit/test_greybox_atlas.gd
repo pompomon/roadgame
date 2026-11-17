@@ -47,6 +47,13 @@ func test_road_coords() -> void:
 	assert_eq(GreyboxAtlas.road_coords(tile, true), Vector2i(4, GreyboxAtlas.Row.TUNNEL))
 	tile.set_piece = &"bridge"
 	assert_eq(GreyboxAtlas.road_coords(tile, false), Vector2i(4, GreyboxAtlas.Row.BRIDGE))
+	# ENDGAME_PLAN.md §5.8: the pier is planks, home's drive is road, and past the end is nothing.
+	tile.set_piece = &"pier"
+	assert_eq(GreyboxAtlas.road_coords(tile, false), Vector2i(4, GreyboxAtlas.Row.BRIDGE), "pier")
+	tile.set_piece = &"home"
+	assert_eq(GreyboxAtlas.road_coords(tile, false), Vector2i(4, GreyboxAtlas.Row.ROAD), "home")
+	tile.set_piece = RoadGenerator.BEYOND
+	assert_eq(GreyboxAtlas.road_coords(tile, true), GreyboxAtlas.NO_TILE, "beyond")
 
 
 func test_every_tile_has_road_in_the_centre_and_none_in_the_corners() -> void:

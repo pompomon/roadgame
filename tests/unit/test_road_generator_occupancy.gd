@@ -62,7 +62,7 @@ func _check(gen: RoadGenerator, turns: int, label: String) -> void:
 
 func test_no_shared_cells_over_200_seeds_and_500_turns() -> void:
 	for run_seed: int in SEEDS:
-		_check(RoadGenerator.new(run_seed, Fixtures.schedule()), TURNS, "seed %d" % run_seed)
+		_check(RoadGenerator.new(run_seed, Fixtures.endless()), TURNS, "seed %d" % run_seed)
 	var share := 100.0 * _short / _dead_ends
 	gut.p("%d dead ends, %d (%.1f%%) shorter than DEAD_END_MIN_TILES" % [_dead_ends, _short, share])
 	pass_test("checked %d seeds × %d turns" % [SEEDS, TURNS])

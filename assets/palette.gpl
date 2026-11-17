@@ -1,7 +1,7 @@
 GIMP Palette
 Name: Road Roguelike
 Columns: 4
-# The master palette (plan.md §5.3, IMPLEMENTATION_PLAN.md M5.1): 36 colours. Every opaque pixel of
+# The master palette (plan.md §5.3, IMPLEMENTATION_PLAN.md M5.1): 40 colours. Every opaque pixel of
 # every PNG under assets/ is one of them (tests/unit/test_area_art.gd). Shared colours first, then
 # each area's sub-palette: its ground, which is its id_color, a dark and a light shade, and an
 # accent. Then the effects' and the UI's, and last the legends' night magic (docs/M6.md S9).
@@ -33,6 +33,10 @@ Columns: 4
 200 170 108	desert dark
 244 224 170	desert light
  90 130  70	desert cactus
+222 213 184	coast ground
+192 180 148	coast dark
+240 234 214	coast light
+226 140 128	coast shell
 230 120  40	fire
 158 199 240	foam
 200  50  50	red

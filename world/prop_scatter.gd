@@ -8,7 +8,7 @@ extends RefCounted
 ## below the first path tile get the props of its area at the start, and lose them with it.
 ## WorldRenderer makes it, binds it with itself and updates it every frame. A see-through prop, such
 ## as the City's building, fades where it would hide the car or a legend's sprite on the layer
-## (docs/VISUALS.md §5.9).
+## (docs/VISUALS.md §5.9). No prop stands on the sea past a pier (ENDGAME_PLAN.md §5.8).
 
 ## The scale under which a sprite on the layer doesn't show: Node2D stores a zero scale as
 ## CMP_EPSILON (scene/2d/node_2d.cpp, set_scale), so a legend's part that waits at a scale of zero,
@@ -62,6 +62,8 @@ var _clock := 0.0
 var _layer: Node2D
 ## The see-through props that show less than whole, and how much of themselves they show.
 var _faded: Dictionary[Shown, float] = {}
+## The first tile of the bound road's pier, once the buffer has made it, or null.
+var _pier: RoadTile
 
 
 ## Scatters the props of `schedule`'s areas on `layer`. A prop that breaks the contract is an
@@ -85,12 +87,14 @@ func bind(buffer: RoadBuffer) -> void:
 	for k: int in _rows.keys():
 		_hide_row(k)
 	_buffer = buffer
+	_pier = null
 	_first_area = buffer.generator.first_area().id
 	_lowest_row = -Tuning.BUFFER_BEHIND if buffer.first_index() == 0 else buffer.first_index()
 	_next_row = _lowest_row
 	_clock = 0.0
 	buffer.tiles_generated.connect(_on_tiles_generated)
 	buffer.tiles_freed.connect(_on_tiles_freed)
+	_find_pier()
 	_show_rows()
 
 
@@ -125,6 +129,7 @@ func sprites(k: int) -> Array[Sprite2D]:
 
 
 func _on_tiles_generated(_tiles: Array[RoadTile]) -> void:
+	_find_pier()
 	_show_rows()
 
 
@@ -164,6 +169,8 @@ func _show_row(k: int) -> void:
 	for placement: PropLayout.Placement in PropLayout.row(
 		anchor(k), props, _buffer.generator.props_seed, _buffer
 	):
+		if _at_sea(placement.foot):
+			continue
 		var shown := Shown.new()
 		shown.def = placement.def
 		shown.phase = placement.phase
@@ -188,13 +195,42 @@ func _show_row(k: int) -> void:
 func _hide_row(k: int) -> void:
 	if _rows.has(k):
 		for shown: Shown in _rows[k].shown:
-			if lamps != null:
-				lamps.remove(shown.lit)
-			pool.release(shown.sprite)
-			if shadows != null:
-				shadows.remove(shown.cast)
-			_faded.erase(shown)
+			_release(shown)
 		_rows.erase(k)
+
+
+## Takes prop `shown` off the layer, with its glows and its shadow.
+func _release(shown: Shown) -> void:
+	if lamps != null:
+		lamps.remove(shown.lit)
+	pool.release(shown.sprite)
+	if shadows != null:
+		shadows.remove(shown.cast)
+	_faded.erase(shown)
+
+
+## Finds the bound road's pier once the buffer has its first tile, and takes away each prop that
+## already stands on the sea: on a short road, a row that reaches the sea can show before the pier
+## is made.
+func _find_pier() -> void:
+	var finish := _buffer.generator.finish_index
+	if _pier != null or finish < _buffer.first_index() or finish > _buffer.last_index():
+		return
+	if _buffer.path_tile(finish).set_piece != &"pier":
+		return
+	_pier = _buffer.path_tile(finish)
+	for row: Row in _rows.values():
+		for shown: Shown in row.shown.duplicate():
+			if _at_sea(shown.sprite.position):
+				_release(shown)
+				row.shown.erase(shown)
+				row.animated.erase(shown)
+				row.fading.erase(shown)
+
+
+## Whether a prop with its foot on `foot` would stand on the sea.
+func _at_sea(foot: Vector2) -> bool:
+	return _pier != null and Pier.at_sea(Vector2i(Iso.world_to_tile(foot).floor()), _pier)
 
 
 ## Fades each see-through prop near an actor as far as the actor that it would hide most asks

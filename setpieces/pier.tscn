@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://setpieces/pier.gd" id="1_pier"]
+
+[node name="Pier" type="Node2D"]
+script = ExtResource("1_pier")
+
+[node name="Sea" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.2, 0.42, 0.7, 1)
+
+[node name="Foam" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.62, 0.78, 0.94, 1)
+
+[node name="Waves" type="Node2D" parent="."]
+unique_name_in_owner = true
+
+[node name="Wave" type="Polygon2D" parent="Waves"]
+color = Color(0.62, 0.78, 0.94, 1)
+
+[node name="Piles" type="Node2D" parent="."]
+unique_name_in_owner = true
+
+[node name="Pile" type="Polygon2D" parent="Piles"]
+color = Color(0.29, 0.23, 0.17, 1)
+
+[node name="Fascia" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.36, 0.29, 0.22, 1)
+
+[node name="Deck" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.46, 0.38, 0.29, 1)
+
+[node name="FarRailing" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.7, 0.66, 0.6, 1)
+
+[node name="EndRailing" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.7, 0.66, 0.6, 1)
+
+[node name="NearRailing" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+color = Color(0.7, 0.66, 0.6, 1)

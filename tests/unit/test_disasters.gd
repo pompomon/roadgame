@@ -47,7 +47,7 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 		&"desert": [&"death_worm", &"marfa_lights", &"chupacabra"],
 	}
 	var areas: Array = []
-	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
+	for entry: AreaScheduleEntry in Fixtures.endless().entries:
 		var area := entry.area
 		areas.append(area.id)
 		var ids: Array = []

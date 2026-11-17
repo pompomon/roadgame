@@ -10,7 +10,7 @@ Input: Touch and keyboard
 
 ## 1. Vision
 
-An isometric pixel-art endless driving roguelike. The player steers a car along a procedurally generated road through a series of hand-designed areas. At every junction the player must follow a hidden **Left → Right → Left → Right…** pattern. One wrong or missed turn ends the run with a procedural disaster. The goal is to drive as far as possible and discover every area and disaster.
+An isometric pixel-art driving roguelike. The player steers a car along a procedurally generated road through a series of hand-designed areas. At every junction the player must follow a hidden **Left → Right → Left → Right…** pattern. One wrong or missed turn ends the run with a procedural disaster. After its 280th turn the road ends at a pier on the Coast: the goal is to drive the whole road and arrive there, and to discover every area and disaster on the way (`ENDGAME_PLAN.md` W1).
 
 ### 1.1 Core pillars
 - **One rule, learned through failure.** The L/R pattern is never explained. Players discover it by failing: in the tutorial a wrong turn only ends a streak (§2.7), and after it, by dying.
@@ -121,10 +121,11 @@ Fixed areas are keyed by **correct-turn count**. The areas between schedule entr
 | 34 | Tunnel | Rural | Yellow-brown palette, tumbleweed, small bushes |
 | 100 | Bridge over a river | Meadows | Green meadows and pastures |
 | 200 | — | Village | Family houses |
-| 220 | — | Desert | **Final area, which continues forever** |
+| 220 | — | Desert | The last area with junctions, and the climax |
+| 280 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`ENDGAME_PLAN.md` §5.8) |
 
 - When `turnIndex` reaches a schedule entry, the next straight is replaced by the set piece (a fixed run of straight tiles with no junction), then the area switches.
-- Once the last scheduled area starts, the generator stays in it for the rest of the run.
+- The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`ENDGAME_PLAN.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run, as the tests' endless road does.
 
 ### 3.7 AreaDef (Godot `Resource`, `.tres`)
 ```
@@ -384,10 +385,11 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 - The correct path and dead ends never overlap (occupancy check).
 - Every junction has ≥ 1 wrong exit.
 - Lookahead stays within 37..55 tiles after any number of refills.
-- Area switches and set pieces happen at turns 34, 100, 200 and 220. Desert continues forever afterwards.
+- Area switches and set pieces happen at turns 34, 100, 200, 220 and 280, and the road ends at the pier after its 280th turn.
+- Up to its last junction, the game's road is the endless road's, tile for tile, which goes on in the Desert (`ENDGAME_PLAN.md` E1, W6).
 
 **Simulation**
-- A scripted driver follows `expectedExit` for 300+ turns with no disaster.
+- A scripted driver follows `expectedExit` for 300+ turns of the endless road with no disaster, and drives the game's road and the Road Home to their ends.
 - A deliberate wrong turn triggers a disaster from the current area's pool.
 - The car slows down before every junction, for both correct and wrong turns, and speeds up again on straights.
 - Cutting a corner and rejoining the correct exit within 2 tiles counts as taking it and applies damage only.
@@ -422,7 +424,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Tutorial | Until the player has finished it, runs start with one in the City: no disasters or death, every road leads on, and 12 correct turns in a row lead into the City's run |
 | Road directions | All 4 headings rendered; the correct path is a staircase, so it never crosses itself |
 | Buffer | 55 tiles at start, refill below 37, keep 37–55 lookahead and 20 tiles behind |
-| Areas | Fixed schedule by turn count; the last area continues forever |
+| Areas | Fixed schedule by turn count; after turn 280 the road ends at a pier on the Coast (`ENDGAME_PLAN.md` W1) |
 | Orientation | Portrait default, runtime orientation change supported |
 | Meta-progression | None that makes a run easier or harder: the Atlas, the disaster collection, and the arrivals, each of which unlocks a legend (`ENDGAME_PLAN.md` §5.4, §5.5) |
 | Pickups | None in the MVP |
@@ -437,5 +439,5 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 
 ## 14. Out of Scope / Follow-up Documents
 
-- **Future areas** (after Desert) will be planned in a separate document (`AREAS.md`). The MVP ends with Desert continuing forever.
+- **Future areas** will be planned in a separate document (`AREAS.md`), before the Coast, whose pier ends the road (`ENDGAME_PLAN.md` §5.8).
 - Detailed tuning values (speeds, braking distances, damage rates) will be set during prototyping.
