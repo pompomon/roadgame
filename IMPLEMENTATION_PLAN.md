@@ -33,7 +33,7 @@ This document turns the design in `plan.md` into ordered work packages with file
 | D7 | `min_straight >= 2` for every area. | Gives room for 1–1.5 tile auto-braking and guarantees a 1-tile wrong stub always fits (§4.3). |
 | D8 | Seed: random per run, or forced with `-- --seed=<int>` (user command-line argument). Sub-streams are seeded with `hash("%d:road" % seed)` and so on. | Reproducible bug reports, tests and screenshots. |
 | D9 | Package name `com.pompomon.roadgame`; version code = `major*1_000_000 + minor*1_000 + patch`. | Version codes are deterministic and always increase. |
-| D10 | Web builds deploy to **GitHub Pages from `main`** (continuous playtest build). Tagged releases attach the APK, AAB and Web zip to a GitHub Release. | Gives an always-playable build without any third-party hosting. |
+| D10 | Web builds deploy to **GitHub Pages from `main`** (continuous playtest build). Tagged releases attach the APK and Web zip to a GitHub Release. | Gives an always-playable build without any third-party hosting. |
 | D11 | Tuning values live only in `AreaDef` `.tres` files and `config/tuning.gd` constants. No magic numbers in logic. | Tuning happens during prototyping (`plan.md` §14). |
 | D12 | Static typing is required in GDScript (`untyped_declaration` warning set to *error* in project settings). | Catches bugs early and helps agents and reviewers. |
 
@@ -110,8 +110,8 @@ M0–M6 are done. Each of their packages says what it built and where; `docs/M<n
 
 - **M0.1 Project skeleton.** `project.godot`: a 360×640 portrait base size, `canvas_items` stretch with `expand` and integer scaling, the Compatibility renderer, nearest filtering, `untyped_declaration` as an error (D12), the input actions, and `display/window/size/resizable=true` for folding. Also `.gitignore`, `.gdlintrc` and `ui/main.tscn`.
 - **M0.2 Test harness.** GUT 9.7.1 in `addons/gut/`, `.gutconfig.json` (`tests/unit/`, `sim/` and `integration/`), and `tools/ci/run_tests.sh`, which writes its reports to `build/reports/`.
-- **M0.3 Export presets.** `export_presets.cfg`: `Web` (single-threaded, no extensions, no PWA), and `Android APK` and `Android AAB` (`com.pompomon.roadgame`, arm64-v8a and armeabi-v7a, `permissions/vibrate`). Never commit keystore paths or passwords: release signing reads `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER` and `_PASSWORD`, and debug builds use the CI image's debug keystore.
-- **M0.4 CI scripts and build actions.** `tools/ci/*.sh`, `.github/actions/godot-env/`, `ci.yml`, `release.yml` and Dependabot (§7). `main` requires `lint`, `test`, `export-web` and both `export-android` checks; Pages deploys from GitHub Actions.
+- **M0.3 Export presets.** `export_presets.cfg`: `Web` (single-threaded, no extensions, no PWA), and `Android APK` (`com.pompomon.roadgame`, arm64-v8a and armeabi-v7a, `permissions/vibrate`). Never commit keystore paths or passwords: release signing reads `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER` and `_PASSWORD`, and debug builds use the CI image's debug keystore.
+- **M0.4 CI scripts and build actions.** `tools/ci/*.sh`, `.github/actions/godot-env/`, `ci.yml`, `release.yml` and Dependabot (§7). `main` requires `lint`, `test`, `export-web` and `export-android`; Pages deploys from GitHub Actions.
 
 ### M1 — Generator (done: `docs/M1.md`; changed since by `docs/ROADGEN.md` and `docs/TUTORIAL.md`)
 
@@ -191,7 +191,7 @@ What the plans before it leave to M7 (each summary's §9 has more):
 - Keyboard focus: `html/focus_canvas_on_start=true`.
 
 #### M7.4 Release pipeline (S)
-- Create the release keystore (offline, kept by the owner), add the repository secrets (§7.6), tag `v0.1.0`, and check that the release has the signed APK, AAB and Web zip.
+- Create the release keystore (offline, kept by the owner), add the repository secrets (§7.6), tag `v0.1.0`, and check that the release has the signed APK and Web zip.
 
 #### M7.5 Device QA checklist (Galaxy Z Fold4 plus one other Android phone and desktop Chrome/Firefox)
 - [ ] Cover screen (portrait 23:9) and inner screen (near-square) both show ≥ 5 tiles ahead; HUD is not clipped.
@@ -263,8 +263,8 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 
 | Workflow | Trigger | Jobs | Output |
 |---|---|---|---|
-| `ci.yml` | `pull_request`, `push` to `main`, manual | `lint` → `test` → `export-web`, `export-android` (APK, AAB) → `deploy-web` (main only) | Pages deploy; `web`, debug APK and AAB artifacts only from a manual run with `upload-builds` |
-| `release.yml` | Tag `v*.*.*`, manual | `test` → `android-release`, `web-release` → `publish` | Signed APK and AAB, Web zip on a GitHub Release |
+| `ci.yml` | `pull_request`, `push` to `main`, manual | `lint` → `test` → `export-web`, `export-android` (APK) → `deploy-web` (main only) | Pages deploy; `web` and debug APK artifacts only from a manual run with `upload-builds` |
+| `release.yml` | Tag `v*.*.*`, manual | `test` → `android-release`, `web-release` → `publish` | Signed APK and Web zip on a GitHub Release |
 | `visual.yml` | Manual, nightly | `screenshots` | PNG artifacts, kept 1 day (non-blocking) |
 
 Shared logic lives in `tools/ci/*.sh` (runnable locally with the same commands) and one composite action `.github/actions/godot-env`. All jobs that run Godot use the container `barichello/godot-ci:4.7.2`, which already includes JDK 17, Android SDK, a debug keystore (`/root/debug.keystore`) and export templates. Godot export plugins read these from `~/.config/godot/editor_settings-4.7.tres`.
@@ -274,16 +274,16 @@ Shared logic lives in `tools/ci/*.sh` (runnable locally with the same commands) 
 > **Actions storage policy (`docs/M0.md` F34, §5.12):** no caches of any kind, artifacts only where something needs them, and `retention-days: 1` on every upload. CI gets slower in exchange. `tools/ci/check_actions_storage.sh` (run in `lint`) enforces it. The files are the reference for §7.2–§7.5.
 
 ### 7.2 Composite action — `.github/actions/godot-env/action.yml`
-Moves the CI image's export templates and editor settings where Godot looks for them, installs the Android SDK packages, and imports the project in full.
+Moves the CI image's export templates and editor settings where Godot looks for them, and imports the project in full.
 
 ### 7.3 CI scripts — `tools/ci/`
 `lint.sh`, `import.sh`, `check_scripts.sh`, `run_tests.sh`, `smoke.sh`, `export.sh`, `stamp_version.sh`, `check_versions.sh` and `check_actions_storage.sh`. CI and local runs use the same commands (`AGENTS.md` §3).
 
 ### 7.4 `.github/workflows/ci.yml`
-The jobs of §7.1. A run by hand with `upload-builds` uploads the Web build, the APK and the AAB.
+The jobs of §7.1. A run by hand with `upload-builds` uploads the Web build and the APK.
 
 ### 7.5 `.github/workflows/release.yml`
-Tests, signs the APK and the AAB with the secrets of §7.6, zips the Web build, and publishes them on a GitHub Release.
+Tests, signs the APK with the secrets of §7.6, zips the Web build, and publishes them on a GitHub Release.
 
 ### 7.6 Secrets and settings
 
@@ -337,7 +337,6 @@ Weekly updates of the GitHub Actions. The `godot-ci` image's tag is bumped by ha
 | Free steering makes corner cuts ambiguous (which branch was rejoined) | Unfair deaths | Capsule geometry plus "first rejoined branch" rule (D4/D5); `test_corner_cut.gd`; debug overlay shows the pending choice |
 | Auto-braking reveals the junction too late or too early at high speed | Unplayable late game | `GLOBAL_SPEED_CAP`; braking distance is per area; tune with the autopilot speed log |
 | Fold/unfold restarts the Android activity | Lost run | `resizeable` setting plus Godot's `configChanges`; QA checklist; if it still fails, add an Android plugin manifest override (post-check) |
-| Gradle AAB build is slow or flaky in CI | Red PRs | Separate matrix entry (`fail-fast: false`); APK stays the quick signal. No Gradle cache: CI keeps no caches (§7.1) |
 | CI image lags behind Godot patch releases | Blocked upgrade | Fallback: `chickensoft-games/setup-godot@v2` with `include-templates: true` and `cache: false` (§7.1) plus `android-actions/setup-android@v4` and `actions/setup-java` (17); scripts in `tools/ci` stay the same |
 | Headless rendering cannot take screenshots | No visual tests | `xvfb` with `opengl3` in a separate, non-blocking workflow |
 | GUT and Godot 4.7 stricter typing on doubles | Test false positives | GUT 9.7.1; prefer real `RefCounted` objects over doubles in tests |
@@ -347,8 +346,8 @@ Weekly updates of the GitHub Actions. The `godot-ci` image's tag is bumped by ha
 
 ## 9. MVP definition of done
 - [ ] All `plan.md` §11 automated tests exist and pass in CI (§6 matrix).
-- [ ] `ci.yml` is green on `main`; Pages serves the latest Web build; debug APK and AAB artifacts (from a manual run with `upload-builds`) install and run.
-- [ ] `v0.1.0` tag produces a GitHub Release with a signed APK, AAB and Web zip.
+- [ ] `ci.yml` is green on `main`; Pages serves the latest Web build; the debug APK artifact (from a manual run with `upload-builds`) installs and runs.
+- [ ] `v0.1.0` tag produces a GitHub Release with a signed APK and Web zip.
 - [ ] All 5 areas, tunnel and bridge appear in order during an autopilot run to turn 230, and a wrong turn in each area plays its legend (M6).
 - [ ] Atlas, disaster collection and settings persist across restarts (`user://save.json` v1).
 - [ ] M7.5 device QA checklist passes on the Galaxy Z Fold4 and in desktop Chrome and Firefox.
