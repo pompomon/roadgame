@@ -20,11 +20,22 @@ extends RefCounted
 ## after a junction or a corner than the path does, and touches no other road but at its ends. The
 ## tutorial's straights come from their own stream, so the road after it is the seed's road.
 ## end_tutorial() ends it after the group it is in.
+##
+## A schedule with a finish ends the road (ENDGAME_PLAN.md §5.1): the straight after its last turn
+## leads to the finish's FINISH_TILES set-piece tiles, and then to BEYOND tiles that go on forever,
+## so that the buffer always has tiles ahead, but which no car reaches. Nothing is drawn from the
+## road's stream for the finish, so the road before it is the seed's endless road, tile for tile. A
+## mirrored schedule's road starts heading W, and its first turn is a right: the path is still the
+## staircase of N and W runs, so all of the above holds, but the pattern starts the other way
+## (ENDGAME_PLAN.md §5.6).
 
 ## The exits a junction offers besides its entry. T: the turn and the opposite turn. CROSSROADS:
 ## straight on as well. SIDE_ROAD: the turn and straight on. DECOY: straight on, which is correct,
 ## and the opposite turn.
 enum Kind { T, CROSSROADS, SIDE_ROAD, DECOY }
+
+## The set piece of the tiles past the finish's, which no car reaches.
+const BEYOND := &"beyond"
 
 var occupancy := OccupancyGrid.new()
 var current_area: AreaDef
@@ -38,6 +49,8 @@ var dropped_count := 0
 var props_seed := 0
 ## Whether the next junction is the tutorial's (docs/TUTORIAL.md §5.1).
 var tutorial := false
+## The path index of the finish's first tile, once it is laid, or -1. No junction comes after it.
+var finish_index := -1
 
 var _schedule: AreaSchedule
 var _schedule_index := 1
@@ -58,6 +71,10 @@ var _turn_base := 0
 ## The cell and path index of the tutorial's last junction, whose loop the next one finishes.
 var _loop_start := Vector2i.ZERO
 var _loop_start_index := -1
+## 1 on a mirrored road, whose first turn is a right; 0 on others, whose first turn is a left.
+var _parity := 0
+## Whether the road's last turn is behind: the straight after it leads to the finish.
+var _finishing := false
 
 
 func _init(run_seed: int, schedule: AreaSchedule, p_tutorial := false) -> void:
@@ -73,6 +90,14 @@ func _init(run_seed: int, schedule: AreaSchedule, p_tutorial := false) -> void:
 	props_seed = hash("%d:props" % run_seed)
 	_rng_tutorial.seed = hash("%d:tutorial" % run_seed)
 	tutorial = p_tutorial
+	if _schedule.mirrored:
+		# The tutorial's loops are laid for a road that starts N (ENDGAME_PLAN.md W10).
+		if p_tutorial:
+			push_error("RoadGenerator: a mirrored road has no tutorial")
+		tutorial = false
+		_heading = Heading.W
+		_parity = 1
+	_finishing = _finish_due()
 
 
 ## Ends the tutorial after the junctions of its group that are still to come, and counts the
@@ -80,6 +105,11 @@ func _init(run_seed: int, schedule: AreaSchedule, p_tutorial := false) -> void:
 func end_tutorial(turn_base: int) -> void:
 	_ending = true
 	_turn_base = turn_base
+
+
+## Whether the road's finish is laid: no junction comes after the last one.
+func finished() -> bool:
+	return finish_index != -1
 
 
 ## Returns the next correct-path tile.
@@ -94,6 +124,8 @@ func next_tile() -> RoadTile:
 	elif _straight_left > 0:
 		tile = _path_tile(RoadTile.Type.STRAIGHT)
 		_straight_left -= 1
+	elif _finishing:
+		tile = _finish_tile()
 	else:
 		tile = _junction()
 	_cursor += Heading.VEC[_heading]
@@ -144,9 +176,13 @@ func _path_tile(type: RoadTile.Type) -> RoadTile:
 func _junction() -> RoadTile:
 	if tutorial and _ending and turn_count % 4 == 0:
 		tutorial = false
+		# A finish due by the tutorial's last junction comes now (ENDGAME_PLAN.md §5.1).
+		_finishing = _finish_due()
+		if _finishing:
+			return _finish_tile()
 	if tutorial:
 		return _tutorial_junction()
-	var turn := Heading.turn_for(turn_count, _heading)
+	var turn := Heading.turn_for(turn_count + _parity, _heading)
 	var kind := kind_for(_rng_road.randf(), current_area)
 	var junction := _path_tile(RoadTile.Type.T_JUNCTION)
 	junction.turn_number = turn_count
@@ -179,7 +215,27 @@ func _junction() -> RoadTile:
 		_set_piece_left = entry.set_piece_length
 	else:
 		_enter_area(entry.area)
+	_finishing = _finish_due()
 	return junction
+
+
+## Whether the road's turns are all behind, past the tutorial, and the car has entered every area:
+## the next straight leads to the finish. As with the schedule's entries, the turns count from the
+## City's first after the tutorial.
+func _finish_due() -> bool:
+	if not _schedule.has_finish() or tutorial or _schedule_index < _schedule.entries.size():
+		return false
+	return turn_count - _turn_base >= _schedule.finish_turn
+
+
+## A tile of the finish: one of its set piece's FINISH_TILES, or one BEYOND them.
+func _finish_tile() -> RoadTile:
+	var tile := _path_tile(RoadTile.Type.SET_PIECE)
+	if finish_index == -1:
+		finish_index = tile.path_index
+	var past := tile.path_index - finish_index
+	tile.set_piece = _schedule.finish if past < Tuning.FINISH_TILES else BEYOND
+	return tile
 
 
 ## A junction of the tutorial (docs/TUTORIAL.md §5.1): a T whose wrong exit loops back. With A the

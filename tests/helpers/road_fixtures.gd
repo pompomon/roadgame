@@ -6,6 +6,11 @@ static func schedule() -> AreaSchedule:
 	return load("res://areas/schedule.tres")
 
 
+## The Road Home's (ENDGAME_PLAN.md §5.6).
+static func schedule_home() -> AreaSchedule:
+	return load("res://areas/schedule_home.tres")
+
+
 ## One area with the shortest straights and the most dead ends the rules allow, so that dead ends
 ## collide as often as possible.
 static func dense_schedule() -> AreaSchedule:

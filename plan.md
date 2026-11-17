@@ -84,6 +84,7 @@ Until the player has finished it, Play starts the run with a tutorial: the City'
 
 ### 3.2 Correct path shape
 - The correct path alternates L and R, so it forms a staircase. Starting north, it alternates between two headings (N → W → N → W…). Because it always moves in the same overall direction, it **can never cross itself**.
+- A mirrored road, the Road Home, starts heading W instead, so its first turn is a right, to N, and its staircase is N and W too: it climbs the portrait screen as the way out does, where a road flipped from N would turn E and run across it (`ENDGAME_PLAN.md` W9).
 - Randomness comes from:
   - straight lengths between junctions (`minStraight`..`maxStraight` per area)
   - junction kind (T-junction, crossroads, side road or decoy, so which of the turn, the opposite turn and "straight on" are offered)

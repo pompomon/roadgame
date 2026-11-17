@@ -155,6 +155,15 @@ const PARTICLE_SCALE_MAX := 1.25
 ## How much a disaster that the player has seen, which the collection shows, weighs in its area's
 ## pick, against 1 for one not seen yet (docs/POOLS.md Q2): half as likely as each unseen one.
 const SEEN_DISASTER_WEIGHT := 0.5
+## The end of the road (ENDGAME_PLAN.md §5.1, §5.2): the finish's set piece, such as the pier, is
+## FINISH_TILES path tiles long. A car that reaches it rolls to a stop ARRIVE_STOP_SHORT tiles
+## before the centre of its last tile, or sooner, within ARRIVE_ROLL_SECONDS, if it came slowly.
+## The arrival screen shows ARRIVAL_SECONDS after it reached the finish: after the car has stopped,
+## as CRASH_SECONDS is after STOP_SECONDS.
+const FINISH_TILES := 8
+const ARRIVE_STOP_SHORT := 0.5
+const ARRIVE_ROLL_SECONDS := 4.0
+const ARRIVAL_SECONDS := 5.0
 ## Where a legend's parts draw (docs/M6.md §5.5): a part in the sky, such as the UFO's saucer, over
 ## the props and the car; the veil over them all; and the glows over the veil, which they light.
 const SKY_Z := 1
