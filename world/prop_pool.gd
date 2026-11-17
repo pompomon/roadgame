@@ -3,9 +3,8 @@ extends RefCounted
 ## The props' sprites (IMPLEMENTATION_PLAN.md M5.2), under one layer: acquire() shows a sprite that
 ## release() hid, or makes one, so that once a run has warmed up, a new row of props makes no
 ## nodes. A sprite shows its prop's frame with the prop's foot on the sprite's position. The layer
-## frees the sprites. A layer whose sprites are its own parts holds them as internal children, which
-## get_children() leaves out: so does GUT's simulate(), which walks every node each frame
-## (docs/DAYNIGHT.md C20).
+## frees the sprites. It may hold them as internal children, which get_children() leaves out: so
+## does GUT's simulate(), which walks every node each frame (docs/DAYNIGHT.md C20).
 
 ## Sprites made so far, shown or hidden.
 var made := 0
@@ -32,6 +31,8 @@ func acquire(def: PropDef) -> Sprite2D:
 	else:
 		sprite = _hidden.pop_back()
 		sprite.show()
+		# PropScatter fades see-through props (docs/VISUALS.md §5.9): the next prop shows whole.
+		sprite.modulate = Color.WHITE
 	sprite.texture = def.texture
 	# The frame first: hframes mustn't leave the last prop's frame out of range.
 	sprite.frame = 0

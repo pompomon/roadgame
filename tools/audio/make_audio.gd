@@ -37,14 +37,24 @@ func _initialize() -> void:
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
 	# The City's legends.
 	_save_legend("phantom_bus", _phantom_bus)
+	_save_legend("mothman", _mothman)
+	_save_legend("grim_reaper", _grim_reaper)
 	# Rural's legends.
 	_save_legend("ufo", _ufo)
+	_save_legend("scarecrow", _scarecrow)
+	_save_legend("headless_horseman", _headless_horseman)
 	# The Meadows' legends.
 	_save_legend("fairy_ring", _fairy_ring)
+	_save_legend("kelpie", _kelpie)
+	_save_legend("will_o_wisp", _will_o_wisp)
 	# The Village's legends.
 	_save_legend("witch_hex", _witch_hex)
+	_save_legend("frau_holle", _frau_holle)
+	_save_legend("baba_yaga", _baba_yaga)
 	# The Desert's legends.
 	_save_legend("death_worm", _death_worm)
+	_save_legend("marfa_lights", _marfa_lights)
+	_save_legend("chupacabra", _chupacabra)
 	quit()
 
 
@@ -186,6 +196,58 @@ func _phantom_bus() -> PackedFloat32Array:
 	return out
 
 
+## Timed to Tuning.MOTHMAN_BEATS from the end of the delay, when the sound starts: a dry rustle,
+## as of wings folded tight, as its eyes open; a low, rasping screech, two voices that beat against
+## each other, as it spreads its wings; the rush of air as it swoops; then its heavy wingbeats as
+## it carries the car off, dying away.
+func _mothman() -> PackedFloat32Array:
+	var beats := Tuning.MOTHMAN_BEATS
+	var unfurl: float = beats[0]
+	var swoop: float = unfurl + beats[1]
+	var lift: float = swoop + beats[2]
+	var out := _silence(roundi((lift + beats[3] + 0.2) * RATE))
+	var rustle := _high_pass(_low_pass(_noise(roundi(beats[0] * RATE)), 3500.0), 900.0)
+	_add(out, _swell(_lfo(rustle, 5, 0.6)), 0.0, 0.5)
+	var held: float = beats[1] + 0.2
+	var screech := _glide(620.0, 410.0, held)
+	_add(screech, _glide(637.0, 421.0, held), 0.0)
+	_add(screech, _high_pass(_noise(screech.size()), 1500.0), 0.0, 0.5)
+	_add(out, _decay(_lfo(screech, 24, 0.5), 0.25), unfurl, 0.35)
+	var rush := _high_pass(_low_pass(_noise(roundi(beats[2] * RATE)), 1200.0), 250.0)
+	_add(out, _swell(rush), swoop, 0.7)
+	var flap := _high_pass(_low_pass(_noise(roundi(beats[3] * RATE)), 900.0), 220.0)
+	_add(out, _fade_out(_lfo(flap, 4, 0.9)), lift, 1.3)
+	return out
+
+
+## Timed to Tuning.GRIM_REAPER_BEATS from the end of the delay, when the sound starts: a deep bell
+## tolls as the Reaper steps out, two bells that beat against each other; a dry whisper, two
+## breaths, as it beckons; the road cracks and tears open with a low rumble, as the bell tolls
+## again; and the earth falls in on the car in dull thuds as it sinks. Pitched for a phone's
+## speaker, which plays nothing under about 200 Hz: the bell's partials, the rumble's noise and the
+## thuds' reach above it.
+func _grim_reaper() -> PackedFloat32Array:
+	var beats := Tuning.GRIM_REAPER_BEATS
+	var beckon: float = beats[0]
+	var open: float = beckon + beats[1]
+	var sink: float = open + beats[2]
+	var fall: float = sink + beats[3] * GrimReaper.ROLL_SHARE
+	var filled: float = sink + beats[3] * GrimReaper.SUNK_AT
+	var out := _silence(roundi((open + 1.5) * RATE))
+	for toll: float in [0.0, open]:
+		_add(out, _bell(131.0), toll, 0.9)
+		_add(out, _bell(134.5), toll, 0.6)
+	var whisper := _high_pass(_low_pass(_noise(roundi(beats[1] * RATE)), 5000.0), 1500.0)
+	_add(out, _swell(_lfo(whisper, 2, 0.95)), beckon, 0.5)
+	_add(out, _decay(_high_pass(_noise(roundi(0.15 * RATE)), 1200.0), 0.04), open, 0.8)
+	_add(out, _fade_out(_low_pass(_noise(roundi(beats[2] * RATE)), 400.0)), open, 1.2)
+	var thuds := 5
+	for k: int in thuds:
+		var thud := _decay(_low_pass(_noise(roundi(0.12 * RATE)), 700.0), 0.04)
+		_add(out, thud, lerpf(fall, filled, float(k) / thuds), 1.4)
+	return out
+
+
 # Rural's legends.
 
 
@@ -211,6 +273,84 @@ func _ufo() -> PackedFloat32Array:
 	_add(out, _swell(_low_pass(throb, 600.0)), beam, 0.9)
 	_add(out, _swell(_glide(900.0, 1800.0, held)), beam, 0.15)
 	_add(out, _fade_out(_glide(300.0, 3000.0, beats[4])), zip, 0.5)
+	return out
+
+
+## Timed to Tuning.SCARECROW_BEATS from the end of the delay, when the sound starts: a slow wooden
+## creak as the scarecrow turns its head; harsh caws, falling, as its crows rise, and a few more as
+## they flock; then the rush of their wings, which swells as they settle over the car and dies
+## away as they carry it off.
+func _scarecrow() -> PackedFloat32Array:
+	var beats := Tuning.SCARECROW_BEATS
+	var caw: float = beats[0]
+	var flock: float = caw + beats[1]
+	var tail := 0.3
+	var out := _silence(roundi((flock + beats[2] + beats[3] + tail) * RATE))
+	var creak := _glide(140.0, 95.0, beats[0])
+	_add(creak, _low_pass(_noise(creak.size()), 1200.0), 0.0, 0.6)
+	_add(out, _swell(_lfo(creak, 9, 0.8)), 0.0, 0.5)
+	for k: int in 7:
+		var at := caw + _rng.randf_range(0.0, beats[1] if k < 5 else beats[1] + beats[2])
+		_add(out, _caw(_rng.randf_range(520.0, 760.0)), at, 0.4 if k < 5 else 0.2)
+	var flight := roundi((beats[2] + beats[3] + tail) * RATE)
+	var wings := _high_pass(_low_pass(_noise(flight), 1600.0), 300.0)
+	_add(out, _swell(_lfo(wings, 14, 0.6)), flock, 0.8)
+	return out
+
+
+## A crow's caw at about `freq` Hz: harsh, and falling.
+func _caw(freq: float) -> PackedFloat32Array:
+	var length := 0.18
+	var out := _high_pass(_noise(roundi(length * RATE)), 1000.0)
+	for partial: float in [1.0, 2.0, 3.0, 4.0]:
+		_add(out, _glide(freq * partial, freq * partial * 0.85, length), 0.0, 1.0 / partial)
+	return _swell(_low_pass(out, 3000.0))
+
+
+## Timed to Tuning.HEADLESS_HORSEMAN_BEATS from the end of the delay, when the sound starts: the
+## Horseman's hoofbeats, three to a stride, louder and further apart as he gallops in and halts; a
+## soft flare that rises as the ghost-fire kindles in his hand; its whoosh as he hurls it; a dull
+## whump as it strikes the car, and then the hiss of cold fire over it, dying away, as his
+## hoofbeats go off into the distance, closer together. Pitched for a phone's speaker, which plays
+## nothing under about 200 Hz: the knocks and the fire's noise reach above it.
+func _headless_horseman() -> PackedFloat32Array:
+	var beats := Tuning.HEADLESS_HORSEMAN_BEATS
+	var raise: float = beats[0]
+	var hurl: float = raise + beats[1]
+	var kindle: float = hurl + beats[2]
+	var gone: float = kindle + beats[3]
+	var off: float = kindle + beats[3] * HeadlessHorseman.WHEEL_SHARE
+	var out := _silence(roundi((gone + 0.4) * RATE))
+	var strides := 4
+	for k: int in strides:
+		var share := float(k) / strides
+		_add_stride(out, raise * pow(share, 1.2), lerpf(0.4, 1.0, share))
+		_add_stride(out, lerpf(off, gone, pow(share, 0.8)), lerpf(0.8, 0.2, share))
+	var flare := _high_pass(_low_pass(_noise(roundi(beats[1] * RATE)), 3000.0), 600.0)
+	_add(flare, _glide(300.0, 600.0, beats[1]), 0.0, 0.3)
+	for i: int in flare.size():
+		flare[i] *= float(i) / flare.size()
+	_add(out, flare, raise, 0.5)
+	var whoosh := _high_pass(_low_pass(_noise(roundi(beats[2] * RATE)), 2500.0), 400.0)
+	_add(whoosh, _glide(500.0, 900.0, beats[2]), 0.0, 0.2)
+	_add(out, _swell(whoosh), hurl, 0.8)
+	var whump := _high_pass(_low_pass(_noise(roundi(0.15 * RATE)), 900.0), 200.0)
+	_add(out, _decay(whump, 0.05), kindle, 1.0)
+	var hiss := _high_pass(_noise(roundi(beats[3] * RATE)), 2000.0)
+	_add(out, _decay(_lfo(hiss, 12, 0.3), 0.35), kindle, 0.6)
+	return out
+
+
+## A stride's hoofbeats from `at` s, at `gain`: three knocks, the last the loudest.
+func _add_stride(out: PackedFloat32Array, at: float, gain: float) -> void:
+	for k: int in 3:
+		_add(out, _hoof(), at + k * 0.05, gain * (0.6 if k < 2 else 1.0))
+
+
+## A hoof's knock on the road: a click of noise and a hollow note, both short.
+func _hoof() -> PackedFloat32Array:
+	var out := _decay(_high_pass(_low_pass(_noise(roundi(0.06 * RATE)), 1800.0), 250.0), 0.012)
+	_add(out, _decay(_tone(420.0, 0.06, "sine"), 0.015), 0.0, 0.6)
 	return out
 
 
@@ -252,6 +392,89 @@ func _fairy_ring() -> PackedFloat32Array:
 	return out
 
 
+## Timed to Tuning.KELPIE_BEATS from the end of the delay, when the sound starts: bubbles, closer
+## and closer together, as the pool wells up, and a splash as the horse breaks out of it; its
+## whinny, high and wavering and falling away, as it waits; the water sloshing as the car rolls in
+## to its side; then a great splash as it plunges, and glugs, lower and softer, as they sink.
+func _kelpie() -> PackedFloat32Array:
+	var beats := Tuning.KELPIE_BEATS
+	var surfaced: float = beats[0] * Kelpie.POOL_SHARE
+	var waits: float = beats[0]
+	var mount: float = waits + beats[1]
+	var plunge: float = mount + beats[2]
+	var out := _silence(roundi((plunge + beats[3] + 0.3) * RATE))
+	for k: int in 10:
+		_add(out, _bubble(_rng.randf_range(450.0, 900.0)), surfaced * sqrt(k / 10.0), 0.3)
+	_add(out, _splash(0.3, 2500.0), surfaced, 1.2)
+	var whinny: float = beats[1] + beats[2] * 0.5
+	_add(out, _whinny(900.0, whinny), waits, 0.3)
+	_add(out, _whinny(915.0, whinny), waits, 0.2)
+	_add(out, _swell(_low_pass(_noise(roundi(beats[2] * RATE)), 700.0)), mount, 1.0)
+	_add(out, _splash(0.6, 1800.0), plunge, 2.5)
+	for k: int in 8:
+		var at := plunge + 0.15 + 0.1 * k + _rng.randf_range(0.0, 0.05)
+		_add(out, _bubble(_rng.randf_range(250.0, 420.0) * pow(0.95, k)), at, 0.5 * pow(0.8, k))
+	return out
+
+
+## A bubble at `freq` Hz: a blip that rises as it bursts.
+func _bubble(freq: float) -> PackedFloat32Array:
+	return _decay(_glide(freq, freq * 1.8, 0.06), 0.02)
+
+
+## A splash `seconds` long: a burst of water, low-passed at `cutoff` Hz, and the hiss of its spray.
+func _splash(seconds: float, cutoff: float) -> PackedFloat32Array:
+	var n := roundi(seconds * RATE)
+	var out := _decay(_low_pass(_noise(n), cutoff), seconds * 0.3)
+	_add(out, _decay(_high_pass(_noise(n), 3000.0), seconds * 0.15), 0.0, 0.3)
+	return out
+
+
+## A horse's whinny from `freq` Hz, `seconds` long: a voice of three partials over a breath of
+## noise, its pitch wavering fast and falling by half, loud at once and dying away.
+func _whinny(freq: float, seconds: float) -> PackedFloat32Array:
+	var out := _low_pass(_noise(roundi(seconds * RATE)), 1500.0)
+	var phase := 0.0
+	for i: int in out.size():
+		var t := float(i) / out.size()
+		phase += freq * pow(0.5, t) * (1.0 + 0.06 * sin(TAU * 28.0 * i / RATE)) / RATE
+		var voice := 0.3 * out[i]
+		for partial: float in [1.0, 2.0, 3.0]:
+			voice += sin(TAU * phase * partial) / partial
+		out[i] = voice * minf(i / (0.03 * RATE), 1.0) * (1.0 - t)
+	return _low_pass(out, 3500.0)
+
+
+## Timed to Tuning.WILL_O_WISP_BEATS from the end of the delay, when the sound starts: a soft bell
+## as each wisp glimmers, each higher than the last; a breathy whisper as they circle, loudest as
+## each passes below the car; then a tone and its fifth, which rise and swell as the car shrinks
+## into a light, and fade as the wisps drift off.
+func _will_o_wisp() -> PackedFloat32Array:
+	var beats := Tuning.WILL_O_WISP_BEATS
+	var circle: float = beats[0]
+	var shrink: float = circle + beats[1]
+	var end: float = shrink + beats[2] + beats[3]
+	var out := _silence(roundi((end + 0.6) * RATE))
+	var steps: Array[int] = [0, 3, 7, 10]
+	for k: int in WillOWisp.WISPS:
+		var at: float = beats[0] * FairyRing.turn_start(k, WillOWisp.WISPS, WillOWisp.SHOW_SHARE)
+		var freq := 880.0 * pow(2.0, steps[k] / 12.0)
+		_add(out, _bell(freq), at, 0.25)
+		_add(out, _bell(freq * 1.01), at, 0.15)
+	var n := roundi((beats[1] + beats[2]) * RATE)
+	var whisper := _high_pass(_low_pass(_noise(n), 3000.0), 800.0)
+	for i: int in n:
+		# 1 each time a wisp passes straight below the car's middle, WISPS times a turn.
+		var turned := WillOWisp.swept(float(i) / RATE)
+		var below := cos(WillOWisp.WISPS * (WillOWisp.START - TAU / 4.0 - TAU * turned))
+		whisper[i] *= 0.6 + 0.4 * below
+	_add(out, _swell(whisper), circle, 0.5)
+	var hum := _glide(330.0, 660.0, beats[2] + beats[3])
+	_add(hum, _glide(495.0, 990.0, beats[2] + beats[3]), 0.0, 0.5)
+	_add(out, _swell(_lfo(hum, 8, 0.3)), shrink, 0.4)
+	return out
+
+
 # The Village's legends.
 
 
@@ -286,6 +509,89 @@ func _witch_hex() -> PackedFloat32Array:
 	_add(out, _swell(_low_pass(_noise(roundi(0.3 * RATE)), 400.0)), lit, 0.4)
 	_add(out, _fade_out(_low_pass(_cackle(280.0, 7), 1200.0)), pop, 0.5)
 	return out
+
+
+## Timed to Tuning.FRAU_HOLLE_BEATS from the end of the delay, when the sound starts: the hush of
+## snow, swelling as it falls and dying away as it settles; the windlass's creak, dropping, as the
+## car tips; and, from the top of its hop, a whistle that drops away down the well as it falls in,
+## its echoes coming back softer and duller.
+func _frau_holle() -> PackedFloat32Array:
+	var beats := Tuning.FRAU_HOLLE_BEATS
+	var tip: float = beats[0] + beats[1]
+	var fall: float = tip + beats[2]
+	var end: float = fall + beats[3]
+	var drop: float = fall + beats[3] * FrauHolle.ARRIVE_SHARE * 0.5
+	var echoes := 3
+	var echo := 0.15
+	var out := _silence(roundi((end + echoes * echo + 0.05) * RATE))
+	var hush := _high_pass(_low_pass(_noise(roundi(end * RATE)), 4000.0), 1000.0)
+	_add(out, _swell(hush), 0.0, 0.8)
+	var creak := _glide(360.0, 260.0, beats[2])
+	_add(creak, _glide(720.0, 520.0, beats[2]), 0.0, 0.5)
+	_add(creak, _low_pass(_noise(creak.size()), 1500.0), 0.0, 0.4)
+	_add(out, _swell(_lfo(creak, roundi(beats[2] * 20.0), 0.9)), tip, 0.6)
+	var whistle := _fade_out(_glide(900.0, 220.0, end - drop))
+	var attack := 0.02 * RATE
+	for i: int in roundi(attack):
+		whistle[i] *= i / attack
+	for k: int in echoes + 1:
+		_add(out, _low_pass(whistle, 4000.0 * pow(0.6, k)), drop + k * echo, pow(0.5, k))
+	return out
+
+
+## Timed to Tuning.BABA_YAGA_BEATS from the end of the delay, when the sound starts: the hut's
+## footfalls, heavy thuds, louder and further apart as it stomps in and stops; its logs creaking as
+## it turns; a thud as it squats and a heavier one as it sits; its door creaking open; the slam as
+## the door shuts behind the car; a creak as it rises; and its footfalls going off, closer together
+## and softer as it fades. Pitched for a phone's speaker, which plays nothing under about 200 Hz:
+## the thuds' knocks reach above it.
+func _baba_yaga() -> PackedFloat32Array:
+	var beats := Tuning.BABA_YAGA_BEATS
+	var turn: float = beats[0]
+	var open: float = turn + beats[1]
+	var swallow: float = open + beats[2]
+	var end: float = swallow + beats[3]
+	var out := _silence(roundi((end + 0.4) * RATE))
+	var strides := roundi(Tuning.BABA_YAGA_FROM_TILES / BabaYaga.STRIDE_TILES)
+	for k: int in range(1, strides + 1):
+		var t := 1.0 - sqrt(1.0 - float(k) / strides)
+		_add(out, _footfall(), beats[0] * t, lerpf(0.3, 1.0, minf(t / BabaYaga.SHOW_SHARE, 1.0)))
+	var turning := beats[1] * (1.0 - BabaYaga.THREE_QUARTER_FROM)
+	_add(out, _creak(300.0, 240.0, turning, 6), open - turning, 0.6)
+	_add(out, _footfall(), open + beats[2] * BabaYaga.SQUAT_FROM, 0.5)
+	_add(out, _footfall(), open + beats[2] * BabaYaga.CROUCH_FROM, 1.0)
+	var opening := beats[2] * (1.0 - BabaYaga.OPEN_FROM)
+	_add(out, _creak(520.0, 780.0, opening, 12), open + beats[2] * BabaYaga.OPEN_FROM, 0.5)
+	var slam := _decay(_high_pass(_low_pass(_noise(roundi(0.3 * RATE)), 2000.0), 250.0), 0.05)
+	_add(slam, _decay(_tone(220.0, 0.3, "sine"), 0.08), 0.0, 0.8)
+	_add(slam, _decay(_tone(330.0, 0.3, "sine"), 0.05), 0.0, 0.4)
+	_add(out, slam, swallow + beats[3] * BabaYaga.ROLL_SHARE, 1.2)
+	var rising := beats[3] * (BabaYaga.OFF_FROM - BabaYaga.RISE_FROM)
+	_add(out, _creak(240.0, 320.0, rising, 4), swallow + beats[3] * BabaYaga.RISE_FROM, 0.5)
+	var off_strides := roundi(Tuning.BABA_YAGA_OFF_TILES / BabaYaga.STRIDE_TILES)
+	for k: int in range(1, off_strides + 1):
+		var off := 1.0 - BabaYaga.OFF_FROM
+		var t := BabaYaga.OFF_FROM + off * sqrt(float(k) / off_strides)
+		_add(out, _footfall(), swallow + beats[3] * t, BabaYaga.fading(t))
+	return out
+
+
+## A heavy footfall on the road: a thud, with a knock of noise and a hollow note of wood.
+func _footfall() -> PackedFloat32Array:
+	var out := _thump(0.25, 140.0, 50.0)
+	var knock := _high_pass(_low_pass(_noise(roundi(0.12 * RATE)), 900.0), 200.0)
+	_add(out, _decay(knock, 0.03), 0.0, 1.2)
+	_add(out, _decay(_tone(260.0, 0.12, "sine"), 0.04), 0.0, 0.5)
+	return out
+
+
+## Wood creaking, from `from` to `to` Hz over `seconds`: a note and its octave over a breath of
+## noise, juddering `cycles` times as it sticks and slips.
+func _creak(from: float, to: float, seconds: float, cycles: int) -> PackedFloat32Array:
+	var out := _glide(from, to, seconds)
+	_add(out, _glide(from * 2.0, to * 2.0, seconds), 0.0, 0.5)
+	_add(out, _low_pass(_noise(out.size()), 1500.0), 0.0, 0.4)
+	return _swell(_lfo(out, cycles, 0.9))
 
 
 # The Desert's legends.
@@ -327,6 +633,96 @@ func _death_worm() -> PackedFloat32Array:
 	var hiss := _high_pass(_low_pass(_noise(roundi((end - dived) * RATE)), 4000.0), 800.0)
 	_add(out, _swell(hiss), dived, 0.5)
 	_add(out, _decay(_low_pass(_noise(roundi(0.4 * RATE)), 900.0), 0.1), splash, 0.6)
+	return out
+
+
+## Timed to Tuning.MARFA_LIGHTS_BEATS from the end of the delay, when the sound starts: a soft hum,
+## a fifth and an octave over it, that rises as the lights glimmer and dance, wavering, and dies
+## away as they come close; a soft chime as each light shows, each higher than the last; and the
+## tyres hissing over the sand as the car follows them off the road, fading as it goes. Pitched for
+## a phone's speaker, which plays nothing under about 200 Hz.
+func _marfa_lights() -> PackedFloat32Array:
+	var beats := Tuning.MARFA_LIGHTS_BEATS
+	var beckoned: float = beats[0] + beats[1] + beats[2]
+	var end: float = beckoned + beats[3]
+	var out := _silence(roundi((end + 0.4) * RATE))
+	var hum := _glide(220.0, 294.0, beckoned)
+	_add(hum, _glide(330.0, 441.0, beckoned), 0.0, 0.5)
+	_add(hum, _glide(440.0, 588.0, beckoned), 0.0, 0.25)
+	_add(out, _swell(_lfo(hum, 6, 0.4)), 0.0, 0.5)
+	var steps: Array[int] = [0, 4, 7]
+	for k: int in MarfaLights.LIGHTS:
+		var chime := _bell(880.0 * pow(2.0, steps[k] / 12.0))
+		_add(out, chime, k * MarfaLights.STAGGER * beats[0], 0.3)
+	var hiss := _high_pass(_low_pass(_noise(roundi((beats[3] + 0.3) * RATE)), 3000.0), 600.0)
+	_add(hiss, _lfo(_low_pass(_noise(hiss.size()), 500.0), 12, 0.8), 0.0, 1.5)
+	_add(out, _swell(hiss), beckoned, 0.6)
+	return out
+
+
+## Timed to Tuning.CHUPACABRA_BEATS from the end of the delay, when the sound starts: the beast's
+## hiss as it creeps in, its claws ticking on the road at each stride, slower and slower; its
+## chitter as it crouches, louder and louder; a shriek as it leaps, and a hollow knock as it lands
+## on the car's roof; a dry rattle as the car's colours drain, dying away with them; a tick as it
+## hops down, and its claws ticking off, faster and faster, fading with it. The ticks fall as the
+## beast's legs take turns, for a car stopped on its road's middle. Pitched for a phone's speaker,
+## which plays nothing under about 200 Hz.
+func _chupacabra() -> PackedFloat32Array:
+	var beats := Tuning.CHUPACABRA_BEATS
+	var crouch: float = beats[0]
+	var pounce: float = crouch + beats[1]
+	var drain: float = pounce + beats[2]
+	var end: float = drain + beats[3]
+	var out := _silence(roundi((end + 0.4) * RATE))
+	var hiss := _high_pass(_low_pass(_noise(roundi(crouch * RATE)), 5000.0), 1500.0)
+	_add(out, _swell(hiss), 0.0, 0.3)
+	var creep_tiles := Tuning.CHUPACABRA_FROM_TILES - Tuning.CHUPACABRA_BY_TILES
+	var strides := floori(creep_tiles / Chupacabra.STEP_TILES)
+	for k: int in range(1, strides + 1):
+		var t := 1.0 - sqrt(maxf(1.0 - k * Chupacabra.STEP_TILES / creep_tiles, 0.0))
+		_add(out, _tick(), crouch * t, lerpf(0.3, 0.8, minf(t / Chupacabra.SHOW_SHARE, 1.0)))
+	var chitters := 3
+	for k: int in chitters:
+		var at := crouch + beats[1] * k / chitters
+		_add(out, _chitter(2000.0 * pow(1.12, k)), at, lerpf(0.4, 0.8, float(k) / (chitters - 1)))
+	var landed := pounce + beats[2] * Chupacabra.LEAP_SHARE
+	_add(out, _swell(_glide(1400.0, 2600.0, landed - pounce)), pounce, 0.3)
+	_add(out, _knock(), landed, 1.0)
+	var drained := beats[3] * Chupacabra.DRAIN_SHARE
+	var rattle := _high_pass(_low_pass(_noise(roundi(drained * RATE)), 6000.0), 2000.0)
+	_add(out, _decay(_lfo(rattle, roundi(drained * 22.0), 0.9), drained * 0.5), drain, 0.8)
+	_add(out, _tick(), drain + beats[3] * Chupacabra.SLINK_FROM, 0.8)
+	for k: int in range(1, strides + 1):
+		var off := minf(sqrt(k * Chupacabra.STEP_TILES / creep_tiles), 1.0)
+		var t := Chupacabra.SLINK_FROM + (1.0 - Chupacabra.SLINK_FROM) * off
+		_add(out, _tick(), drain + beats[3] * t, 0.6 * Chupacabra.fading(t))
+	return out
+
+
+## A claw's tick on the road: a click of bright noise, and a high note.
+func _tick() -> PackedFloat32Array:
+	var out := _decay(_high_pass(_noise(roundi(0.03 * RATE)), 2500.0), 0.006)
+	_add(out, _decay(_tone(1800.0, 0.03, "sine"), 0.008), 0.0, 0.4)
+	return out
+
+
+## A chitter from `freq` Hz: four clicks, each a short note a little higher than the last over a
+## click of noise.
+func _chitter(freq: float) -> PackedFloat32Array:
+	var click := 0.03
+	var out := _silence(roundi(click * 5 * RATE))
+	for k: int in 4:
+		var note := _decay(_tone(freq * pow(1.06, k), click, "triangle"), 0.008)
+		_add(note, _decay(_high_pass(_noise(note.size()), 3000.0), 0.004), 0.0, 0.6)
+		_add(out, note, k * click)
+	return out
+
+
+## A hollow knock on the car's roof: a thud of noise, and the ring of the metal, three partials.
+func _knock() -> PackedFloat32Array:
+	var out := _decay(_high_pass(_low_pass(_noise(roundi(0.2 * RATE)), 3000.0), 300.0), 0.02)
+	for partial: float in [1.0, 2.3, 3.9]:
+		_add(out, _decay(_tone(420.0 * partial, 0.2, "sine"), 0.06 / partial), 0.0, 0.6 / partial)
 	return out
 
 

@@ -57,6 +57,7 @@ static func sheet() -> Image:
 		for side: int in [-3, 1]:
 			art.rect(Rect2i(side, -21 + (TOTEM_FRAMES - 1 - k), 2, k), "wisp")
 			art.plot(Vector2i(side, -21 + TOTEM_FRAMES - 1), "lilac")
+		art.mirror()
 		art.outline()
 	return art.image
 

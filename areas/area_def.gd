@@ -48,8 +48,9 @@ extends Resource
 @export_range(0.5, 5.0, 0.1) var offroad_limit_tiles := 2.0
 
 @export_group("Props")
-## What PropScatter scatters beside the road here (docs/M5.md §5.6). Their densities add up to 1 at
-## most: the chance that a ground cell shows a prop.
+## What PropScatter scatters beside the road here (docs/M5.md §5.6). The densities of the props of
+## each size of lot add up to 1 at most: the chance that a lot of that size shows a prop
+## (docs/VISUALS.md §5.4).
 @export var props: Array[PropDef] = []
 
 @export_group("Disasters")

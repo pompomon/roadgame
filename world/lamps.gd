@@ -15,9 +15,11 @@ extends CanvasGroup
 ## and the legends hide no glows.
 ##
 ## PropScatter adds and removes the props with their sprites, and shows their frames. WorldRenderer
-## refreshes them every frame. Only the group's self_modulate and visible change, and each
-## silhouette's position, frame and order as it is added, so no polygon is redrawn on the Web
-## (docs/M2.md §5.7).
+## refreshes them every frame. Only the group's self_modulate and visible change, each silhouette's
+## position, frame and order as it is added, and its modulate's alpha as its prop fades, so no
+## polygon is redrawn on the Web (docs/M2.md §5.7). A see-through prop's silhouette fades with it
+## (docs/VISUALS.md §5.9), so that it hides as little of the glows behind it as the prop does of
+## what is behind it, and its own glows dim with it.
 
 const GLOW := preload("res://disasters/glow.tres")
 const SHADER := preload("res://world/lamps.gdshader")
@@ -107,11 +109,12 @@ static func strength(light: Color) -> float:
 
 
 ## Whether Props draws `a`'s prop before `b`'s. As Godot y-sorts: by y, and if that is the same,
-## in the order of Props' children (servers/rendering/renderer_canvas_cull.h:117, ItemYSort).
-## Props only adds sprites after the others and frees them, so that order stays as it is.
+## in the order of Props' children, internal ones included (servers/rendering/
+## renderer_canvas_cull.h:117, ItemYSort). Props only adds sprites after the others and frees them,
+## so that order stays as it is.
 static func _draws_before(a: Lit, b: Lit) -> bool:
 	if is_equal_approx(a.prop.position.y, b.prop.position.y):
-		return a.prop.get_index() < b.prop.get_index()
+		return a.prop.get_index(true) < b.prop.get_index(true)
 	return a.prop.position.y < b.prop.position.y
 
 

@@ -4,6 +4,11 @@ extends GutTest
 ## props against the whole road made by the end, with geometry of their own.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+const CITY := preload("res://areas/city.tres")
+## Of the eight ground cells around a cell, the four after it: each pair of neighbours once.
+const NEXT_CELLS: Array[Vector2i] = [
+	Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1)
+]
 ## Rows placed on each road.
 const ROWS := 100
 ## Path tiles made past the last row's needs, which its props must keep clear of too.
@@ -29,6 +34,31 @@ func _prop(id: StringName, size: Vector2i, foot: Vector2i, density: float) -> Pr
 	def.foot = foot
 	def.density = density
 	return def
+
+
+## A prop with a box as wide as a building's, on a lot of 2 × 2 cells: its foot on the lot's front
+## cell, and its box reaching back over the rest (docs/VISUALS.md §5.4).
+func _block(density: float) -> PropDef:
+	var def := _prop(&"block", Vector2i(42, 58), Vector2i(21, 57), density)
+	def.lot = 2
+	return def
+
+
+## A block that may rise over the road behind it, as the City's building may (§5.9), with its box's
+## base, whose middle its shadow falls from, in its lot; on a lot by a street at `street_density`
+## (§5.8), unless that is -1.
+func _see_through(density: float, street_density: float) -> PropDef:
+	var def := _block(density)
+	def.id = &"see_through"
+	def.shadow_rise = 10
+	def.see_through = true
+	def.street_density = street_density
+	return def
+
+
+## The ground cell that `placement`'s foot stands on.
+static func _ground_cell(placement: PropLayout.Placement) -> Vector2i:
+	return Vector2i((Iso.world_to_tile(placement.foot) * Iso.GROUND_PER_TILE).floor())
 
 
 ## The largest frames the contract allows: as wide and tall as PROP_MAX_SIZE and PROP_BELOW let a
@@ -141,6 +171,249 @@ func test_rows_above_counts_the_rows_the_tallest_frame_reaches() -> void:
 	assert_eq(highest, PropLayout.rows_above())
 
 
+func test_a_lot_shows_one_prop_on_its_front_cell_and_no_other_stands_on_it() -> void:
+	# The lots of a tile start at its corner, and a prop stands on the centre of its lot's front
+	# cell, the one nearest the bottom of the screen. The larger lots go first, so neither a block
+	# nor a post stands on a square's tile. A lot whose prop would touch the road stays free for the
+	# props of its cells.
+	var block := _block(0.3)
+	var square := _prop(&"square", Vector2i(64, 40), Vector2i(32, 39), 0.2)
+	square.lot = 4
+	var props: Array[PropDef] = [block, square, _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.3)]
+	var problems := PackedStringArray()
+	var counts: Dictionary[StringName, int] = {&"square": 0, &"block": 0, &"post": 0, &"freed": 0}
+	for run_seed: int in [1, 2]:
+		var road := _road(Fixtures.schedule(), run_seed, props)
+		var taken: Dictionary[Vector2i, StringName] = {}
+		var props_seed := road.buffer.generator.props_seed
+		for k: int in road.rows:
+			for placement: PropLayout.Placement in road.rows[k]:
+				var front := _ground_cell(placement)
+				var lot := placement.def.lot
+				var what := "row %d: %s on %s" % [k, placement.def.id, front]
+				if posmod(front.x, lot) != lot - 1 or posmod(front.y, lot) != lot - 1:
+					problems.append(what + " isn't its lot's front cell")
+				if placement.foot != PropLayout.ground_centre(front):
+					problems.append(what + " is off its centre")
+				for b: int in lot:
+					for a: int in lot:
+						var cell := front - Vector2i(a, b)
+						if taken.has(cell):
+							problems.append(what + " stands on %s's lot" % taken[cell])
+						taken[cell] = placement.def.id
+				counts[placement.def.id] += 1
+				var around := (
+					front - Vector2i(posmod(front.x, 2), posmod(front.y, 2)) + Vector2i.ONE
+				)
+				var hashed := PropLayout.lot_hash(props_seed, around, 2)
+				if lot == 1 and PropLayout.pick([block], hashed) != null:
+					counts[&"freed"] += 1
+	assert_eq(problems.slice(0, 5), PackedStringArray(), "%d props astray" % problems.size())
+	assert_gt(counts[&"square"], 250, "enough tiles to tell")
+	assert_gt(counts[&"block"], 1000, "enough lots to tell")
+	assert_gt(counts[&"post"], 1000, "enough cells to tell")
+	assert_gt(counts[&"freed"], 20, "posts on lots whose block would touch the road")
+
+
+func test_each_size_of_lot_takes_its_density_and_a_free_lots_cells_their_own() -> void:
+	# On ground with no road. The larger lots go first, so each size takes its density of the lots
+	# that a larger one left free. A lot that shows nothing leaves each of its cells its own chance:
+	# its front cell's too, though that cell's hash is its lot's but for LOT_SALT.
+	var square := _prop(&"square", Vector2i(64, 40), Vector2i(32, 39), 0.2)
+	square.lot = 4
+	var props: Array[PropDef] = [
+		_block(0.3), square, _prop(&"post", Vector2i(8, 8), Vector2i(4, 8), 0.2)
+	]
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, Fixtures.schedule()))
+	var rows := 100
+	var counts: Dictionary[StringName, int] = {&"square": 0, &"block": 0, &"post": 0, &"front": 0}
+	for k: int in rows:
+		for placement: PropLayout.Placement in PropLayout.row(Vector2i(0, -k), props, 7, buffer):
+			counts[placement.def.id] += 1
+			var cell := _ground_cell(placement)
+			if placement.def.lot == 1 and posmod(cell.x, 2) == 1 and posmod(cell.y, 2) == 1:
+				counts[&"front"] += 1
+	var tiles := rows * (2 * Tuning.PROP_SPREAD + 1)
+	# The lots of 2 × 2 cells in the tiles that no square took.
+	@warning_ignore("integer_division")
+	var lots := (tiles - counts[&"square"]) * Iso.GROUND_PER_TILE * Iso.GROUND_PER_TILE / 4
+	var free := lots - counts[&"block"]
+	# Within four standard deviations of each density.
+	for share: Array in [
+		[&"square", tiles, 0.2],
+		[&"block", lots, 0.3],
+		[&"post", 4 * free, 0.2],
+		[&"front", free, 0.2]
+	]:
+		var expected: float = share[1] * share[2]
+		var spread := 4.0 * sqrt(expected * (1.0 - share[2]))
+		assert_almost_eq(float(counts[share[0]]), expected, spread, String(share[0]))
+
+
+func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
+	# On ground with no road, each cell of a row's tiles shows the prop that its own hash picks, or
+	# none, tile by tile and cell by cell: so an area whose props all take one cell shows each where,
+	# and in the order, it did before lots (docs/VISUALS.md A6).
+	var props: Array[PropDef] = [
+		_prop(&"a", Vector2i(8, 8), Vector2i(4, 8), 0.2),
+		_prop(&"b", Vector2i(8, 8), Vector2i(4, 8), 0.05),
+	]
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, Fixtures.schedule()))
+	var moved: Array[int] = []
+	var shown := 0
+	for k: int in 20:
+		var anchor := Vector2i(0, -k)
+		var expected: Array[Array] = []
+		for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
+			for b: int in Iso.GROUND_PER_TILE:
+				for a: int in Iso.GROUND_PER_TILE:
+					var cell := (anchor + Vector2i(j, -j)) * Iso.GROUND_PER_TILE + Vector2i(a, b)
+					var def := PropLayout.pick(props, PropLayout.cell_hash(7, cell))
+					if def != null:
+						expected.append([def.id, PropLayout.ground_centre(cell)])
+		var placed: Array[Array] = []
+		for placement: PropLayout.Placement in PropLayout.row(anchor, props, 7, buffer):
+			placed.append([placement.def.id, placement.foot])
+		if placed != expected:
+			moved.append(k)
+		shown += placed.size()
+	assert_eq(moved, [] as Array[int], "rows whose props moved")
+	assert_gt(shown, 1000, "enough props to tell")
+
+
+func test_the_city_shows_many_buildings_and_none_stand_in_each_other() -> void:
+	# A building's box is 40 px wide and a ground cell 32 px, so two buildings on cells side by side,
+	# or corner to corner, stand in each other (docs/VISUALS.md A3). On lots of 2 × 2 cells they
+	# never do. And the City is dense: these roads show 4,951 buildings at 0.35 a lot and 0.6 by a
+	# street, see-through (§5.3, §5.8, §5.9). Without its street density they show 4,427, and not
+	# see-through 3,256, as no lot by a street then shows one (A16); main's 0.01 a cell showed 402.
+	var props := (CITY as AreaDef).props
+	var problems := PackedStringArray()
+	var shown := 0
+	for run_seed: int in [1, 2]:
+		var road := _road(Fixtures.schedule(), run_seed, props)
+		var cells: Dictionary[Vector2i, bool] = {}
+		for k: int in road.rows:
+			for placement: PropLayout.Placement in road.rows[k]:
+				if placement.def.id == &"building":
+					cells[_ground_cell(placement)] = true
+		shown += cells.size()
+		for cell: Vector2i in cells:
+			for step: Vector2i in NEXT_CELLS:
+				if cells.has(cell + step):
+					problems.append("seed %d: on %s and %s" % [run_seed, cell, cell + step])
+	assert_eq(problems.slice(0, 5), PackedStringArray(), "%d pairs of buildings" % problems.size())
+	assert_gt(shown, 4600, "buildings on two roads of ROWS rows")
+
+
+func test_see_through_props_rise_over_the_road_behind_them_but_never_stand_on_it() -> void:
+	# A prop that may not rise over the road is left out where its frame would touch a road tile's
+	# diamond. A see-through one isn't (§5.9), but its box's base, a diamond from its foot back to
+	# twice its shadow_rise above it, lies in its lot, and so on no road tile.
+	var plain: Array[int] = [0]
+	var counted: Array[int] = [0]
+	var over := PackedStringArray()
+	var on := PackedStringArray()
+	for run_seed: int in [1, 2]:
+		var blocks: Array[PropDef] = [_block(0.5)]
+		var kept := _road_problems(_road(Fixtures.schedule(), run_seed, blocks), plain)
+		assert_eq(kept.slice(0, 5), PackedStringArray(), "seed %d: blocks on the road" % run_seed)
+		var props: Array[PropDef] = [_see_through(0.5, -1.0)]
+		var road := _road(Fixtures.schedule(), run_seed, props)
+		over.append_array(_road_problems(road, counted))
+		for k: int in road.rows:
+			for placement: PropLayout.Placement in road.rows[k]:
+				for corner: Vector2 in _base(placement):
+					var tile := Vector2i(Iso.world_to_tile(corner).floor())
+					if road.buffer.tile_at(tile) != null:
+						on.append("row %d: %s on %s" % [k, corner, tile])
+	assert_eq(on.slice(0, 5), PackedStringArray(), "%d bases on the road" % on.size())
+	assert_gt(over.size(), 200, "frames that rise over the road")
+	assert_gt(counted[0], plain[0], "more than the blocks that keep off the road")
+
+
+## The corners of the base of `placement`'s box, in world pixels: the box's shadow falls from the
+## middle of that diamond, shadow_rise above its foot.
+static func _base(placement: PropLayout.Placement) -> Array[Vector2]:
+	var rise := 2.0 * placement.def.shadow_rise
+	var foot := placement.foot
+	return [
+		foot,
+		foot + Vector2(-rise, -rise * 0.5),
+		foot + Vector2(0.0, -rise),
+		foot + Vector2(rise, -rise * 0.5),
+	]
+
+
+## Whether the lot of `side` × `side` ground cells from `corner` has a side on a road tile's side: a
+## cell across one of its sides, not just a corner, is on a road tile of `buffer`.
+static func _by_street(corner: Vector2i, side: int, buffer: RoadBuffer) -> bool:
+	var lot := Rect2i(corner, Vector2i(side, side))
+	for b: int in side:
+		for a: int in side:
+			for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var next := corner + Vector2i(a, b) + step
+				var tile := Vector2i((Vector2(next) / Iso.GROUND_PER_TILE).floor())
+				if not lot.has_point(next) and buffer.tile_at(tile) != null:
+					return true
+	return false
+
+
+func test_lots_by_a_street_take_its_street_density_and_the_others_its_density() -> void:
+	# A lot with a side on a road tile's side, not just a corner, is by a street, and shows a prop at
+	# its street density, and the others at its density (§5.8): Q2's 0.6 and 0.35 on lots of 2 × 2,
+	# and a dot's 0.5 and 0.2 on the cells that no prop of 2 × 2 takes, within four standard
+	# deviations. The dot is too small to touch the road from a cell by it. A row sees the road
+	# across its tiles' sides when it's placed: placed again on the whole road, the rows are the same.
+	var dot := _prop(&"dot", Vector2i(2, 2), Vector2i(1, 2), 0.2)
+	dot.street_density = 0.5
+	var props: Array[PropDef] = [_see_through(0.35, 0.6), dot]
+	# Lots of 2 × 2, then free cells, and those that show their prop: by a street, then not.
+	var lots: Array[int] = [0, 0, 0, 0]
+	var shown: Array[int] = [0, 0, 0, 0]
+	for run_seed: int in [1, 2, 3]:
+		var road := _road(Fixtures.schedule(), run_seed, props)
+		var again := _placed_again(road, road.buffer.generator.props_seed, props)
+		assert_eq(_described(again), _described(road.rows), "seed %d on the whole road" % run_seed)
+		for k: int in road.rows:
+			var fronts: Dictionary[Vector2i, StringName] = {}
+			for placement: PropLayout.Placement in road.rows[k]:
+				fronts[_ground_cell(placement)] = placement.def.id
+			for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
+				var tile: Vector2i = road.path[k].cell + Vector2i(j, -j)
+				if (
+					road.buffer.tile_at(tile) != null
+					or PropLayout.near_set_piece(tile, road.buffer)
+				):
+					continue
+				for b: int in range(0, Iso.GROUND_PER_TILE, 2):
+					for a: int in range(0, Iso.GROUND_PER_TILE, 2):
+						var corner := tile * Iso.GROUND_PER_TILE + Vector2i(a, b)
+						var inside := 0 if _by_street(corner, 2, road.buffer) else 1
+						var built: bool = fronts.get(corner + Vector2i.ONE, &"") == &"see_through"
+						lots[inside] += 1
+						shown[inside] += int(built)
+						if built:
+							continue
+						for d: int in 4:
+							var cell := corner + Vector2i(d & 1, d >> 1)
+							var free := 2 if _by_street(cell, 1, road.buffer) else 3
+							lots[free] += 1
+							shown[free] += int(fronts.get(cell, &"") == &"dot")
+	assert_gt(lots.min(), 1000, "enough of each to tell: %s" % [lots])
+	var shares: Array[Array] = [
+		["lots by a street", 0.6],
+		["lots inside", 0.35],
+		["free cells by a street", 0.5],
+		["free cells inside", 0.2],
+	]
+	for i: int in shares.size():
+		var chance: float = shares[i][1]
+		var expected := lots[i] * chance
+		var spread := 4.0 * sqrt(expected * (1.0 - chance))
+		assert_almost_eq(float(shown[i]), expected, spread, String(shares[i][0]))
+
+
 ## A run of set pieces after every turn, bridges and tunnels in turn, on the dense area.
 func _set_piece_schedule(turns: int) -> AreaSchedule:
 	var built := Fixtures.dense_schedule()
@@ -187,36 +460,58 @@ func _keep_clear(run: Array) -> Dictionary:
 
 
 func test_props_keep_off_the_river_and_out_of_the_tunnels_rock() -> void:
+	# See-through props too, which may rise over the road (§5.9): set_piece_margin() alone keeps
+	# them clear.
 	var problems := PackedStringArray()
 	var near := 0
-	for run_seed: int in [4, 5]:
-		var road := _road(_set_piece_schedule(80), run_seed, _largest())
-		var rivers: Array[Rect2] = []
-		var rocks: Array[PackedVector2Array] = []
-		for run: Array in _runs(road):
-			var clear := _keep_clear(run)
-			if clear.has("river"):
-				rivers.append(clear["river"])
-			else:
-				rocks.append(clear["rock"])
-		assert_gt(mini(rivers.size(), rocks.size()), 5, "set pieces to keep clear of")
-		for k: int in road.rows:
-			for placement: PropLayout.Placement in road.rows[k]:
-				var at := Iso.world_to_tile(placement.foot)
-				for river: Rect2 in rivers:
-					near += 1 if river.grow(1.0).has_point(at) else 0
-					if river.has_point(at):
-						problems.append("row %d: %s is in the river %s" % [k, at, river])
-				var frame := _frame(placement)
-				var polygon := PackedVector2Array(
-					[frame.position, Vector2(frame.end.x, frame.position.y), frame.end]
-				)
-				polygon.append(Vector2(frame.position.x, frame.end.y))
-				for rock: PackedVector2Array in rocks:
-					if not Geometry2D.intersect_polygons(polygon, rock).is_empty():
-						problems.append("row %d: %s shows over a tunnel" % [k, frame])
+	for see_through: bool in [false, true]:
+		var props := _largest()
+		for def: PropDef in props:
+			def.see_through = see_through
+		for run_seed: int in [4, 5]:
+			var road := _road(_set_piece_schedule(80), run_seed, props)
+			var rivers: Array[Rect2] = []
+			var rocks: Array[PackedVector2Array] = []
+			for run: Array in _runs(road):
+				var clear := _keep_clear(run)
+				if clear.has("river"):
+					rivers.append(clear["river"])
+				else:
+					rocks.append(clear["rock"])
+			assert_gt(mini(rivers.size(), rocks.size()), 5, "set pieces to keep clear of")
+			for k: int in road.rows:
+				for placement: PropLayout.Placement in road.rows[k]:
+					var what := "row %d: %s" % [k, placement.def.id]
+					problems.append_array(_in_set_pieces(placement, rivers, rocks, what))
+					var at := Iso.world_to_tile(placement.foot)
+					for river: Rect2 in rivers:
+						near += 1 if river.grow(1.0).has_point(at) else 0
 	assert_eq(problems.slice(0, 5), PackedStringArray(), "%d props in set pieces" % problems.size())
-	assert_gt(near, 20, "props near enough to the rivers to tell")
+	assert_gt(near, 40, "props near enough to the rivers to tell")
+
+
+## What `placement` does that it mustn't: stand in a river of `rivers`, or show over a tunnel's rock
+## of `rocks`.
+static func _in_set_pieces(
+	placement: PropLayout.Placement,
+	rivers: Array[Rect2],
+	rocks: Array[PackedVector2Array],
+	what: String
+) -> PackedStringArray:
+	var problems := PackedStringArray()
+	var at := Iso.world_to_tile(placement.foot)
+	for river: Rect2 in rivers:
+		if river.has_point(at):
+			problems.append("%s is in the river %s at %s" % [what, river, at])
+	var frame := _frame(placement)
+	var polygon := PackedVector2Array(
+		[frame.position, Vector2(frame.end.x, frame.position.y), frame.end]
+	)
+	polygon.append(Vector2(frame.position.x, frame.end.y))
+	for rock: PackedVector2Array in rocks:
+		if not Geometry2D.intersect_polygons(polygon, rock).is_empty():
+			problems.append("%s shows over a tunnel at %s" % [what, frame])
+	return problems
 
 
 ## A seed places the same props whenever its rows are placed, as the road is made or once it's all
@@ -228,10 +523,10 @@ func test_a_seed_places_the_same_props_and_another_seed_others() -> void:
 	assert_eq(again.buffer.generator.props_seed, props_seed)
 	var placed := _described(first.rows)
 	assert_eq(_described(again.rows), placed, "the same seed")
-	assert_eq(_described(_placed_again(first, props_seed)), placed, "on the whole road")
+	assert_eq(_described(_placed_again(first, props_seed, _largest())), placed, "on the whole road")
 	var other := RoadGenerator.new(8, Fixtures.schedule()).props_seed
 	assert_ne(other, props_seed, "each run's own seed")
-	var moved := _described(_placed_again(first, other))
+	var moved := _described(_placed_again(first, other, _largest()))
 	var differ := 0
 	for k: int in ROWS:
 		differ += 1 if moved[k] != placed[k] else 0
@@ -239,11 +534,11 @@ func test_a_seed_places_the_same_props_and_another_seed_others() -> void:
 	assert_gt(differ, ROWS * 9 / 10, "another props seed places other props on the same road")
 
 
-## The rows of `road`, placed again with `props_seed` on the whole road.
-func _placed_again(road: Road, props_seed: int) -> Dictionary[int, Array]:
+## The rows of `road`, placed again from `props` with `props_seed` on the whole road.
+func _placed_again(road: Road, props_seed: int, props: Array[PropDef]) -> Dictionary[int, Array]:
 	var rows: Dictionary[int, Array] = {}
 	for k: int in ROWS:
-		rows[k] = PropLayout.row(road.path[k].cell, _largest(), props_seed, road.buffer)
+		rows[k] = PropLayout.row(road.path[k].cell, props, props_seed, road.buffer)
 	return rows
 
 

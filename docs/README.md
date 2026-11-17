@@ -15,6 +15,7 @@ Summaries of the finished plans. Each keeps its plan's section numbers and every
 | [ZONE_SELECT.md](ZONE_SELECT.md) | ZS: the start area on the title of debug builds | #60, #61 |
 | [TUTORIAL.md](TUTORIAL.md) | TUT: the tutorial before the City | #65–#68 |
 | [DAYNIGHT.md](DAYNIGHT.md) | DN: each zone's day and night, the shadows and the lamps | #64, #70–#76 |
+| [VISUALS.md](VISUALS.md) | VIS: the car's wheels turn as it drives, and buildings line the City's streets, fading over the car | #85, #93, #94 |
 
 ## For agents
 

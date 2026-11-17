@@ -36,15 +36,15 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 	# plan.md §4.3 and IMPLEMENTATION_PLAN.md M4.2.
 	var pools := {
 		# The City's.
-		&"city": [&"phantom_bus"],
+		&"city": [&"phantom_bus", &"mothman", &"grim_reaper"],
 		# Rural's.
-		&"rural": [&"ufo"],
+		&"rural": [&"ufo", &"scarecrow", &"headless_horseman"],
 		# The Meadows'.
-		&"meadows": [&"fairy_ring"],
+		&"meadows": [&"fairy_ring", &"kelpie", &"will_o_wisp"],
 		# The Village's.
-		&"village": [&"witch_hex"],
+		&"village": [&"witch_hex", &"frau_holle", &"baba_yaga"],
 		# The Desert's.
-		&"desert": [&"death_worm"],
+		&"desert": [&"death_worm", &"marfa_lights", &"chupacabra"],
 	}
 	var areas: Array = []
 	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
@@ -70,6 +70,16 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 			if not listed.has(id):
 				listed.append(id)
 	assert_eq(all, listed, "every disaster of the pools, once each, in the schedule's order")
+
+
+func test_each_sets_its_id_in_its_scene_where_the_picks_read_it() -> void:
+	# A run's picks weigh a seen disaster by the id that its scene's root sets, read without
+	# instancing it (POOLS_PLAN.md V11). One set only by its script would never weigh less.
+	for scene: PackedScene in Disasters.scenes():
+		var disaster := Disasters.disaster(self, scene, null, null)
+		var what := scene.resource_path.get_file()
+		assert_ne(disaster.id, &"", "%s has an id" % what)
+		assert_eq(DisasterPicks.id_of(scene), disaster.id, what)
 
 
 func test_each_shows_nothing_until_its_delay_is_over() -> void:
@@ -162,6 +172,23 @@ func test_each_seeds_its_particles_from_its_params_and_scales_them() -> void:
 			assert_almost_eq(_amounts(particles[k]), before[k] * scaled, Vector4.ONE * 1e-3, what)
 
 
+func test_the_params_scale_a_range_with_no_width_once() -> void:
+	# Godot raises a range's max to a min set above it, so a max read after its min is set would be
+	# scaled twice, as the scarecrow's crows, all one size, were.
+	for factor: float in [0.5, Tuning.PARTICLE_SCALE_MAX]:
+		var emitter := CPUParticles2D.new()
+		emitter.initial_velocity_min = 10.0
+		emitter.initial_velocity_max = 10.0
+		emitter.scale_amount_min = 1.0
+		emitter.scale_amount_max = 1.0
+		var params := Disasters.params(factor)
+		params.particle_scale = factor
+		DisasterBase.apply_params(emitter, params)
+		var expected := Vector4(10.0, 10.0, 1.0, 1.0) * factor
+		assert_almost_eq(_amounts(emitter), expected, Vector4.ONE * 1e-6, "by %.2f" % factor)
+		emitter.free()
+
+
 ## The speeds and sizes of `particles`.
 static func _amounts(particles: CPUParticles2D) -> Vector4:
 	return Vector4(
@@ -214,6 +241,37 @@ func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 		for point: Vector2 in points:
 			var distance := Iso.world_to_tile(point).length()
 			assert_almost_eq(distance, radius, 1e-4, "%.1f tiles from its centre" % radius)
+
+
+func test_only_a_legend_with_a_veil_has_glows() -> void:
+	# Glows add light, so without a veil they clip to white over a light ground (docs/M6.md S10).
+	# Of the ten legends to come, four have no veil (POOLS_PLAN.md V18). So each disaster without one
+	# plays to its end, and nothing that it draws, its particles too, may add light.
+	for scene: PackedScene in Disasters.contract_scenes():
+		var staging := Disasters.stage(self)
+		var stopped := Disasters.car(self, 0.0, staging)
+		var played := Disasters.disaster(self, scene, stopped, Disasters.camera(self))
+		if played is Legend and (played as Legend).veil_kind != Legend.Veil.NONE:
+			continue
+		played.stage = staging
+		watch_signals(played)
+		played.play(Disasters.params())
+		var glows: Array[String] = []
+		var frames := 0
+		while get_signal_emit_count(played, "finished") == 0 and frames < MAX_FRAMES:
+			simulate(played, 1, DELTA)
+			frames += 1
+			var items: Array[CanvasItem] = Disasters.drawables(played)
+			for emitter: CPUParticles2D in Disasters.particles(played):
+				items.append(emitter)
+			for item: CanvasItem in items:
+				var material := Disasters.material_of(item) as CanvasItemMaterial
+				var adds := material != null
+				adds = adds and material.blend_mode == CanvasItemMaterial.BLEND_MODE_ADD
+				if adds and not glows.has(String(item.name)):
+					glows.append(String(item.name))
+		assert_lt(frames, MAX_FRAMES, "%s finishes" % played.id)
+		assert_true(glows.is_empty(), "%s has no veil, but glows: %s" % [played.id, glows])
 
 
 func test_none_flashes() -> void:

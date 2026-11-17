@@ -8,7 +8,7 @@ What AGENTS.md §3 leaves out: setting up the checks (§1), seeing the game on t
 - **pip** refuses to install into the system Python on Debian and Ubuntu (PEP 668), hence the virtual environment in AGENTS.md §3. `tools/ci/requirements.txt` pins gdtoolkit 4.5.0, for Python 3.12.
 - **shellcheck.** `lint.sh` only warns if it's missing. The plans were verified with shellcheck 0.11.0 and actionlint 1.7.12; CI's `lint` job runs actionlint too.
 - **Results.** Reports go to `build/reports/`. The PR gets the counts (AGENTS.md §3).
-- **Time**, on 2 CPUs: `lint.sh` 9 s, `import.sh` 14 s, `check_scripts.sh` 2 s, `run_tests.sh` 75–110 s, `smoke.sh` 1 s. A CI run started by hand takes 5–6 minutes for the same results.
+- **Time**, on 2 CPUs: `lint.sh` 9 s, `import.sh` 14 s, `check_scripts.sh` 2 s, `run_tests.sh` 75–110 s, `smoke.sh` 1 s, and the agent scripts' `tools/agent/test/scenarios.py` 60 s. A CI run started by hand takes 5–6 minutes for the same results.
 - **Fewer tests.** `run_tests.sh` takes only GUT's options that choose tests, `-gselect=`, `-gtest=`, `-gdir=`, `-ginner_class=` and `-gunit_test_name=`, so its checks for errors, leaks and the save still apply. `-gselect=test_hud` runs each script whose file name contains `test_hud`, in 2 s. `-gdir= -gtest=res://tests/unit/test_hud.gd,res://tests/integration/test_crash.gd` runs just those two: `-gtest` alone adds them to the whole suite.
 - **Side by side.** Two whole suites in two worktrees took 77 s each on 2 CPUs, as long as one alone, so run one worktree per CPU (`nproc`). Each needs its own import: `git worktree add --detach /tmp/n1 HEAD && (cd /tmp/n1 && tools/ci/import.sh)`. Remove it after with `git worktree remove /tmp/n1`.
 - **Editor warnings.** No check reports GDScript warnings, so a plan's §6.3 compares them on `main` and on the branch in one of two ways. Put a temporary `override.cfg` in the project root that raises each `debug/gdscript/warnings/*` setting at level 1 (warn) to 2 (error), run `check_scripts.sh`, then delete the file (#61). Or start the language server, `godot --headless --editor --lsp-port <port>`, and open every `.gd` outside `addons/` and `.godot/` (docs/M2.md §6.3).
@@ -28,7 +28,7 @@ rm -rf /tmp/movie && mkdir -p /tmp/movie/data && XDG_DATA_HOME=/tmp/movie/data x
 
 ## 3. Where to check what
 
-Check each thing where it's quickest to check faithfully. Leave the owner only what needs the Fold4, in one list in the PR body, and mention @pompomon when the owner must act. Post results as a table in a PR comment, one row per check.
+Check each thing where it's quickest to check faithfully. Leave the owner only what needs the Fold4, in one list in the PR body and the plan's §6.4. It doesn't hold the PR: the plan's last PR gathers the lists (planning.md §5). Mention @pompomon when the owner must act. Post results as a table in a PR comment, one row per check, that starts with `Re [<E#>](<link to the plan's section>)` (review.md §2 item 4).
 
 | What | Where | Who |
 |---|---|---|

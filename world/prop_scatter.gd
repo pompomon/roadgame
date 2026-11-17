@@ -6,7 +6,14 @@ extends RefCounted
 ## as the car drives, and loses them when the buffer frees that tile. With BUFFER_BEHIND and
 ## BUFFER_REFILL_AT, neither shows on the reference screens (docs/M5.md L2). The BUFFER_BEHIND rows
 ## below the first path tile get the props of its area at the start, and lose them with it.
-## WorldRenderer makes it, binds it with itself and updates it every frame.
+## WorldRenderer makes it, binds it with itself and updates it every frame. A see-through prop, such
+## as the City's building, fades where it would hide the car or a legend's sprite on the layer
+## (docs/VISUALS.md §5.9).
+
+## The scale under which a sprite on the layer doesn't show: Node2D stores a zero scale as
+## CMP_EPSILON (scene/2d/node_2d.cpp, set_scale), so a legend's part that waits at a scale of zero,
+## such as the Witch's Hex's pumpkin, still has a rect with an area.
+const HIDDEN_SCALE := 1e-4
 
 
 ## A prop that shows.
@@ -19,13 +26,16 @@ class Shown:
 	var phase: float
 	## Its shadow (docs/DAYNIGHT.md §5.11), or null.
 	var cast: Shadows.Cast
+	## Where its frame shows on the layer: a see-through prop's, which _fade() reads every frame.
+	var frame: Rect2
 
 
-## The props of a row, and those of them that animate.
+## The props of a row, those of them that animate, and those that are see-through.
 class Row:
 	extends RefCounted
 	var shown: Array[Shown] = []
 	var animated: Array[Shown] = []
+	var fading: Array[Shown] = []
 
 
 ## Where the props' lights glow at night (docs/DAYNIGHT.md §5.12), or null for none. WorldRenderer
@@ -48,12 +58,20 @@ var _next_row := 0
 var _lowest_row := 0
 ## Seconds of animation since bind().
 var _clock := 0.0
+## The layer whose own children, the car and the legends' sprites, see-through props fade for.
+var _layer: Node2D
+## The see-through props that show less than whole, and how much of themselves they show.
+var _faded: Dictionary[Shown, float] = {}
 
 
 ## Scatters the props of `schedule`'s areas on `layer`. A prop that breaks the contract is an
 ## error, and doesn't show.
 func _init(layer: Node2D, schedule: AreaSchedule) -> void:
-	pool = PropPool.new(layer)
+	_layer = layer
+	# Internal children, which simulate() walks past (docs/DAYNIGHT.md C20): the City's lots double
+	# its props (docs/VISUALS.md A7). In front of the layer's own children, so that the car draws
+	# over a prop on its y.
+	pool = PropPool.new(layer, Node.INTERNAL_MODE_FRONT)
 	for entry: AreaScheduleEntry in schedule.entries:
 		if not _props.has(entry.area.id):
 			_props[entry.area.id] = _valid_props(entry.area)
@@ -76,7 +94,8 @@ func bind(buffer: RoadBuffer) -> void:
 	_show_rows()
 
 
-## Shows the rows the car has come near, and animates the props. Call it every frame.
+## Shows the rows the car has come near, animates the props, and fades the see-through ones. Call
+## it every frame.
 func update(delta: float) -> void:
 	if _buffer == null:
 		return
@@ -85,6 +104,7 @@ func update(delta: float) -> void:
 	for row: Row in _rows.values():
 		for shown: Shown in row.animated:
 			_set_frame(shown)
+	_fade()
 
 
 ## The path tile indices of the rows that have their props, lowest first.
@@ -157,6 +177,11 @@ func _show_row(k: int) -> void:
 		if placement.def.frames > 1:
 			row.animated.append(shown)
 			_set_frame(shown)
+		if placement.def.see_through:
+			shown.frame = Rect2(
+				placement.foot - Vector2(placement.def.foot), Vector2(placement.def.region.size)
+			)
+			row.fading.append(shown)
 	_rows[k] = row
 
 
@@ -168,7 +193,68 @@ func _hide_row(k: int) -> void:
 			pool.release(shown.sprite)
 			if shadows != null:
 				shadows.remove(shown.cast)
+			_faded.erase(shown)
 		_rows.erase(k)
+
+
+## Fades each see-through prop near an actor as far as the actor that it would hide most asks
+## (SeeThrough.opacity()), and shows whole again each that no actor is near any more. Only the
+## sprites' modulate changes, so nothing is redrawn on the Web (docs/M2.md §5.7).
+func _fade() -> void:
+	var fading: Dictionary[Shown, float] = {}
+	for child: Node in _layer.get_children():
+		var actor := actor_rect(child)
+		if not actor.has_area():
+			continue
+		var actor_y := (child as Node2D).position.y
+		var near := SeeThrough.rows(actor)
+		# A row reaches PROP_SPREAD tiles either side of the road, and most of its props are
+		# PROP_FADE_PX or more across from the actor, where they show whole.
+		var left := actor.position.x - Tuning.PROP_FADE_PX
+		var right := actor.end.x + Tuning.PROP_FADE_PX
+		for k: int in range(near.x, near.y + 1):
+			if not _rows.has(k):
+				continue
+			for shown: Shown in _rows[k].fading:
+				var frame := shown.frame
+				if frame.position.x >= right or frame.end.x <= left:
+					continue
+				var foot_y := frame.position.y + shown.def.foot.y
+				var alpha := SeeThrough.opacity(frame, foot_y, actor, actor_y)
+				if alpha < fading.get(shown, 1.0):
+					fading[shown] = alpha
+	for shown: Shown in _faded:
+		if not fading.has(shown):
+			_show_alpha(shown, 1.0)
+	for shown: Shown in fading:
+		if _faded.get(shown, 1.0) != fading[shown]:
+			_show_alpha(shown, fading[shown])
+	_faded = fading
+
+
+## Where `node`, one of the layer's own children, shows on the layer, if a see-through prop mustn't
+## hide it: the car's body, or a sprite that a legend stood there, such as the car's double (docs/
+## M6.md §5.4). An empty rect for anything else, and for what doesn't show: a legend's part waits
+## hidden by its alpha or its scale (HIDDEN_SCALE), and a legend hides the car by its alpha.
+static func actor_rect(node: Node) -> Rect2:
+	var item := node as CanvasItem
+	if item == null or not item.visible or item.modulate.a <= 0.0:
+		return Rect2()
+	if item is CarController:
+		return (item as CarController).body_rect()
+	if item is Sprite2D:
+		var sprite := item as Sprite2D
+		if minf(absf(sprite.scale.x), absf(sprite.scale.y)) < HIDDEN_SCALE:
+			return Rect2()
+		return sprite.get_transform() * sprite.get_rect()
+	return Rect2()
+
+
+## Shows `alpha` of `shown`, and of its silhouette with its glows at night, which fade with it.
+static func _show_alpha(shown: Shown, alpha: float) -> void:
+	shown.sprite.modulate.a = alpha
+	if shown.lit != null:
+		shown.lit.sprite.modulate.a = alpha
 
 
 func _set_frame(shown: Shown) -> void:
@@ -182,16 +268,32 @@ func _set_frame(shown: Shown) -> void:
 			shown.cast.sprite.frame = frame
 
 
+## Whether densities that add up to `sum` take it past 1, by more than adding floats rounds: 0.33,
+## 0.56 and 0.11 add up to 1.0000000000000002.
+static func past_1(sum: float) -> bool:
+	return sum > 1.0 and not is_equal_approx(sum, 1.0)
+
+
 static func _valid_props(area: AreaDef) -> Array[PropDef]:
 	var valid: Array[PropDef] = []
-	var density := 0.0
+	# Each size of lot picks from its own props (PropLayout.row()), so their densities add up apart,
+	# and by a street their street densities. In floats, as PropLayout.pick() uses them: a Vector2's
+	# 32 bits would take ten densities of 0.1 past 1.
+	var density: Dictionary[int, float] = {}
+	var street: Dictionary[int, float] = {}
 	for prop: PropDef in area.props:
 		var problems := PackedStringArray(["a prop is null"]) if prop == null else prop.validate()
-		if problems.is_empty() and density + prop.density > 1.0:
-			problems.append("prop %s takes the densities past 1" % prop.id)
+		var inside := 0.0
+		var by_street := 0.0
+		if problems.is_empty():
+			inside = density.get(prop.lot, 0.0) + prop.chance(false)
+			by_street = street.get(prop.lot, 0.0) + prop.chance(true)
+			if past_1(inside) or past_1(by_street):
+				problems.append("prop %s takes the densities past 1" % prop.id)
 		for problem: String in problems:
 			push_error("PropScatter: %s: %s" % [area.id, problem])
 		if problems.is_empty():
 			valid.append(prop)
-			density += prop.density
+			density[prop.lot] = inside
+			street[prop.lot] = by_street
 	return valid

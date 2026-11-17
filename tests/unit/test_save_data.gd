@@ -226,6 +226,20 @@ func test_record_disaster_counts_and_keeps_the_first_sighting() -> void:
 	assert_eq(data.disasters["sinkhole"], expected)
 
 
+func test_the_disasters_seen_are_those_the_collection_shows() -> void:
+	# A file may hold an entry seen 0 times, and a count of the wrong type gets 0: the collection
+	# shows neither, and neither weighs less in a run's picks (POOLS_PLAN.md Q3).
+	var data := SaveData.new()
+	assert_eq(data.seen_disasters(), [] as Array[StringName], "none in a new save")
+	var text := JSON.stringify(
+		{"version": 2, "disasters": {"ufo": {"seen": 0}, "tornado": {"seen": "twice"}}}
+	)
+	assert_eq(data.load_json(text), SaveData.Status.LOADED)
+	assert_eq(data.disasters.size(), 2, "both entries are kept")
+	data.record_disaster(&"sinkhole", &"city", _stats(12.5, 3, {}))
+	assert_eq(data.seen_disasters(), [&"sinkhole"] as Array[StringName])
+
+
 func test_set_setting_takes_only_what_the_setting_can_be() -> void:
 	var data := SaveData.new()
 	assert_true(data.set_setting("sfx", 0))
