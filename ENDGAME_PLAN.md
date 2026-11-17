@@ -1,6 +1,6 @@
 # The End of the Road and the Book of Legends — Detailed Plan
 
-Status: plan, in review. PRs 1–2's prototype is built on `eg/prototype` and verified locally (§6); PRs 3–14 are designed, not built (§5.8–§5.18) · 2026-11-15 · The owner hasn't answered Q1–Q19 yet, so the plan and the prototype go on with the defaults (§3), and with the owner's two answers · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL's picks (#81) and comes before M7.
+Status: plan, in review; the owner approved Q1–Q19's defaults (§3). PRs 1–2's prototype is built on `eg/prototype` and verified locally (§6), and PR 1's port onto `main` passes, with the prototype's 23 tests more (§6.1); PRs 3–14 are designed, not built (§5.8–§5.18) · 2026-11-17 · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL, which has landed, and comes before M7.
 
 The owner asked for options first: "Help me brainstorm the endgame for the roadgame repo. Provide 3 options on what should be the goal for the player and how to better gamify it. Follow the best practices in the industry and game design recommendations from Mark Rosewater." The brainstorm offered A, The End of the Road: a finish line, a win and a second quest; B, Legend Hunter: the collection as a book to complete; and C, Road Master: medals, a driver's grade and a daily road. It recommended B as the heart, A as the finish line, and C's daily road for later. Then the owner asked: "Create a PR with the detailed implementation plan for A and B, with the following adjustments - player unlocks a legend not only by failing, but also for a full road completion - a random legend from the pool of locked. I approve starting west for the reverse road run".
 
@@ -18,11 +18,11 @@ The collection becomes the Book of Legends (B, §5.10), with NEW LEGEND! on the 
 - GUT 9.7.1
 - gdtoolkit 4.5.0 on Python 3.12, in CI's `lint` job and locally. shellcheck isn't installed locally, so `lint.sh` skipped it there; EG changes no shell script
 
-**Precedence.** For EG, this document replaces `plan.md`'s vision (:13), §2.1 (:26), §2.4 (:55), §2.5 (:57–61), §2.6 (:63–66), §3.2 (:86), §3.6 (:121), §7.3 (:295), §9 (:339–352), §11 (:381), §13 (:419–428) and §14 (:434); `IMPLEMENTATION_PLAN.md` (IP) §5.3 (:231); docs/ZONE_SELECT.md Z4 and Q2 (:14, :26); and `POOLS_PLAN.md` §5's collection where §5.10 changes it, wherever it marks a difference with **Δ** and its finding (W#, §2). Each PR folds its own differences into them as it lands (Q18).
+**Precedence.** For EG, this document replaces `plan.md`'s vision (:13), §2.1 (:26), §2.4 (:55), §2.5 (:57–61), §2.6 (:63–66), §3.2 (:86), §3.6 (:121), §7.3 (:295), §9 (:339–352), §11 (:381), §13 (:419–428) and §14 (:434); `IMPLEMENTATION_PLAN.md` (IP) §5.3 (:231); docs/ZONE_SELECT.md Z4 and Q2 (:14, :26); and docs/POOLS.md's collection (V3) where §5.10 changes it, wherever it marks a difference with **Δ** and its finding (W#, §2). Each PR folds its own differences into them as it lands (Q18).
 
 **Reference code.** PRs 1 and 2 split the difference between 532908a, PL's PR 1, and 4d3d981, the head of `eg/prototype`, which never gets a PR of its own (§4.1). PRs 3–14 follow the code of their nearest kin: the tunnel's set piece for the pier, ZS's Start choice for Departures, the collection and the Atlas for the Book and the postcards, and PL's legends for the Hitchhiker.
 
-**Prerequisites.** PL's plan is merged (#80), and `main` is at 81f22e3. PL's PR 1 (#81, `pl/1-picks`, 532908a) is open: EG's PR 1 is made from it, as EG's unlock and the Book use its picks and `SaveData.seen_disasters()`, so EG's PRs land after it (§4.2). PL's legends, its PRs 2–11, may land before, between or after EG's: EG reads the pools, whatever their size (Q8). Only the Hitchhiker, EG's PR 13, and so PR 14, wait for PL's PR 11, the last of the 15 (§5.17). M7 hasn't started; §9 has notes for it. No repository settings change.
+**Prerequisites.** PL has landed: its plan (#80), its PRs (#81–#83, #86–#91, #96, #98) and its docs (#100). So `main`, at f491e55, has the picks, `SaveData.seen_disasters()` and the 15 legends that EG's unlock, Book and Hitchhiker use, and EG's PRs stack on it (§4.2). M7 hasn't started; §9 has notes for it. No repository settings change.
 
 Contents:
 1. Goal and exit criteria
@@ -51,16 +51,16 @@ Goal: the player has a goal, and the game an end. Drive the whole road, from the
 | E6 | Nothing changes without a finish (W6, W17). On a schedule without one, the generator lays `main`'s road and draws the same numbers, so the golden digests and the determinism tests pass unchanged. `endless()`, a copy without the finish and without a home stretch, is the road of Keep Driving and of every test that drives past turn 280. On PRs 1–2, `smoke.sh` prints `main`'s line, `autopilot: tile 165, turns 35, area rural`; PR 3 ends the game's road after turn 280, which the smoke run never reaches | `test_road_generator_finish.gd`: `test_a_road_without_a_finish_never_ends`; `test_area_schedule.gd`: `test_an_endless_road_leaves_out_the_home_stretch`; the golden and determinism tests of `main`, unchanged; §6.1 |
 | E7 | The Coast and the arrival's scene (PRs 3, 4; Q1, Q17, W18, W19). The game's road ends after its 280th turn. The Coast, an area of long straights with no junction and no legend, starts at that turn, and its straight leads to the pier. Its art, props, music and ambience come from scripts, as every area's do. The pier draws as a pier, and `BEYOND` as the sea; `WorldRenderer.build()` checks that the finish has a scene. On the arrival, the sun sets over the sea, a still of each legend collected waits along the shore, and a jingle plays, within `ARRIVAL_SECONDS` (PR 4) | PR 3: `test_area_schedule.gd`: `test_the_games_road_ends_at_the_pier_after_its_280th_turn`; `test_world_renderer.gd`: `test_the_finish_draws_its_set_piece_and_nothing_beyond_it`; `test_drive_to_the_end.gd` on the game's own road; `test_area_art.gd`, `test_audio_director.gd` and `test_prop_layout.gd`, which check every area of the game's road, with the Coast. PR 4: `test_arrival_scene.gd`, `test_legend_still.gd` |
 | E8 | NEW LEGEND! and the Book (PRs 5, 6; Q8, Q16). The end screen of a run that met a legend for the first time, or unlocked one, shows NEW LEGEND!, with a jingle, and gives the next goal in one line. The collection becomes the Book: a grid with an area a row and a pool's slot a column, "Legends n/N", a still of each legend found, its silhouette and its name's initials, such as "P______ B__", for each not found, and a seal on each area whose legends are all found. It reads the pools, whatever their size | PR 5: `test_game_over.gd`: `test_a_first_sighting_or_an_unlock_shows_new_legend`, `test_the_next_goal_is_one_line_of_the_fonts_glyphs`. PR 6: `test_book_screen.gd` |
-| E9 | The Road Home (the owner's answer; W9, W10, Q12). The Road Home is the road's mirror: it starts in the Desert heading W, its first turn is a right, its areas come in reverse with the same lengths and set pieces, and it ends at home after 280 turns. It has no tutorial. The first arrival unlocks it on the title (PR 8); its arrivals count under `home`, and unlock legends too | `test_road_generator_finish.gd`: `test_a_mirrored_road_starts_west_and_turns_right_first`, `test_a_mirrored_road_has_no_tutorial`, `test_the_road_home_ends_at_home_after_280_turns`; `test_area_schedule.gd`: `test_the_road_home_is_valid_and_runs_the_other_way`; `test_arrival.gd`: `test_the_road_home_starts_west_and_ends_at_home`, `test_the_road_home_has_no_tutorial`; `test_drive_to_the_end.gd`: `test_the_autopilot_drives_the_road_home`. PR 8: `test_title.gd`: `test_the_road_home_is_offered_after_the_first_arrival` |
+| E9 | The Road Home (the owner's answer; W9, W10, Q12). The Road Home is the road's mirror: it starts in the Desert heading W, its first turn is a right, its areas come in reverse with the same lengths and set pieces, and it ends at home after 280 turns. It has no tutorial. The first arrival unlocks it on the title (PR 8); its arrivals count under `home`, and unlock legends too. From PR 8, the save keeps each road's farthest turn, so a Road Home run that never arrives keeps its progress | `test_road_generator_finish.gd`: `test_a_mirrored_road_starts_west_and_turns_right_first`, `test_a_mirrored_road_has_no_tutorial`, `test_the_road_home_ends_at_home_after_280_turns`; `test_area_schedule.gd`: `test_the_road_home_is_valid_and_runs_the_other_way`; `test_arrival.gd`: `test_the_road_home_starts_west_and_ends_at_home`, `test_the_road_home_has_no_tutorial`; `test_drive_to_the_end.gd`: `test_the_autopilot_drives_the_road_home`. PR 8: `test_title.gd`: `test_the_road_home_is_offered_after_the_first_arrival`; `test_save_data.gd`: `test_a_v3_file_is_migrated_with_each_roads_farthest`, `test_a_road_home_run_that_never_arrives_keeps_its_farthest` |
 | E10 | Departures (PR 7; Q11, W22). In every build, the title offers a start from each area discovered. Such a run counts no arrival, no unlock and no overall best; the legends that it meets, its areas' bests and its discoveries count | PR 7: `test_title.gd`: `test_departures_offer_only_the_areas_discovered`; `test_save_data.gd`: `test_a_departure_keeps_the_overall_best` |
 | E11 | Keep Driving (PR 9, Q13). After the first arrival, the title offers the endless road, `endless()`, on which the Desert goes on as on `main`; its runs count as on `main` | PR 9: `test_title.gd`: `test_keep_driving_is_the_endless_road_after_the_first_arrival` |
 | E12 | The route strip (PR 10, Q14). The HUD shows the road's areas as ticks on a strip, the car's place on it and the best run's mark, in shapes, not only colours, and nothing on it flashes | PR 10: `test_hud.gd`: `test_the_route_strip_marks_each_area_the_car_and_the_best` |
 | E13 | Pit stops (PR 11; Q10, W24). The tunnel, the bridge and Last Gas, a filling station where the Desert starts, each repair the car by `PIT_STOP_HEAL`, once per run each | PR 11: `test_car_sim_pit_stop.gd` |
-| E14 | Records and postcards (PR 12, Q15). The Atlas's cards become postcards, each stamped by a clean crossing of its area; the title and the end screen show the arrivals, the best time and a clean arrival; the save's version 4 | PR 12: `test_save_data.gd`, `test_atlas_screen.gd` |
+| E14 | Records and postcards (PR 12, Q15). The Atlas's cards become postcards, each stamped by a clean crossing of its area; the title and the end screen show the arrivals, the best time and a clean arrival; the save's version 5 | PR 12: `test_save_data.gd`, `test_atlas_screen.gd` |
 | E15 | The Hitchhiker (PR 13, Q9). With every legend of the pools collected, the Road Home shows her by the road at the player's best turn there; passing her finds her, the book's 16th page. An arrival never unlocks her | PR 13: `test_hitchhiker.gd` |
 | E16 | Manual, on the Web in Chrome and Firefox and on both of the Fold4's screens: the arrival reads as a win without words, the car stops on the pier on screen, NEW LEGEND!, the Book and the strip read at 360 × 640, and nothing flashes | §6.4, on PRs 3–6, 8, 10 and 13 |
 | E17 | Docs: each PR's Δs as it lands, then PR 14's `docs/ENDGAME.md` (Q18, §5.18) | Review |
-| E18 | All five required checks are green on each PR, with §4's counts, and `smoke.sh` prints no error line. Each negative case makes the tests it names fail (§6.2), and the warnings check finds no new warning (§6.3) | PR checks; §6.2 and §6.3, run locally with Godot 4.7.2 on each PR's head |
+| E18 | All four required checks are green on each PR, with §4's counts, and `smoke.sh` prints no error line. Each negative case makes the tests it names fail (§6.2), and the warnings check finds no new warning (§6.3) | PR checks; §6.2 and §6.3, run locally with Godot 4.7.2 on each PR's head |
 
 ---
 
@@ -72,7 +72,7 @@ The prototype checked each finding below that has a fix in PRs 1–2, and P5 the
 - **Medium:** fragile, or missing from the tests.
 - **Low:** clarity or polish.
 
-Line numbers are PL PR 1's, at 532908a (#81), on which this plan's PRs stack, unless they say otherwise.
+Line numbers are at 532908a, the head of PL's PR 1 (#81), from which the prototype was made, unless they say otherwise.
 
 ### High
 
@@ -94,7 +94,7 @@ Line numbers are PL PR 1's, at 532908a (#81), on which this plan's PRs stack, un
 | W8 | The autopilot's run errors as it ends | `_on_run_ended()` errors on any end of the autopilot's run (`main.gd`:304–305), so `smoke.sh` and the tests that drive the autopilot to the end would fail | No error on an arrival. Prototype (E3, N19) |
 | W10 | The tutorial's loops are laid for a road heading N | `road_generator.gd`:205–222 lays them E and N | A mirrored road has no tutorial: `_tutorial_wanted()` is false for it, and a mirrored generator asked for one errors and lays none. Prototype (E9, N16) |
 | W11 | Nothing counts the turns on the home stretch | `_turns_before()` gives the turn number of the next junction (`main.gd`:277–286), and errors when there is none (:285), as after the last one | On a finished road, every turn is behind the car: `turn_count`. Prototype (E3, N25) |
-| W14 | A legend unlocked could be unlocked again, and the picks would weigh it as new | `seen_disasters()` lists the disasters with `seen` above 0 (`save_data.gd`:162–169), for the collection and the picks (POOLS_PLAN.md Q2, Q3) | `seen_disasters()` lists the unlocked ones too, as collected: never unlocked again, and weighed as seen (Q3). Prototype (E5, N11) |
+| W14 | A legend unlocked could be unlocked again, and the picks would weigh it as new | `seen_disasters()` lists the disasters with `seen` above 0 (`save_data.gd`:162–169), for the collection and the picks (docs/POOLS.md Q2, Q3) | `seen_disasters()` lists the unlocked ones too, as collected: never unlocked again, and weighed as seen (Q3). Prototype (E5, N11) |
 | W17 | A home stretch would go on forever on an endless road | The Coast has no junction, and its pool is empty (Q1): last on an endless road, it would be one straight forever. A run that asked its pool for a disaster would error (`disaster_director.gd`:133–135, `disaster_picks.gd`:69–70) | `endless()` leaves out a last area that starts at the finish, the home stretch, so the one before it goes on, as on `main`. Prototype (E6, N24) |
 | W18 | The pier, and what lies beyond it, would draw as road | `GreyboxAtlas.road_coords()` draws each set piece but the tunnel and the bridge as road (`greybox_atlas.gd`:30–38). `WorldRenderer.build()` checks only the areas' set pieces for a scene (`world_renderer.gd`:86–88), and a set piece with none adds nothing (:166–169) | PR 3: the pier's scene and rows, the sea for `BEYOND`, and `build()` checks the finish's scene (E7) |
 | W19 | The tests that list the game's areas, or loop over them, would fail on the Coast, or leave it out | `test_area_schedule.gd`:62 and :70–84 and `test_disasters.gd`:35 and :63 want five areas, each with a pool; `test_disaster_pools.gd`:63–69 makes a wrong turn in each, and the Coast has no junction; `test_prop_art.gd`:8, `test_shadows.gd`:8 and `test_title_screen.gd`:180 list the five; `test_world_renderer.gd`:393 lists the set pieces' scenes | PR 3: the tests of the pools and of wrong turns loop over `endless()`'s areas; the lists gain the Coast, and the scenes the pier and home (E7) |
@@ -107,7 +107,7 @@ Line numbers are PL PR 1's, at 532908a (#81), on which this plan's PRs stack, un
 | W12 | A test compares a whole disaster entry | `test_wrong_turn_disaster.gd`:111–114 | It has `"unlocked": false`. Prototype |
 | W13 | Two tests compare the whole stats | `test_game_state.gd`: `test_start_run_resets_the_stats` (:25) and `test_end_run_emits_the_cause_and_stats` (:73) | They have `seconds` and `clean`. Prototype |
 | W15 | The end screen has no words for an arrival | `END_MESSAGES` has the four causes (`game_over.gd`:16–21), and any other shows "Game over" | `CarSim.ARRIVAL`: "You reached the end of the road!". Prototype (E3) |
-| W16 | Two tests use version 3 as a newer save's | `test_save_data.gd`:70 and :205 | They use 4, and PR 12, whose save is version 4, makes them 5. Prototype |
+| W16 | Two tests use version 3 as a newer save's | `test_save_data.gd`:70 and :205 | They use 4; PR 8, whose save is version 4, makes them 5, and PR 12's version 5 makes them 6. Prototype |
 | W20 | The arrival's sequence must outlast the roll, and end before the director's timeout | The roll lasts up to `ARRIVE_ROLL_SECONDS`, 4.0, to within a 60 Hz step, and P4 measured 2.40–4.02 s; the director errors after `DISASTER_TIMEOUT`, 6.0 (`tuning.gd`:136, `disaster_director.gd`:116) | `ARRIVAL_SECONDS`, 5.0, between them (Q17), which `test_car_sim_arrival.gd` checks. Prototype (E3, N18) |
 | W21 | A `--finish` run from the City counts | The debug flag `--finish=<turns>` ends the road early; a run with it from the City records an arrival, and unlocks a legend | None: a debug build's save is the tester's own (docs/ZONE_SELECT.md Z5) |
 | W23 | IP lists what uses the RNG | IP §5.3 (:231) names the road's streams, the disaster stream and the picks' | **Δ IP §5.3:** and the unlock's, `hash("<seed>:unlock")` (§5.5). PR 2 |
@@ -117,38 +117,38 @@ Line numbers are PL PR 1's, at 532908a (#81), on which this plan's PRs stack, un
 
 ## 3. Decisions and open questions
 
-Beyond the owner's two answers, each question below has a default, which this plan and the prototype follow until the owner answers (§7). An answer that changes a default changes the PRs that §4 names for it.
+Beyond the owner's two answers, each question below had a default, and the owner approved them all on 2026-11-17: "Defaults are approved" (#84). The alternatives that they declined are in this plan at 94b5007.
 
-| # | Question | Default | Alternative |
-|---|---|---|---|
-| Q1 | Where does the road end? | **After its 280th turn, at a pier. The Coast starts at that turn: a home stretch, with long straights, no junction and no legend, so the Desert stays the climax, and the run ends on a victory lap: the Coast's one long straight, then the pier (PR 3). The autopilot took 9.6–9.9 min to the end (P1)** | No new area: the Desert ends at the pier, at turn 280 or another. Or a Coast with junctions and legends of its own, which would need a pool, and art for three more legends |
-| Q2 | Which legend does an arrival unlock? | **One of those not collected yet, from every area's pool, each as likely, on the run's own stream (§5.5). P3: each of five came 0.196–0.206 of the time** | The deepest area's first: the Desert's, then the Village's, so that an arrival brings the legends that a failure rarely reaches. Or the legends of the areas whose pools the player has met least |
-| Q3 | Does a legend unlocked come up less often? | **Yes: it is collected, so PL's picks weigh it as seen, 0.5 against 1 (W14). The card is in the book, and the run shows the legends still missing sooner** | It weighs 1 until a run meets it, so the player sees it sooner. The picks would then read two lists, the seen and the unlocked |
-| Q4 | Which arrivals count? | **Only a run that drove the whole road, from its first area (W7). The others arrive, but record no arrival, unlock nothing and set no overall best** | Every arrival, with a run from a later area marked as such |
-| Q5 | How does a failure choose its legend? | **As PL does: each area's pool, the legends collected at half (POOLS_PLAN.md Q2), as the owner asked in #80. B's goal, the full book, stays, and the arrival's unlock fills the pages that failures don't** | B's own rule: a legend for each way to fail, wrong road, missed turn or off the road, so that the player learns which failure brings which. It would replace PL's picks, and the crashes would play legends (Q6) |
-| Q6 | Does a crash play a legend? | **No: it stays a crash (`plan.md` §2.5)** | B's third column: running out of health, or out of the off-road limit on a straight, plays the area's legend |
-| Q7 | Do the legends have lore tiers? | **No: the book shows a legend's fate and lore once it is met. The souvenirs, what each legend leaves behind, are §9's** | Hades' way: the fate at the first sighting, the lore at the third and a souvenir at the fifth, from `seen`, which the save already counts |
-| Q8 | What does the book look like? | **A grid: an area a row, a pool's slot a column (★, wave A, wave B), "Legends n/N", a still of each legend found, its silhouette and its name's initials for each not found, and a seal on an area whose legends are all found. It reads the pools, so it grows as PL's legends land, and needs nothing new from them (§5.10)** | A riddle for each, which each legend, PL's ten too, would have to write; or the collection's list as it is, with "Legends n/N" |
-| Q9 | What is the book's 16th page? | **The Vanishing Hitchhiker. Once every legend of the pools is collected, she stands by the Road Home at the player's best turn on it; passing her finds her. An arrival never unlocks her (§5.17)** | She stands by the road to the pier instead; or there's no 16th page |
-| Q10 | Do pit stops repair the car? | **Yes: the tunnel, the bridge and Last Gas, a filling station as the Desert starts, and on the Road Home as the Village starts, each repair `PIT_STOP_HEAL` once per run (W24, §5.15)** | No: no pickups, as `plan.md` §2.4 says; or Last Gas only |
-| Q11 | Who can start from another area? | **Everyone, from each area they have discovered: Departures. Such a run counts no arrival, unlocks nothing and sets no overall best; the legends it meets, its areas' bests and its discoveries count (W22, §5.11)** | Debug builds only, as now (docs/ZONE_SELECT.md Q2); or everyone, after the first arrival |
-| Q12 | When does the Road Home open? | **After the first arrival, on the title. Its arrivals count under `home`, apart from the pier's, and unlock a legend as theirs do (§5.12)** | From the start; or its arrivals unlock nothing |
-| Q13 | Can the player still drive forever? | **Yes, after the first arrival: Keep Driving, `endless()`, the Desert forever, whose runs count as on `main` (§5.13)** | No: the road always ends |
-| Q14 | Does the HUD show the way to the end? | **A route strip: a tick for each area, the car and the best run's mark, in shapes, not only colours, and nothing flashes (§5.14)** | Only the end screen shows how far the run got |
-| Q15 | What do the records keep? | **Save version 4: the Atlas's cards become postcards, stamped by a crossing of the area with no damage, and the title shows the arrivals, the best time and a clean arrival (§5.16)** | The records only, with no stamps |
-| Q16 | Does NEW LEGEND! play a sound? | **A short jingle from `make_audio.gd`, and the words stay still: no flash (§5.9)** | Silent |
-| Q17 | How long is the arrival? | **5.0 s, `ARRIVAL_SECONDS`, after the car reaches the finish, which stops within 4.0 s, `ARRIVE_ROLL_SECONDS` (W20). PR 4's scene plays in it** | Longer, for PR 4's scene, with the director's timeout longer for it |
-| Q18 | Where do the docs change? | **Each PR folds its own Δs, with their findings, into `plan.md`, IP and docs/ZONE_SELECT.md; PR 14 adds `docs/ENDGAME.md` and `AGENTS.md`'s W prefix, and deletes this plan** | All in PR 14 |
-| Q19 | How do the PRs land? | **One stack: PRs 1–13, each targeting the branch of the one before, PR 1 PL's PR 1 (#81) until it merges; then PR 14 from `main` (§4.2)** | PRs 1–3 as a stack, then PRs 4–13 each from `main` |
+| # | Question | Default |
+|---|---|---|
+| Q1 | Where does the road end? | **After its 280th turn, at a pier. The Coast starts at that turn: a home stretch, with long straights, no junction and no legend, so the Desert stays the climax, and the run ends on a victory lap: the Coast's one long straight, then the pier (PR 3). The autopilot took 9.6–9.9 min to the end (P1)** |
+| Q2 | Which legend does an arrival unlock? | **One of those not collected yet, from every area's pool, each as likely, on the run's own stream (§5.5). P3: each of five came 0.196–0.206 of the time** |
+| Q3 | Does a legend unlocked come up less often? | **Yes: it is collected, so PL's picks weigh it as seen, 0.5 against 1 (W14). The card is in the book, and the run shows the legends still missing sooner** |
+| Q4 | Which arrivals count? | **Only a run that drove the whole road, from its first area (W7). The others arrive, but record no arrival, unlock nothing and set no overall best** |
+| Q5 | How does a failure choose its legend? | **As PL does: each area's pool, the legends collected at half (docs/POOLS.md Q2), as the owner asked in #80. B's goal, the full book, stays, and the arrival's unlock fills the pages that failures don't** |
+| Q6 | Does a crash play a legend? | **No: it stays a crash (`plan.md` §2.5)** |
+| Q7 | Do the legends have lore tiers? | **No: the book shows a legend's fate and lore once it is met. The souvenirs, what each legend leaves behind, are §9's** |
+| Q8 | What does the book look like? | **A grid: an area a row, a pool's slot a column (★, wave A, wave B), "Legends n/N", a still of each legend found, its silhouette and its name's initials for each not found, and a seal on an area whose legends are all found. It reads the pools, so it grows as PL's legends land, and needs nothing new from them (§5.10)** |
+| Q9 | What is the book's 16th page? | **The Vanishing Hitchhiker. Once every legend of the pools is collected, she stands by the Road Home at the player's best turn on it; passing her finds her. An arrival never unlocks her (§5.17)** |
+| Q10 | Do pit stops repair the car? | **Yes: the tunnel, the bridge and Last Gas, a filling station as the Desert starts, and on the Road Home as the Village starts, each repair `PIT_STOP_HEAL` once per run (W24, §5.15)** |
+| Q11 | Who can start from another area? | **Everyone, from each area they have discovered: Departures. Such a run counts no arrival, unlocks nothing and sets no overall best; the legends it meets, its areas' bests and its discoveries count (W22, §5.11)** |
+| Q12 | When does the Road Home open? | **After the first arrival, on the title. Its arrivals count under `home`, apart from the pier's, and unlock a legend as theirs do (§5.12)** |
+| Q13 | Can the player still drive forever? | **Yes, after the first arrival: Keep Driving, `endless()`, the Desert forever, whose runs count as on `main` (§5.13)** |
+| Q14 | Does the HUD show the way to the end? | **A route strip: a tick for each area, the car and the best run's mark, in shapes, not only colours, and nothing flashes (§5.14)** |
+| Q15 | What do the records keep? | **Save version 4: the Atlas's cards become postcards, stamped by a crossing of the area with no damage, and the title shows the arrivals, the best time and a clean arrival (§5.16)**. It is version 5, as PR 8's version 4 keeps each road's farthest turn (§4.3) |
+| Q16 | Does NEW LEGEND! play a sound? | **A short jingle from `make_audio.gd`, and the words stay still: no flash (§5.9)** |
+| Q17 | How long is the arrival? | **5.0 s, `ARRIVAL_SECONDS`, after the car reaches the finish, which stops within 4.0 s, `ARRIVE_ROLL_SECONDS` (W20). PR 4's scene plays in it** |
+| Q18 | Where do the docs change? | **Each PR folds its own Δs, with their findings, into `plan.md`, IP and docs/ZONE_SELECT.md; PR 14 adds `docs/ENDGAME.md` and `AGENTS.md`'s W prefix, and deletes this plan** |
+| Q19 | How do the PRs land? | **One stack: PRs 1–13, each targeting the branch of the one before, PR 1 PL's PR 1 (#81) until it merges; then PR 14 from `main` (§4.2)**. #81 merged first, so PR 1 targets `main` |
 
 ---
 
 ## 4. Work breakdown
 
-Fourteen PRs after this plan's (Q19): PRs 1–13 form one stack on PL's PR 1 (`pl/1-picks`, #81), and PR 14, the docs, starts from `main` (§4.2). Each leaves CI green (E18).
+Fourteen PRs after this plan's (Q19): PRs 1–13 form one stack on `main`, and PR 14, the docs, starts from `main` once PR 13 has merged (§4.2). Each leaves CI green (E18).
 
 ```
-#81 pl/1-picks (PL PR 1)
+main
  ──▶ PR 1 the road's end (E1, E2, E6; W1, W4–W6, W9, W17)
  ──▶ PR 2 the arrival, its records and the unlock (E3–E5, E9; W2, W3, W7, W8, W10–W16, W20)
    │
@@ -159,11 +159,11 @@ Fourteen PRs after this plan's (Q19): PRs 1–13 form one stack on PL's PR 1 (`p
  PR 5 NEW LEGEND! and the next goal ──▶ PR 6 the Book
    │
    ▼  the title's roads
- PR 7 Departures ──▶ PR 8 the Road Home ──▶ PR 9 Keep Driving
+ PR 7 Departures ──▶ PR 8 the Road Home (v4) ──▶ PR 9 Keep Driving
    │
    ▼  the rest of the gamification
- PR 10 the route strip ──▶ PR 11 pit stops ──▶ PR 12 records and postcards (v4)
-   ──▶ PR 13 the Hitchhiker (once PL's PR 11 has merged)
+ PR 10 the route strip ──▶ PR 11 pit stops ──▶ PR 12 records and postcards (v5)
+   ──▶ PR 13 the Hitchhiker
    │
    ▼  once PR 13 has merged, from main
  PR 14 docs
@@ -176,34 +176,34 @@ Why this order:
 - **B's heart next (PRs 5–6).** Once arrivals unlock legends, the player must see what they got and what is still missing: Rosewater's goal, made visible, and the Zeigarnik pull of an unfinished set.
 - **The title's roads (PRs 7–9)**, each opened by progress: Departures by discovering an area, and the Road Home and Keep Driving by the first arrival.
 - **The rest (PRs 10–12)**, each small. PR 11 changes a rule of `plan.md` (W24), so it comes late and can be dropped without touching the others (Q10).
-- **The Hitchhiker last (PR 13).** She is the full book's reward, so she waits for PL's 15 legends.
-- **The docs from `main` (PR 14)**, as POOLS' PR 12 did (POOLS_PLAN.md Q10).
+- **The Hitchhiker last (PR 13).** She is the full book's reward, the 16th page after PL's 15.
+- **The docs from `main` (PR 14)**, as PL's did (docs/POOLS.md §4.4).
 
 ### 4.1 Porting from the prototype
 
 PRs 1 and 2 split the difference between 532908a and 4d3d981 by file: PR 1 takes the 15 files in its table below, and PR 2 the other 19.
 
-1. Fetch, and create PR 1's branch from PL's PR 1, or from `main` once #81 has merged. Then apply PR 1's part of the difference, and on PR 2's branch, made from PR 1's, the rest:
+1. Fetch, and create PR 1's branch from `main`. Then apply PR 1's part of the difference, and on PR 2's branch, made from PR 1's, the rest. `main` has moved on since 532908a, in 7 of the prototype's files, so `--3way` merges its lines with the prototype's:
    ```bash
-   git fetch origin main '+refs/heads/pl/*:refs/remotes/origin/pl/*' '+refs/heads/eg/*:refs/remotes/origin/eg/*'
-   git switch -c eg/1-road-end origin/pl/1-picks
+   git fetch origin main '+refs/heads/eg/*:refs/remotes/origin/eg/*'
+   git switch -c eg/1-road-end origin/main
    PR1="areas/area_schedule.gd areas/schedule_home.tres car/car_sim.gd config/tuning.gd
      road/junction_trigger.gd road/road_generator.gd tests/helpers/road_fixtures.gd
      tests/unit/test_road_generator_finish.gd tests/unit/test_road_generator_finish.gd.uid
      tests/unit/test_car_sim_arrival.gd tests/unit/test_car_sim_arrival.gd.uid
      tests/unit/test_junction_trigger.gd tests/unit/test_area_schedule.gd
      tests/sim/test_drive_to_the_end.gd tests/sim/test_drive_to_the_end.gd.uid"
-   git diff 532908a 4d3d981 -- $PR1 | git apply --index                                # PR 1
-   git diff 532908a 4d3d981 -- . $(printf ' :(exclude)%s' $PR1) | git apply --index   # PR 2
+   git diff 532908a 4d3d981 -- $PR1 | git apply --3way --index                                # PR 1
+   git diff 532908a 4d3d981 -- . $(printf ' :(exclude)%s' $PR1) | git apply --3way --index   # PR 2
    ```
-   If the base has moved on and changed the same lines, use `git apply --3way --index` and keep both.
+   Where both changed the same lines, keep both.
 2. Make the PR's docs changes, its table's Docs row, which the prototype doesn't have, and the changes of any row of §4.3 for it that the prototype doesn't have; 4d3d981 has all of §4.3's for PRs 1–2. Leave `ENDGAME_PLAN.md` alone on every PR's branch (§4.2).
 3. Run §6.1's checks, §6.2's negative cases and §6.3's warnings, and compare the counts with the PR's "Expect" line.
-4. Have a model of another family review it (`AGENTS.md` §5). Commit as the PR's title, with "(EG PR k)"; the prototype's commits say "prototype", and cite this plan's sections. Push, and open the PR with base `pl/1-picks` for PR 1 and PR 1's branch for PR 2.
+4. Have a model of another family review it (`AGENTS.md` §5). Commit as the PR's title, with "(EG PR k)"; the prototype's commits say "prototype", and cite this plan's sections. Push, and open the PR with base `main` for PR 1 and PR 1's branch for PR 2.
 
 ### PR 1: Road: a finish ends the road, and the car arrives on it **Δ W1, W4, W5, W9, W17**
 
-Branch `eg/1-road-end`, from `pl/1-picks` (§4.1).
+Branch `eg/1-road-end`, from `main` (§4.1).
 
 | Area | Files |
 |---|---|
@@ -214,7 +214,7 @@ Branch `eg/1-road-end`, from `pl/1-picks` (§4.1).
 | Tests | `tests/unit/test_road_generator_finish.gd`, new: 9 tests (E1, E6, E9). `tests/unit/test_car_sim_arrival.gd`, new: 4 (E2, W20). `tests/sim/test_drive_to_the_end.gd`, new: 2, the autopilot to the pier and home on five seeds (E1, E9). `tests/unit/test_junction_trigger.gd`: 3 (E2). `tests/unit/test_area_schedule.gd`: 5 (E1, E6, E9). `tests/helpers/road_fixtures.gd`: `schedule_home()` |
 | Docs | `plan.md` §3.2 (:86): a mirrored road (W9) |
 
-15 files, +788 −9, and the docs. Expect, on 532908a: `check_scripts: loaded 165 scripts`; `GUT: 620 tests passed`, 23 more than PL PR 1's, in 81 test scripts (440,016 asserts, 12,968 more; 103.7 s locally); `autopilot: tile 165, turns 35, area rural`, as on `main`. Negative cases N1–N7, N15, N22–N24, N28–N30.
+15 files, +788 −9, and the docs. Expect 3 more scripts loaded than its base, 3 more test scripts, 23 more tests and 12,968 more asserts, as on 532908a: on `main` at f491e55, `check_scripts: loaded 198 scripts`; `GUT: 726 tests passed`, in 93 test scripts (450,611 asserts; 114.3 s locally); `autopilot: tile 165, turns 35, area rural`, as on `main`. Negative cases N1–N7, N15, N22–N24, N28–N30.
 
 **Acceptance:** E1, E2's road and car part, E6, E9's generator part, E18.
 
@@ -230,7 +230,7 @@ Branch `eg/2-arrival`, from `eg/1-road-end` (§4.1).
 | Docs | `plan.md` §2.1 item 7, the time; §2.5, the arrival's row (W1); §2.6 and §13 (:421), what an arrival keeps and unlocks; §7.3, `ARRIVED` (W2); §9, version 3 (W3). IP §5.3 (W23) |
 | Tests | `tests/integration/test_arrival.gd`, new, and its `.uid`: 9 tests (E3–E5, E9). `tests/unit/test_legend_unlock.gd`, new, and its `.uid`: 6 (E5). `tests/unit/test_save_data.gd`: 3, and W16's two (E4). `tests/unit/test_game_state.gd`: 1, and W13's two (E2). `tests/unit/test_disaster_director.gd`, `test_game_over.gd` and `test_collection_screen.gd`: 1 each (E3, E5). `tests/integration/test_wrong_turn_disaster.gd`: W12 |
 
-19 files, +696 −47, and the docs. Expect, on PR 1: `check_scripts: loaded 168 scripts`; `GUT: 642 tests passed`, 22 more, in 83 test scripts (440,189 asserts, 173 more; 108.1 s locally); `autopilot: tile 165, turns 35, area rural`. Negative cases N8–N14, N16–N21, N25–N27, N31, N32.
+19 files, +696 −47, and the docs. Expect, over PR 1's, 3 more scripts loaded, 2 more test scripts, 22 more tests and about 173 more asserts, as on 4d3d981 (§6.1); `autopilot: tile 165, turns 35, area rural`. Negative cases N8–N14, N16–N21, N25–N27, N31, N32.
 
 **Acceptance:** E2's game part, E3–E5, E9's game part, E18.
 
@@ -258,7 +258,7 @@ Branch `eg/4-arrival-scene`, from `eg/3-coast`. §5.8 designs it.
 | Area | Files |
 |---|---|
 | World | `world/day_cycle.gd`: `hold(hour)`: the clock stands at `hour`, and the light follows at `LIGHT_MAX_RATE`; `enter()` clears the hold, so the next run's clock runs. `setpieces/pier.gd`: `welcome(legends)`, the stills of the legends collected, which fade in along the shore. `world/camera_rig.gd`: the arrival's view (§5.8), the target easing at `ARRIVAL_PAN_RATE` |
-| Disasters | `disasters/legend.gd`: `figure`, the sprite that is the legend, and `figure_frame`, which each legend's scene sets |
+| Disasters | `disasters/legend.gd`: `figure`, the sprite that is the legend, and `figure_frame`, which each of the 15 legends' scenes sets |
 | UI | `ui/main.gd`: on an arrival, the hold at `ARRIVAL_HOUR`, the welcome, and the view. `_physics_process()` advances the cycle in `ARRIVED` too (§5.8). `ui/legend_still.gd`, new: `LegendStill`, a legend's still (§5.8), which PR 6's Book reuses |
 | Audio | `autoload/audio_director.gd`: on an arrival, the engine winds down with the car and stops with it, the music fades, and `arrival.wav` plays; no crash. `tools/audio/make_audio.gd`: the jingle; `assets/audio/sfx/arrival.wav` |
 | Config | `config/tuning.gd`: `ARRIVAL_HOUR`, 18.5, the key of `LIGHT_DUSK`; `ARRIVAL_PAN_RATE` |
@@ -273,7 +273,7 @@ Branch `eg/5-new-legend`, from `eg/4-arrival-scene`. §5.9 designs it.
 
 | Area | Files |
 |---|---|
-| UI | `ui/game_over.gd` and `.tscn`: NEW LEGEND!, still, above the fate, for a run that met a legend for the first time or unlocked one; `next_goal()` and its line. `ui/main.gd`: the run's new legends, those it met or unlocked that weren't in the collection at its start, which PL's picks already keep (POOLS_PLAN.md §5.2) |
+| UI | `ui/game_over.gd` and `.tscn`: NEW LEGEND!, still, above the fate, for a run that met a legend for the first time or unlocked one; `next_goal()` and its line. `ui/main.gd`: the run's new legends, those it met or unlocked that weren't in the collection at its start, which PL's picks already keep (docs/POOLS.md V2) |
 | Audio | `autoload/audio_director.gd`: the jingle, once, as the end screen shows NEW LEGEND!. `tools/audio/make_audio.gd`; `assets/audio/sfx/new_legend.wav` |
 | Tests | `tests/unit/test_game_over.gd`: `test_a_first_sighting_or_an_unlock_shows_new_legend`, `test_the_next_goal_follows_the_players_progress`, `test_the_next_goal_is_one_line_of_the_fonts_glyphs`. `tests/integration/test_arrival.gd`: `test_an_arrival_that_unlocks_shows_new_legend`. `tests/unit/test_audio_director.gd`: `test_new_legend_plays_its_jingle_once` |
 
@@ -286,7 +286,7 @@ Branch `eg/6-book`, from `eg/5-new-legend`. §5.10 designs it.
 | Area | Files |
 |---|---|
 | UI | `ui/book_screen.gd` and `.tscn`, which replace `ui/collection_screen.gd` and `.tscn`: the grid, with PR 4's stills, and `disasters()`, as the collection's. `ui/title_screen.gd` and `.tscn`: the Disasters button opens the Book. `ui/main.gd`: `--collected` (§5.7) |
-| Docs | `plan.md` §2.6's collection; POOLS_PLAN.md §5's collection is then the Book's |
+| Docs | `plan.md` §2.6's collection; docs/POOLS.md V3's collection is then the Book's |
 | Tests | `tests/unit/test_book_screen.gd`, new, which takes over `test_collection_screen.gd`'s tests that still hold: a row for each area with a pool, a column for each slot, "Legends n/N", a still or a silhouette and the initials, a seal, the fit at 360 × 640, and the font's glyphs. `tests/integration/test_title.gd`: the Book from the title, with `--collected=city` the City's row sealed, and with `all` a full Book. Each other use of `CollectionScreen` or `%Collection` moves to the Book, so `git grep` finds none: `test_smoke.gd`:36–48's glyphs take the Book's words and each legend's name and lore; `test_title_screen.gd`:184–213's fit at 360 × 640 and its last card's scroll take the grid; `test_title.gd`:41 and :168; and PR 2's `test_arrival.gd`:66 and `test_legend_unlock.gd`:97 (4d3d981) |
 
 **Acceptance:** E8's PR 6 part, E16 for the Book, E18.
@@ -304,17 +304,18 @@ Branch `eg/7-departures`, from `eg/6-book`. §5.11 designs it.
 
 **Acceptance:** E10, E18.
 
-### PR 8: Title: the Road Home, after the first arrival
+### PR 8: Title: the Road Home, after the first arrival, and each road's farthest turn
 
 Branch `eg/8-road-home`, from `eg/7-departures`. §5.12 designs it.
 
 | Area | Files |
 |---|---|
-| UI | `ui/title_screen.gd` and `.tscn`: the Road choice, "Road: To the sea", then "Road: Home" once the pier has an arrival. `ui/main.gd`: the run's road from the title, or `--home`; Departures step through the chosen road's areas. `ui/game_over.gd`: the next goal's Road Home line |
-| Docs | `plan.md` §2.1 item 1 and §2.6: the Road Home |
-| Tests | `tests/integration/test_title.gd`: `test_the_road_home_is_offered_after_the_first_arrival`, `test_the_road_home_counts_under_home`. `tests/unit/test_world_renderer.gd`: `test_every_finish_has_its_scene` reads both roads |
+| UI | `ui/title_screen.gd` and `.tscn`: the Road choice, "Road: To the sea", then "Road: Home" once the pier has an arrival. `ui/main.gd`: the run's road from the title, or `--home`; Departures step through the chosen road's areas; `GameState.road` at the run's start. `ui/game_over.gd`: the next goal's Road Home line |
+| Autoload | `autoload/game_state.gd`: `road`, in `stats()`. `autoload/save_data.gd`: version 4, each arrival entry's `farthest`; `_v3_to_v4()` (§5.12) |
+| Docs | `plan.md` §2.1 item 1 and §2.6: the Road Home; §9: version 4 |
+| Tests | `tests/integration/test_title.gd`: `test_the_road_home_is_offered_after_the_first_arrival`, `test_the_road_home_counts_under_home`. `tests/unit/test_save_data.gd`: `test_a_v3_file_is_migrated_with_each_roads_farthest`, `test_a_run_raises_only_its_roads_farthest`, `test_a_road_home_run_that_never_arrives_keeps_its_farthest`; W16's two tests use 5. `tests/unit/test_game_state.gd`: `test_the_stats_name_the_road_driven_whole`; W13's two, with `road`. `tests/unit/test_world_renderer.gd`: `test_every_finish_has_its_scene` reads both roads |
 
-**Acceptance:** E9's title part, E16, E18.
+**Acceptance:** E9's title and save part, E16, E18.
 
 ### PR 9: Title: Keep Driving, the endless road
 
@@ -334,7 +335,7 @@ Branch `eg/10-route-strip`, from `eg/9-keep-driving`. §5.14 designs it.
 
 | Area | Files |
 |---|---|
-| UI | `ui/route_strip.gd`, new: a strip up the HUD's right edge, from the road's start at its foot to the finish at its top: a tick for each area, a flag for the finish, a triangle for the car and a hollow diamond for the best run. `ui/hud.gd` and `.tscn`: the strip, on a road with a finish only |
+| UI | `ui/route_strip.gd`, new: a strip up the HUD's right edge, from the road's start at its foot to the finish at its top: a tick for each area, a flag for the finish, a triangle for the car and a hollow diamond for the best run, at the road's `farthest` (PR 8). `ui/hud.gd` and `.tscn`: the strip, on a road with a finish only |
 | Tests | `tests/unit/test_hud.gd`: `test_the_route_strip_marks_each_area_the_car_and_the_best`, `test_the_route_strip_shows_only_on_a_road_with_a_finish` |
 
 **Acceptance:** E12, E16 for the strip, E18.
@@ -355,23 +356,23 @@ Branch `eg/11-pit-stops`, from `eg/10-route-strip`. §5.15 designs it. If the ow
 
 **Acceptance:** E13, E18.
 
-### PR 12: Records and postcards: the save's version 4
+### PR 12: Records and postcards: the save's version 5
 
 Branch `eg/12-records`, from `eg/11-pit-stops`. §5.16 designs it.
 
 | Area | Files |
 |---|---|
 | Car | `car/car_sim.gd`: the signal `damaged`, which names the area charged (§5.16) |
-| Autoload | `autoload/save_data.gd`: version 4: each atlas entry's `stamped`, and each arrival entry's `farthest`, its road's farthest turn, which `record_run()` raises for a run that drives that road whole and `record_arrival()` sets to the finish's turn; `_v3_to_v4()` (§5.16). `autoload/game_state.gd`: for each area, whether the car took damage there and whether it `crossed` it (§5.16), and `road`, in `stats()` |
-| UI | `ui/main.gd`: `GameState.road` at the run's start, from `_drove_whole_road()`, and each `damaged` but the tutorial's. `ui/atlas_screen.gd`: a postcard for each area, stamped. `ui/title_screen.gd`: the arrivals, the best time and a clean arrival. `ui/game_over.gd`: "New best time!". `ui/route_strip.gd`: the best run's mark from the road's `farthest`, on the Road Home too |
-| Tests | `tests/unit/test_save_data.gd`: `test_a_v3_file_is_migrated_with_no_stamps_and_each_roads_farthest`, `test_a_crossing_with_no_damage_stamps_the_area`, `test_an_area_not_crossed_is_not_stamped`, `test_a_run_raises_only_its_roads_farthest`; W16's two tests use 5. `tests/unit/test_game_state.gd`: `test_the_stats_name_the_road_driven_whole`, `test_an_area_is_crossed_only_on_the_road_into_the_next_or_by_an_arrival`. `tests/unit/test_car_sim_offroad.gd`: `test_damage_across_a_border_names_each_area`. `tests/unit/test_atlas_screen.gd`: `test_a_stamped_area_shows_its_postcard`. `tests/unit/test_title_screen.gd`: `test_the_title_shows_the_arrivals_and_the_best_time` |
-| Docs | `plan.md` §9: version 4 |
+| Autoload | `autoload/save_data.gd`: version 5, each atlas entry's `stamped`; `_v4_to_v5()`, which keeps each road's `farthest` (§5.16). `autoload/game_state.gd`: for each area, whether the car took damage there and whether it `crossed` it (§5.16) |
+| UI | `ui/main.gd`: each `damaged` but the tutorial's. `ui/atlas_screen.gd`: a postcard for each area, stamped. `ui/title_screen.gd`: the arrivals, the best time and a clean arrival. `ui/game_over.gd`: "New best time!" |
+| Tests | `tests/unit/test_save_data.gd`: `test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest`, with a Road Home that has a `farthest` and no arrival, `test_a_crossing_with_no_damage_stamps_the_area`, `test_an_area_not_crossed_is_not_stamped`; W16's two tests use 6. `tests/unit/test_game_state.gd`: `test_an_area_is_crossed_only_on_the_road_into_the_next_or_by_an_arrival`. `tests/unit/test_car_sim_offroad.gd`: `test_damage_across_a_border_names_each_area`. `tests/unit/test_atlas_screen.gd`: `test_a_stamped_area_shows_its_postcard`. `tests/unit/test_title_screen.gd`: `test_the_title_shows_the_arrivals_and_the_best_time` |
+| Docs | `plan.md` §9: version 5 |
 
 **Acceptance:** E14, E18.
 
 ### PR 13: The Vanishing Hitchhiker, the book's 16th page
 
-Branch `eg/13-hitchhiker`, from `eg/12-records`, opened once PL's PR 11 has merged. §5.17 designs it.
+Branch `eg/13-hitchhiker`, from `eg/12-records`. §5.17 designs it.
 
 | Area | Files |
 |---|---|
@@ -396,9 +397,9 @@ No code, so the counts are PR 13's.
 
 ### 4.2 Landing (Q19)
 
-This plan's PR targets `main`. PR 1 targets `pl/1-picks`, and each of PRs 2–13 the branch of the one before. Only a PR whose base is `main` merges (`AGENTS.md` §5), so the owner squashes #81 first, then PRs 1–13 in order; PR 14 then starts from `main`. The plan changes only on `eg/plan` until its PR merges, and none of PRs 1–13 has it before PR 1 merges `main`. After that, each PR keeps its results and its review fixes in its body, and PR 13 carries the plan's final sync: its status, §4.3's rows, the counts and the device results (docs/agents/planning.md §5). So no two PRs change the plan's lines, and PR 14 deletes it.
+This plan's PR targets `main`, and so does PR 1; each of PRs 2–13 targets the branch of the one before. Only a PR whose base is `main` merges (`AGENTS.md` §5). Once the owner has merged this plan's PR, agents land PRs 1–12 in order with `tools/agent/land_pr.sh` (stacks.md step 4), so none is registered as a GitHub stack (step 7). The owner lands PR 13, the stack's last, after the device checks (§6.4), and PR 14, which changes `AGENTS.md`. The plan changes only on `eg/plan` until its PR merges, and none of PRs 1–13 has it before PR 1 merges `main`. After that, each PR keeps its results and its review fixes in its body, and PR 13 carries the plan's final sync: its status, §4.3's rows, the counts and the device results (docs/agents/planning.md §5). So no two PRs change the plan's lines, and PR 14 deletes it.
 
-A review fix goes on the branch of the PR that adds the file, then merges up the stack (`AGENTS.md` §4). PL's legend PRs stack on `pl/1-picks` too: after #81's squash both stacks merge `main` (stacks.md step 5), and whichever lands second merges the other's lines and gives each legend without one a `figure` (PR 4; §8).
+A review fix goes on the branch of the PR that adds the file, then merges up the stack (`AGENTS.md` §4).
 
 After each squash, retarget the next PR to `main` before the merged branch is deleted, which would close it (stacks.md step 6); then merge the merged branch and `origin/main` into the next PR's, each simulated with `git merge-tree` first, and check that `git diff --name-only origin/main` lists only that PR's files (step 5). A merge-up that changes no file in the PR's diff may start no Copilot review: request one with `gh pr edit <n> --add-reviewer @copilot`.
 
@@ -419,9 +420,10 @@ Fixes from the prototype's build, the internal review (§4.4) and the PRs' revie
 | 6 | Copilot: §6.4's runs, whose save is in memory, reached no seal, full Book or Hitchhiker; PR 6's `--collected`, and a reload (§5.7, §6.4) | `test_title.gd`'s `--collected` | PR 6's, from N33 |
 | 6 | Copilot: PR 6 left five tests on `CollectionScreen`, a deleted class; they move to the Book | Theirs; `git grep` finds no use | PR 6's, from N33 |
 | 12 | Copilot: a stamp read `_area_stats()`, which has the area that a run ends in; `crossed`, set on the road into the next area or by an arrival (§5.16) | `test_an_area_not_crossed_is_not_stamped` | PR 12's, from N33 |
-| 14 | Copilot: §8 let PR 14 land before PR 13, which makes this plan's final sync; it waits (§4.2, §8) | None | None |
+| 14 | Copilot: §8 let PR 14 land before PR 13, which makes this plan's final sync; it waits (§4.2) | None | None |
 | 11 | Copilot's overview: no tile carried `pit_stop` to `CarSim`, and `starting_at()` dropped it; tiles get it (§5.15) | `test_car_sim_pit_stop.gd`'s Departure | PR 11's, from N33 |
 | 12 | Copilot's overview: damage by `area_id` goes to the next area in a step that crosses, and misses one entered off the road; `damaged` names the area charged (§5.16) | `test_damage_across_a_border_names_each_area` | PR 12's, from N33 |
+| 8, 12 | Copilot's review of 94b5007: PR 8 opens the Road Home, but only PR 12 kept a road's `farthest`, and its migration set Home's to 0, losing a run's progress there between them. PR 8's version 4 keeps each road's `farthest` from the Road Home's first run, and PR 12's version 5 keeps it (§5.12, §5.16) | `test_a_road_home_run_that_never_arrives_keeps_its_farthest`; `test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest` | PR 8's and PR 12's, from N33 |
 
 ### 4.4 Internal review
 
@@ -435,7 +437,7 @@ gpt-6.1-sol (`rubber-duck`), a model of another family, reviewed this plan and t
 | 4 | A home stretch, as PR 3's Coast, breaks E1's tile-for-tile road | P2b: the road is `endless()`'s up to and including the last junction, and the home stretch's from the next tile | E1, §5.1, PR 3's test |
 | 5 | PR 8's `arrival_count(&"pier")` didn't exist | `arrival_count()` took no finish, and counted all | 4d3d981 (§4.3, §5.4) |
 | 6 | PR 4's held sunset would never move | `main.gd`:97–103 advances the cycle only while RUNNING | PR 4, §5.8 |
-| 7 | PR 12 had no road for a run's `farthest`, and its migration lost Home's | `stats()` names no road (`game_state.gd`:112–120); `record_run()` keeps overall bests only (`save_data.gd`:138–150) | PR 12, §5.14, §5.16 |
+| 7 | PR 12 had no road for a run's `farthest`, and its migration lost Home's | `stats()` names no road (`game_state.gd`:112–120); `record_run()` keeps overall bests only (`save_data.gd`:138–150) | PR 12, §5.14, §5.16; PR 8 since Copilot's review (§4.3) |
 
 
 ## 5. Design
@@ -510,13 +512,13 @@ The pier is a set piece like the bridge. `GreyboxAtlas.road_coords()` draws its 
 
 PR 4 makes the arrival a scene, within its 5.0 s (Q17):
 - **The sunset.** `DayCycle.hold(ARRIVAL_HOUR)` stands the clock at 18.5, `LIGHT_DUSK`'s hour, and the light follows at `LIGHT_MAX_RATE`, 0.25 a second for each channel, as it always does: 1.92 s from noon's white and 2.32 s from night, in time, and never a flash. As only `advance()` moves the light, `main.gd` advances the cycle in `ARRIVED` too, which today it does only while RUNNING (`main.gd`:97–103, docs/DAYNIGHT.md §5.4); the next run's `enter()` clears the hold.
-- **The legends on the shore.** `Pier.welcome()` stands each collected legend's still along the shore on both sides of the pier, in the Book's order, fading in one after another; a legend not yet found leaves its place empty. The Book becomes something the player sees, as they earn it. `LegendStill`, which the Book reuses, draws the frame that each legend's scene names as its figure (`figure`, `figure_frame`) whole, in its `self_modulate`, whatever the rest pose hides: the worm rests transparent and cropped to nothing (`death_worm.tscn`:53–59). A `standing` part can be a remnant, such as the Witch Hex's pumpkin, and PL's Marfa Lights and wisps are glows (POOLS_PLAN.md §5.4).
+- **The legends on the shore.** `Pier.welcome()` stands each collected legend's still along the shore on both sides of the pier, in the Book's order, fading in one after another; a legend not yet found leaves its place empty. The Book becomes something the player sees, as they earn it. `LegendStill`, which the Book reuses, draws the frame that each legend's scene names as its figure (`figure`, `figure_frame`) whole, in its `self_modulate`, whatever the rest pose hides: the worm rests transparent and cropped to nothing (`death_worm.tscn`:53–59). A `standing` part can be a remnant, such as the Witch Hex's pumpkin, and PL's Marfa Lights and wisps are glows (docs/POOLS.md §5.4).
 - **The view.** The camera's target eases from the car to the pier's end, so the sea fills the screen ahead; the zoom keeps its whole step.
 - **The sound.** The engine winds down with the car, where today every loop stops as the run ends (`audio_director.gd`, `_on_run_ended()`); the area's music fades; and `arrival.wav`, a short rising jingle from `make_audio.gd`, plays as the car stops.
 
 ### 5.9 NEW LEGEND! and the next goal (PR 5; Q16; E8)
 
-A legend is new to a run if the run met or unlocked it, and it wasn't collected as the run started: `main.gd` keeps the collection that PL's picks were made with (POOLS_PLAN.md §5.2). The end screen then shows NEW LEGEND! above the fate, in large letters that stay still, and `new_legend.wav` plays once (Q16). Under the stats, one line gives the next goal, the first that holds:
+A legend is new to a run if the run met or unlocked it, and it wasn't collected as the run started: `main.gd` keeps the collection that PL's picks were made with (docs/POOLS.md V2). The end screen then shows NEW LEGEND! above the fate, in large letters that stay still, and `new_legend.wav` plays once (Q16). Under the stats, one line gives the next goal, the first that holds:
 
 | Holds | Line |
 |---|---|
@@ -531,7 +533,7 @@ Each line uses only the font's glyphs, fits 360 pixels, and changes only as prog
 
 ### 5.10 The Book of Legends (PR 6; Q8; E8)
 
-The collection becomes the Book. `ui/book_screen.gd` reads the game's pools, whatever their size: a row for each area with a pool, in the road's order, and a column for each slot, the ★, wave A's and wave B's once PL's legends land (POOLS_PLAN.md §5.4). Over the grid, "Legends 7/15". A cell shows:
+The collection becomes the Book. `ui/book_screen.gd` reads the game's pools, whatever their size: a row for each area with a pool, in the road's order, and a column for each slot, the ★, wave A's and wave B's (docs/POOLS.md §5.4). Over the grid, "Legends 7/15". A cell shows:
 - a legend seen: its still and its name; tapped, its fate and lore, as the collection's card does today;
 - a legend unlocked and not yet seen: its still, its name and "Not seen yet";
 - a legend not found: its silhouette, the still in `SILHOUETTE` (`collection_screen.gd`:16), and its name's initials, "P______ B__";
@@ -547,13 +549,15 @@ ZS's Start choice, in debug builds only today (docs/ZONE_SELECT.md Z4), comes to
 
 Once `arrival_count(&"pier")` is above 0, the title shows a Road choice, "Road: To the sea" or "Road: Home", kept until the game closes. `main.gd` holds both schedules, and builds the world from the game's, whose areas the Road Home shares; `test_every_finish_has_its_scene` checks both finishes. Departures follow the chosen road's areas, the Desert's first on the Road Home. Its arrivals count under `home` and unlock a legend, and the first is the next goal's second line. The Legend of Zelda's Second Quest gave back a finished world, rearranged; here the player who knows "left first" fails at the first junction and learns the road again (`plan.md` §1.1).
 
+PR 8 also keeps each road's progress, which the strip (§5.14) and the Hitchhiker (§5.17) read from the Road Home's first run on (§4.3). `GameState` learns the run's `road`: the finish of the road that the run drives whole, or `&""` on Keep Driving's endless road and for a run from a later area; `stats()` has it, and `main.gd` sets it as the run starts. The save's version 4 adds `farthest` to each arrival entry, its road's farthest turn: `record_run()` raises the run's road's to the run's turns, and an arrival raises it to the finish's turn, so a Road Home run that never arrives keeps its progress. `_v3_to_v4()` sets the pier's to its finish's turn if it has an arrival, or else to `min(best.turns, 280)`, as before PR 8 only the pier's road counts in `best`, the debug flags and a debug build's Start choice aside: Keep Driving comes after it, and Departures count no overall best. Home's is its finish's turn if it has an arrival, or else 0, which is exact, as only `--home` drove it before.
+
 ### 5.13 Keep Driving (PR 9; Q13; E11)
 
 After the first arrival, the Road choice also offers "Road: Endless", `schedule.tres`'s `endless()`, on which the Desert goes on as on `main`. Its runs count as `main`'s do, with the overall bests, the areas and the legends; none can arrive, and the route strip doesn't show. The endless chase stays for the players who loved it.
 
 ### 5.14 The route strip (PR 10; Q14; E12)
 
-On a road with a finish, a strip runs up the HUD's right edge, 6 pixels wide and 40% of the screen's height: the road's start at its foot and the finish at its top, a tick at each area's first turn, a flag at the top, a solid triangle for the car at `turn_index / finish_turn`, and a hollow diamond for the best run. Until PR 12 keeps each road's `farthest` (§5.16), the diamond stands at `min(best.turns, finish_turn)` on the game's road, as only its runs count in `best` before the first arrival, and the Road Home has none. Shapes, not only colours, tell them apart, and the car's mark moves a pixel or two a turn, never a flash; in the tutorial it waits at the foot. The goal-gradient effect (Kivetz, Urminsky and Zheng, 2006): people speed up as a goal they can see comes near. The diamond is the player's own ghost, a rival always their size.
+On a road with a finish, a strip runs up the HUD's right edge, 6 pixels wide and 40% of the screen's height: the road's start at its foot and the finish at its top, a tick at each area's first turn, a flag at the top, a solid triangle for the car at `turn_index / finish_turn`, and a hollow diamond for the best run, at the road's `farthest`, which PR 8 keeps for both roads (§5.12). Shapes, not only colours, tell them apart, and the car's mark moves a pixel or two a turn, never a flash; in the tutorial it waits at the foot. The goal-gradient effect (Kivetz, Urminsky and Zheng, 2006): people speed up as a goal they can see comes near. The diamond is the player's own ghost, a rival always their size.
 
 ### 5.15 Pit stops (PR 11; Q10, W24; E13)
 
@@ -561,7 +565,7 @@ Rosewater's catch-up feature: a player behind can come back. `AreaScheduleEntry`
 
 ### 5.16 Records and postcards (PR 12; Q15; E14)
 
-Version 4 adds `stamped` to each atlas entry, true once a run crossed the area with no damage. `_area_stats()` also has the area that a run ends in (`game_state.gd`:123–136), and `area_changed` comes before the move's road checks (§5.15), so `GameState` keeps each area's `crossed` beside its damage: set as the car crosses onto the next area's first tile on the road, where the trigger judges it, or arrives in the last. A failure with no damage, or a Departure stopped before the area's end, stamps nothing. An area's damage is what `_drive_off_road()` charges at its rates (`car_sim.gd`:329–332), and a new `CarSim` signal, `damaged`, names that area: a step charges after `area_changed` (:99), so `area_id` may be the next area's, and an area entered off the road gets no `offroad_changed`. The tutorial's counts for nothing, as for `clean`. It adds `farthest` to each arrival entry, its road's farthest turn. Version 3 keeps only the overall best, so `GameState` learns the run's `road`: the finish of the road that the run drives whole, or `&""` on Keep Driving's endless road and for a run from a later area; `stats()` has it, and `main.gd` sets it as the run starts. `record_run()` raises that road's `farthest` to the run's turns, and `record_arrival()` sets it to the finish's turn. `_v3_to_v4()` sets the pier's to its finish's turn if it has an arrival, or else to `min(best.turns, 280)`, as before it only the pier's road counts in `best`, the debug flags and a debug build's Start choice aside: the Road Home and Keep Driving come after it, and Departures count no overall best. Home's is its finish's turn if it has an arrival, or else 0. The Atlas's cards become postcards: the area's ground and a prop, its name and bests, and a stamp once crossed clean. The title shows the arrivals, the best time and a clean arrival, and the end screen says "New best time!" when an arrival beats it. The strip's diamond moves to `farthest`. Like Celeste's strawberries, these goals never gate the end: mastery for those who want it, once the Book is done.
+Version 5 adds `stamped` to each atlas entry, true once a run crossed the area with no damage. `_area_stats()` also has the area that a run ends in (`game_state.gd`:123–136), and `area_changed` comes before the move's road checks (§5.15), so `GameState` keeps each area's `crossed` beside its damage: set as the car crosses onto the next area's first tile on the road, where the trigger judges it, or arrives in the last. A failure with no damage, or a Departure stopped before the area's end, stamps nothing. An area's damage is what `_drive_off_road()` charges at its rates (`car_sim.gd`:329–332), and a new `CarSim` signal, `damaged`, names that area: a step charges after `area_changed` (:99), so `area_id` may be the next area's, and an area entered off the road gets no `offroad_changed`. The tutorial's counts for nothing, as for `clean`. `_v4_to_v5()` changes nothing: `_entry()` gives each atlas entry `stamped`, false, and each road's `farthest`, PR 8's, stays as it was (§5.12). The Atlas's cards become postcards: the area's ground and a prop, its name and bests, and a stamp once crossed clean. The title shows the arrivals, the best time and a clean arrival, and the end screen says "New best time!" when an arrival beats it. Like Celeste's strawberries, these goals never gate the end: mastery for those who want it, once the Book is done.
 
 ### 5.17 The Vanishing Hitchhiker (PR 13; Q9; E15)
 
@@ -586,6 +590,8 @@ The checks are `AGENTS.md` §3's five: the import, `check_scripts.sh`, `lint.sh`
 | PR 1 alone, from 4d3d981 | Local | 165 | 81 | 620 | 440,016 | 103.7 s | The same |
 | Prototype (4d3d981): PRs 1–2 | Local | 168 | 83 | 642 | 440,189 | 108.1 s | The same |
 | Prototype (4d3d981) | Run 43692666379 | 168 | 83 | 642 | 440,189 | 83.1 s | The same |
+| `main` (f491e55), PL landed | Local | 195 | 90 | 703 | 437,643 | 109.1 s | The same |
+| PR 1, ported onto f491e55 | Local | 198 | 93 | 726 | 450,611 | 114.3 s | The same |
 
 `lint.sh` found no problem, and would leave every file as it is: 165 for PR 1, 168 at the head. `smoke.sh` printed no error line.
 
@@ -637,11 +643,11 @@ PR 2's:
 
 ### 6.3 Editor warnings
 
-As in POOLS_PLAN.md §6.3, a temporary `override.cfg` raised the warnings at level 1 to errors, and `check_scripts.sh` loaded every script (docs/agents/checks.md §1). On `main` (81f22e3), 532908a and 4d3d981 it found only `main`'s five: `INTEGER_DIVISION` in `world/greybox_atlas.gd`:135, `ui/main.gd` (:62 on `main` and 532908a, :71 on 4d3d981), `test_greybox_atlas.gd`:15 and `test_iso.gd`:42, and `UNUSED_VARIABLE` `junctions` in `test_road_generator_occupancy.gd`:30. Godot reports only a script's first error, so it ran again without `integer_division`: only `junctions` was left, on each. c153f03 had a sixth, in `game_over.gd`:81, which 93a85f5 fixes (§4.3). So no script that PRs 1–2 add or change has a warning.
+As docs/agents/checks.md §1 says, a temporary `override.cfg` raised the warnings at level 1 to errors, and `check_scripts.sh` loaded every script. On `main` (81f22e3), 532908a and 4d3d981 it found only `main`'s five: `INTEGER_DIVISION` in `world/greybox_atlas.gd`:135, `ui/main.gd` (:62 on `main` and 532908a, :71 on 4d3d981), `test_greybox_atlas.gd`:15 and `test_iso.gd`:42, and `UNUSED_VARIABLE` `junctions` in `test_road_generator_occupancy.gd`:30. Godot reports only a script's first error, so it ran again without `integer_division`: only `junctions` was left, on each. c153f03 had a sixth, in `game_over.gd`:81, which 93a85f5 fixes (§4.3). So no script that PRs 1–2 add or change has a warning. On f491e55 and on PR 1's port it found the same five, and PL's `make_art.gd` and `art_checks.gd`, which load `greybox_atlas.gd`, fail with it.
 
 ### 6.4 Verified only in CI or on devices
 
-- **CI.** Each PR's five checks, and its `test` job's time (§6.1). This plan's PR changes only this file.
+- **CI.** Each PR's four required checks, and its `test` job's time (§6.1). This plan's PR changes only this file.
 - **PRs 1–2** show a player nothing new: no road of the game ends before PR 3, and only `--finish` and `--home` reach an arrival. Their tests check the end screen's words (E3, E5), and E16 starts at PR 3.
 - **E16 on the Web, on PRs 3–6, 8, 10 and 13**, by an agent. Start a CI run of the PR's branch with `-f upload-builds=true`, download its Web build and patch its `index.html` (docs/agents/checks.md §4), then play it in Chrome and Firefox, headed under Xvfb, at 360 × 640 and 1280 × 720: `?arg=--autopilot&arg=--finish=3` for a quick arrival and its unlock; `?arg=--autopilot&arg=--area=desert`, which counts nothing, for the last 60 turns, the home stretch and the pier, each with `&arg=--hour=12` and `&arg=--hour=0`; and `?arg=--collected=city` and `=all` for a seal and a full Book, `=all` with `&arg=--home&arg=--autopilot` for the Hitchhiker. Post frames of the arrival, the end screen and the PR's screen on the PR.
 - **E16 on the Fold4**, by the owner, on both screens: the PR's debug APK, with the Start choice from the Desert, as a phone passes no arguments (docs/ZONE_SELECT.md Z1); and the same Web build in the Fold4's Chrome, through `adb reverse tcp:8000 tcp:8000` (docs/M4.md Q6). As `--autopilot` keeps its save in memory, drive `?arg=--play&arg=--finish=3` there by hand too, in a new Incognito tab, to the arrival, and reload with no argument: the collection has the unlocked legend, and from PR 8 the title offers the Road Home. Check the PRs in order (§8).
@@ -665,11 +671,10 @@ The probes ran headless with Godot 4.7.2: P2, P3 and P5 on 93a85f5, whose result
 
 | When | Action | How |
 |---|---|---|
-| Now | Answer Q1–Q19, or accept the defaults | A comment on this plan's PR. Without an answer, the PRs follow the defaults (§3). Q2–Q4 change PR 2; Q17 PRs 1, 2 and 4; Q1 PR 3; Q16 PR 5; Q8 PR 6; Q11–Q13 PRs 7–9; Q14 PR 10; Q10 PR 11; Q15 PR 12; Q9 PR 13; Q18 and Q19 the docs and the landing; Q5–Q7 keep what is |
-| Now | Merge #81, PL's PR 1 | EG's PR 1 starts from it, and targets its branch until it merges (§4.2) |
+| Now | Merge this plan's PR | It approves the plan; agents then land PRs 1–12 as each is ready (§4.2) |
 | Now, if wanted | Play the prototype's arrival | `gh workflow run ci.yml -R pompomon/roadgame --ref eg/prototype -f upload-builds=true`, then docs/agents/checks.md §4's download and patch, and `?arg=--autopilot&arg=--finish=3`, or with `&arg=--home` |
 | On PRs 3–6, 8, 10 and 13 | E16 on the Fold4, on both screens | §6.4 |
-| To land EG | Merge this plan's PR; then PRs 1–13 in turn, each once its base is `main` and its checks pass; then PR 14, from `main` | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.2) |
+| To land EG | Land PR 13 once agents have landed PRs 1–12 and the device checks pass; then PR 14, from `main` | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.2) |
 | After PR 14 | Tag the prototype, which this plan cites, and delete EG's branches | `git fetch origin eg/prototype && git push origin FETCH_HEAD:refs/tags/archive/eg/prototype`, then `git push origin --delete eg/plan eg/prototype` and §4's 14 branches |
 
 ---
@@ -679,14 +684,12 @@ The probes ran headless with Godot 4.7.2: P2, P3 and P5 on 93a85f5, whose result
 | Risk | Impact | Mitigation |
 |---|---|---|
 | The end is far | A run to the pier takes about 10 minutes when nothing goes wrong (P1). Most runs fail long before it, and a failure at turn 250 costs 9 minutes | Every run still pays: a failure meets a legend (PL), and an arrival unlocks one. Departures starts from any area found (PR 7), the strip shows how near the end is (PR 10), and pit stops repair the car (PR 11): Rosewater's catch-up feature. The finish's turn is one number in `schedule.tres` (Q1), to tune on the owner's runs |
-| Two stacks on #81 | PL's legend PRs and EG's change `make_audio.gd`, `test_disasters.gd` and the areas' `.tres` files | In different lines. Simulate each merge-up with `git merge-tree` first; whichever stack lands second merges the other's lines, and sets any `figure` missing (§4.2) |
-| The Hitchhiker waits on PL | PR 13 needs every legend of PL's pools, and PL's PR 11 may land late; PR 14 waits for PR 13's final sync of this plan (§4.2) | PRs 1–12 wait for none of PL's legends: they are the endgame but its 16th page, and this plan documents them until PR 14 |
 | A test drives past the end | Once PR 3 ends the game's road, a test that drives it 300 turns never ends, and takes the machine's memory (P5) | W6's tests drive `Fixtures.endless()`, and `path_until_turn()` errors and stops at a finish (PR 3) |
 | The Road Home looks wrong | It mirrors the road and reverses the areas, so the bridge, the tunnel, the props and the areas' borders meet the road from new sides | `test_drive_to_the_end.gd` drives it home on five seeds (P1), and PR 8's E16 checks it before the title offers it |
-| An older build meets a newer save | Versions 3 and 4 add keys. A build reads a newer save but never writes it (`save_service.gd`:155), so an older PR's APK installed after a newer one saves nothing | Check the PRs in order, or from a new save: the Web build in an Incognito window |
+| An older build meets a newer save | Versions 3, 4 and 5 add keys. A build reads a newer save but never writes it (`save_service.gd`:155), so an older PR's APK installed after a newer one saves nothing | Check the PRs in order, or from a new save: the Web build in an Incognito window |
 | Pit stops change a rule | `plan.md` §2.4: no pickups, and health doesn't regenerate (W24). Pit stops make the end easier for every player | PR 11 comes late, and can be dropped alone (Q10) |
 | The Coast drags | 20 tiles with nothing to do, about 3 s at the speed cap (§5.8) | It's the victory lap, with the sea ahead and PR 4's sunset; if it drags on the Fold4, its length is one number in `coast.tres` |
-| A seed doesn't replay its unlock | The unlock draws from the legends not yet collected, so a seed unlocks another legend on a save with another collection | As with PL's picks (POOLS_PLAN.md §8): a report needs the seed and the collection |
+| A seed doesn't replay its unlock | The unlock draws from the legends not yet collected, so a seed unlocks another legend on a save with another collection | As with PL's picks (docs/POOLS.md §8): a report needs the seed and the collection |
 
 ---
 
@@ -695,5 +698,5 @@ The probes ran headless with Godot 4.7.2: P2, P3 and P5 on 93a85f5, whose result
 - **Souvenirs and lore tiers** (Q7). Each legend could leave something on its page at a second sighting, as Hades' Codex adds lore: the worm's tooth, the bus's ticket.
 - **C's Daily Road and medals** (the brainstorm's option C). A seed of the day, the same for every player, with its pier time on the title, and medals for each area's time. A shared board needs a server, which the game hasn't.
 - **More finishes.** A schedule's `finish` is an id, so a later road can end elsewhere, such as a mountain pass, with arrivals of its own.
-- **Lazy loading** (POOLS_PLAN.md §9). The Coast, the pier and the Hitchhiker add to the boot; time it on PR 13's APK.
+- **Lazy loading** (docs/POOLS.md §9). The Coast, the pier and the Hitchhiker add to the boot; time it on PR 13's APK.
 - **M7.** A long haptic pulse as the car stops on the pier; the postcards as images to share; and the records in a cloud save, where each arrival keeps the best of both.
