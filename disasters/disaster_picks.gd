@@ -1,6 +1,6 @@
 class_name DisasterPicks
 extends RefCounted
-## Each area's disaster for a run (POOLS_PLAN.md §5.1): drawn from the area's pool the first time
+## Each area's disaster for a run (docs/POOLS.md §5.1): drawn from the area's pool the first time
 ## that it's asked for, as the car reaches the area (Q4), and kept for the run. Each area draws on
 ## its own stream, from the run's seed and the area's id, so the pick doesn't depend on when it's
 ## made or on the areas before: --area, the title's Start choice and the tutorial leave it as it is

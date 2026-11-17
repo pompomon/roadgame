@@ -1,5 +1,5 @@
 extends GutTest
-## Baba Yaga's Hut, the Village's third legend (POOLS_PLAN.md §5.4). Dusk falls, and a log hut on
+## Baba Yaga's Hut, the Village's third legend (docs/POOLS.md §5.4). Dusk falls, and a log hut on
 ## chicken legs stomps along beside the road to the car, the dust flying from its feet, and stops
 ## up-screen of it. It turns its front to the car, squats, crouches, and its door opens on the
 ## dark. The car turns to the door and rolls in, smaller and smaller, and fades; the door shuts, and
@@ -748,7 +748,7 @@ func test_it_stops_beside_the_road_wherever_across_it_the_car_stopped() -> void:
 
 
 func test_dusk_falls_and_nothing_of_it_glows() -> void:
-	# Its window is painted, not lit (POOLS_PLAN.md §5.4 Δ): nothing of it adds light, its dust
+	# Its window is painted, not lit (docs/POOLS.md §5.4 Δ): nothing of it adds light, its dust
 	# neither, the car taken or not. It finishes once, the car and the hut gone.
 	var legend := _legend()
 	assert_eq(legend.veil_kind, Legend.Veil.DUSK, "dusk falls")
@@ -767,7 +767,7 @@ func test_dusk_falls_and_nothing_of_it_glows() -> void:
 
 func test_the_hut_and_its_prints_stand_out_from_the_village_by_night() -> void:
 	# Each frame of each sheet, against the Village's road and ground, in each key light, under its
-	# dusk veil (POOLS_PLAN.md §5.6, V15).
+	# dusk veil (docs/POOLS.md §5.6, V15).
 	var legend := _legend()
 	var parts: Dictionary[String, Sprite2D] = {
 		"the hut": _hut(legend),

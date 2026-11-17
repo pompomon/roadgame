@@ -74,7 +74,7 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 
 func test_each_sets_its_id_in_its_scene_where_the_picks_read_it() -> void:
 	# A run's picks weigh a seen disaster by the id that its scene's root sets, read without
-	# instancing it (POOLS_PLAN.md V11). One set only by its script would never weigh less.
+	# instancing it (docs/POOLS.md V11). One set only by its script would never weigh less.
 	for scene: PackedScene in Disasters.scenes():
 		var disaster := Disasters.disaster(self, scene, null, null)
 		var what := scene.resource_path.get_file()
@@ -245,7 +245,7 @@ func test_an_outline_is_a_circle_of_its_radius_on_the_ground() -> void:
 
 func test_only_a_legend_with_a_veil_has_glows() -> void:
 	# Glows add light, so without a veil they clip to white over a light ground (docs/M6.md S10).
-	# Of the ten legends to come, four have no veil (POOLS_PLAN.md V18). So each disaster without one
+	# Of the ten legends to come, four have no veil (docs/POOLS.md V18). So each disaster without one
 	# plays to its end, and nothing that it draws, its particles too, may add light.
 	for scene: PackedScene in Disasters.contract_scenes():
 		var staging := Disasters.stage(self)

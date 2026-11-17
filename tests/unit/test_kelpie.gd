@@ -1,5 +1,5 @@
 extends GutTest
-## The kelpie, the Meadows' second legend (POOLS_PLAN.md §5.4). A dark pool wells up by the road
+## The kelpie, the Meadows' second legend (docs/POOLS.md §5.4). A dark pool wells up by the road
 ## ahead, and a black horse with weed in its mane rises out of it in a splash. It stands, dripping,
 ## and looks at the car, which turns off the road and rolls up to its side, as a rider mounts. It
 ## plunges back into the pool with the car in another splash, and the water closes over them, in
@@ -629,7 +629,7 @@ func test_it_plays_in_the_light_of_the_hour_with_no_veil_and_no_glow() -> void:
 
 func test_the_horse_its_pool_and_the_weed_stand_out_from_the_meadows_by_night() -> void:
 	# Each frame of each sheet, against the Meadows' road and ground, in each key light
-	# (POOLS_PLAN.md §5.6, V15): the horse is black, and its pool dark.
+	# (docs/POOLS.md §5.6, V15): the horse is black, and its pool dark.
 	var kelpie := _kelpie()
 	var parts: Dictionary[String, Sprite2D] = {
 		"the horse": _horse(kelpie),

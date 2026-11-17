@@ -1,5 +1,5 @@
 extends RefCounted
-## The Will-o'-the-Wisp's sheet (POOLS_PLAN.md §5.4), drawn into assets/legends/will_o_wisp/ by
+## The Will-o'-the-Wisp's sheet (docs/POOLS.md §5.4), drawn into assets/legends/will_o_wisp/ by
 ## tools/art/make_legends.gd. `bog_cotton.png`: a tuft of bog cotton as it sprouts, in frames of
 ## the legend's TUFT px, each standing on its bottom row: three short green shoots; taller stalks,
 ## a white bud on each; then full grown, a white head of cotton on each, in shade low on its right,

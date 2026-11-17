@@ -2,7 +2,7 @@ extends GutTest
 ## The legends' art (docs/M6.md §5.7): each sheet, a particle sheet too, is one row of whole frames,
 ## none larger than MAX_FRAME; a legend of the pools draws only its own sheets, from
 ## assets/legends/<id>/; legend_art.gd draws the same pixels on every run, in the palette's colours;
-## and so does each legend's art script (POOLS_PLAN.md §5.6).
+## and so does each legend's art script (docs/POOLS.md §5.6).
 
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const Sample := preload("res://tests/helpers/sample_legend.gd")
@@ -28,7 +28,7 @@ func after_each() -> void:
 		_remove(run)
 
 
-## The sheets that `legend`'s sprites and particles draw, but the glow (POOLS_PLAN.md §5.6). A
+## The sheets that `legend`'s sprites and particles draw, but the glow (docs/POOLS.md §5.6). A
 ## CPUParticles2D's sheet is cut as the material it draws with animates particles, or is one frame.
 ## A shader may cut a sheet any way, so a part drawn with one gives no frames.
 static func _sheets(legend: Legend) -> Array[Sheet]:
@@ -79,7 +79,7 @@ static func _files(dir: String) -> Dictionary[String, PackedByteArray]:
 
 func test_each_sheet_is_one_row_of_whole_frames_none_too_large() -> void:
 	# A sheet cut into frames of the wrong width shows a sliver of the next frame (docs/M6.md N16),
-	# a particle sheet too (POOLS_PLAN.md N29). The legends are in the tree, where a legend may draw
+	# a particle sheet too (docs/POOLS.md N29). The legends are in the tree, where a legend may draw
 	# its sheets as it starts.
 	var sheets := 0
 	for scene: PackedScene in Disasters.contract_scenes():
@@ -103,7 +103,7 @@ func test_each_sheet_is_one_row_of_whole_frames_none_too_large() -> void:
 
 func test_each_legend_of_the_pools_draws_only_its_own_art() -> void:
 	# tools/art/legends/<id>.gd draws its sheets into assets/legends/<id>/ (docs/M6.md §5.7), its
-	# particle sheets too (POOLS_PLAN.md N30).
+	# particle sheets too (docs/POOLS.md N30).
 	var checked := 0
 	for scene: PackedScene in Disasters.scenes():
 		var node := scene.instantiate()
@@ -122,7 +122,7 @@ func test_each_legend_of_the_pools_draws_only_its_own_art() -> void:
 
 
 func test_each_legends_script_draws_the_same_bytes_every_time() -> void:
-	# As tools/art/make_legends.gd:6-7 says, though CI never runs it (POOLS_PLAN.md §5.6, N28). Two
+	# As tools/art/make_legends.gd:6-7 says, though CI never runs it (docs/POOLS.md §5.6, N28). Two
 	# runs, not a run and the committed sheets, which an artist may replace (:5-6).
 	var scripts := 0
 	for file: String in DirAccess.get_files_at(SCRIPTS):

@@ -1,5 +1,5 @@
 extends GutTest
-## The Grim Reaper, the City's third legend (POOLS_PLAN.md §5.4). Dusk falls, and a hooded figure
+## The Grim Reaper, the City's third legend (docs/POOLS.md §5.4). Dusk falls, and a hooded figure
 ## with a scythe steps out at the roadside ahead and beckons the car with one bony hand. The road
 ## opens into a grave in front of the car, and the car rolls forward into it and sinks, as the earth
 ## falls in on it. A gravestone rises at the grave's head, and the Reaper fades away. Its scythe
@@ -981,7 +981,7 @@ func test_it_plays_at_dusk_with_no_glow() -> void:
 
 func test_the_reaper_its_grave_and_its_gravestone_stand_out_from_the_city_by_night() -> void:
 	# Each frame of each sheet, against the City's road and ground, in each key light, under its
-	# dusk veil (POOLS_PLAN.md §5.6, V15).
+	# dusk veil (docs/POOLS.md §5.6, V15).
 	var legend := _legend()
 	var parts: Dictionary[String, Sprite2D] = {
 		"the Reaper": _reaper(legend),

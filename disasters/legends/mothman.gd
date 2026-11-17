@@ -1,6 +1,6 @@
 class_name Mothman
 extends Legend
-## The City's second legend (POOLS_PLAN.md §5.4): night falls, and two red eyes open in a grey
+## The City's second legend (docs/POOLS.md §5.4): night falls, and two red eyes open in a grey
 ## shape that perches at the roadside ahead. It spreads its wings, glides over to the car and takes
 ## it in its talons, and its wingbeats whirl the dust up off the road as it carries the car up and
 ## out of the top of the view. A grey feather drifts down to the road where the car stood, and

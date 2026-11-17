@@ -1,6 +1,6 @@
 class_name Kelpie
 extends Legend
-## The Meadows' second legend (POOLS_PLAN.md §5.4): a dark pool wells up by the road ahead, and a
+## The Meadows' second legend (docs/POOLS.md §5.4): a dark pool wells up by the road ahead, and a
 ## black horse with weed in its mane rises out of it in a splash. It stands, dripping, and looks at
 ## the car, which turns off the road and rolls up to its side, as a rider mounts. It plunges back
 ## into the pool with the car in another splash, and the water closes over them. The still pool

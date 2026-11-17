@@ -1,5 +1,5 @@
 extends RefCounted
-## Baba Yaga's hut's sheets (POOLS_PLAN.md §5.4), drawn into assets/legends/baba_yaga/ by
+## Baba Yaga's hut's sheets (docs/POOLS.md §5.4), drawn into assets/legends/baba_yaga/ by
 ## tools/art/make_legends.gd. `hut.png`: a log hut on a pair of chicken legs, its roof thatched. In
 ## profile, facing the screen's right, a window in its side, it stomps, its near leg raised and then
 ## its far one, and stands; it turns three-quarters, its door in its front; it faces the screen, its

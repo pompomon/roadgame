@@ -2,7 +2,7 @@ class_name DisasterDirector
 extends Node
 ## Plays the end of a run (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1, M3.3). After a wrong or
 ## missed turn it waits for the car to stop, and plays the area's disaster for the run, which its
-## picks drew as the car reached the area (POOLS_PLAN.md §5.1), on World's DisasterLayer, with
+## picks drew as the car reached the area (docs/POOLS.md §5.1), on World's DisasterLayer, with
 ## params from the run's disaster stream. After a crash it shakes the camera and
 ## waits CRASH_SECONDS while the car stops and smokes. Either way it then emits sequence_finished,
 ## once, and DISASTER_TIMEOUT after the end of the run at the latest. Its time comes from
@@ -42,14 +42,14 @@ var _shown := false
 
 
 ## Clears the last run's sequence and takes this run's disaster stream and picks, in which the
-## disasters with ids in `seen` weigh less (POOLS_PLAN.md Q2).
+## disasters with ids in `seen` weigh less (docs/POOLS.md Q2).
 func start_run(run_seed: int, seen: Array[StringName] = []) -> void:
 	clear()
 	_rng = stream(run_seed)
 	picks = DisasterPicks.new(run_seed, seen)
 
 
-## The car reached `area`: its disaster for the run is picked now (POOLS_PLAN.md Q4). A pick is
+## The car reached `area`: its disaster for the run is picked now (docs/POOLS.md Q4). A pick is
 ## the same whenever it's made, so a wrong turn in an area that this missed plays the same one.
 func enter_area(area: AreaDef) -> void:
 	picks.pick(area)

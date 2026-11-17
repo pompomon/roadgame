@@ -153,7 +153,7 @@ const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
 ## How much a disaster that the player has seen, which the collection shows, weighs in its area's
-## pick, against 1 for one not seen yet (POOLS_PLAN.md Q2): half as likely as each unseen one.
+## pick, against 1 for one not seen yet (docs/POOLS.md Q2): half as likely as each unseen one.
 const SEEN_DISASTER_WEIGHT := 0.5
 ## Where a legend's parts draw (docs/M6.md §5.5): a part in the sky, such as the UFO's saucer, over
 ## the props and the car; the veil over them all; and the glows over the veil, which they light.
@@ -237,7 +237,7 @@ const PHANTOM_BUS_APPROACH_TILES := 3.0
 const PHANTOM_BUS_LEAVE_TILES := 2.5
 const PHANTOM_BUS_GAP_TILES := 0.4
 const PHANTOM_BUS_ALPHA := 0.7
-## The Mothman (POOLS_PLAN.md §5.4): its beats, in s: it perches, it unfurls its wings, it swoops
+## The Mothman (docs/POOLS.md §5.4): its beats, in s: it perches, it unfurls its wings, it swoops
 ## over to the car, and it lifts the car out of view. How far ahead of the car it perches, along
 ## the car's road, and how far off the road's middle, in tiles; how far it lifts the car, in px, up
 ## and to the side that the params' direction picks; and how much light its eyes add.
@@ -246,7 +246,7 @@ const MOTHMAN_AHEAD_TILES := 1.5
 const MOTHMAN_SIDE_TILES := 0.6
 const MOTHMAN_LIFT_PX := Vector2(80.0, -480.0)
 const MOTHMAN_EYES_ALPHA := 0.8
-## The Grim Reaper (POOLS_PLAN.md §5.4): its beats, in s: it steps out at the roadside, it beckons,
+## The Grim Reaper (docs/POOLS.md §5.4): its beats, in s: it steps out at the roadside, it beckons,
 ## the road opens into a grave, and the car sinks into it. How far ahead of the car the grave
 ## opens, to its middle, along the car's road; how far off the road's middle the Reaper stands,
 ## beside the grave; and how much farther off it steps out from, in tiles.
@@ -265,7 +265,7 @@ const UFO_DROP_PX := 160.0
 const UFO_ZIP_PX := Vector2(240.0, -360.0)
 const UFO_RIM_HZ := 2.0
 const UFO_BEAM_ALPHA := 0.5
-## The scarecrow (POOLS_PLAN.md §5.4): its beats, in s: it turns its head to the car, its crows
+## The scarecrow (docs/POOLS.md §5.4): its beats, in s: it turns its head to the car, its crows
 ## rise from its arms, they flock over the car, and they carry it off. How far ahead of the car it
 ## stands, along the car's road, and how far off the road's middle, in tiles; how far its crows
 ## carry the car, in px, to the side that the params' direction picks and up the screen, over the
@@ -275,7 +275,7 @@ const SCARECROW_AHEAD_TILES := 1.25
 const SCARECROW_SIDE_TILES := 0.75
 const SCARECROW_CARRY_PX := Vector2(320.0, -80.0)
 const SCARECROW_LIFT_PX := 10.0
-## The Headless Horseman (POOLS_PLAN.md §5.4): his beats, in s: he gallops along the road to the
+## The Headless Horseman (docs/POOLS.md §5.4): his beats, in s: he gallops along the road to the
 ## car, he raises a ball of ghost-fire, he hurls it at the car, and it kindles the car as he gallops
 ## off. How far ahead of the car, along the car's road, he gallops in from and off to, and where he
 ## stops, on the road's middle, in tiles; how high the ghost-fire arcs on its way to the car, in px,
@@ -292,13 +292,13 @@ const HEADLESS_HORSEMAN_GLOW_ALPHA := 0.8
 ## the eyes open, the car dances, and the ring holds; and how much light each toadstool's glow adds.
 const FAIRY_RING_BEATS: Array[float] = [0.6, 0.5, 0.9, 0.4]
 const FAIRY_RING_GLOW_ALPHA := 0.6
-## The kelpie (POOLS_PLAN.md §5.4): its beats, in s: it rises from its pool, it waits, dripping, the
+## The kelpie (docs/POOLS.md §5.4): its beats, in s: it rises from its pool, it waits, dripping, the
 ## car rolls up to its side, and it plunges back in with the car. How far ahead of the car its pool
 ## lies, along the car's road, and how far off the road's middle, in tiles.
 const KELPIE_BEATS: Array[float] = [0.6, 0.5, 0.5, 0.8]
 const KELPIE_AHEAD_TILES := 1.0
 const KELPIE_SIDE_TILES := 0.8
-## The Will-o'-the-Wisp (POOLS_PLAN.md §5.4): its beats, in s: night falls and the wisps glimmer
+## The Will-o'-the-Wisp (docs/POOLS.md §5.4): its beats, in s: night falls and the wisps glimmer
 ## round the car, they circle it, closing in, it shrinks into a light, and it drifts off with them
 ## as they fade. How many turns a second they circle at most; how far they drift, in px, up the
 ## screen and to the side that the params' direction picks; and how much light each adds.
@@ -317,7 +317,7 @@ const WITCH_HEX_BEATS: Array[float] = [0.5, 0.5, 0.6, 0.8]
 const WITCH_HEX_SWOOP_PX := Vector2(-140.0, -200.0)
 const WITCH_HEX_FLY_OFF_PX := Vector2(260.0, -220.0)
 const WITCH_HEX_GLOW_ALPHA := 0.7
-## Frau Holle's well (POOLS_PLAN.md §5.4): its beats, in s: snow starts to fall round the car, a
+## Frau Holle's well (docs/POOLS.md §5.4): its beats, in s: snow starts to fall round the car, a
 ## stone well rises by the road, the car tips towards it, and it falls in as the snow settles on the
 ## well. How far off the road's middle the well stands, beside the car, in tiles; how far the car
 ## tips over, and turns on as it falls, in radians; and how high it hops over the well's rim, in px.
@@ -326,7 +326,7 @@ const FRAU_HOLLE_SIDE_TILES := 0.75
 const FRAU_HOLLE_TIP := 0.5
 const FRAU_HOLLE_TUMBLE := 1.5
 const FRAU_HOLLE_HOP_PX := 24.0
-## Baba Yaga's hut (POOLS_PLAN.md §5.4): its beats, in s: it stomps along the road to the car on its
+## Baba Yaga's hut (docs/POOLS.md §5.4): its beats, in s: it stomps along the road to the car on its
 ## chicken legs, it turns its front to the car, it crouches and its door opens, and the car rolls in
 ## as the door shuts behind it and the hut stomps off. How far off the road's middle it stops,
 ## beside the car, in tiles; and how far along the road it stomps in from, and stomps off, in tiles:
@@ -346,7 +346,7 @@ const DEATH_WORM_BEATS: Array[float] = [0.6, 0.4, 0.6, 0.6, 0.3]
 const DEATH_WORM_BURROW_TILES := 1.75
 const DEATH_WORM_TREMOR := 0.35
 const DEATH_WORM_BURST := 1.0
-## The Marfa Lights (POOLS_PLAN.md §5.4): their beats, in s: they glimmer far off over the desert,
+## The Marfa Lights (docs/POOLS.md §5.4): their beats, in s: they glimmer far off over the desert,
 ## they dance, they come close round the car, and the car follows them off the road until it's
 ## gone. Where they glimmer, in px from the car's ground point, up-screen of it and to the side that
 ## the params' direction picks; how far they drift back across as they dance, in px; how high they
@@ -357,7 +357,7 @@ const MARFA_LIGHTS_DRIFT_PX := 28.0
 const MARFA_LIGHTS_BOB_PX := 6.0
 const MARFA_LIGHTS_DANCE_HZ := 1.0
 const MARFA_LIGHTS_ALPHA := 0.8
-## The chupacabra (POOLS_PLAN.md §5.4): its beats, in s: it creeps out of the scrub, it crouches by
+## The chupacabra (docs/POOLS.md §5.4): its beats, in s: it creeps out of the scrub, it crouches by
 ## the car, it pounces onto it, and it drains it and slinks off. How far down-screen across the
 ## car's road it creeps out from and slinks off to, in tiles: from the road's middle, or from the
 ## car if it stopped down-screen of the middle or off any road (Chupacabra.far()); and where it

@@ -1,6 +1,6 @@
 class_name Scarecrow
 extends Legend
-## Rural's second legend (POOLS_PLAN.md §5.4): a scarecrow stands by the road ahead and turns its
+## Rural's second legend (docs/POOLS.md §5.4): a scarecrow stands by the road ahead and turns its
 ## head to the car. Crows rise from its arms, settle over the car, and carry it off low over the
 ## fields and out of sight. The scarecrow stays, its head turned after it. It has no veil and no
 ## glow: it plays in the light of the hour, and its crows add no light (§5.6).
