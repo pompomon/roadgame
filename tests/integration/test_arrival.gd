@@ -131,6 +131,30 @@ func test_a_bad_finish_argument_is_an_error_and_the_road_is_the_games() -> void:
 		main.get_parent().free()
 
 
+## Copilot's review of #103: a --finish past the road's own end kept the Coast at turn 280 and laid
+## junctions on it, a home stretch with no pool (W17), so a wrong exit there had no disaster to
+## play. Such a number is an error too, and the road is the game's: from the Coast, the pier with no
+## junction before it. The road's own end is a number like any other.
+func test_a_finish_past_the_roads_own_end_is_an_error_and_the_road_is_the_games() -> void:
+	var own := Fixtures.schedule().finish_turn
+	var past := "--finish=%d" % (own + 1)
+	var error := "--finish= needs at most %d turns" % own
+	var main := MainScene.open(self, ["--seed=1", past])
+	assert_push_error(error)
+	assert_same(main.get("_schedule"), main.get("_whole_schedule"))
+	main.get_parent().free()
+	var coast := MainScene.open(self, ["--seed=1", "--area=coast", past])
+	assert_push_error(error, "from the Coast")
+	var generator := MainScene.car(coast).sim.buffer.generator
+	assert_true(generator.finished(), "the pier is laid")
+	assert_eq(generator.turn_count, 0, "with no junction before it")
+	coast.get_parent().free()
+	var whole := MainScene.open(self, ["--seed=1", "--finish=%d" % own])
+	var schedule: AreaSchedule = whole.get("_schedule")
+	assert_eq(schedule.finish_turn, own, "the road's own end")
+	assert_eq(schedule.entries.size(), Fixtures.schedule().entries.size(), "with every area")
+
+
 ## ENDGAME_PLAN.md §5.6: the Road Home starts in the Desert, heading west, with no tutorial, and
 ## ends at home.
 func test_the_road_home_starts_west_and_ends_at_home() -> void:
