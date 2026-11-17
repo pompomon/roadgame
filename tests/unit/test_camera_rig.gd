@@ -344,6 +344,38 @@ func test_a_resize_during_an_arrival_takes_the_new_screens_steps() -> void:
 	assert_eq(rig.zoom, Vector2(2.0, 2.0), "and back to following the car")
 
 
+## Resizes the viewport from `from` to `to`, `pans` pans into an arrival to `rect` placed from the
+## centre of the car's body, and checks that the car's body, with ARRIVAL_MARGIN_PX round it, stays
+## in view on every frame from then on.
+func _assert_resize_keeps_the_car(from: Vector2i, to: Vector2i, rect: Rect2, pans: float) -> void:
+	var delta := 1.0 / 60.0
+	var pan := 1.0 / (Tuning.ARRIVAL_PAN_RATE * delta)
+	var view := _view(from)
+	var rig := _rig(view)
+	rig.snap_to_target()
+	var framed := rig.car.body_rect().grow(Tuning.ARRIVAL_MARGIN_PX)
+	rig.arrive(Rect2(framed.get_center() + rect.position, rect.size))
+	simulate(rig, roundi(pans * pan), delta)
+	view.size = to
+	var hidden := 0
+	for frame: int in ceili(2.0 * pan):
+		hidden += int(not _shown(rig).grow(0.5).encloses(framed))
+		simulate(rig, 1, delta)
+	var at := "%s to %s, %.1f pans in" % [from, to, pans]
+	assert_eq(hidden, 0, at + ": frames without the car's body, and its margin, in view")
+
+
+## A resize during an arrival may leave the camera where the new view doesn't hold the car, so the
+## camera moves at once to keep it: an unfold, from the Fold4's cover to its inner screen, as the
+## pan starts, which shrinks the view to zoom 2's round a camera above the car; a turn of the cover
+## during the pan; and a fold once a car that came slowly has stopped short, at the view's edge.
+func test_a_resize_during_an_arrival_keeps_the_car_in_view() -> void:
+	var far := Rect2(-2000.0, -1500.0, 200.0, 200.0)
+	_assert_resize_keeps_the_car(Vector2i(360, 922), Vector2i(532, 640), WELCOMES[0], 0.0)
+	_assert_resize_keeps_the_car(Vector2i(1639, 640), Vector2i(360, 922), far, 0.8)
+	_assert_resize_keeps_the_car(Vector2i(532, 640), Vector2i(360, 922), far, 3.0)
+
+
 ## A car that came slowly stops short on the pier, too far from the welcome to show both: the view
 ## goes toward the welcome as far as it can with the car's body, and its margin, still in view.
 func test_an_arrival_too_far_to_show_keeps_the_car_in_view() -> void:

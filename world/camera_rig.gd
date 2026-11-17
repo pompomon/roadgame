@@ -147,8 +147,16 @@ func _update_zoom() -> void:
 	zoom = Vector2.ONE / shown
 
 
+## A resize takes the new screen's steps at once. On an arrival, the new view may not hold the car
+## where the camera is: an unfold shrinks the view round a camera above the car, and a fold narrows
+## it round a car at its edge. So the camera moves at once to keep the car's body, and
+## ARRIVAL_MARGIN_PX round it, in view, as the target does.
 func _on_size_changed() -> void:
 	var size := get_viewport_rect().size
 	_follow_zoom = zoom_for(size)
 	_arrival_zoom = arrival_zoom_for(size, _arrival_needs)
 	_update_zoom()
+	if _pan >= 0.0 and car != null:
+		var body := car.body_rect().grow(Tuning.ARRIVAL_MARGIN_PX)
+		var half := size / zoom * 0.5
+		position = position.clamp(body.end - half, body.position + half)
