@@ -1,16 +1,19 @@
 extends Node
 ## The run's state and stats (plan.md §7.3, IMPLEMENTATION_PLAN.md M2.7). The main scene starts and
-## ends runs. Every state change is checked against TRANSITIONS, and EventBus is told.
+## ends runs. Every state change is checked against TRANSITIONS, and EventBus is told. A run that
+## reaches the finish ends in ARRIVED, and then shows its end screen as GAME_OVER, as the others do
+## (ENDGAME_PLAN.md §5.3).
 
-enum State { TITLE, RUNNING, PAUSED, DISASTER, CRASH, GAME_OVER }
+enum State { TITLE, RUNNING, PAUSED, DISASTER, CRASH, GAME_OVER, ARRIVED }
 
 ## The states each state may change to. Quitting to TITLE is allowed from every other state.
 const TRANSITIONS := {
 	State.TITLE: [State.RUNNING],
-	State.RUNNING: [State.PAUSED, State.DISASTER, State.CRASH, State.TITLE],
+	State.RUNNING: [State.PAUSED, State.DISASTER, State.CRASH, State.ARRIVED, State.TITLE],
 	State.PAUSED: [State.RUNNING, State.TITLE],
 	State.DISASTER: [State.GAME_OVER, State.TITLE],
 	State.CRASH: [State.GAME_OVER, State.TITLE],
+	State.ARRIVED: [State.GAME_OVER, State.TITLE],
 	State.GAME_OVER: [State.RUNNING, State.TITLE],
 }
 
@@ -20,6 +23,12 @@ var run_seed := 0
 var turn_index := 0
 ## The farthest the car got along the correct path, in tiles.
 var distance := 0.0
+## The run's time, in seconds: from its start, or the tutorial's end, to its end, without the
+## pauses. The main scene counts it (ENDGAME_PLAN.md §5.3).
+var seconds := 0.0
+## Whether the car has stayed on the road since the run's start, or the tutorial's end: a clean
+## run (ENDGAME_PLAN.md §5.4).
+var clean := true
 ## The area of the farthest correct-path tile the car reached.
 var area_id := &""
 ## Why the run ended, or empty while it goes on.
@@ -44,6 +53,8 @@ func start_run(p_run_seed: int, tutorial := false) -> void:
 	run_seed = p_run_seed
 	turn_index = 0
 	distance = 0.0
+	seconds = 0.0
+	clean = true
 	area_id = &""
 	end_cause = &""
 	in_tutorial = tutorial
@@ -54,6 +65,7 @@ func start_run(p_run_seed: int, tutorial := false) -> void:
 ## The run's tutorial is over: from now on, the run counts as one that started in the City.
 func end_tutorial() -> void:
 	in_tutorial = false
+	clean = true
 
 
 ## The car reached the area `id`, whose first tile begins `start_distance` tiles along the path,
@@ -81,17 +93,22 @@ func resume() -> void:
 	EventBus.paused_changed.emit(false)
 
 
-## Ends the run with one of CarSim's causes: DISASTER for a wrong or missed turn, otherwise CRASH.
+## Ends the run with one of CarSim's causes: DISASTER for a wrong or missed turn, ARRIVED at the
+## finish, otherwise CRASH.
 func end_run(cause: StringName) -> void:
-	var next := State.DISASTER if cause in [CarSim.WRONG_TURN, CarSim.MISSED_TURN] else State.CRASH
+	var next := State.CRASH
+	if cause in [CarSim.WRONG_TURN, CarSim.MISSED_TURN]:
+		next = State.DISASTER
+	elif cause == CarSim.ARRIVAL:
+		next = State.ARRIVED
 	if not _change_to(next):
 		return
 	end_cause = cause
 	EventBus.run_ended.emit(cause, stats())
 
 
-## After the disaster or crash sequence: the main scene calls it when the DisasterDirector's
-## sequence ends (IMPLEMENTATION_PLAN.md M3).
+## After the disaster, crash or arrival sequence: the main scene calls it when the
+## DisasterDirector's sequence ends (IMPLEMENTATION_PLAN.md M3).
 func show_game_over() -> void:
 	_change_to(State.GAME_OVER)
 
@@ -114,6 +131,8 @@ func stats() -> Dictionary:
 		"run_seed": run_seed,
 		"turn_index": turn_index,
 		"distance": distance,
+		"seconds": seconds,
+		"clean": clean,
 		"area_id": area_id,
 		"cause": end_cause,
 		"areas": _area_stats(),

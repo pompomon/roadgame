@@ -25,6 +25,8 @@ func test_starts_in_title() -> void:
 func test_start_run_resets_the_stats() -> void:
 	_state.turn_index = 3
 	_state.distance = 12.0
+	_state.seconds = 9.5
+	_state.clean = false
 	_state.area_id = &"desert"
 	_state.start_run(42)
 	assert_eq(_state.state, GameStateScript.State.RUNNING)
@@ -34,6 +36,8 @@ func test_start_run_resets_the_stats() -> void:
 			"run_seed": 42,
 			"turn_index": 0,
 			"distance": 0.0,
+			"seconds": 0.0,
+			"clean": true,
 			"area_id": &"",
 			"cause": &"",
 			"areas": {},
@@ -80,11 +84,30 @@ func test_end_run_emits_the_cause_and_stats() -> void:
 		"run_seed": 7,
 		"turn_index": 2,
 		"distance": 30.5,
+		"seconds": 0.0,
+		"clean": true,
 		"area_id": &"rural",
 		"cause": CarSim.WRONG_TURN,
 		"areas": {&"rural": {"distance": 0.0, "turns": 0}},
 	}
 	assert_signal_emitted_with_parameters(EventBus, "run_ended", [CarSim.WRONG_TURN, stats])
+
+
+## ENDGAME_PLAN.md §5.3: the end of the road ends the run, and its end screen follows, as after a
+## disaster or a crash.
+func test_an_arrival_ends_the_run_and_its_end_screen_follows() -> void:
+	_state.start_run(5)
+	_state.seconds = 512.25
+	_state.clean = false
+	_state.end_run(CarSim.ARRIVAL)
+	assert_eq(_state.state, GameStateScript.State.ARRIVED)
+	assert_eq(_state.end_cause, CarSim.ARRIVAL)
+	var stats: Dictionary = get_signal_parameters(EventBus, "run_ended")[1]
+	assert_eq([stats["cause"], stats["seconds"], stats["clean"]], [CarSim.ARRIVAL, 512.25, false])
+	_state.pause()
+	assert_push_error("ARRIVED")
+	_state.show_game_over()
+	assert_eq(_state.state, GameStateScript.State.GAME_OVER)
 
 
 func test_game_over_then_retry() -> void:
@@ -193,6 +216,7 @@ func test_every_state_can_quit_to_title() -> void:
 		"PAUSED": [_state.pause],
 		"DISASTER": [_state.end_run.bind(CarSim.MISSED_TURN)],
 		"CRASH": [_state.end_run.bind(CarSim.OFFROAD)],
+		"ARRIVED": [_state.end_run.bind(CarSim.ARRIVAL)],
 		"GAME_OVER": [_state.end_run.bind(CarSim.OFFROAD), _state.show_game_over],
 	}
 	for state_name: String in paths:

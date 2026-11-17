@@ -18,6 +18,7 @@ const END_MESSAGES: Dictionary[StringName, String] = {
 	CarSim.MISSED_TURN: "You missed the turn!",
 	CarSim.HEALTH: "Your car broke down.",
 	CarSim.OFFROAD: "You got lost off the road.",
+	CarSim.ARRIVAL: "You reached the end of the road!",
 }
 ## For a cause without a message, which is an error.
 const FALLBACK_MESSAGE := "Game over"
@@ -60,14 +61,25 @@ func close() -> void:
 	hide()
 
 
-## The run's distance in metres, its turns and the name of `area`, a line each.
+## The run's distance in metres, its turns and the name of `area`, a line each, and after an
+## arrival its time (ENDGAME_PLAN.md §5.3).
 static func stats_text(stats: Dictionary, area: AreaDef) -> String:
 	var distance: float = stats["distance"]
 	var turns: int = stats["turn_index"]
-	return (
+	var text := (
 		"Distance: %s\nTurns: %d\nArea reached: %s"
 		% [Hud.distance_text(distance), turns, area.display_name]
 	)
+	if stats.get("cause", &"") == CarSim.ARRIVAL:
+		text += "\nTime: %s" % time_text(stats.get("seconds", 0.0))
+	return text
+
+
+## `seconds` as minutes and seconds, such as "8:05".
+static func time_text(seconds: float) -> String:
+	var whole := floori(seconds)
+	@warning_ignore("integer_division")
+	return "%d:%02d" % [whole / 60, whole % 60]
 
 
 func _on_retry_pressed() -> void:

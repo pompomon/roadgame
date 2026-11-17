@@ -29,7 +29,7 @@ An isometric pixel-art endless driving roguelike. The player steers a car along 
 4. Taking the wrong exit, or continuing straight through a junction that offers the turn (a "missed turn"), triggers a **disaster** and ends the run.
 5. Driving off the road drains **health** and is limited to short excursions (§2.4). At 0 health the car crashes and the run ends.
 6. Correct turns increment `turnIndex`; straight on at a decoy doesn't. Fixed areas and set pieces start at predefined turn numbers.
-7. The game-over screen shows distance, turns, the area reached and the cause of the run's end.
+7. The game-over screen shows distance, turns, the area reached, the run's time and the cause of the run's end. A road with a finish ends there: a run that reaches it with every turn taken arrives, and the screen says "You reached the end of the road!" (`ENDGAME_PLAN.md` §5.3, W15).
 
 ### 2.2 Controls: free steering with automatic speed
 | Action | Touch (portrait or landscape) | Keyboard |
@@ -59,11 +59,13 @@ An isometric pixel-art endless driving roguelike. The player steers a car along 
 |---|---|---|
 | Disaster | Wrong exit, missed turn, or exceeding the off-road limit near a junction | Area-specific disaster sequence, then game over |
 | Crash | Health reaches 0, or exceeding the off-road limit on a straight | Crash animation, then game over |
+| Arrival | Reaching the road's finish with every junction taken (`ENDGAME_PLAN.md` W1) | The car rolls to a stop on the finish, then game over, with the run's time; a run that drove the whole road unlocks a legend (§2.6) |
 
 ### 2.6 Meta-progression
 None that makes a run easier or harder. Persisted between runs:
 - **Atlas:** areas discovered, plus best distance and best turn count overall and for each area.
 - **Disaster collection:** each disaster type witnessed, with its area and run stats. A disaster in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner.
+- **Arrivals:** for each finish, the runs that drove the whole road from its first area and arrived, the best time, and whether one never left the road. Each unlocks a legend of the road's pools not yet collected, each as likely: it joins the collection as if seen, and weighs as seen in the picks (`ENDGAME_PLAN.md` §5.4, §5.5).
 - Settings (volume, orientation lock, haptics).
 
 ### 2.7 Tutorial
@@ -293,7 +295,9 @@ World's last child, `Lamps`, is a `CanvasGroup` above `Daylight` that lights the
 | `AudioDirector` | Autoload | Volume channels, cross-fades, engine pitch |
 
 ### 7.3 Game state machine
-`TITLE → RUNNING ⇄ PAUSED → (DISASTER | CRASH) → GAME_OVER → RUNNING (retry) / TITLE`
+`TITLE → RUNNING ⇄ PAUSED → (DISASTER | CRASH | ARRIVED) → GAME_OVER → RUNNING (retry) / TITLE`
+
+ARRIVED is a run that reached the road's finish (`ENDGAME_PLAN.md` W2).
 
 ### 7.4 Signals (EventBus)
 - `run_started(seed)`
@@ -342,15 +346,16 @@ tests/         GUT tests
 `user://save.json`:
 ```json
 {
-  "version": 2,
+  "version": 3,
   "atlas": { "city": { "discovered": true, "best_distance": 0, "best_turns": 0 } },
   "best": { "distance": 0, "turns": 0 },
-  "disasters": { "phantom_bus": { "seen": 3, "first_area": "city", "first_distance": 0, "first_turns": 0 } },
+  "disasters": { "phantom_bus": { "seen": 3, "first_area": "city", "first_distance": 0, "first_turns": 0, "unlocked": false } },
+  "arrivals": { "pier": { "count": 1, "best_seconds": 581.0, "clean": false } },
   "settings": { "music": 0.8, "sfx": 1.0, "ambient": 0.8, "haptics": true, "orientation": "sensor" },
   "tutorial": { "done": false }
 }
 ```
-The file has a version number so it can be migrated when the format changes. It is written on `run_ended`, when settings change, and as the tutorial is done (§2.7).
+The file has a version number so it can be migrated when the format changes. Version 3 adds `arrivals` and each disaster's `unlocked` (`ENDGAME_PLAN.md` W3). It is written on `run_ended`, when settings change, as the tutorial is done (§2.7), and on an arrival that counts.
 
 ---
 
@@ -419,7 +424,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Buffer | 55 tiles at start, refill below 37, keep 37–55 lookahead and 20 tiles behind |
 | Areas | Fixed schedule by turn count; the last area continues forever |
 | Orientation | Portrait default, runtime orientation change supported |
-| Meta-progression | None; Atlas and disaster collection only |
+| Meta-progression | None that makes a run easier or harder: the Atlas, the disaster collection, and the arrivals, each of which unlocks a legend (`ENDGAME_PLAN.md` §5.4, §5.5) |
 | Pickups | None in the MVP |
 | Speed | Rises on straights and with distance; automatic braking before every junction |
 | Off-road | Corner cutting within 2 tiles is damage only; the car cannot stay off-road longer than 2 tiles |

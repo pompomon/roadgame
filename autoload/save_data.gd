@@ -1,8 +1,9 @@
 class_name SaveData
 extends RefCounted
 ## What the save file holds (plan.md §9, IMPLEMENTATION_PLAN.md M5.4): the atlas of areas, the best
-## run, the disaster collection, the settings and whether the tutorial is done. SaveService reads
-## and writes the file; this class only turns text into data and back, and records runs.
+## run, the disaster collection, the arrivals at each road's finish (ENDGAME_PLAN.md §5.4), the
+## settings and whether the tutorial is done. SaveService reads and writes the file; this class
+## only turns text into data and back, and records runs.
 ## load_json() takes any text and keeps what it can: it migrates an older version, and a value of
 ## the wrong type or out of range falls back to its default with a note in problems (docs/M5.md
 ## L5). Distances are in tiles, as in GameState.
@@ -10,7 +11,7 @@ extends RefCounted
 ## What load_json() made of the text.
 enum Status { LOADED, CORRUPT, NEWER }
 
-const VERSION := 2
+const VERSION := 3
 const ORIENTATIONS: Array[String] = ["sensor", "portrait", "landscape"]
 const DEFAULT_SETTINGS := {
 	"music": 0.8,
@@ -24,9 +25,15 @@ const VOLUMES: Array[String] = ["music", "sfx", "ambient"]
 ## An area of the atlas: whether a run has reached it, and the most distance and turns a run made
 ## in it (docs/M5.md L8).
 const ATLAS_ENTRY := {"discovered": false, "best_distance": 0.0, "best_turns": 0}
-## A disaster of the collection: how often it was seen, and where and in which run it was first
-## seen (plan.md §2.6).
-const DISASTER_ENTRY := {"seen": 0, "first_area": "", "first_distance": 0.0, "first_turns": 0}
+## A disaster of the collection: how often it was seen, where and in which run it was first seen
+## (plan.md §2.6), and whether an arrival unlocked it (ENDGAME_PLAN.md §5.5).
+const DISASTER_ENTRY := {
+	"seen": 0, "first_area": "", "first_distance": 0.0, "first_turns": 0, "unlocked": false
+}
+## The arrivals at a road's finish, by the finish's id (ENDGAME_PLAN.md §5.4): how many runs that
+## drove the whole road arrived, the least seconds one took, 0 before the first, and whether one
+## never left the road.
+const ARRIVAL_ENTRY := {"count": 0, "best_seconds": 0.0, "clean": false}
 const BEST := {"distance": 0.0, "turns": 0}
 ## Whether the player has finished the tutorial, which runs start with until then
 ## (docs/TUTORIAL.md §5.6).
@@ -41,6 +48,8 @@ var atlas: Dictionary[String, Dictionary] = {}
 var best: Dictionary = BEST.duplicate()
 ## By disaster id.
 var disasters: Dictionary[String, Dictionary] = {}
+## By the finish's id.
+var arrivals: Dictionary[String, Dictionary] = {}
 var settings: Dictionary = DEFAULT_SETTINGS.duplicate()
 var tutorial: Dictionary = TUTORIAL.duplicate()
 ## What load_json() could not read and replaced with defaults.
@@ -50,7 +59,7 @@ var problems := PackedStringArray()
 ## How each older version of the file becomes the next: {from_version: Callable(Dictionary) ->
 ## Dictionary}. migrate() then sets the version.
 static func migrations() -> Dictionary[int, Callable]:
-	return {0: _v0_to_v1, 1: _v1_to_v2}
+	return {0: _v0_to_v1, 1: _v1_to_v2, 2: _v2_to_v3}
 
 
 ## Version 0 is a file with no "version" (docs/M5.md Q8). It has plan.md §9's keys, and the keys
@@ -76,6 +85,12 @@ static func _v1_to_v2(data: Dictionary) -> Dictionary:
 	return data
 
 
+## Version 3 adds the arrivals and the disasters' "unlocked" (ENDGAME_PLAN.md §5.4, §5.5). Both
+## come from the defaults: no run has arrived, and no disaster was unlocked.
+static func _v2_to_v3(data: Dictionary) -> Dictionary:
+	return data
+
+
 ## `data` of version `from`, brought to version `to` by the migrations in `table`, one version at
 ## a time. A version that has no migration is an error: the data is then dropped.
 static func migrate(
@@ -98,6 +113,7 @@ func load_json(text: String) -> Status:
 	atlas = {}
 	best = BEST.duplicate()
 	disasters = {}
+	arrivals = {}
 	settings = DEFAULT_SETTINGS.duplicate()
 	tutorial = TUTORIAL.duplicate()
 	problems = PackedStringArray()
@@ -127,6 +143,7 @@ func to_json() -> String:
 		"atlas": atlas,
 		"best": best,
 		"disasters": disasters,
+		"arrivals": arrivals,
 		"settings": settings,
 		"tutorial": tutorial,
 	}
@@ -159,14 +176,45 @@ func record_disaster(id: StringName, area_id: StringName, stats: Dictionary) -> 
 	disasters[String(id)] = entry
 
 
-## The ids of the disasters seen at least once: those that the collection shows (plan.md §2.6),
-## and that weigh less in a run's picks (docs/POOLS.md Q2, Q3).
+## The ids of the disasters seen at least once, or unlocked: those that the collection shows
+## (plan.md §2.6, ENDGAME_PLAN.md W14), and that weigh less in a run's picks (docs/POOLS.md Q2,
+## Q3).
 func seen_disasters() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for id: String in disasters:
-		if disasters[id]["seen"] > 0:
+		if disasters[id]["seen"] > 0 or disasters[id]["unlocked"]:
 			ids.append(StringName(id))
 	return ids
+
+
+## Records that a run that drove the whole road reached the finish `finish` with `stats`, from
+## GameState.stats(): one more arrival, the best time and the clean run.
+func record_arrival(finish: StringName, stats: Dictionary) -> void:
+	var entry: Dictionary = arrivals.get(String(finish), ARRIVAL_ENTRY.duplicate())
+	var seconds: float = stats.get("seconds", 0.0)
+	entry["count"] += 1
+	if entry["best_seconds"] == 0.0 or seconds < entry["best_seconds"]:
+		entry["best_seconds"] = seconds
+	entry["clean"] = entry["clean"] or bool(stats.get("clean", false))
+	arrivals[String(finish)] = entry
+
+
+## Unlocks the disaster `id` for the collection, which then shows it as if it was seen
+## (ENDGAME_PLAN.md §5.5).
+func unlock_disaster(id: StringName) -> void:
+	var entry: Dictionary = disasters.get(String(id), DISASTER_ENTRY.duplicate())
+	entry["unlocked"] = true
+	disasters[String(id)] = entry
+
+
+## The arrivals at the finish `finish`, or at every finish without one.
+func arrival_count(finish := &"") -> int:
+	if finish != &"":
+		return arrivals.get(String(finish), ARRIVAL_ENTRY)["count"]
+	var count := 0
+	for entry: Dictionary in arrivals.values():
+		count += entry["count"]
+	return count
 
 
 ## Sets a setting. An unknown key, or a value it can't take, is an error and changes nothing.
@@ -190,6 +238,10 @@ func _read(root: Dictionary) -> void:
 		var entry := _entry(root["disasters"][id], DISASTER_ENTRY, "disasters." + id)
 		if not entry.is_empty():
 			disasters[id] = entry
+	for id: String in _section(root, "arrivals"):
+		var entry := _entry(root["arrivals"][id], ARRIVAL_ENTRY, "arrivals." + id)
+		if not entry.is_empty():
+			arrivals[id] = entry
 	tutorial = _entry(root.get("tutorial", {}), TUTORIAL, "tutorial")
 	if tutorial.is_empty():
 		tutorial = TUTORIAL.duplicate()
