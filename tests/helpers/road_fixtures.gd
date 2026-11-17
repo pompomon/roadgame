@@ -100,3 +100,18 @@ static func path_until_turn(gen: RoadGenerator, turns: int) -> Array[RoadTile]:
 	while gen.turn_count < turns:
 		path.append(gen.next_tile())
 	return path
+
+
+## A buffer that holds only a road along the tile x axis, from cell (1, 0) to a dead end in (3, 0),
+## and, past a strip of field beyond its end, a road across its line in (4, 0).
+static func dead_end_short_of_a_road() -> RoadBuffer:
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, schedule()))
+	var occupancy := buffer.generator.occupancy
+	var along := Heading.bit(Heading.E) | Heading.bit(Heading.W)
+	occupancy.claim(RoadTile.new(Vector2i(1, 0), RoadTile.Type.STRAIGHT, Heading.E, along))
+	occupancy.claim(RoadTile.new(Vector2i(2, 0), RoadTile.Type.STRAIGHT, Heading.E, along))
+	var back := Heading.bit(Heading.W)
+	occupancy.claim(RoadTile.new(Vector2i(3, 0), RoadTile.Type.DEAD_END, Heading.E, back))
+	var across := Heading.bit(Heading.N) | Heading.bit(Heading.S)
+	occupancy.claim(RoadTile.new(Vector2i(4, 0), RoadTile.Type.STRAIGHT, Heading.S, across))
+	return buffer

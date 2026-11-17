@@ -36,15 +36,15 @@ func test_each_area_has_its_pool_of_disasters() -> void:
 	# plan.md §4.3 and IMPLEMENTATION_PLAN.md M4.2.
 	var pools := {
 		# The City's.
-		&"city": [&"phantom_bus", &"mothman"],
+		&"city": [&"phantom_bus", &"mothman", &"grim_reaper"],
 		# Rural's.
-		&"rural": [&"ufo", &"scarecrow"],
+		&"rural": [&"ufo", &"scarecrow", &"headless_horseman"],
 		# The Meadows'.
-		&"meadows": [&"fairy_ring"],
+		&"meadows": [&"fairy_ring", &"kelpie", &"will_o_wisp"],
 		# The Village's.
-		&"village": [&"witch_hex"],
+		&"village": [&"witch_hex", &"frau_holle", &"baba_yaga"],
 		# The Desert's.
-		&"desert": [&"death_worm"],
+		&"desert": [&"death_worm", &"marfa_lights"],
 	}
 	var areas: Array = []
 	for entry: AreaScheduleEntry in Fixtures.schedule().entries:

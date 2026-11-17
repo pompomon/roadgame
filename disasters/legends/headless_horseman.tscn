@@ -1,0 +1,76 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://disasters/legends/headless_horseman.gd" id="1_horseman"]
+[ext_resource type="Texture2D" path="res://disasters/glow.tres" id="2_glow"]
+[ext_resource type="Material" path="res://disasters/glow_material.tres" id="3_add"]
+[ext_resource type="Texture2D" path="res://assets/legends/headless_horseman/horseman.png" id="4_horseman"]
+[ext_resource type="Texture2D" path="res://assets/legends/headless_horseman/ghost_fire.png" id="5_fire"]
+[ext_resource type="Texture2D" path="res://assets/legends/headless_horseman/hoofprints.png" id="6_prints"]
+
+[sub_resource type="Gradient" id="Gradient_dust"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.5)
+colors = PackedColorArray(0.545098, 0.431373, 0.282353, 1, 0.862745, 0.756863, 0.501961, 1)
+
+[sub_resource type="Gradient" id="Gradient_fade"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[node name="HeadlessHorseman" type="Node2D" node_paths=PackedStringArray("standing")]
+script = ExtResource("1_horseman")
+veil_kind = 1
+standing = [NodePath("Horseman")]
+id = &"headless_horseman"
+display_name = "Headless Horseman"
+fate = "The Horseman's ghost-fire took you."
+lore = "Sleepy Hollow, 1820: a headless rider gallops by night, seeking his head."
+
+[node name="Prints" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("6_prints")
+hframes = 5
+
+[node name="Horseman" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("4_horseman")
+centered = false
+offset = Vector2(-32, -64)
+hframes = 5
+
+[node name="Dust" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 24
+lifetime = 0.5
+explosiveness = 0.2
+texture = ExtResource("2_glow")
+emission_shape = 3
+emission_rect_extents = Vector2(14, 3)
+direction = Vector2(0, -1)
+spread = 60.0
+gravity = Vector2(0, -6)
+initial_velocity_min = 8.0
+initial_velocity_max = 20.0
+scale_amount_min = 0.1
+scale_amount_max = 0.25
+color_ramp = SubResource("Gradient_fade")
+color_initial_ramp = SubResource("Gradient_dust")
+
+[node name="Fire" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+z_index = 1
+texture = ExtResource("5_fire")
+hframes = 4
+
+[node name="Glow" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+self_modulate = Color(0.588235, 0.941176, 0.745098, 1)
+z_index = 3
+z_as_relative = false
+material = ExtResource("3_add")
+texture = ExtResource("2_glow")

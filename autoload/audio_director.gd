@@ -33,15 +33,22 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 	# The City's legends.
 	&"phantom_bus": preload("res://assets/audio/sfx/phantom_bus.wav"),
 	&"mothman": preload("res://assets/audio/sfx/mothman.wav"),
+	&"grim_reaper": preload("res://assets/audio/sfx/grim_reaper.wav"),
 	# Rural's legends.
 	&"ufo": preload("res://assets/audio/sfx/ufo.wav"),
 	&"scarecrow": preload("res://assets/audio/sfx/scarecrow.wav"),
+	&"headless_horseman": preload("res://assets/audio/sfx/headless_horseman.wav"),
 	# The Meadows' legends.
 	&"fairy_ring": preload("res://assets/audio/sfx/fairy_ring.wav"),
+	&"kelpie": preload("res://assets/audio/sfx/kelpie.wav"),
+	&"will_o_wisp": preload("res://assets/audio/sfx/will_o_wisp.wav"),
 	# The Village's legends.
 	&"witch_hex": preload("res://assets/audio/sfx/witch_hex.wav"),
+	&"frau_holle": preload("res://assets/audio/sfx/frau_holle.wav"),
+	&"baba_yaga": preload("res://assets/audio/sfx/baba_yaga.wav"),
 	# The Desert's legends.
 	&"death_worm": preload("res://assets/audio/sfx/death_worm.wav"),
+	&"marfa_lights": preload("res://assets/audio/sfx/marfa_lights.wav"),
 }
 
 ## Off on the Dummy driver, which headless runs use (the tests and smoke.sh): a sound that still
