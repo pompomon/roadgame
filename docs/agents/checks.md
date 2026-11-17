@@ -44,7 +44,7 @@ Check each thing where it's quickest to check faithfully. Leave the owner only w
 CI uploads builds only from a run started by hand, and keeps them 1 day. Start one only when you have something to check in it, and reuse it while nothing reaches it. The exports leave out `tests/`, `addons/gut/` and Markdown, so a build is current if `git diff --name-only <built> HEAD -- . ':!tests' ':!addons/gut' ':!*.md'` prints nothing. They leave out `tools/` too (`export_presets.cfg`), but `tools/ci/export.sh` makes them, so the check keeps it.
 
 ```bash
-gh workflow run ci.yml -R pompomon/roadgame --ref <branch> -f upload-builds=true   # Web and Android artifacts, kept 1 day
+gh workflow run ci.yml -R pompomon/roadgame --ref <branch> -f upload-builds=true   # Web and APK artifacts, kept 1 day
 rm -rf /tmp/roadgame-web /tmp/roadgame-apk                                        # gh won't overwrite an earlier download
 gh run download <run-id> -R pompomon/roadgame -n web -D /tmp/roadgame-web
 gh run download <run-id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk

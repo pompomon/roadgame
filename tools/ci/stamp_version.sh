@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # stamp_version.sh <[v]MAJOR.MINOR.PATCH>: write the version to project.godot
-# (application/config/version) and the Android presets (version/name, version/code per D9).
+# (application/config/version) and the Android preset (version/name, version/code per D9).
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
