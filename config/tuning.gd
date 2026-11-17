@@ -357,3 +357,13 @@ const MARFA_LIGHTS_DRIFT_PX := 28.0
 const MARFA_LIGHTS_BOB_PX := 6.0
 const MARFA_LIGHTS_DANCE_HZ := 1.0
 const MARFA_LIGHTS_ALPHA := 0.8
+## The chupacabra (POOLS_PLAN.md §5.4): its beats, in s: it creeps out of the scrub, it crouches by
+## the car, it pounces onto it, and it drains it and slinks off. How far down-screen across the
+## car's road it creeps out from and slinks off to, in tiles: from the road's middle, or from the
+## car if it stopped down-screen of the middle or off any road (Chupacabra.far()); and where it
+## crouches, in tiles from the car's ground point, the same way. How much higher than the straight
+## way it leaps, at the leap's middle, in px.
+const CHUPACABRA_BEATS: Array[float] = [0.6, 0.4, 0.5, 0.9]
+const CHUPACABRA_FROM_TILES := 1.2
+const CHUPACABRA_BY_TILES := 0.6
+const CHUPACABRA_LEAP_PX := 14.0

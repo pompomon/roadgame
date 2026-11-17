@@ -1,0 +1,58 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://disasters/legends/chupacabra.gd" id="1_chupacabra"]
+[ext_resource type="Texture2D" path="res://disasters/glow.tres" id="2_glow"]
+[ext_resource type="Texture2D" path="res://assets/legends/chupacabra/beast.png" id="3_beast"]
+[ext_resource type="Texture2D" path="res://assets/legends/chupacabra/husk.png" id="4_husk"]
+
+[sub_resource type="Gradient" id="Gradient_dust"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.34, 0.67)
+colors = PackedColorArray(0.639216, 0.666667, 0.709804, 1, 0.462745, 0.490196, 0.541176, 1, 0.203922, 0.188235, 0.235294, 1)
+
+[sub_resource type="Gradient" id="Gradient_fade"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[node name="Chupacabra" type="Node2D" node_paths=PackedStringArray("standing")]
+script = ExtResource("1_chupacabra")
+standing = [NodePath("Husk"), NodePath("Beast")]
+id = &"chupacabra"
+display_name = "Chupacabra"
+fate = "The chupacabra drank you dry."
+lore = "Puerto Rico, 1995: the goat-sucker, a beast that hunts by night."
+
+[node name="Husk" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("4_husk")
+centered = false
+offset = Vector2(-18, -18)
+hframes = 17
+
+[node name="Beast" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("3_beast")
+centered = false
+offset = Vector2(-24, -40)
+hframes = 5
+
+[node name="Dust" type="CPUParticles2D" parent="."]
+unique_name_in_owner = true
+z_index = 1
+emitting = false
+amount = 20
+lifetime = 0.5
+texture = ExtResource("2_glow")
+emission_shape = 3
+emission_rect_extents = Vector2(12, 5)
+direction = Vector2(0, -1)
+spread = 70.0
+gravity = Vector2(0, 20)
+initial_velocity_min = 6.0
+initial_velocity_max = 14.0
+scale_amount_min = 0.06
+scale_amount_max = 0.14
+color_ramp = SubResource("Gradient_fade")
+color_initial_ramp = SubResource("Gradient_dust")
