@@ -104,13 +104,15 @@ func _exit_tree() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if GameState.state == GameState.State.RUNNING:
-		if not GameState.in_tutorial:
-			GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
-			# The run's clock, which stops while it pauses (ENDGAME_PLAN.md §5.3).
-			GameState.seconds += delta
-		# The zone's clock runs with the run, the tutorial's too, and stops when it ends or pauses
-		# (docs/DAYNIGHT.md §5.4). Daylight shows the light after the camera has moved.
+	var running := GameState.state == GameState.State.RUNNING
+	if running and not GameState.in_tutorial:
+		GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
+		# The run's clock, which stops while it pauses (ENDGAME_PLAN.md §5.3).
+		GameState.seconds += delta
+	# The zone's clock runs with the run, the tutorial's too, and stops when it ends or pauses
+	# (docs/DAYNIGHT.md §5.4). On an arrival it stands at the sunset, and the light goes on toward
+	# it (ENDGAME_PLAN.md §5.8). Daylight shows the light after the camera has moved.
+	if running or GameState.state == GameState.State.ARRIVED:
 		_daylight.cycle.advance(delta)
 
 
@@ -240,6 +242,7 @@ func _clear_run() -> void:
 	_game_over.close()
 	_director.clear()
 	_camera.stop_shake()
+	_camera.end_arrival()
 	_camera.car = null
 	_world.car = null
 	_car.free()
@@ -266,7 +269,7 @@ func _on_crashed(cause: StringName) -> void:
 
 ## The car reached the finish (ENDGAME_PLAN.md §5.3): the run ends in an arrival, and the car rolls
 ## to a stop. A run that drove the whole road, from the route's first area, counts the arrival, and
-## unlocks a legend that the player hasn't collected, at random (§5.5).
+## unlocks a legend that the player hasn't collected, at random (§5.5). Then the scene (§5.8).
 func _on_arrived() -> void:
 	_end_run(CarSim.ARRIVAL)
 	if _drove_whole_road():
@@ -274,7 +277,18 @@ func _on_arrived() -> void:
 		var id := LegendUnlock.pick(_whole_schedule, data.seen_disasters(), GameState.run_seed)
 		SaveService.record_arrival(_schedule.finish, GameState.stats(), id)
 		_fate = LegendUnlock.text(_whole_schedule, id)
+	_welcome()
 	_director.play_arrival(_car, _camera)
+
+
+## The arrival's scene (ENDGAME_PLAN.md §5.8): the sun sets, and at the pier the legends collected,
+## the one just unlocked too, welcome the car, as the camera eases to show them.
+func _welcome() -> void:
+	_daylight.cycle.hold(Tuning.ARRIVAL_HOUR)
+	var pier := _world.set_piece_at(_buffer.generator.finish_index) as Pier
+	if pier != null:
+		pier.welcome(_whole_schedule, SaveService.data().seen_disasters())
+		_camera.arrive(pier.welcome_rect)
 
 
 ## Whether the run started in the route's first area: not a run from another area (ZS, and

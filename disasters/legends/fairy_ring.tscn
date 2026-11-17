@@ -11,10 +11,12 @@ interpolation_mode = 1
 offsets = PackedFloat32Array(0, 0.5)
 colors = PackedColorArray(0.745098, 0.588235, 0.901961, 1, 0.588235, 0.941176, 0.745098, 1)
 
-[node name="FairyRing" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="FairyRing" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_ring")
 veil_kind = 1
 standing = [NodePath("Toadstool")]
+figure = NodePath("Toadstool")
+figure_frame = 2
 id = &"fairy_ring"
 display_name = "Fairy Ring"
 fate = "The fair folk made you dance forever."

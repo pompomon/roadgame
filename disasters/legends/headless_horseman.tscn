@@ -16,10 +16,11 @@ colors = PackedColorArray(0.545098, 0.431373, 0.282353, 1, 0.862745, 0.756863, 0
 offsets = PackedFloat32Array(0, 0.6, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="HeadlessHorseman" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="HeadlessHorseman" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_horseman")
 veil_kind = 1
 standing = [NodePath("Horseman")]
+figure = NodePath("Horseman")
 id = &"headless_horseman"
 display_name = "Headless Horseman"
 fate = "The Horseman's ghost-fire took you."

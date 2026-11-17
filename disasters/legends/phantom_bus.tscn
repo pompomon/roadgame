@@ -10,10 +10,11 @@
 offsets = PackedFloat32Array(0, 0.3, 1)
 colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 0.5, 1, 1, 1, 0)
 
-[node name="PhantomBus" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="PhantomBus" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_bus")
 veil_kind = 1
 standing = [NodePath("Bus")]
+figure = NodePath("Bus")
 id = &"phantom_bus"
 display_name = "Phantom Bus"
 fate = "The bus with no driver took you aboard."

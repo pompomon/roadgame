@@ -574,6 +574,23 @@ func test_the_finish_draws_its_set_piece_and_nothing_beyond_it() -> void:
 		assert_eq(pier.rect, cells.merge(Rect2(_buffer.path_tile(last).cell, Vector2.ONE)))
 
 
+func test_set_piece_at_is_the_set_piece_over_a_path_index() -> void:
+	# main.gd finds the pier at the finish's index, to welcome the car (ENDGAME_PLAN.md §5.8).
+	var schedule := Fixtures.schedule().ending_at(2, &"pier")
+	var gen := RoadGenerator.new(11, schedule)
+	_buffer = RoadBuffer.new(gen)
+	_world.build(schedule)
+	_world.bind(_buffer)
+	_buffer.start()
+	var pier := _world.get_node("%SetPieces").get_child(0) as Pier
+	var finish := gen.finish_index
+	var last := finish + Tuning.FINISH_TILES - 1
+	assert_eq(_world.set_piece_at(finish), pier, "its first tile")
+	assert_eq(_world.set_piece_at(last), pier, "its last")
+	assert_null(_world.set_piece_at(finish - 1), "the tile before it")
+	assert_null(_world.set_piece_at(last + 1), "the road beyond it")
+
+
 func test_every_finish_has_its_scene() -> void:
 	# The game's road, the Road Home, and main's --finish on a road without a finish each end in
 	# their set piece, which build() checks for, as it checks the areas' (ENDGAME_PLAN.md §5.7, §5.8).

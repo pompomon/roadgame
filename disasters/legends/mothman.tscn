@@ -15,10 +15,12 @@ colors = PackedColorArray(0.54902, 0.580392, 0.631373, 1, 0.639216, 0.666667, 0.
 offsets = PackedFloat32Array(0, 0.6, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="Mothman" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="Mothman" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_mothman")
 veil_kind = 2
 standing = [NodePath("Feather"), NodePath("Moth")]
+figure = NodePath("Moth")
+figure_frame = 1
 id = &"mothman"
 display_name = "Mothman"
 fate = "Mothman carried you off."

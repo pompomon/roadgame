@@ -14,10 +14,12 @@ colors = PackedColorArray(0.545098, 0.431373, 0.282353, 1, 0.666667, 0.54902, 0.
 offsets = PackedFloat32Array(0, 0.8, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="GrimReaper" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="GrimReaper" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_grim_reaper")
 veil_kind = 1
 standing = [NodePath("Reaper"), NodePath("Stone")]
+figure = NodePath("Reaper")
+figure_frame = 3
 id = &"grim_reaper"
 display_name = "Grim Reaper"
 fate = "The Reaper came for you."

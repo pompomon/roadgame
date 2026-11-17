@@ -21,16 +21,29 @@ var light := Color.WHITE
 ## foot, and how dark they are.
 var shadow := Vector2.ZERO
 var shadow_alpha := 0.0
+## The hour that hold() stands the clock at, or -1 while it runs.
+var _held_hour := -1.0
 
 
-## Starts the clock of a zone whose day lasts `p_day_seconds`, at start_hour. The light shown
-## doesn't jump: advance() moves it to the new hour's at the rate.
+## Starts the clock of a zone whose day lasts `p_day_seconds`, at start_hour, and ends a hold. The
+## light shown doesn't jump: advance() moves it to the new hour's at the rate.
 func enter(p_day_seconds: float) -> void:
 	seconds = 0.0
+	_held_hour = -1.0
 	day_seconds = p_day_seconds
 	if not is_finite(p_day_seconds) or p_day_seconds <= 0.0:
 		push_error("DayCycle: a day of %.2f s; the clock stands still" % p_day_seconds)
 		day_seconds = 0.0
+
+
+## Stands the clock at `p_hour` until the next enter(), as at an arrival (ENDGAME_PLAN.md §5.8):
+## advance() moves the light shown toward the hour's at the rate, as it does when a zone sets the
+## clock back, and the shadows as they always do.
+func hold(p_hour: float) -> void:
+	if not is_finite(p_hour):
+		push_error("DayCycle: can't hold the clock at %.2f" % p_hour)
+		return
+	_held_hour = fposmod(p_hour, 24.0)
 
 
 ## Shows the light and the shadows of the hour at once: a new run is a cut.
@@ -61,6 +74,8 @@ func advance(delta: float) -> void:
 
 
 func hour() -> float:
+	if _held_hour >= 0.0:
+		return _held_hour
 	if day_seconds <= 0.0:
 		return start_hour
 	return fposmod(start_hour + 24.0 * seconds / day_seconds, 24.0)

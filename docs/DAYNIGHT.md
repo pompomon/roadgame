@@ -78,7 +78,7 @@ Six keys, `Tuning.LIGHT_HOURS` and `LIGHT_COLORS`: `LIGHT_NIGHT` at 04:30, `LIGH
 
 ### 5.4 Zones and runs
 
-`_start_run()` enters the first zone, then calls `snap()` and Daylight's `refresh()`: a run starts with a cut. `_physics_process()` advances the clock while `GameState` is RUNNING, tutorial included. `_on_area_changed()` calls `enter(area.day_seconds)`, as `_on_tutorial_completed()` does (C21). At game over or a pause the clock stops, and the light stays.
+`_start_run()` enters the first zone, then calls `snap()` and Daylight's `refresh()`: a run starts with a cut. `_physics_process()` advances the clock while `GameState` is RUNNING, tutorial included. `_on_area_changed()` calls `enter(area.day_seconds)`, as `_on_tutorial_completed()` does (C21). At game over or a pause the clock stops, and the light stays. On an arrival, `hold(Tuning.ARRIVAL_HOUR)` stands the clock at the sunset, and `_physics_process()` advances it in ARRIVED too, so the light goes on toward the sunset's at `LIGHT_MAX_RATE`; the next `enter()` ends the hold (ENDGAME_PLAN.md §5.8).
 
 ### 5.5 The veil
 

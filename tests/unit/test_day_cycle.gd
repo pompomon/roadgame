@@ -183,6 +183,52 @@ func test_a_day_of_no_seconds_is_an_error_and_stops_the_clock() -> void:
 		assert_eq(cycle.hour(), Tuning.DAY_START_HOUR, "%.0f s: the clock stands still" % day)
 
 
+func test_a_hold_stands_the_clock_and_the_light_goes_to_its_hour_at_the_rate() -> void:
+	# The arrival's sunset (ENDGAME_PLAN.md §5.8): the clock stands at ARRIVAL_HOUR, dusk's key, and
+	# the light shown goes to dusk's from the day's and from the night's at the rate, as the
+	# shadows go to the hour's without a jump that shows. The next zone's clock runs again.
+	assert_eq(DayCycle.light_at(Tuning.ARRIVAL_HOUR), Tuning.LIGHT_DUSK, "the arrival's hour")
+	var reach := Tuning.LIGHT_MAX_RATE * DELTA
+	var fade := Tuning.SHADOW_ALPHA_RATE * DELTA + 1e-9
+	var sweep := Tuning.SHADOW_MAX_RATE * DELTA + 1e-5
+	for start: float in [Tuning.DAY_START_HOUR, 0.0]:
+		var cycle := _cycle(120.0, start)
+		for _frame: int in 600:
+			cycle.advance(DELTA)
+		var from := "from %.0f:00" % (start + 2.0)
+		for hour: float in [Tuning.ARRIVAL_HOUR + 24.0, Tuning.ARRIVAL_HOUR - 48.0]:
+			cycle.hold(hour)
+			assert_eq(cycle.hour(), Tuning.ARRIVAL_HOUR, "%s, held at %.1f" % [from, hour])
+		var too_fast := 0
+		var off_hour := 0
+		for _frame: int in ceili(_distance(cycle.light, Tuning.LIGHT_DUSK) / reach) + 1:
+			var was := cycle.light
+			var was_shadow := cycle.shadow
+			var was_alpha := cycle.shadow_alpha
+			cycle.advance(DELTA)
+			too_fast += int(_distance(was, cycle.light) > reach + 1e-6)
+			too_fast += int(absf(cycle.shadow_alpha - was_alpha) > fade)
+			too_fast += int(was_shadow.distance_to(cycle.shadow) > sweep and was_alpha > 0.0)
+			off_hour += int(cycle.hour() != Tuning.ARRIVAL_HOUR)
+		assert_eq(too_fast, 0, from + ": frames that change too fast, or jump where they show")
+		assert_eq(off_hour, 0, from + ": frames off the hour held")
+		assert_eq(cycle.light, Tuning.LIGHT_DUSK, from + ": dusk's light")
+		cycle.enter(120.0)
+		assert_eq(cycle.hour(), start, from + ": the next zone's clock starts at the start hour")
+		cycle.advance(30.0)
+		assert_almost_eq(cycle.hour(), start + 6.0, 1e-6, from + ": and runs")
+
+
+func test_holding_the_clock_at_an_hour_that_isnt_finite_is_an_error() -> void:
+	for hour: float in [NAN, INF, -INF]:
+		var cycle := _cycle(120.0)
+		cycle.hold(hour)
+		assert_push_error("DayCycle: can't hold the clock at %.2f" % hour)
+		cycle.advance(30.0)
+		var expected := Tuning.DAY_START_HOUR + 6.0
+		assert_almost_eq(cycle.hour(), expected, 1e-6, "%.0f: the clock runs on" % hour)
+
+
 ## How far a pixel of height casts its shadow on the ground, in pixels of height: the screen
 ## foreshortens the ground, so measured in tiles.
 static func _ground_length(shadow: Vector2) -> float:

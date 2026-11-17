@@ -14,10 +14,12 @@ colors = PackedColorArray(0.627451, 0.411765, 0.313726, 1, 0.839216, 0.627451, 0
 offsets = PackedFloat32Array(0, 0.6, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="BabaYaga" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="BabaYaga" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_baba_yaga")
 veil_kind = 1
 standing = [NodePath("Hut")]
+figure = NodePath("Hut")
+figure_frame = 2
 id = &"baba_yaga"
 display_name = "Baba Yaga's Hut"
 fate = "Baba Yaga's hut swallowed you."

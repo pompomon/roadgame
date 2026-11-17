@@ -3,7 +3,8 @@ extends Camera2D
 ## Follows the car (IMPLEMENTATION_PLAN.md M2.5): smoothly, a little ahead along its heading, and,
 ## on a portrait screen, with the car in the lower part. The zoom shows about VISIBLE_TILES tiles
 ## across the screen's shorter side, in the steps of CAMERA_ZOOMS, which keep pixels crisp. A shake
-## (M3.2) moves the view by its offset, which leaves the position and the smoothing alone.
+## (M3.2) moves the view by its offset, which leaves the position and the smoothing alone. On an
+## arrival, the target eases to the arrival's view (ENDGAME_PLAN.md §5.8), and the zoom stays.
 
 var car: CarController
 
@@ -11,6 +12,10 @@ var car: CarController
 var _shake_px := 0.0
 var _shake_seconds := 0.0
 var _shake_time := 0.0
+## What the arrival's view shows besides the car, in World pixels, and how far the target has eased
+## to it, from 0 to 1; -1 without an arrival.
+var _arrival_rect := Rect2()
+var _pan := -1.0
 
 
 func _ready() -> void:
@@ -20,6 +25,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if car != null:
+		if _pan >= 0.0:
+			_pan = minf(_pan + Tuning.ARRIVAL_PAN_RATE * delta, 1.0)
 		position = position.lerp(target(), 1.0 - exp(-Tuning.CAMERA_SMOOTHING * delta))
 	if _shake_seconds > 0.0:
 		_shake_time += delta
@@ -41,12 +48,37 @@ func stop_shake() -> void:
 	offset = Vector2.ZERO
 
 
-## Where the camera heads: ahead of the car, and above it on a portrait screen.
+## Eases the target, over 1 / ARRIVAL_PAN_RATE seconds, from the car to the arrival's view, which
+## shows `rect`, in World pixels, as well as the car, until end_arrival() (ENDGAME_PLAN.md §5.8).
+func arrive(rect: Rect2) -> void:
+	_arrival_rect = rect
+	_pan = 0.0
+
+
+## Follows the car again, as before arrive().
+func end_arrival() -> void:
+	_pan = -1.0
+
+
+## Where the camera heads: ahead of the car, and above it on a portrait screen; on an arrival, on
+## the way to the arrival's view.
 func target() -> Vector2:
 	var ahead := Iso.tile_to_world(car.sim.forward()).normalized() * Tuning.LOOKAHEAD_PX
 	var size := get_viewport_rect().size
 	var bias := Tuning.PORTRAIT_BIAS * size.y / zoom.y if size.y > size.x else 0.0
-	return car.position + ahead + Vector2(0.0, -bias)
+	var on_car := car.position + ahead + Vector2(0.0, -bias)
+	if _pan < 0.0:
+		return on_car
+	return on_car.lerp(_arrival_view(), smoothstep(0.0, 1.0, _pan))
+
+
+## The arrival's view: centred on the arrival's rect and the car's body together, but always with
+## the body, and ARRIVAL_MARGIN_PX round it, in view. A car that came slowly stops short on the
+## pier, too far from the rect to show both.
+func _arrival_view() -> Vector2:
+	var body := car.body_rect().grow(Tuning.ARRIVAL_MARGIN_PX)
+	var half := get_viewport_rect().size / zoom * 0.5
+	return _arrival_rect.merge(body).get_center().clamp(body.end - half, body.position + half)
 
 
 ## Jumps to target(), without smoothing.

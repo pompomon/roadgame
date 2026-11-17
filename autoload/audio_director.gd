@@ -5,6 +5,8 @@ extends Node
 ## SFX bus's reverb is on while the car is in a tunnel. The volumes are the settings' (M5.4): they
 ## apply when a run starts and when they change, never in _ready(), which mustn't read the save
 ## (docs/M5.md L1). Music and ambient sound go on while the game is paused; the car's sounds pause.
+## On an arrival, the engine winds down with the car and stops with it, as a jingle plays, and the
+## area's music fades out under its ambient sound (ENDGAME_PLAN.md §5.8).
 
 ## A one-shot sound started, or would have if can_play were on.
 signal effect_played(id: StringName)
@@ -30,6 +32,7 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 	&"damage": preload("res://assets/audio/sfx/damage.wav"),
 	&"crash": preload("res://assets/audio/sfx/crash.wav"),
 	&"junction": preload("res://assets/audio/sfx/junction.wav"),
+	&"arrival": preload("res://assets/audio/sfx/arrival.wav"),
 	# The City's legends.
 	&"phantom_bus": preload("res://assets/audio/sfx/phantom_bus.wav"),
 	&"mothman": preload("res://assets/audio/sfx/mothman.wav"),
@@ -67,6 +70,8 @@ var _effects: Array[AudioStreamPlayer] = []
 var _next_effect := 0
 var _sim: CarSim
 var _health := Tuning.START_HEALTH
+## Whether the car is rolling to a stop after an arrival, with its engine on.
+var _arriving := false
 
 
 func _ready() -> void:
@@ -101,6 +106,10 @@ func _physics_process(_delta: float) -> void:
 	# Every frame, also when it's the same: on the Web, each new round of a loop starts at the
 	# sound's own pitch until the next assignment (docs/M5.md L27).
 	_loop_players[&"engine"].pitch_scale = engine_pitch(_sim.speed)
+	if _arriving and _sim.speed <= 0.0:
+		_arriving = false
+		set_loop(&"engine", false)
+		play_effect(&"arrival")
 	var tile := _sim.buffer.tile_at(Vector2i(_sim.pos.floor()))
 	_set_reverb(tile != null and tile.set_piece == &"tunnel")
 
@@ -117,6 +126,7 @@ static func engine_pitch(speed: float) -> float:
 func follow(sim: CarSim) -> void:
 	_sim = sim
 	if sim == null:
+		_arriving = false
 		for id: StringName in LOOPS:
 			set_loop(id, false)
 		_set_reverb(false)
@@ -175,6 +185,7 @@ func stop_all() -> void:
 		player.stop()
 	for id: StringName in LOOPS:
 		_loops_on[id] = false
+	_arriving = false
 
 
 func _add_player(bus: StringName, mode: ProcessMode) -> AudioStreamPlayer:
@@ -246,6 +257,7 @@ func _set_reverb(on: bool) -> void:
 func _on_run_started(_run_seed: int) -> void:
 	apply_volumes()
 	_health = Tuning.START_HEALTH
+	_arriving = false
 	set_loop(&"engine", true)
 	set_loop(&"rumble", false)
 
@@ -279,10 +291,17 @@ func _on_health_changed(value: float) -> void:
 	_health = value
 
 
+## The car's loops stop as the run ends, but the engine of a car that arrived, which runs on until
+## it stops (_physics_process()).
 func _on_run_ended(cause: StringName, _stats: Dictionary) -> void:
+	var arrived := cause == CarSim.ARRIVAL
 	for id: StringName in LOOPS:
-		set_loop(id, false)
-	if cause in [CarSim.HEALTH, CarSim.OFFROAD]:
+		if not (arrived and id == &"engine"):
+			set_loop(id, false)
+	if arrived:
+		_arriving = true
+		_fade(_music, _music_players, null)
+	elif cause in [CarSim.HEALTH, CarSim.OFFROAD]:
 		play_effect(&"crash")
 
 
