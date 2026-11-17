@@ -19,7 +19,7 @@ Nothing else changes: the junctions, the params, the end's timing, game over and
 - **V6.** **Δ plan.md §2.6:** what persists changes nothing "that makes a run easier or harder".
 - **V7.** `test_title.gd` took the City's disaster for the first card; `_card_of()` finds it by name.
 - **V8.** The pools test met each disaster by luck; `_seed_for()` finds a seed that picks it from an empty save.
-- **V9.** PR 1 rewrote the old pick in `plan.md` §2.6, §3.5 and §4.2 and IP §5.3.
+- **V9.** PR 1 rewrote the old pick where the docs gave it (V1, V6).
 - **V10.** Reaching an area wasn't one path: `_on_area_changed()` calls `enter_area()`, and the wrong turn asks the same picks (§5.2).
 - **V11.** Each legend sets `id` in its `.tscn`, as the picks read it from the `SceneState`: set by its script, it reads `&""` and never weighs less.
 - **V12.** Ten more legends load at boot. Kept (Q5, E11).
@@ -142,7 +142,7 @@ The contract tests play every scene of the pools, so a new legend meets M6's rul
 The five checks passed on each PR; at PR 11, 195 scripts, 703 tests and 437,643 asserts, with `main`'s smoke line.
 
 - **N28.** Four white pixels at random in the fairy ring's art: the bytes test fails, alone.
-- **N29.** A particle sheet uncut, cut wrong, in 0 or −5 frames, or with a `ShaderMaterial`: the sheet test fails.
+- **N29.** The worm's 280 px sheet on its spray, uncut or in 3, 0 or −5 frames, or its crater with a `ShaderMaterial`: `test_each_sheet_is_one_row_of_whole_frames_none_too_large` fails. Uncut, the crows' 56 px sheet fits a frame's 96 px, so only `test_crows_rise_from_its_arms_and_into_the_sky` fails.
 - **N30.** A particle sheet from another legend's folder: `test_each_legend_of_the_pools_draws_only_its_own_art` fails.
 - **P2.** `draw()` over 100,000 seeds: §5.3's odds, each within 0.2 points.
 - **P6.** Each ★'s `id`, read from the `SceneState` of its `.tscn` and of a binary `.scn` copy, as the export makes, matched its instance's (V11).
@@ -152,11 +152,11 @@ The five checks passed on each PR; at PR 11, 195 scripts, 703 tests and 437,643 
 
 ## 7. Owner actions
 
-None left but deleting `pl/12-docs` once PR 12 lands; the prototype is the tag `archive/pl/prototype`.
+None left but deleting `pl/12-docs` once PR 12 lands.
 
 ## 8. Risks
 
-- **A seed doesn't replay its legend** (P15): the picks weigh the collection at the run's start, and a legend is saved as seen as it starts. Replay a report from a copy of the save from before its run, in a scratch `XDG_DATA_HOME`, or with §9's `--legend=`.
+- **A seed doesn't replay its legend** (P15) once its run has saved the legend as seen (§5.3). Replay a report from a copy of the save from before its run, in a scratch `XDG_DATA_HOME`, or with §9's `--legend=`.
 - **The boot** (E11): if it shows with more legends or slower phones, load them lazily (§9).
 
 ## 9. Notes for later
