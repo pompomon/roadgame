@@ -60,7 +60,7 @@ jobs:
     needs: test
     runs-on: ubuntu-24.04
     container: barichello/godot-ci:4.7.2
-    timeout-minutes: 45
+    timeout-minutes: 20
     environment: release
     steps:
       - uses: actions/checkout@v7
@@ -70,9 +70,7 @@ jobs:
         run: '[ -n "$KS" ] || { echo "::error::ANDROID_KEYSTORE_BASE64 is not set"; exit 1; }'
       - run: tools/ci/stamp_version.sh "$VERSION"
       - uses: ./.github/actions/godot-env
-        with:
-          android: "true"
-      - name: Export signed APK and AAB
+      - name: Export the signed APK
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
@@ -84,13 +82,10 @@ jobs:
           trap 'rm -f "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"' EXIT
           printf '%s' "$KS" | base64 -d > "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"
           tools/ci/export.sh "Android APK" "build/release/roadgame-$VERSION.apk" release
-          tools/ci/export.sh "Android AAB" "build/release/roadgame-$VERSION.aab" release
       - uses: actions/upload-artifact@v7
         with:
           name: android-release
-          path: |
-            build/release/*.apk
-            build/release/*.aab
+          path: build/release/*.apk
           if-no-files-found: error
           retention-days: 1
 

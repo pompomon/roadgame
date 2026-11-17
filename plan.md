@@ -364,7 +364,7 @@ The file has a version number so it can be migrated when the format changes. It 
 
 **Monetisation:** none. No ads, in-app purchases or store-driven features are planned.
 
-CI: GitHub Actions with headless Godot. It runs the tests and builds the Android APK/AAB and Web export on every pull request.
+CI: GitHub Actions with headless Godot. It runs the tests and builds the Android APK and the Web export on every pull request.
 
 ---
 
