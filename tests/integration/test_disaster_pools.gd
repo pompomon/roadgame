@@ -5,7 +5,7 @@ extends GutTest
 ## before it (docs/ROADGEN.md R2), and the area's disaster takes the car before the game-over
 ## screen, 2 to 4 s after the turn. Every disaster of every pool plays, with a seed that picks it
 ## (docs/M6.md S13), and each area's disaster is picked as the car reaches the area
-## (POOLS_PLAN.md §5.1, Q4).
+## (docs/POOLS.md §5.1, Q4).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")

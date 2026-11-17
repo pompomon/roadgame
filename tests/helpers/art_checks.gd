@@ -5,7 +5,7 @@ extends RefCounted
 const MakeArt := preload("res://tools/art/make_art.gd")
 ## The period of an edge's dither, in rows (GreyboxAtlas.bayer()).
 const DITHER_ROWS := 8
-## A legend's figure stands out at night (POOLS_PLAN.md §5.6, night_share()) if NIGHT_SHARE of each
+## A legend's figure stands out at night (docs/POOLS.md §5.6, night_share()) if NIGHT_SHARE of each
 ## frame's pixels differ from its area's main colours by NIGHT_CONTRAST of the light's luminance:
 ## less than M6's five legends at their least frame, 28-45%. A main colour is one of at least
 ## MAIN_SHARE of a sheet's pixels.
@@ -114,7 +114,7 @@ static func edge_problem(ground: Image, edge: Image) -> String:
 
 ## The share of the opaque pixels of each of `figure`'s `frames` frames, one row of them, that stand
 ## out from `area`'s road and ground through the veil `veil_kind`, in the frame and the key light of
-## the day where it is least (POOLS_PLAN.md §5.6, V15): so one frame can't sink into the night while
+## the day where it is least (docs/POOLS.md §5.6, V15): so one frame can't sink into the night while
 ## the others stand out for it. The light that reaches them is, in each channel, the less of the key
 ## light's and the veil's own colour, as Daylight and the veil both darken; with no veil, the key
 ## light. A pixel stands out if its colour, so lit, differs in luminance from each main colour of
@@ -144,7 +144,7 @@ static func night_share(figure: Image, frames: int, area: AreaDef, veil_kind: Le
 
 ## The share of the pixels of `glow`, a glow's texture, with alpha above 0 that stand out from
 ## `area`'s road and ground through the veil `veil_kind`, in the key light of the day where it is
-## least, the glow drawn in `tint` (POOLS_PLAN.md §5.6, P13b). A glow draws above Daylight and the
+## least, the glow drawn in `tint` (docs/POOLS.md §5.6, P13b). A glow draws above Daylight and the
 ## veil, and adds: each pixel adds its colour times its alpha times `tint`, its alpha too, to the
 ## lit ground, clipped at 1. A pixel stands out if it so changes the luminance of each main colour
 ## of the area's road, ground and ground edge, lit as night_share() lights them, by NIGHT_CONTRAST

@@ -1,5 +1,5 @@
 extends GutTest
-## The Will-o'-the-Wisp, the Meadows' third legend (POOLS_PLAN.md §5.4). Night falls, and four pale
+## The Will-o'-the-Wisp, the Meadows' third legend (docs/POOLS.md §5.4). Night falls, and four pale
 ## wisps glimmer out over the meadow round the car, one after another. They circle it, closing in,
 ## and it shrinks into a light at its middle, a fifth wisp, as tufts of bog cotton sprout where it
 ## stood and their seeds blow up. The five drift off together, up the screen, and fade. The bog
@@ -685,7 +685,7 @@ func _check_rises(direction: Vector2, what: String) -> void:
 
 
 func test_its_wisps_and_bog_cotton_stand_out_from_the_meadows_by_night() -> void:
-	# Its figure is its wisps, glows that add light over the night (POOLS_PLAN.md §5.6, V15, P13b),
+	# Its figure is its wisps, glows that add light over the night (docs/POOLS.md §5.6, V15, P13b),
 	# each drawn as bright as it shows. Its bog cotton stands on the road and the grass, every frame
 	# of it as it sprouts.
 	var wisp := _wisp()

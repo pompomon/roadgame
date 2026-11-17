@@ -1,5 +1,5 @@
 extends GutTest
-## Frau Holle's Well, the Village's second legend (POOLS_PLAN.md §5.4). Snow starts to fall round
+## Frau Holle's Well, the Village's second legend (docs/POOLS.md §5.4). Snow starts to fall round
 ## the car, and a stone well rises out of the ground beside the road. The car tips over towards it,
 ## then falls in, turning over and over, smaller and smaller, as the snow settles on the well, in
 ## the light of the hour. The well stays, capped with snow.
@@ -561,7 +561,7 @@ func test_it_plays_in_the_light_of_the_hour_with_no_veil_and_no_glow() -> void:
 
 func test_the_well_stands_out_from_the_village_by_night() -> void:
 	# Each frame of its sheet, against the Village's road and ground, in each key light
-	# (POOLS_PLAN.md §5.6, V15): its stone is about as bright as they are, and its outline, its
+	# (docs/POOLS.md §5.6, V15): its stone is about as bright as they are, and its outline, its
 	# mortar, its mouth, its windlass's shade and its snow show.
 	var holle := _holle()
 	var well := _well(holle)

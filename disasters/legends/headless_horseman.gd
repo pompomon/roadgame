@@ -1,6 +1,6 @@
 class_name HeadlessHorseman
 extends Legend
-## Rural's third legend (POOLS_PLAN.md §5.4): the headless rider of Sleepy Hollow. Dusk falls,
+## Rural's third legend (docs/POOLS.md §5.4): the headless rider of Sleepy Hollow. Dusk falls,
 ## and a rider in a dark cloak, with no head above his collar, gallops along the road to the car on
 ## a black horse, the dust flying from its hooves, and halts in front of it. He raises a ball of
 ## pale ghost-fire, not a pumpkin (§5.4 Δ), and hurls it at the car. Pale flames run over the car,

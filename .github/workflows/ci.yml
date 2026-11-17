@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       upload-builds:
-        description: Upload the Web, APK and AAB builds as artifacts (kept 1 day)
+        description: Upload the Web build and the APK as artifacts (kept 1 day)
         type: boolean
         default: false
 
@@ -96,35 +96,20 @@ jobs:
     needs: [lint, test]
     runs-on: ubuntu-24.04
     container: barichello/godot-ci:4.7.2
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - preset: Android APK
-            file: roadgame-debug.apk
-          - preset: Android AAB
-            file: roadgame-debug.aab
-    name: export-android (${{ matrix.preset }})
+    timeout-minutes: 20
+    # Ruleset "Test" requires the check by this name, and docs/agents/checks.md §4 downloads the
+    # artifact below by its name.
+    name: export-android (Android APK)
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/godot-env
-        with:
-          android: ${{ matrix.preset == 'Android AAB' }}
       - name: Export (debug keystore from the CI image)
-        run: tools/ci/export.sh "${{ matrix.preset }}" "build/android/${{ matrix.file }}" debug
-      - name: Disk usage
-        if: always()
-        run: |
-          # The image, the SDK and NDK, and Gradle share the runner's disk (docs/M0.md §8).
-          # Gradle's home is /root/.gradle: Java takes user.home from /etc/passwd, not $HOME (F31).
-          df -h / "$GITHUB_WORKSPACE"
-          du -sh "${ANDROID_HOME:-/usr/lib/android-sdk}" /root/.gradle 2>/dev/null || true
+        run: tools/ci/export.sh "Android APK" build/android/roadgame-debug.apk debug
       - if: inputs.upload-builds
         uses: actions/upload-artifact@v7
         with:
-          name: android-${{ matrix.preset }}
-          path: build/android/${{ matrix.file }}
+          name: android-Android APK
+          path: build/android/roadgame-debug.apk
           if-no-files-found: error
           retention-days: 1
           compression-level: 9

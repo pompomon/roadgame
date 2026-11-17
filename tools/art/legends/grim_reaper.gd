@@ -1,5 +1,5 @@
 extends RefCounted
-## The Grim Reaper's sheets (POOLS_PLAN.md §5.4), drawn into assets/legends/grim_reaper/ by
+## The Grim Reaper's sheets (docs/POOLS.md §5.4), drawn into assets/legends/grim_reaper/ by
 ## tools/art/make_legends.gd. `reaper.png`: a hooded figure in a dark robe, a skull in its hood,
 ## holding a scythe upright in its hand away from the grave, its blade curving away above it; it
 ## steps on one bony foot and then the other, stands, and beckons with its other bony hand, its
@@ -251,7 +251,7 @@ static func _draw_pit(art: LegendArt, half: Vector2) -> void:
 
 ## The mound of the filled grave, `half` tiles from its middle along and across: its far slopes,
 ## its near slopes down the screen in shade, and its top, MOUND_PX higher, lit, with its clods. The
-## shade stands out from the City's road and ground by night (POOLS_PLAN.md §5.6, V15), as its
+## shade stands out from the City's road and ground by night (docs/POOLS.md §5.6, V15), as its
 ## browns don't.
 static func _draw_mound(art: LegendArt, half: Vector2) -> void:
 	var foot := _diamond(half)
@@ -289,7 +289,7 @@ static func _draw_heap(art: LegendArt, half: Vector2) -> void:
 
 
 ## The stone, shaded on its right and round its arch's right, and lit on the rest. The shade stands
-## out from the City's road and ground by night (POOLS_PLAN.md §5.6, V15), as the light greys don't.
+## out from the City's road and ground by night (docs/POOLS.md §5.6, V15), as the light greys don't.
 static func _draw_stone(art: LegendArt) -> void:
 	art.rect(SLAB, "shadow")
 	art.ellipse(ARCH, ARCH_RADII, "shadow")

@@ -160,7 +160,7 @@ func _start_run(run_seed: int) -> void:
 	_sim.rescued.connect(_camera.snap_to_target, CONNECT_DEFERRED)
 	_world.car = _car
 	AudioDirector.follow(_sim)
-	# The disasters that the player has seen weigh less in each area's pick (POOLS_PLAN.md V2).
+	# The disasters that the player has seen weigh less in each area's pick (docs/POOLS.md V2).
 	_director.start_run(run_seed, SaveService.data().seen_disasters())
 	GameState.start_run(run_seed, tutorial)
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
@@ -252,7 +252,7 @@ func _on_area_changed(area: AreaDef) -> void:
 	GameState.enter_area(area.id, start, _turns_before(first) - _turn_base)
 	# Each zone starts its clock again, at its own pace (docs/DAYNIGHT.md §5.4).
 	_daylight.cycle.enter(area.day_seconds)
-	# Its disaster for the run, now that the car reached it (POOLS_PLAN.md Q4).
+	# Its disaster for the run, now that the car reached it (docs/POOLS.md Q4).
 	_director.enter_area(area)
 	EventBus.area_changed.emit(area)
 

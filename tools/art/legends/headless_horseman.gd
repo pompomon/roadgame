@@ -1,5 +1,5 @@
 extends RefCounted
-## The Headless Horseman's sheets (POOLS_PLAN.md §5.4), drawn into
+## The Headless Horseman's sheets (docs/POOLS.md §5.4), drawn into
 ## assets/legends/headless_horseman/ by tools/art/make_legends.gd. `horseman.png`: a rider in a
 ## dark cloak on a black horse that faces the screen's right, his high collar open on nothing where
 ## his head should be; the horse gallops, its legs stretched and then gathered, and stands, as the

@@ -25,7 +25,7 @@ H = "532908a" + "1" * 33
 H2 = "9999999" + "2" * 33
 MAIN = "81f22e3" + "0" * 33
 OLD = "7777777" + "3" * 33
-REQUIRED = ["lint", "test", "export-web", "export-android (Android APK)", "export-android (Android AAB)"]
+REQUIRED = ["lint", "test", "export-web", "export-android (Android APK)"]
 
 
 def check_run(i, name, status="COMPLETED", conclusion="SUCCESS", required=True):
@@ -283,7 +283,7 @@ LAND = [
      ["no    GitHub holds the PR's CI run: start it with gh run rerun 300 --repo pompomon/roadgame"],
      False, []),
     ("checks-running", ["--minutes", "0"], [rollup_nodes(running_nodes)], 3,
-     ["wait  required checks running: export-android (Android AAB)", "Exit 3"], False, []),
+     ["wait  required checks running: export-android (Android APK)", "Exit 3"], False, []),
     ("checks-running-check", ["--check"], [rollup_nodes(running_nodes)], 0,
      ["Exit 0: the gate passes, once what it waits for is done."], False, []),
     ("main-ci-failed", [], [with_(["runs_main", 0, "conclusion"], "failure")], 2,
@@ -469,7 +469,7 @@ def checks(runs):
 
 # name, changes, exit code, output must contain. It runs with --minutes 0, as land_pr.sh runs it.
 WATCH = [
-    ("cancelled-duplicate", checks(dup), 0, "Checks on 532908a: 5 success"),
+    ("cancelled-duplicate", checks(dup), 0, "Checks on 532908a: 4 success"),
     ("later-run-passed", checks(rerun_pass), 0, "Checks on 532908a: 1 success"),
     ("later-run-failed", checks(rerun_fail), 5, "Failed checks: test"),
     ("later-run-running", checks(running), 0, "Checks on 532908a: 1 in_progress"),

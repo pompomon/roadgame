@@ -1,6 +1,6 @@
 class_name BabaYaga
 extends Legend
-## The Village's third legend (POOLS_PLAN.md §5.4), from the Russian tales of Baba Yaga: dusk
+## The Village's third legend (docs/POOLS.md §5.4), from the Russian tales of Baba Yaga: dusk
 ## falls, and her log hut on chicken legs stomps along beside the road to the car, the dust flying
 ## from its feet, and stops beside it, up-screen of the car and off the road, wherever across the
 ## road the car stopped. It turns its front to the car, crouches, and its door opens on the dark.

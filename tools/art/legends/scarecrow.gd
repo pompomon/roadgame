@@ -1,5 +1,5 @@
 extends RefCounted
-## The scarecrow's sheets (POOLS_PLAN.md §5.4), drawn into assets/legends/scarecrow/ by
+## The scarecrow's sheets (docs/POOLS.md §5.4), drawn into assets/legends/scarecrow/ by
 ## tools/art/make_legends.gd. `scarecrow.png`: a scarecrow on a plank pole, its arms out along a
 ## crossbar in the sleeves of a night-blue coat, straw at its cuffs and hem, a rope belt, a pale
 ## sack for a head and a shadow hat: its head turned away, then turned to the screen's right, then

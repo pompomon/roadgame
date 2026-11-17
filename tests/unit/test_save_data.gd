@@ -228,7 +228,7 @@ func test_record_disaster_counts_and_keeps_the_first_sighting() -> void:
 
 func test_the_disasters_seen_are_those_the_collection_shows() -> void:
 	# A file may hold an entry seen 0 times, and a count of the wrong type gets 0: the collection
-	# shows neither, and neither weighs less in a run's picks (POOLS_PLAN.md Q3).
+	# shows neither, and neither weighs less in a run's picks (docs/POOLS.md Q3).
 	var data := SaveData.new()
 	assert_eq(data.seen_disasters(), [] as Array[StringName], "none in a new save")
 	var text := JSON.stringify(

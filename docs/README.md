@@ -16,6 +16,7 @@ Summaries of the finished plans. Each keeps its plan's section numbers and every
 | [TUTORIAL.md](TUTORIAL.md) | TUT: the tutorial before the City | #65–#68 |
 | [DAYNIGHT.md](DAYNIGHT.md) | DN: each zone's day and night, the shadows and the lamps | #64, #70–#76 |
 | [VISUALS.md](VISUALS.md) | VIS: the car's wheels turn as it drives, and buildings line the City's streets, fading over the car | #85, #93, #94 |
+| [POOLS.md](POOLS.md) | PL: three legends in each area's pool, one picked for each run as the car reaches the area, those seen half as likely | #80–#83, #86–#91, #96, #98 |
 
 ## For agents
 

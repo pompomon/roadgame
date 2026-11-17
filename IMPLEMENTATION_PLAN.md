@@ -33,7 +33,7 @@ This document turns the design in `plan.md` into ordered work packages with file
 | D7 | `min_straight >= 2` for every area. | Gives room for 1–1.5 tile auto-braking and guarantees a 1-tile wrong stub always fits (§4.3). |
 | D8 | Seed: random per run, or forced with `-- --seed=<int>` (user command-line argument). Sub-streams are seeded with `hash("%d:road" % seed)` and so on. | Reproducible bug reports, tests and screenshots. |
 | D9 | Package name `com.pompomon.roadgame`; version code = `major*1_000_000 + minor*1_000 + patch`. | Version codes are deterministic and always increase. |
-| D10 | Web builds deploy to **GitHub Pages from `main`** (continuous playtest build). Tagged releases attach the APK, AAB and Web zip to a GitHub Release. | Gives an always-playable build without any third-party hosting. |
+| D10 | Web builds deploy to **GitHub Pages from `main`** (continuous playtest build). Tagged releases attach the APK and Web zip to a GitHub Release. | Gives an always-playable build without any third-party hosting. |
 | D11 | Tuning values live only in `AreaDef` `.tres` files and `config/tuning.gd` constants. No magic numbers in logic. | Tuning happens during prototyping (`plan.md` §14). |
 | D12 | Static typing is required in GDScript (`untyped_declaration` warning set to *error* in project settings). | Catches bugs early and helps agents and reviewers. |
 
@@ -60,8 +60,8 @@ road/         heading.gd, road_tile.gd, road_generator.gd, occupancy_grid.gd,
               road_buffer.gd, junction_trigger.gd, road_geometry.gd
 world/        world.tscn, world_renderer.gd, prop_pool.gd, iso.gd, camera_rig.gd
 car/          car.tscn, car_controller.gd, car_sim.gd, input_router.gd, autopilot.gd
-disasters/    disaster_director.gd, disaster_base.gd, disaster_params.gd, legend.gd,
-              legends/ (phantom_bus, ufo, fairy_ring, witch_hex, death_worm; M6)
+disasters/    disaster_director.gd, disaster_picks.gd, disaster_base.gd, disaster_params.gd,
+              legend.gd, legends/ (three for each area: M6's five, docs/POOLS.md's ten)
 areas/        area_def.gd, prop_def.gd, area_schedule.gd,
               city.tres, rural.tres, meadows.tres, village.tres, desert.tres, schedule.tres
 setpieces/    set_piece.gd, tunnel.tscn, bridge.tscn
@@ -98,7 +98,7 @@ Sizes: **S** ≤ 1 day, **M** 2–3 days, **L** 4–6 days (one developer).
 | M6 | Each area's disaster comes from a legend, with its veil, art, sound, fate and lore, and nothing flashes (`docs/M6.md`) | L |
 | M7 | Orientation and foldable handling, haptics, Web audio unlock, signed release pipeline, device QA | M |
 
-M0–M6 are done. Between M6 and M7, five smaller plans changed the game: junction kinds, side roads and decoys (`docs/ROADGEN.md`), the start area in debug builds (`docs/ZONE_SELECT.md`), the tutorial (`docs/TUTORIAL.md`), day and night (`docs/DAYNIGHT.md`), and the car's wheels and the City's streets (`docs/VISUALS.md`). `docs/README.md` lists every summary.
+M0–M6 are done. Between M6 and M7, six smaller plans changed the game: junction kinds, side roads and decoys (`docs/ROADGEN.md`), the start area in debug builds (`docs/ZONE_SELECT.md`), the tutorial (`docs/TUTORIAL.md`), day and night (`docs/DAYNIGHT.md`), the car's wheels and the City's streets (`docs/VISUALS.md`), and two more legends in each area, picked by the collection (`docs/POOLS.md`). `docs/README.md` lists every summary.
 
 ---
 
@@ -110,8 +110,8 @@ M0–M6 are done. Each of their packages says what it built and where; `docs/M<n
 
 - **M0.1 Project skeleton.** `project.godot`: a 360×640 portrait base size, `canvas_items` stretch with `expand` and integer scaling, the Compatibility renderer, nearest filtering, `untyped_declaration` as an error (D12), the input actions, and `display/window/size/resizable=true` for folding. Also `.gitignore`, `.gdlintrc` and `ui/main.tscn`.
 - **M0.2 Test harness.** GUT 9.7.1 in `addons/gut/`, `.gutconfig.json` (`tests/unit/`, `sim/` and `integration/`), and `tools/ci/run_tests.sh`, which writes its reports to `build/reports/`.
-- **M0.3 Export presets.** `export_presets.cfg`: `Web` (single-threaded, no extensions, no PWA), and `Android APK` and `Android AAB` (`com.pompomon.roadgame`, arm64-v8a and armeabi-v7a, `permissions/vibrate`). Never commit keystore paths or passwords: release signing reads `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER` and `_PASSWORD`, and debug builds use the CI image's debug keystore.
-- **M0.4 CI scripts and build actions.** `tools/ci/*.sh`, `.github/actions/godot-env/`, `ci.yml`, `release.yml` and Dependabot (§7). `main` requires `lint`, `test`, `export-web` and both `export-android` checks; Pages deploys from GitHub Actions.
+- **M0.3 Export presets.** `export_presets.cfg`: `Web` (single-threaded, no extensions, no PWA), and `Android APK` (`com.pompomon.roadgame`, arm64-v8a and armeabi-v7a, `permissions/vibrate`). Never commit keystore paths or passwords: release signing reads `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER` and `_PASSWORD`, and debug builds use the CI image's debug keystore.
+- **M0.4 CI scripts and build actions.** `tools/ci/*.sh`, `.github/actions/godot-env/`, `ci.yml`, `release.yml` and Dependabot (§7). `main` requires `lint`, `test`, `export-web` and `export-android`; Pages deploys from GitHub Actions.
 
 ### M1 — Generator (done: `docs/M1.md`; changed since by `docs/ROADGEN.md` and `docs/TUTORIAL.md`)
 
@@ -161,7 +161,7 @@ M0–M6 are done. Each of their packages says what it built and where; `docs/M<n
 
 ### M6 — Legends (done: `docs/M6.md`)
 
-Five disasters from myths, folk tales and urban legends replaced the natural four, one for each area: the phantom bus (City), the UFO (Rural), the fairy ring (Meadows), the witch's hex (Village) and the death worm (Desert). `docs/M6.md` §3.3 has two more options for each area. `Legend` (`disasters/legend.gd`) adds beats on one clock, a veil that darkens the World, glows, standing parts that sort with the props, and a double that takes the car's place. Each disaster has a fate, which game over shows, and a lore, which its card in the collection shows.
+Five disasters from myths, folk tales and urban legends replaced the natural four, one for each area: the phantom bus (City), the UFO (Rural), the fairy ring (Meadows), the witch's hex (Village) and the death worm (Desert). `docs/M6.md` §3.3 listed two more for each area, which PL added after M6, with the Grim Reaper in the Sewer Gator's place (`docs/POOLS.md` §5.4). `Legend` (`disasters/legend.gd`) adds beats on one clock, a veil that darkens the World, glows, standing parts that sort with the props, and a double that takes the car's place. Each disaster has a fate, which game over shows, and a lore, which its card in the collection shows.
 
 ---
 
@@ -171,12 +171,12 @@ What the plans before it leave to M7 (each summary's §9 has more):
 - **Settings.** M5 saves and shows the orientation and haptics settings. M7.1 and M7.2 read them with `SaveService.setting("orientation")` and `SaveService.setting("haptics")` (`docs/M5.md` Q3).
 - **New views.** Each screen that M7 must fit, the Fold4's two included, goes in the tests' `SCREENS` lists: `test_props_in_view.gd`'s, which `test_view_veil.gd` reads too to check that the night's veil covers every view (`docs/DAYNIGHT.md` §9), `test_camera_rig.gd`'s, `test_world_renderer.gd`'s and `test_title_screen.gd`'s. Tall windows may need a larger `BUFFER_BEHIND` (`docs/M5.md` Q9).
 - **Margins and tiles.** Integer scaling leaves black margins on the Fold4, where the game draws 50–78% of the screen, and the inner screen in portrait shows 3.72 tiles across, under M7.5's 5 (`docs/M2.md` H18, Q17, §6.5). M7.1 decides on both; the tiles change with `VISIBLE_TILES` or `CAMERA_ZOOMS`.
-- **Haptics.** A disaster's pulse can follow `EventBus.disaster_started`, which comes once the car has stopped. They can pulse on a legend's beats, which `Beats` gives (`docs/M6.md` §5.2). If they mark a correct turn, they mark the tutorial's streak too: `EventBus.streak_changed` with a streak above 0, as the chime does (`docs/TUTORIAL.md` §5.4). The light drives neither sound nor haptics: add them to `test_the_light_changes_nothing_but_the_view`'s `_sound()`.
+- **Haptics.** A disaster's pulse can follow `EventBus.disaster_started`, which comes once the car has stopped. They can pulse on each of the fifteen legends' beats, which `Beats` gives (`docs/M6.md` §5.2, `docs/POOLS.md` §5.4). If they mark a correct turn, they mark the tutorial's streak too: `EventBus.streak_changed` with a streak above 0, as the chime does (`docs/TUTORIAL.md` §5.4). The light drives neither sound nor haptics: add them to `test_the_light_changes_nothing_but_the_view`'s `_sound()`.
 - **The Web.** Browsers start audio only after a gesture. The tap on Play is the first, so the title stays silent and a run's music starts on that tap (`docs/M5.md` Q4). M7.3 also decides on the gap at the end of a looped sample (`docs/M5.md` L20, Q11), unless Godot 4.8, which loops Web samples natively (godotengine/godot#123996), has come. Godot 4.7.2 tells the game nothing when a page closes, reloads or is hidden (`docs/M5.md` L10).
-- **The release.** The store's content rating declares the legends' horror: fear, with no blood or gore (`docs/M6.md` Q8). The HUD shows the version and the seed in every build (`ui/hud.gd`), and game over shows the seed only in debug builds: decide what the release shows. M7.4's tag is the first run of `release.yml`'s signing and publishing; retry a failed one by re-running its own run, since a manual run fails if the tag exists (`docs/M0.md` F7, F32, §9). The release is signed with another key than the debug APK, so it installs over it only after an uninstall, which empties the save, as `adb shell pm clear com.pompomon.roadgame` does (`docs/ZONE_SELECT.md` Z5).
+- **The release.** The store's content rating declares the legends' horror: fear, with no blood or gore (`docs/M6.md` Q8), which PL's ten keep, the chupacabra draining colour, not blood (`docs/POOLS.md` §5.4). The HUD shows the version and the seed in every build (`ui/hud.gd`), and game over shows the seed only in debug builds: decide what the release shows. A seed replays its legend only with the save from before its run (`docs/POOLS.md` §8). M7.4's tag is the first run of `release.yml`'s signing and publishing; retry a failed one by re-running its own run, since a manual run fails if the tag exists (`docs/M0.md` F7, F32, §9). The release is signed with another key than the debug APK, so it installs over it only after an uninstall, which empties the save, as `adb shell pm clear com.pompomon.roadgame` does (`docs/ZONE_SELECT.md` Z5).
 - **Motion.** The car and the camera move in `_physics_process` at 60 Hz without physics interpolation, so a screen whose refresh rate isn't a multiple of 60 Hz may show uneven motion. If M7.5 sees it, turn on `physics/common/physics_interpolation` (M2's §8, `git show 08f316f:M2_PLAN.md`). With it, the car's wheels still add up the distance driven in `_physics_process()` and turn in `_process()`, a phase a drawn frame at most; a sprite's frame doesn't interpolate (`docs/VISUALS.md` §5.1).
-- **Device checks.** In debug builds, the title's Start button chooses the area that Play starts in (`docs/ZONE_SELECT.md`), so M7.5 can check each area's art, legend and haptics on both screens and through a fold. These Fold4 checks of earlier plans aren't recorded as done: M0's E6, M2's E12, M3's E13, M4's E14, M5's E14 with its crossing run (L8) and listening (L29), M6's E11, RG's E10, ZS's E8, TUT's E9, DN's E13 and VIS's E9, each in its summary.
-- **Later.** Art for the set pieces, the river's shader, and the tunnel's darkening through `Daylight`, not a `CanvasModulate` (`docs/DAYNIGHT.md` C15). More buildings for the City, other areas' wide props on lots, front wheels that steer, and, if the City drops frames on the Fold4, the changes in `docs/VISUALS.md` §9.
+- **Device checks.** In debug builds, the title's Start button chooses the area that Play starts in (`docs/ZONE_SELECT.md`), so M7.5 can check each area's art, legends and haptics on both screens and through a fold. These Fold4 checks of earlier plans aren't recorded as done: M0's E6, M2's E12, M3's E13, M4's E14, M5's E14 with its crossing run (L8) and listening (L29), M6's E11, RG's E10, ZS's E8, TUT's E9, DN's E13 and VIS's E9, each in its summary.
+- **Later.** Art for the set pieces, the river's shader, and the tunnel's darkening through `Daylight`, not a `CanvasModulate` (`docs/DAYNIGHT.md` C15). More buildings for the City, other areas' wide props on lots, front wheels that steer, and, if the City drops frames on the Fold4, the changes in `docs/VISUALS.md` §9. The legends' notes in `docs/POOLS.md` §9: loading them lazily if the boot grows (E11), and a `--legend=` flag for device checks and reports.
 
 #### M7.1 Orientation and foldables (M)
 - Map the saved orientation setting to exactly one value (`sensor` → `DisplayServer.SCREEN_SENSOR`, `portrait` → `DisplayServer.SCREEN_PORTRAIT`, `landscape` → `DisplayServer.SCREEN_LANDSCAPE`) and pass only that value to `DisplayServer.screen_set_orientation()`.
@@ -191,7 +191,7 @@ What the plans before it leave to M7 (each summary's §9 has more):
 - Keyboard focus: `html/focus_canvas_on_start=true`.
 
 #### M7.4 Release pipeline (S)
-- Create the release keystore (offline, kept by the owner), add the repository secrets (§7.6), tag `v0.1.0`, and check that the release has the signed APK, AAB and Web zip.
+- Create the release keystore (offline, kept by the owner), add the repository secrets (§7.6), tag `v0.1.0`, and check that the release has the signed APK and Web zip.
 
 #### M7.5 Device QA checklist (Galaxy Z Fold4 plus one other Android phone and desktop Chrome/Firefox)
 - [ ] Cover screen (portrait 23:9) and inner screen (near-square) both show ≥ 5 tiles ahead; HUD is not clipped.
@@ -203,7 +203,7 @@ What the plans before it leave to M7 (each summary's §9 has more):
 - [ ] Informal 60 fps on the Fold4 (Godot monitor overlay, or an APK exported with `debug/settings/stdout/print_fps`, which prints it to `adb logcat`); not a blocker (`plan.md` §10). Read it in the City by day and at night too (`docs/VISUALS.md` E8).
 - [ ] A new save starts the tutorial; it reads well on both screens and through a fold.
 - [ ] Side roads and decoys in each area but the City read as roads, and choosing between straight on and the turn feels fair.
-- [ ] Each area's legend, day and night, on both screens.
+- [ ] Each area's three legends, day and night, on both screens. With the Start choice and Retry, meeting an area's three takes about 4.25 wrong turns from a fresh save (`docs/POOLS.md` §5.3); in Incognito, the Web build's `--area` and `--seed` meet each at once with `docs/POOLS.md` §6's seeds (`docs/agents/checks.md`).
 
 #### M7.6 Visual screenshots (S, non-blocking)
 - `tools/screenshots.gd`: boots `main.tscn` with `--seed`, `--autopilot` and `--fixed-fps 60`, drives to turns {0, 34, 100, 200, 220}, and saves PNGs for portrait (360×640) and landscape (640×360). It must drive there, not skip ahead, or it misses junctions that the game counts, and it needs `--audio-driver Dummy` (`docs/M1.md` G16).
@@ -228,7 +228,7 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 `Main` (`ui/main.tscn`, script `main.gd` owns run lifecycle) → `World` (`world.tscn`: `GroundLayer`, `RoadLayer`, `Props` + `WorldRenderer`, `PropPool`, `RoadBuffer` holder) → `DisasterLayer` → `CameraRig` → `UI` (`HUD`, `TouchZones`, `Overlays`).
 
 ### 5.3 Determinism rules
-- Only `RoadGenerator` (the road's stream and `props_seed`) and `DisasterDirector` (the disaster stream, and its `DisasterPicks`' stream for each area) use RNG; they are seeded only from `GameState.run_seed`, the picks with the area's id too. The picks are also weighted by the collection (`POOLS_PLAN.md` §5.1). Any `randf()` call on the global RNG is banned in gameplay code (enforced by a `gdlint`-adjacent grep in `tools/ci/lint.sh`).
+- Only `RoadGenerator` (the road's stream and `props_seed`) and `DisasterDirector` (the disaster stream, and its `DisasterPicks`' stream for each area) use RNG; they are seeded only from `GameState.run_seed`, the picks with the area's id too. The picks are also weighted by the collection (`docs/POOLS.md` §5.1). Any `randf()` call on the global RNG is banned in gameplay code (enforced by a `gdlint`-adjacent grep in `tools/ci/lint.sh`).
 - Simulation runs in `_physics_process` with `physics/common/physics_ticks_per_second=60`, and tests step `CarSim` with a fixed `delta`.
 
 ### 5.4 Error handling and debug
@@ -263,8 +263,8 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 
 | Workflow | Trigger | Jobs | Output |
 |---|---|---|---|
-| `ci.yml` | `pull_request`, `push` to `main`, manual | `lint` → `test` → `export-web`, `export-android` (APK, AAB) → `deploy-web` (main only) | Pages deploy; `web`, debug APK and AAB artifacts only from a manual run with `upload-builds` |
-| `release.yml` | Tag `v*.*.*`, manual | `test` → `android-release`, `web-release` → `publish` | Signed APK and AAB, Web zip on a GitHub Release |
+| `ci.yml` | `pull_request`, `push` to `main`, manual | `lint` → `test` → `export-web`, `export-android` (APK) → `deploy-web` (main only) | Pages deploy; `web` and debug APK artifacts only from a manual run with `upload-builds` |
+| `release.yml` | Tag `v*.*.*`, manual | `test` → `android-release`, `web-release` → `publish` | Signed APK and Web zip on a GitHub Release |
 | `visual.yml` | Manual, nightly | `screenshots` | PNG artifacts, kept 1 day (non-blocking) |
 
 Shared logic lives in `tools/ci/*.sh` (runnable locally with the same commands) and one composite action `.github/actions/godot-env`. All jobs that run Godot use the container `barichello/godot-ci:4.7.2`, which already includes JDK 17, Android SDK, a debug keystore (`/root/debug.keystore`) and export templates. Godot export plugins read these from `~/.config/godot/editor_settings-4.7.tres`.
@@ -274,16 +274,16 @@ Shared logic lives in `tools/ci/*.sh` (runnable locally with the same commands) 
 > **Actions storage policy (`docs/M0.md` F34, §5.12):** no caches of any kind, artifacts only where something needs them, and `retention-days: 1` on every upload. CI gets slower in exchange. `tools/ci/check_actions_storage.sh` (run in `lint`) enforces it. The files are the reference for §7.2–§7.5.
 
 ### 7.2 Composite action — `.github/actions/godot-env/action.yml`
-Moves the CI image's export templates and editor settings where Godot looks for them, installs the Android SDK packages, and imports the project in full.
+Moves the CI image's export templates and editor settings where Godot looks for them, and imports the project in full.
 
 ### 7.3 CI scripts — `tools/ci/`
 `lint.sh`, `import.sh`, `check_scripts.sh`, `run_tests.sh`, `smoke.sh`, `export.sh`, `stamp_version.sh`, `check_versions.sh` and `check_actions_storage.sh`. CI and local runs use the same commands (`AGENTS.md` §3).
 
 ### 7.4 `.github/workflows/ci.yml`
-The jobs of §7.1. A run by hand with `upload-builds` uploads the Web build, the APK and the AAB.
+The jobs of §7.1. A run by hand with `upload-builds` uploads the Web build and the APK.
 
 ### 7.5 `.github/workflows/release.yml`
-Tests, signs the APK and the AAB with the secrets of §7.6, zips the Web build, and publishes them on a GitHub Release.
+Tests, signs the APK with the secrets of §7.6, zips the Web build, and publishes them on a GitHub Release.
 
 ### 7.6 Secrets and settings
 
@@ -337,7 +337,6 @@ Weekly updates of the GitHub Actions. The `godot-ci` image's tag is bumped by ha
 | Free steering makes corner cuts ambiguous (which branch was rejoined) | Unfair deaths | Capsule geometry plus "first rejoined branch" rule (D4/D5); `test_corner_cut.gd`; debug overlay shows the pending choice |
 | Auto-braking reveals the junction too late or too early at high speed | Unplayable late game | `GLOBAL_SPEED_CAP`; braking distance is per area; tune with the autopilot speed log |
 | Fold/unfold restarts the Android activity | Lost run | `resizeable` setting plus Godot's `configChanges`; QA checklist; if it still fails, add an Android plugin manifest override (post-check) |
-| Gradle AAB build is slow or flaky in CI | Red PRs | Separate matrix entry (`fail-fast: false`); APK stays the quick signal. No Gradle cache: CI keeps no caches (§7.1) |
 | CI image lags behind Godot patch releases | Blocked upgrade | Fallback: `chickensoft-games/setup-godot@v2` with `include-templates: true` and `cache: false` (§7.1) plus `android-actions/setup-android@v4` and `actions/setup-java` (17); scripts in `tools/ci` stay the same |
 | Headless rendering cannot take screenshots | No visual tests | `xvfb` with `opengl3` in a separate, non-blocking workflow |
 | GUT and Godot 4.7 stricter typing on doubles | Test false positives | GUT 9.7.1; prefer real `RefCounted` objects over doubles in tests |
@@ -347,8 +346,8 @@ Weekly updates of the GitHub Actions. The `godot-ci` image's tag is bumped by ha
 
 ## 9. MVP definition of done
 - [ ] All `plan.md` §11 automated tests exist and pass in CI (§6 matrix).
-- [ ] `ci.yml` is green on `main`; Pages serves the latest Web build; debug APK and AAB artifacts (from a manual run with `upload-builds`) install and run.
-- [ ] `v0.1.0` tag produces a GitHub Release with a signed APK, AAB and Web zip.
+- [ ] `ci.yml` is green on `main`; Pages serves the latest Web build; the debug APK artifact (from a manual run with `upload-builds`) installs and runs.
+- [ ] `v0.1.0` tag produces a GitHub Release with a signed APK and Web zip.
 - [ ] All 5 areas, tunnel and bridge appear in order during an autopilot run to turn 230, and a wrong turn in each area plays its legend (M6).
 - [ ] Atlas, disaster collection and settings persist across restarts (`user://save.json` v1).
 - [ ] M7.5 device QA checklist passes on the Galaxy Z Fold4 and in desktop Chrome and Firefox.

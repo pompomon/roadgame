@@ -1,5 +1,5 @@
 extends GutTest
-## The Chupacabra, the Desert's third legend (POOLS_PLAN.md §5.4). A grey, spined beast creeps out
+## The Chupacabra, the Desert's third legend (docs/POOLS.md §5.4). A grey, spined beast creeps out
 ## of the scrub down the screen from the car, slower and slower, and crouches by it. It leaps onto
 ## the car's roof and perches there, and the car's colours drain to grey as grey dust flakes off
 ## it: the car's grey husk is left. The beast turns, hops down and slinks off the way it came,
@@ -709,7 +709,7 @@ func test_it_plays_in_the_light_of_the_hour_with_no_veil_and_no_glow() -> void:
 
 func test_the_beast_and_the_husk_stand_out_from_the_desert_by_night() -> void:
 	# Each frame of each sheet, against the Desert's road and ground, in each key light
-	# (POOLS_PLAN.md §5.6, V15): the beast is dark, and the husk grey.
+	# (docs/POOLS.md §5.6, V15): the beast is dark, and the husk grey.
 	var legend := _legend()
 	var parts: Dictionary[String, Sprite2D] = {
 		"the beast": _beast(legend),

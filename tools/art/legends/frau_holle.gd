@@ -1,5 +1,5 @@
 extends RefCounted
-## Frau Holle's well's sheet (POOLS_PLAN.md §5.4), drawn into assets/legends/frau_holle/ by
+## Frau Holle's well's sheet (docs/POOLS.md §5.4), drawn into assets/legends/frau_holle/ by
 ## tools/art/make_legends.gd. `well.png`: a round well of grey stone, its mouth dark, under a
 ## windlass of planks with a rope and a bucket: bare as it rises, dusted with snow, then capped with
 ## it and the snow drifted at its foot. Its greys are about as bright as the Village's road and

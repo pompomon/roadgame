@@ -1,6 +1,6 @@
 class_name FrauHolle
 extends Legend
-## The Village's second legend (POOLS_PLAN.md §5.4), from the Grimms' tale: snow starts to fall
+## The Village's second legend (docs/POOLS.md §5.4), from the Grimms' tale: snow starts to fall
 ## round the car, and a stone well rises out of the ground by the road, beside it. The car tips over
 ## towards it, on its wheels on the well's side, then falls in: it hops over the rim into the well's
 ## mouth, turning over and over, smaller and smaller, as the snow settles on the well. The well

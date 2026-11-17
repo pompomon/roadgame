@@ -1,5 +1,5 @@
 extends GutTest
-## The Marfa Lights, the Desert's second legend (POOLS_PLAN.md §5.4). Night falls, and three
+## The Marfa Lights, the Desert's second legend (docs/POOLS.md §5.4). Night falls, and three
 ## lights, white and amber, glimmer far off over the desert, one after another. They dance, then
 ## come close round the car, which turns to face up the screen after them. It follows them off the
 ## road into the desert, smaller and smaller, its tyres throwing up sand, until it is gone with
@@ -674,7 +674,7 @@ func test_their_light_rises_at_each_point_at_most_twice_on_either_side() -> void
 
 
 func test_its_lights_and_tracks_stand_out_from_the_desert_by_night() -> void:
-	# Its figure is its lights, glows that add light over the night (POOLS_PLAN.md §5.6, V15,
+	# Its figure is its lights, glows that add light over the night (docs/POOLS.md §5.6, V15,
 	# P13b), each drawn as bright as it shows. Its tracks lie on the road and the sand under it.
 	var marfa := _marfa()
 	for light: Sprite2D in _lights(marfa):

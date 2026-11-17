@@ -1,7 +1,7 @@
 extends GutTest
 ## DisasterDirector (plan.md §4.2, IMPLEMENTATION_PLAN.md M3.1, M3.3): after a wrong or missed turn
 ## it waits for the car to stop and plays the area's disaster for the run, which its picks drew
-## (POOLS_PLAN.md §5.1), with params from the run's disaster stream; after a crash it shakes the
+## (docs/POOLS.md §5.1), with params from the run's disaster stream; after a crash it shakes the
 ## camera for CRASH_SECONDS. Every sequence ends once and in time, even one that is stuck. The
 ## disasters here are test ones; test_wrong_turn_disaster.gd plays the City's legend through the
 ## game's director. A disaster gets the stage for a legend's parts, and disaster_appeared comes
@@ -104,7 +104,7 @@ static func _named(id: StringName) -> PackedScene:
 
 func test_the_disaster_is_the_areas_pick_for_the_run() -> void:
 	# The picks draw it, with the disasters seen weighing less, whether the car's entry into the
-	# area picked it first or the wrong turn does (POOLS_PLAN.md §5.1, Q4).
+	# area picked it first or the wrong turn does (docs/POOLS.md §5.1, Q4).
 	var area := _area([_named(&"a"), _named(&"b"), _named(&"c")])
 	var seen: Array[StringName] = [&"b"]
 	var played: Dictionary[StringName, bool] = {}

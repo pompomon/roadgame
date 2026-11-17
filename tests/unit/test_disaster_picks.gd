@@ -1,5 +1,5 @@
 extends GutTest
-## DisasterPicks (POOLS_PLAN.md §5.1): each area's disaster for a run, drawn once from the area's
+## DisasterPicks (docs/POOLS.md §5.1): each area's disaster for a run, drawn once from the area's
 ## pool on a stream of the run's seed and the area's id. A seen disaster weighs
 ## Tuning.SEEN_DISASTER_WEIGHT against 1 for one not seen yet (Q2), so the same seed and the same
 ## collection give the same disasters, whenever and in whatever order the areas are picked (V1).

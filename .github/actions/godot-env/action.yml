@@ -1,12 +1,7 @@
 name: Godot environment
 description: >
   Prepare the barichello/godot-ci container: move export templates and editor settings into
-  $HOME, optionally install the Android SDK packages that Godot 4.7's Gradle build needs,
-  and import the project.
-inputs:
-  android:
-    description: Install the Android platform, build-tools and NDK for Gradle (AAB) builds
-    default: "false"
+  $HOME, and import the project.
 runs:
   using: composite
   steps:
@@ -22,19 +17,6 @@ runs:
         fi
         echo "GODOT_TEMPLATE_VERSION=$ver" >> "$GITHUB_ENV"
         godot --version
-
-    - name: Install Android SDK packages
-      if: inputs.android == 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
-        sdk="${ANDROID_HOME:-/usr/lib/android-sdk}"
-        sdkm="$sdk/cmdline-tools/latest/bin/sdkmanager"
-        [ -x "$sdkm" ] || sdkm="$(command -v sdkmanager)"
-        "$sdkm" --licenses > /dev/null < <(yes)
-        # Versions from Godot 4.7.2 platform/android/java/app/config.gradle. Without the NDK,
-        # Gradle downloads it during the build or skips stripping the native libraries.
-        "$sdkm" --install "platform-tools" "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" > /dev/null
 
     # Always a full import: CI keeps no caches (docs/M0.md F34).
     - name: Import project
