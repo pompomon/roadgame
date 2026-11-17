@@ -2,9 +2,9 @@ extends Node
 ## Keeps the save file, user://save.json (plan.md §9, IMPLEMENTATION_PLAN.md M5.4). It reads the
 ## file the first time something asks for data(), so that tests and an autopilot run can switch it
 ## to memory first (docs/M5.md L1): tests/gut_pre_run.gd does, and so does --autopilot. It records
-## every run when it ends and every disaster when it starts, and writes the file at once. A changed
-## setting is written SETTINGS_SAVE_DELAY after the last change, or at once on flush(), which also
-## comes when the app is closed, paused or loses focus.
+## every run when it ends, every disaster when it starts and every arrival, and writes the file at
+## once. A changed setting is written SETTINGS_SAVE_DELAY after the last change, or at once on
+## flush(), which also comes when the app is closed, paused or loses focus.
 ##
 ## A write goes to a .tmp file which, once it reads back whole, replaces the file (M5.4), in one
 ## frame, so that the Web build's IndexedDB sync sees both (docs/M5.md L11). A file that can't be
@@ -183,6 +183,17 @@ func _store(file: FileAccess, text: String) -> bool:
 	var stored := file.store_string(text)
 	file.close()
 	return stored
+
+
+## A run that drove the whole road reached the finish `finish` with `stats`, from
+## GameState.stats(), and unlocked the legend `unlocked`, or none if it's &"": both are written at
+## once (ENDGAME_PLAN.md §5.4, §5.5).
+func record_arrival(finish: StringName, stats: Dictionary, unlocked: StringName) -> void:
+	data().record_arrival(finish, stats)
+	if unlocked != &"":
+		data().unlock_disaster(unlocked)
+	_dirty = true
+	flush()
 
 
 func _on_run_ended(_cause: StringName, stats: Dictionary) -> void:

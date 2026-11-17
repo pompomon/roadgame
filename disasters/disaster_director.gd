@@ -4,9 +4,10 @@ extends Node
 ## missed turn it waits for the car to stop, and plays the area's disaster for the run, which its
 ## picks drew as the car reached the area (docs/POOLS.md §5.1), on World's DisasterLayer, with
 ## params from the run's disaster stream. After a crash it shakes the camera and
-## waits CRASH_SECONDS while the car stops and smokes. Either way it then emits sequence_finished,
-## once, and DISASTER_TIMEOUT after the end of the run at the latest. Its time comes from
-## _physics_process, as a disaster's must (docs/M3.md J2).
+## waits CRASH_SECONDS while the car stops and smokes. After an arrival it waits ARRIVAL_SECONDS
+## while the car rolls to a stop on the finish (ENDGAME_PLAN.md §5.3). Either way it then emits
+## sequence_finished, once, and DISASTER_TIMEOUT after the end of the run at the latest. Its time
+## comes from _physics_process, as a disaster's must (docs/M3.md J2).
 
 signal sequence_finished
 ## The disaster from `area`'s pool started to play.
@@ -15,7 +16,7 @@ signal disaster_started(disaster: DisasterBase, area: AreaDef)
 ## S18). Its sound starts now, with its first beat.
 signal disaster_appeared(disaster: DisasterBase, area: AreaDef)
 
-enum Sequence { NONE, STOPPING, PLAYING, CRASH, FINISHED }
+enum Sequence { NONE, STOPPING, PLAYING, CRASH, FINISHED, ARRIVAL }
 
 ## Where disasters go: World's DisasterLayer, above the road and below the car (J5).
 var layer: Node2D
@@ -82,6 +83,12 @@ func play_crash(car: CarController, camera: CameraRig) -> void:
 		camera.shake(Tuning.CRASH_SHAKE, Tuning.CRASH_SHAKE_SECONDS)
 
 
+## After an arrival: ARRIVAL_SECONDS while the car rolls to a stop.
+func play_arrival(car: CarController, camera: CameraRig) -> void:
+	if _begin(car, camera):
+		sequence = Sequence.ARRIVAL
+
+
 ## Frees the disaster at once, so that a retry leaves no node behind (J13), and forgets the
 ## sequence.
 func clear() -> void:
@@ -111,6 +118,8 @@ func _physics_process(delta: float) -> void:
 	if sequence == Sequence.STOPPING and _car.sim.speed == 0.0:
 		_start_disaster()
 	elif sequence == Sequence.CRASH and _time >= Tuning.CRASH_SECONDS:
+		_finish()
+	elif sequence == Sequence.ARRIVAL and _time >= Tuning.ARRIVAL_SECONDS:
 		_finish()
 	if sequence != Sequence.FINISHED and _time >= Tuning.DISASTER_TIMEOUT:
 		push_error("DisasterDirector: the sequence did not end in %.1f s" % Tuning.DISASTER_TIMEOUT)
