@@ -5,7 +5,7 @@ extends GutTest
 ## colours and import settings.
 
 const Art := preload("res://tests/helpers/art_checks.gd")
-const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert"]
+const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert", &"coast"]
 
 
 func _props(area: StringName) -> Array[PropDef]:
@@ -85,6 +85,7 @@ func test_each_prop_lights_its_yellow_windows_and_lamps() -> void:
 		"city: lamp": Vector2i(1, 1),
 		"rural: barn": Vector2i(1, 0),
 		"village: cottage": Vector2i(1, 0),
+		"coast: lighthouse": Vector2i(1, 0),
 	}
 	assert_eq(lit, expected)
 
@@ -158,7 +159,7 @@ func test_each_shadow_falls_from_where_its_prop_meets_the_ground() -> void:
 					var corner := absf(x - def.foot.x) / 2.0
 					assert_almost_eq(corner, float(def.shadow_rise), PIXELS, "%s's corner" % prop)
 	assert_eq(walls, 2, "the fences")
-	assert_eq(boxes, 5, "the building, the barn and the village's houses")
+	assert_eq(boxes, 6, "the building, the barn, the village's houses and the beach hut")
 
 
 ## Whether column `x` of a frame whose columns' lowest pixels are `bottoms` is on the lower edge of

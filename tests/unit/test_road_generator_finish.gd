@@ -102,6 +102,7 @@ func test_a_finish_due_by_the_end_of_the_tutorial_comes_right_after_it() -> void
 
 ## ENDGAME_PLAN.md E1: a finish changes nothing before it. Up to the finish's first tile, the road
 ## is the endless road's, tile for tile, dead ends too, so a run is the seed's run until the end.
+## The game's road is, up to its last junction: then comes the Coast's straight, its home stretch.
 func test_the_road_before_the_finish_is_the_endless_roads() -> void:
 	for run_seed: int in SEEDS:
 		var road := Fixtures.schedule().ending_at(40, &"pier")
@@ -115,6 +116,26 @@ func test_the_road_before_the_finish_is_the_endless_roads() -> void:
 		assert_true(
 			endless.next_tile().is_junction(), "the endless road turns where the pier begins"
 		)
+		gen = RoadGenerator.new(run_seed, Fixtures.schedule())
+		endless = RoadGenerator.new(run_seed, Fixtures.endless())
+		path = _path_to_finish(gen)
+		var game := "seed %d, the game's road" % run_seed
+		assert_eq(gen.turn_count, 280, game)
+		var coast := Fixtures.schedule().entries[-1].area
+		var stretch := gen.finish_index - coast.max_straight
+		assert_true(path[stretch - 1].is_junction(), "%s: its last junction" % game)
+		var differs := -1
+		for tile: RoadTile in path.slice(0, stretch):
+			if _shape(tile) != _shape(endless.next_tile()) and differs == -1:
+				differs = tile.path_index
+		assert_eq(differs, -1, "%s: the endless road's up to there" % game)
+		var heading := path[stretch - 1].expected_exit
+		for tile: RoadTile in path.slice(stretch, gen.finish_index):
+			var kind := [tile.type, tile.area_id, tile.heading]
+			assert_eq(kind, [RoadTile.Type.STRAIGHT, &"coast", heading], game)
+		var pier := path[gen.finish_index]
+		assert_eq([pier.set_piece, pier.area_id, pier.heading], [&"pier", &"coast", heading], game)
+		assert_eq(gen.occupancy.size(), _cells(path), "%s: every tile has a cell" % game)
 
 
 func test_a_road_without_a_finish_never_ends() -> void:

@@ -18,6 +18,7 @@ const AREAS := {
 	&"meadows": ["meadows", "asphalt", "asphalt light", "line", "grass"],
 	&"village": ["village", "asphalt light", "asphalt", "white", "grass"],
 	&"desert": ["desert", "asphalt", "asphalt light", "desert light", "ripples"],
+	&"coast": ["coast", "asphalt", "asphalt light", "line", "grass"],
 }
 ## The other rows of a road sheet (GreyboxAtlas.Row): surface, speckles and edge.
 const ROWS := {

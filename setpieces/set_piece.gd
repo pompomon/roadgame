@@ -36,6 +36,32 @@ func grown(across: float, along: float) -> Rect2:
 	return rect.grow_individual(across, along, across, along)
 
 
+## The run's length, in tiles.
+func run_length() -> float:
+	return rect.size.dot(forward().abs())
+
+
+## The unit vector along the run, in its heading, in tile space.
+func forward() -> Vector2:
+	return Vector2(Heading.VEC[heading])
+
+
+## The unit vector across the run towards its near side, down the screen, in tile space.
+func sideways() -> Vector2:
+	return Vector2.DOWN if axis() == Vector2.AXIS_X else Vector2.RIGHT
+
+
+## The tile-space point `ahead` tiles along the run from where it starts, the middle of its first
+## tile's back edge, and `aside` tiles across it from its centreline, towards its near side.
+func point(ahead: float, aside: float) -> Vector2:
+	return rect.get_center() + forward() * (ahead - run_length() * 0.5) + sideways() * aside
+
+
+## The tile-space rectangle between point(ahead_from, aside_from) and point(ahead_to, aside_to).
+func span(ahead_from: float, ahead_to: float, aside_from: float, aside_to: float) -> Rect2:
+	return Rect2(point(ahead_from, aside_from), Vector2.ZERO).expand(point(ahead_to, aside_to))
+
+
 ## How far the car is from the run's cells, in tiles: 0 on them, and INF without a car.
 func car_distance() -> float:
 	if car == null:

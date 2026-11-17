@@ -127,7 +127,7 @@ func test_the_start_button_steps_through_the_areas_and_open_keeps_the_last() -> 
 	var start := _button(title, "StartArea")
 	watch_signals(title)
 	var texts: Array[String] = []
-	for _press: int in 6:
+	for _press: int in 7:
 		start.pressed.emit()
 		texts.append(start.text)
 	assert_eq(
@@ -137,6 +137,7 @@ func test_the_start_button_steps_through_the_areas_and_open_keeps_the_last() -> 
 			"Start in: Meadows",
 			"Start in: Village",
 			"Start in: Desert",
+			"Start in: Coast",
 			"Start in: City",
 			"Start in: Rural",
 		]
@@ -177,7 +178,7 @@ func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	# disaster of the pools is seen, so that each card shows its lore (docs/M6.md S15).
 	var data := SaveService.data()
 	var areas := {}
-	for id: StringName in [&"city", &"rural", &"meadows", &"village", &"desert"]:
+	for id: StringName in [&"city", &"rural", &"meadows", &"village", &"desert", &"coast"]:
 		areas[id] = {"distance": 9999.9, "turns": 999}
 	data.record_run({"areas": areas, "distance": 9999.9, "turn_index": 999})
 	var title := _title()

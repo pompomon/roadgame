@@ -12,6 +12,8 @@ enum Row { ROAD, DEAD_END, TUNNEL, BRIDGE }
 const ROAD_COLORS: Array[Color] = [
 	Color(0.33, 0.34, 0.38), Color(0.62, 0.24, 0.24), Color(0.16, 0.16, 0.2), Color(0.5, 0.36, 0.22)
 ]
+## The atlas coordinates of no tile: TileMapLayer.set_cell() erases a cell given them.
+const NO_TILE := Vector2i(-1, -1)
 const EDGE_COLOR := Color(0.86, 0.86, 0.8)
 ## Width of the road edge line, in tiles.
 const EDGE_WIDTH := 0.035
@@ -26,14 +28,18 @@ static var _edges: Dictionary[Color, Texture2D] = {}
 
 
 ## Atlas coordinates of `tile`. Dead ends get their own tint only when `show_dead_ends` is set;
-## in a run they must look like real road (plan.md §3.3).
+## in a run they must look like real road (plan.md §3.3). The pier's tiles are planks, as the
+## bridge's are, and the tiles beyond a finish are NO_TILE, as the sea or the ground covers them
+## (ENDGAME_PLAN.md §5.8). Home's tiles are road, a drive.
 static func road_coords(tile: RoadTile, show_dead_ends: bool) -> Vector2i:
+	if tile.set_piece == RoadGenerator.BEYOND:
+		return NO_TILE
 	var row := Row.ROAD
 	if show_dead_ends and tile.type == RoadTile.Type.DEAD_END:
 		row = Row.DEAD_END
 	elif tile.set_piece == &"tunnel":
 		row = Row.TUNNEL
-	elif tile.set_piece == &"bridge":
+	elif tile.set_piece == &"bridge" or tile.set_piece == &"pier":
 		row = Row.BRIDGE
 	return Vector2i(tile.exits - 1, row)
 

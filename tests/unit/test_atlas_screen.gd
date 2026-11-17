@@ -48,7 +48,7 @@ func test_before_any_run_every_area_is_a_silhouette_and_there_is_no_best() -> vo
 	assert_true(atlas.visible)
 	assert_eq((atlas.get_node("%Best") as Label).text, "")
 	var cards := _cards(atlas)
-	assert_eq(cards.size(), 5, "city, rural, meadows, village, desert")
+	assert_eq(cards.size(), 6, "city, rural, meadows, village, desert, coast")
 	for card: MenuCard in cards:
 		assert_eq(_card_text(card), [AtlasScreen.UNKNOWN, AtlasScreen.NOT_REACHED])
 		assert_eq(_swatch(card), AtlasScreen.SILHOUETTE)
@@ -79,7 +79,7 @@ func test_opening_again_replaces_the_cards() -> void:
 	data.record_run(_run({&"city": [1.0, 0]}, 1.0, 0))
 	atlas.open(data, _schedule())
 	var cards := _cards(atlas)
-	assert_eq(cards.size(), 5, "the old cards are gone")
+	assert_eq(cards.size(), 6, "the old cards are gone")
 	assert_eq(_card_text(cards[0])[0], "City")
 	assert_no_new_orphans()
 

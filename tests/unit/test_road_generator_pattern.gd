@@ -8,7 +8,7 @@ const TURNS := 300
 ## The game's road, and a road with every kind of junction (docs/ROADGEN.md R1).
 static func _schedules() -> Dictionary[String, AreaSchedule]:
 	var schedules: Dictionary[String, AreaSchedule] = {
-		"game": Fixtures.schedule(), "kinds": Fixtures.kinds_schedule(0.25, 0.25, 0.25)
+		"game": Fixtures.endless(), "kinds": Fixtures.kinds_schedule(0.25, 0.25, 0.25)
 	}
 	return schedules
 

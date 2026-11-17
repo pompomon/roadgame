@@ -34,13 +34,15 @@ func test_the_game_schedule_is_valid() -> void:
 	var turns: Array[int] = []
 	for entry: AreaScheduleEntry in schedule.entries:
 		turns.append(entry.turn)
-	assert_eq(turns, [0, 34, 100, 200, 220] as Array[int])
+	assert_eq(turns, [0, 34, 100, 200, 220, 280] as Array[int])
 
 
 ## The City, where a run learns the pattern, has no side roads or decoys. Every later area has
-## both, and keeps at least LEAST_T_SHARE of its junctions as T's (docs/ROADGEN.md E8, §5.5).
+## both, and keeps at least LEAST_T_SHARE of its junctions as T's (docs/ROADGEN.md E8, §5.5). The
+## Coast, the home stretch, has no junction (ENDGAME_PLAN.md §5.8), and the endless road leaves it
+## out.
 func test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions() -> void:
-	for area: AreaDef in Fixtures.schedule().areas():
+	for area: AreaDef in Fixtures.endless().areas():
 		if area.id == &"city":
 			assert_eq(area.side_road_chance, 0.0, "the City has no side roads")
 			assert_eq(area.decoy_chance, 0.0, "the City has no decoys")
@@ -59,7 +61,9 @@ func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
 	var ids: Array[StringName] = []
 	for area: AreaDef in Fixtures.schedule().areas():
 		ids.append(area.id)
-	assert_eq(ids, [&"city", &"rural", &"meadows", &"village", &"desert"] as Array[StringName])
+	assert_eq(
+		ids, [&"city", &"rural", &"meadows", &"village", &"desert", &"coast"] as Array[StringName]
+	)
 	var city := _area(&"city")
 	var rural := _area(&"rural")
 	var schedule := AreaSchedule.new()
@@ -68,9 +72,10 @@ func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
 
 
 func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
-	# A wrong turn in any area ends in a disaster (docs/M3.md J6).
+	# A wrong turn in any area ends in a disaster (docs/M3.md J6). The Coast, a home stretch, has no
+	# junction and no pool (ENDGAME_PLAN.md Q1, W19).
 	var areas := 0
-	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
+	for entry: AreaScheduleEntry in Fixtures.endless().entries:
 		var area := entry.area
 		areas += 1
 		assert_false(area.disasters.is_empty(), "%s has a pool" % area.id)
@@ -210,7 +215,7 @@ func test_the_straight_after_a_switch_uses_the_new_area() -> void:
 
 
 func test_the_last_area_goes_on_forever() -> void:
-	var gen := RoadGenerator.new(4, Fixtures.schedule())
+	var gen := RoadGenerator.new(4, Fixtures.endless())
 	var path := Fixtures.path_until_turn(gen, 1000)
 	assert_eq(path[-1].turn_number, 999)
 	assert_eq(path[-1].area_id, &"desert")
@@ -287,6 +292,7 @@ func test_a_schedule_can_start_in_any_of_its_areas() -> void:
 			[100, &"meadows", &"bridge", 5],
 			[200, &"village", &"", 0],
 			[220, &"desert", &"", 0],
+			[280, &"coast", &"", 0],
 		],
 		&"rural":
 		[
@@ -294,10 +300,18 @@ func test_a_schedule_can_start_in_any_of_its_areas() -> void:
 			[66, &"meadows", &"bridge", 5],
 			[166, &"village", &"", 0],
 			[186, &"desert", &"", 0],
+			[246, &"coast", &"", 0],
 		],
-		&"meadows": [[0, &"meadows", &"", 0], [100, &"village", &"", 0], [120, &"desert", &"", 0]],
-		&"village": [[0, &"village", &"", 0], [20, &"desert", &"", 0]],
-		&"desert": [[0, &"desert", &"", 0]],
+		&"meadows":
+		[
+			[0, &"meadows", &"", 0],
+			[100, &"village", &"", 0],
+			[120, &"desert", &"", 0],
+			[180, &"coast", &"", 0],
+		],
+		&"village": [[0, &"village", &"", 0], [20, &"desert", &"", 0], [80, &"coast", &"", 0]],
+		&"desert": [[0, &"desert", &"", 0], [60, &"coast", &"", 0]],
+		&"coast": [[0, &"coast", &"", 0]],
 	}
 	for id: StringName in expected:
 		var start := schedule.starting_at(id)
@@ -320,7 +334,7 @@ func test_a_schedule_cannot_start_in_an_area_it_lacks() -> void:
 ## ENDGAME_PLAN.md §5.1: a road with a finish ends in its last area, at a turn the last area has
 ## reached.
 func test_validate_reports_a_finish_that_cannot_be_reached() -> void:
-	var schedule := Fixtures.schedule()
+	var schedule := Fixtures.endless()
 	schedule.finish_turn = 300
 	assert_eq(" | ".join(schedule.validate()), "finish_turn is 300, but there is no finish")
 	schedule.finish = &"pier"
@@ -335,7 +349,7 @@ func test_validate_reports_a_finish_that_cannot_be_reached() -> void:
 
 
 func test_a_road_can_end_early_or_never_and_keep_its_areas() -> void:
-	var schedule := Fixtures.schedule()
+	var schedule := Fixtures.endless()
 	var short := schedule.ending_at(110, &"pier")
 	assert_eq(short.validate(), PackedStringArray())
 	assert_eq([short.finish, short.finish_turn], [&"pier", 110])
@@ -356,7 +370,7 @@ func test_a_road_that_starts_in_a_later_area_ends_as_many_turns_sooner() -> void
 	assert_eq([rural.finish, rural.finish_turn], [&"pier", 206])
 	assert_eq(schedule.starting_at(&"desert").finish_turn, 20)
 	assert_eq(rural.validate(), PackedStringArray())
-	assert_false(Fixtures.schedule().starting_at(&"rural").has_finish())
+	assert_false(Fixtures.endless().starting_at(&"rural").has_finish())
 
 
 ## ENDGAME_PLAN.md W17: a home stretch, a last area that starts at the finish's turn, has no
@@ -385,7 +399,21 @@ func test_the_road_home_is_valid_and_runs_the_other_way() -> void:
 	var areas: Array[StringName] = []
 	for area: AreaDef in home.areas():
 		areas.append(area.id)
+	# The game's road backwards, without its home stretch, the Coast.
 	var forward: Array[StringName] = []
-	for area: AreaDef in Fixtures.schedule().areas():
+	for area: AreaDef in Fixtures.endless().areas():
 		forward.push_front(area.id)
 	assert_eq(areas, forward)
+
+
+## ENDGAME_PLAN.md §5.8, E7: the game's road ends at the pier after its 280th turn. The Coast starts
+## at that turn, a home stretch: one straight, as long as the Inspector allows (AreaDef), and no set
+## piece before it or junction in it, so no pool. The endless road leaves it out (W17).
+func test_the_games_road_ends_at_the_pier_after_its_280th_turn() -> void:
+	var road := Fixtures.schedule()
+	assert_eq([road.finish, road.finish_turn], [&"pier", 280])
+	var coast: AreaScheduleEntry = road.entries[-1]
+	assert_eq([coast.area.id, coast.turn, coast.set_piece_length], [&"coast", 280, 0])
+	assert_eq([coast.area.min_straight, coast.area.max_straight], [20, 20])
+	assert_eq(coast.area.disasters.size(), 0, "no junction, so no legend")
+	assert_eq(road.endless().entries, road.entries.slice(0, -1), "the endless road leaves it out")

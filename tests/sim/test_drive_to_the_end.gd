@@ -1,7 +1,8 @@
 extends GutTest
-## The autopilot drives the whole road to its end (ENDGAME_PLAN.md E1, E9): the game's road, ending
-## at the pier after 280 turns, and the Road Home, mirrored, ending at home after 280 turns, on
-## SEEDS seeds each, with no disaster, crash or damage. Prints the game time each took (P1).
+## The autopilot drives the whole road to its end (ENDGAME_PLAN.md E1, E7, E9): the game's own road,
+## ending at the pier past the Coast after 280 turns, and the Road Home, mirrored, ending at home
+## after 280 turns, on SEEDS seeds each, with no disaster, crash or damage. Prints the game time
+## each took (P1).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
@@ -12,7 +13,7 @@ const MAX_STEPS := 60 * 60 * 20
 
 
 func test_the_autopilot_drives_to_the_pier() -> void:
-	_drive_all(Fixtures.schedule().ending_at(TURNS, &"pier"), &"desert", "pier")
+	_drive_all(Fixtures.schedule(), &"coast", "pier")
 
 
 func test_the_autopilot_drives_the_road_home() -> void:

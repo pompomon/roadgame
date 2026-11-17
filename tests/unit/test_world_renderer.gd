@@ -2,6 +2,8 @@ extends GutTest
 
 const Art := preload("res://tests/helpers/art_checks.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+const MainScript := preload("res://ui/main.gd")
+const WORLD := preload("res://world/world.tscn")
 ## Screens, in pixels: the Fold4 folded and unfolded, a phone, a 4K and a 32:9 monitor, each both
 ## ways round, and a browser window four times as tall as it is wide.
 const SCREENS: Array[Vector2] = [
@@ -20,8 +22,7 @@ var _images: Dictionary[Texture2D, Image] = {}
 
 
 func before_each() -> void:
-	var scene: PackedScene = load("res://world/world.tscn")
-	_world = add_child_autofree(scene.instantiate())
+	_world = add_child_autofree(WORLD.instantiate())
 	_buffer = RoadBuffer.new(RoadGenerator.new(11, Fixtures.schedule()))
 	for entry: AreaScheduleEntry in Fixtures.schedule().entries:
 		_areas[entry.area.id] = entry.area
@@ -390,7 +391,7 @@ func test_set_pieces_draw_above_the_ground_and_below_the_road() -> void:
 	assert_eq(layer.get_index(), _world.get_node("%Ground").get_index() + 1)
 	assert_false(layer.y_sort_enabled)
 	assert_eq(layer.z_index, 0)
-	assert_eq(_world.set_piece_scenes.keys(), [&"bridge", &"tunnel"])
+	assert_eq(_world.set_piece_scenes.keys(), [&"bridge", &"home", &"pier", &"tunnel"])
 
 
 func test_the_lamps_glow_over_the_veil_at_night() -> void:
@@ -539,6 +540,56 @@ func test_an_empty_set_piece_scene_is_an_error() -> void:
 	# It has no root to instantiate, and so nothing to free.
 	assert_push_error("the scene for set piece ferris_wheel isn't a SetPiece")
 	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
+
+
+func test_the_finish_draws_its_set_piece_and_nothing_beyond_it() -> void:
+	# ENDGAME_PLAN.md §5.8, W18: the pier's tiles are planks, a Pier stands on them, and the road
+	# beyond it draws nothing, where the sea covers the ground.
+	var schedule := Fixtures.schedule().ending_at(2, &"pier")
+	var gen := RoadGenerator.new(11, schedule)
+	_buffer = RoadBuffer.new(gen)
+	_world.build(schedule)
+	_world.bind(_buffer)
+	_buffer.start()
+	assert_true(gen.finished(), "the buffer holds the pier")
+	var finish := gen.finish_index
+	var last := finish + Tuning.FINISH_TILES - 1
+	assert_gt(_buffer.last_index(), last + 10, "and the road beyond it")
+	var road: TileMapLayer = _world.get_node("%RoadLayer")
+	for index: int in range(finish, _buffer.last_index() + 1):
+		var tile := _buffer.path_tile(index)
+		if index <= last:
+			assert_eq(tile.set_piece, &"pier")
+			var row := road.get_cell_atlas_coords(tile.cell).y
+			assert_eq(row, GreyboxAtlas.Row.BRIDGE, "tile %d: planks" % index)
+		else:
+			assert_eq(tile.set_piece, RoadGenerator.BEYOND)
+			assert_eq(road.get_cell_source_id(tile.cell), -1, "tile %d: nothing" % index)
+	var pieces: Node2D = _world.get_node("%SetPieces")
+	assert_eq(pieces.get_child_count(), 1)
+	var pier := pieces.get_child(0) as Pier
+	assert_not_null(pier, "a pier")
+	if pier != null:
+		var cells := Rect2(_buffer.path_tile(finish).cell, Vector2.ONE)
+		assert_eq(pier.rect, cells.merge(Rect2(_buffer.path_tile(last).cell, Vector2.ONE)))
+
+
+func test_every_finish_has_its_scene() -> void:
+	# The game's road, the Road Home, and main's --finish on a road without a finish each end in
+	# their set piece, which build() checks for, as it checks the areas' (ENDGAME_PLAN.md §5.7, §5.8).
+	var finishes: Array[StringName] = []
+	for schedule: AreaSchedule in [Fixtures.schedule(), Fixtures.schedule_home()]:
+		var world: WorldRenderer = add_child_autofree(WORLD.instantiate())
+		world.build(schedule)
+		finishes.append(schedule.finish)
+	finishes.append(MainScript.DEBUG_FINISH)
+	assert_eq(finishes, [&"pier", &"home", &"pier"] as Array[StringName])
+	for finish: StringName in finishes:
+		var piece: PackedScene = _world.set_piece_scenes.get(finish)
+		var path := piece.resource_path if piece != null else ""
+		assert_eq(path, "res://setpieces/%s.tscn" % finish)
+	_world.build(Fixtures.schedule().ending_at(2, &"ferris_wheel"))
+	assert_push_error("no scene for the finish ferris_wheel")
 
 
 func test_the_shadows_follow_the_clock_and_the_props() -> void:

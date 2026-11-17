@@ -6,6 +6,7 @@
 [ext_resource type="Resource" path="res://areas/meadows.tres" id="4_4nhs0"]
 [ext_resource type="Resource" path="res://areas/village.tres" id="5_h5fti"]
 [ext_resource type="Resource" path="res://areas/desert.tres" id="6_ebk6g"]
+[ext_resource type="Resource" path="res://areas/coast.tres" id="8_coast"]
 [ext_resource type="Script" path="res://areas/area_schedule.gd" id="7_ojfv4"]
 
 [sub_resource type="Resource" id="Resource_cqdk6"]
@@ -36,6 +37,13 @@ script = ExtResource("1_d7bx6")
 turn = 220
 area = ExtResource("6_ebk6g")
 
+[sub_resource type="Resource" id="Resource_c0a5t"]
+script = ExtResource("1_d7bx6")
+turn = 280
+area = ExtResource("8_coast")
+
 [resource]
 script = ExtResource("7_ojfv4")
-entries = Array[ExtResource("1_d7bx6")]([SubResource("Resource_cqdk6"), SubResource("Resource_ml1f4"), SubResource("Resource_afk4n"), SubResource("Resource_306ti"), SubResource("Resource_la02j")])
+entries = Array[ExtResource("1_d7bx6")]([SubResource("Resource_cqdk6"), SubResource("Resource_ml1f4"), SubResource("Resource_afk4n"), SubResource("Resource_306ti"), SubResource("Resource_la02j"), SubResource("Resource_c0a5t")])
+finish = &"pier"
+finish_turn = 280

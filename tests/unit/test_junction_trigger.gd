@@ -226,7 +226,7 @@ func test_the_offroad_limit_is_a_missed_turn() -> void:
 ## turns (docs/ROADGEN.md R2).
 func test_finds_the_next_junction_for_300_turns() -> void:
 	var kinds := Fixtures.kinds_schedule(0.25, 0.25, 0.25)
-	for schedule: AreaSchedule in [Fixtures.schedule(), kinds]:
+	for schedule: AreaSchedule in [Fixtures.endless(), kinds]:
 		_start(3, schedule)
 		var junctions := 0
 		while _trigger.turn_index < 300 and junctions < 1000:

@@ -56,7 +56,7 @@ func test_the_game_road_matches_its_digests() -> void:
 	var path_lines := PackedStringArray()
 	var road_lines := PackedStringArray()
 	for run_seed: int in DIGEST_SEEDS:
-		var gen := RoadGenerator.new(run_seed, Fixtures.schedule())
+		var gen := RoadGenerator.new(run_seed, Fixtures.endless())
 		for tile: RoadTile in Fixtures.path_until_turn(gen, DIGEST_TURNS):
 			var sig := Fixtures.signature(tile)
 			path_lines.append(str(sig.slice(0, 7)))
