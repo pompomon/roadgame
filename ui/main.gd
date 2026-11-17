@@ -288,7 +288,7 @@ func _welcome() -> void:
 	var pier := _world.set_piece_at(_buffer.generator.finish_index) as Pier
 	if pier != null:
 		pier.welcome(_whole_schedule, SaveService.data().seen_disasters())
-		_camera.arrive(pier.welcome_rect)
+		_camera.arrive(pier.welcome_bounds)
 
 
 ## Whether the run started in the route's first area: not a run from another area (ZS, and

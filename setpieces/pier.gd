@@ -49,6 +49,9 @@ var water := Rect2()
 ## The welcome's grid (ENDGAME_PLAN.md §5.8), in World pixels, with a place for each legend of the
 ## pools: empty before welcome().
 var welcome_rect := Rect2()
+## What the welcome draws on, in World pixels: its grid, and each still that stands out of its
+## place, such as the worm, which is taller than a row.
+var welcome_bounds := Rect2()
 ## Seconds since setup().
 var _time := 0.0
 ## The welcome's stills, in the Book's order, and the seconds since welcome().
@@ -129,6 +132,7 @@ func welcome(schedule: AreaSchedule, collected: Array[StringName]) -> void:
 	var ahead := run_length() + Tuning.WELCOME_AHEAD
 	var centre := Iso.tile_to_world(point(ahead, Tuning.WELCOME_ASIDE))
 	welcome_rect = Rect2(centre - size * 0.5, size)
+	welcome_bounds = welcome_rect
 	# A legend in two pools has its place in the first.
 	var placed: Array[StringName] = []
 	for row: int in rows.size():
@@ -144,6 +148,7 @@ func welcome(schedule: AreaSchedule, collected: Array[StringName]) -> void:
 				still.position = welcome_rect.position + cell * Tuning.WELCOME_CELL
 				add_child(still)
 				_stills.append(still)
+				welcome_bounds = welcome_bounds.merge(still.get_transform() * still.get_rect())
 	_fade_stills()
 
 

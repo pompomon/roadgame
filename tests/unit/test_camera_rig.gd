@@ -16,6 +16,13 @@ const SCREENS: Array[Vector2i] = [
 ]
 ## How near the view something may come or go: a screen row, as in test_props_in_view.gd.
 const MARGIN := Iso.TILE_H / 2.0
+## Where the game's welcome stands as the car stops, from the centre of the car's body, as seed
+## 12345 has it: its bounds, the grid with the stills that stand out of it, up and to the left on a
+## pier heading W, and up and to the right on one heading N.
+const WELCOMES: Array[Rect2] = [
+	Rect2(-321.3, -290.3, 216.0, 338.0),
+	Rect2(105.3, -290.3, 216.0, 338.0),
+]
 
 
 func _view(size: Vector2i) -> SubViewport:
@@ -212,58 +219,142 @@ func test_a_dead_end_freed_with_its_junction_stays_below_the_view_at_top_speed()
 			assert_gte(gap, MARGIN, "%s, heading %s: %.1f px" % [size, Heading.NAMES[heading], gap])
 
 
-## The arrival's view (ENDGAME_PLAN.md §5.8): from the car, the target eases to the view that shows
-## the welcome's rect and the car's body, with ARRIVAL_MARGIN_PX round it, over
-## 1 / ARRIVAL_PAN_RATE seconds, at the zoom it had; end_arrival() brings it back to the car.
-func test_an_arrival_eases_the_view_to_show_the_welcome_and_the_car() -> void:
+## What `rig` shows, in World pixels.
+static func _shown(rig: CameraRig) -> Rect2:
+	var size := rig.get_viewport_rect().size / rig.zoom
+	return Rect2(rig.position - size / 2.0, size)
+
+
+## The distances of `points` from the first.
+static func _distances(points: Array[Vector2]) -> Array[float]:
+	var path: Array[float] = []
+	for point: Vector2 in points:
+		path.append(points[0].distance_to(point))
+	return path
+
+
+## Checks that `path`, how far something has gone on each frame of a pan, eases as a smoothstep
+## over 1 / ARRIVAL_PAN_RATE seconds does: in slowly, never faster than its steepest, never back,
+## and to a rest.
+func _assert_eases(path: Array[float], what: String) -> void:
+	var linear := path[-1] * Tuning.ARRIVAL_PAN_RATE / 60.0
+	var steepest := 0.0
+	var back := 0
+	for i: int in range(1, path.size()):
+		steepest = maxf(steepest, path[i] - path[i - 1])
+		back += int(path[i] < path[i - 1] - 1e-4)
+	assert_lte(path[1], linear / 2.0, what + ": eases in")
+	assert_lte(steepest, 1.5 * linear + 1e-3, what + ": no faster than a smoothstep")
+	assert_eq(back, 0, what + ": frames back")
+	assert_eq(path[-2], path[-1], what + ": and comes to rest")
+
+
+## Runs an arrival on a viewport of `size`, with the car still, to `rect` placed from the centre of
+## the car's body, and checks the pan: the target and the view's size ease together from the car to
+## the arrival's view, with no jump as they start, the target along a line. The car's body, with
+## ARRIVAL_MARGIN_PX round it, stays in view on every frame, and in the end the rect is in view
+## too. end_arrival() brings the camera back to the car, at the zoom for following it. Returns the
+## arrival's zoom.
+func _assert_arrival(size: Vector2i, rect: Rect2) -> float:
 	var delta := 1.0 / 60.0
 	var pan := ceili(1.0 / (Tuning.ARRIVAL_PAN_RATE * delta))
-	for size: Vector2i in [Vector2i(360, 640), Vector2i(640, 360)]:
-		var rig := _rig(_view(size))
-		var zoom := rig.zoom
-		rig.snap_to_target()
-		var on_car := rig.target()
-		var body := rig.car.body_rect()
-		var rect := Rect2(body.get_center() - Vector2(260.0, 260.0), Vector2(200.0, 200.0))
-		rig.arrive(rect)
-		assert_eq(rig.target(), on_car, "%s: no jump as it starts" % size)
-		# A frame more for a sum of 1/60 s that falls short, and one at rest.
-		var targets: Array[Vector2] = [on_car]
-		for _i: int in pan + 2:
-			simulate(rig, 1, delta)
+	var rig := _rig(_view(size))
+	var follow := rig.zoom
+	rig.snap_to_target()
+	var on_car := rig.target()
+	var framed := rig.car.body_rect().grow(Tuning.ARRIVAL_MARGIN_PX)
+	var welcome := Rect2(framed.get_center() + rect.position, rect.size)
+	var at := "%s, %s" % [size, rect]
+	rig.arrive(welcome)
+	assert_eq(rig.target(), on_car, at + ": no jump as it starts")
+	assert_eq(rig.zoom, follow, at + ": nor a zoom")
+	var targets: Array[Vector2] = [on_car]
+	var widths: Array[float] = [0.0]
+	var hidden := 0
+	# The pan, a frame more for a sum of 1/60 s that falls short and one at rest, then the camera
+	# catching up.
+	for frame: int in pan * 3:
+		simulate(rig, 1, delta)
+		if frame < pan + 2:
 			targets.append(rig.target())
-		var whole := on_car.distance_to(targets[-1])
-		var linear := whole * Tuning.ARRIVAL_PAN_RATE * delta
-		var steepest := 0.0
-		for i: int in range(1, targets.size()):
-			steepest = maxf(steepest, targets[i - 1].distance_to(targets[i]))
-		assert_gt(whole, 100.0, "%s: it pans" % size)
-		assert_lt(targets[0].distance_to(targets[1]), linear / 2.0, "%s: eases in" % size)
-		assert_lte(steepest, 1.5 * linear + 1e-3, "%s: no faster than a smoothstep" % size)
-		assert_eq(targets[-2], targets[-1], "%s: and comes to rest" % size)
-		simulate(rig, pan * 2, delta)
-		var shown := Vector2(size) / rig.zoom
-		var view := Rect2(rig.position - shown / 2.0, shown).grow(0.5)
-		assert_true(view.encloses(rect), "%s: the welcome in view" % size)
-		var framed := body.grow(Tuning.ARRIVAL_MARGIN_PX)
-		assert_true(view.encloses(framed), "%s: and the car's body, with a margin" % size)
-		assert_eq(rig.zoom, zoom, "%s: at the zoom it had" % size)
-		rig.end_arrival()
-		assert_eq(rig.target(), on_car, "%s: back on the car" % size)
+			widths.append(_shown(rig).size.x - size.x / follow.x)
+		hidden += int(not _shown(rig).grow(0.5).encloses(framed))
+	var line := (targets[-1] - on_car).normalized()
+	var off_line := 0.0
+	for target: Vector2 in targets:
+		off_line = maxf(off_line, absf((target - on_car).cross(line)))
+	assert_gt(on_car.distance_to(targets[-1]), 50.0, at + ": it pans")
+	assert_lt(off_line, 0.01, at + ": along a line")
+	_assert_eases(_distances(targets), at + ": the target")
+	_assert_eases(widths, at + ": the view's width")
+	assert_eq(hidden, 0, at + ": frames without the car's body, and its margin, in view")
+	assert_true(_shown(rig).grow(0.5).encloses(welcome), at + ": and in the end, the rect")
+	var zoom := rig.zoom.x
+	rig.end_arrival()
+	assert_eq(rig.target(), on_car, at + ": back on the car")
+	assert_eq(rig.zoom, follow, at + ": at the zoom for following it")
+	return zoom
+
+
+## The arrival's view (ENDGAME_PLAN.md §5.8), on every reference screen, as _assert_arrival()
+## checks it. It zooms out only where the view can't hold the rect and the car's body at the zoom
+## for following the car: on the Fold4's inner screen in portrait, 266 px across at zoom 2, by a
+## step.
+func test_an_arrival_eases_the_view_to_show_the_welcome_and_the_car() -> void:
+	for size: Vector2i in SCREENS:
+		var follow := CameraRig.zoom_for(Vector2(size))
+		var step := follow / 2.0 if size == Vector2i(532, 640) else follow
+		var zoom := _assert_arrival(size, Rect2(-260.0, -260.0, 200.0, 200.0))
+		assert_eq(zoom, step, "%s: the arrival's zoom" % size)
+
+
+## The game's welcome shows at zoom 1 with the car on every reference screen: where the view is
+## 320 px high at zoom 2, too small for them, the arrival zooms out a step.
+func test_the_welcome_shows_at_zoom_1_on_every_screen() -> void:
+	for size: Vector2i in SCREENS:
+		for welcome: Rect2 in WELCOMES:
+			assert_eq(_assert_arrival(size, welcome), 1.0, "%s, %s" % [size, welcome])
+
+
+func test_an_arrivals_zoom_is_the_largest_step_whose_view_holds_it_but_never_in() -> void:
+	var welcome := Vector2(284.0, 398.0)
+	assert_eq(CameraRig.arrival_zoom_for(Vector2(360, 640), welcome), 1.0, "the base view")
+	assert_eq(CameraRig.arrival_zoom_for(Vector2(1137, 640), welcome), 1.0, "a step out from 2")
+	assert_eq(CameraRig.arrival_zoom_for(Vector2(1920, 1080), welcome), 2.0, "full HD keeps 2")
+	assert_eq(CameraRig.arrival_zoom_for(Vector2(360, 640), Vector2(10, 10)), 1.0, "never in")
+	var wide := Vector2(800.0, 100.0)
+	assert_eq(CameraRig.arrival_zoom_for(Vector2(360, 640), wide), 0.5, "else the smallest step")
+
+
+## A resize during an arrival, as a fold's or a window's, gives the zoom the new screen's steps at
+## once: the arrival's, and after end_arrival(), the one for following the car.
+func test_a_resize_during_an_arrival_takes_the_new_screens_steps() -> void:
+	var view := _view(Vector2i(1137, 640))
+	var rig := _rig(view)
+	rig.snap_to_target()
+	var welcome := WELCOMES[0]
+	rig.arrive(Rect2(rig.car.body_rect().get_center() + welcome.position, welcome.size))
+	simulate(rig, 120, 1.0 / 60.0)
+	assert_eq(rig.zoom, Vector2.ONE, "a step out from 2")
+	view.size = Vector2i(1920, 1080)
+	assert_eq(rig.zoom, Vector2(2.0, 2.0), "full HD holds the welcome at 2")
+	view.size = Vector2i(1137, 640)
+	assert_eq(rig.zoom, Vector2.ONE, "and back, out again")
+	rig.end_arrival()
+	assert_eq(rig.zoom, Vector2(2.0, 2.0), "and back to following the car")
 
 
 ## A car that came slowly stops short on the pier, too far from the welcome to show both: the view
 ## goes toward the welcome as far as it can with the car's body, and its margin, still in view.
 func test_an_arrival_too_far_to_show_keeps_the_car_in_view() -> void:
 	var delta := 1.0 / 60.0
-	for size: Vector2i in [Vector2i(360, 640), Vector2i(640, 360)]:
+	for size: Vector2i in SCREENS:
 		var rig := _rig(_view(size))
 		rig.snap_to_target()
 		var body := rig.car.body_rect()
 		rig.arrive(Rect2(body.get_center() - Vector2(2000.0, 1500.0), Vector2(200.0, 200.0)))
 		simulate(rig, ceili(3.0 / (Tuning.ARRIVAL_PAN_RATE * delta)), delta)
-		var shown := Vector2(size) / rig.zoom
-		var view := Rect2(rig.position - shown / 2.0, shown)
+		var view := _shown(rig)
 		var framed := body.grow(Tuning.ARRIVAL_MARGIN_PX)
 		assert_true(view.grow(0.5).encloses(framed), "%s: the car's body in view" % size)
 		assert_almost_eq(view.end, framed.end, Vector2.ONE, "%s: at the view's corner" % size)

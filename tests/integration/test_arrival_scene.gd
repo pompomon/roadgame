@@ -1,9 +1,9 @@
 extends GutTest
 ## The arrival's scene in the game (ENDGAME_PLAN.md §5.8, E7), through the main scene's
 ## _physics_process(): as the car rolls to a stop at the pier, the sun sets, never faster than the
-## light's rate, and the legends collected, the one that the arrival unlocks too, wait in the
-## 360 × 640 view, faded in by the time the end screen shows. A retry starts the zone's clock again
-## from its own hour, and the camera follows the car again.
+## light's rate, and the legends collected, the one that the arrival unlocks too, wait in view, at
+## zoom 1 on every screen, faded in by the time the end screen shows. A retry starts the zone's
+## clock again from its own hour, and the camera follows the car again.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -99,13 +99,17 @@ func test_the_sun_sets_on_an_arrival_at_night_too() -> void:
 	_assert_sunset(0.0)
 
 
-func test_each_legend_collected_waits_in_view_as_the_car_stops() -> void:
+## Drives to the finish on a screen of `size` with every other legend collected, and checks that
+## the car stays in view as it rolls to a stop, and then each legend collected, the arrival's too,
+## waits in view, at zoom 1 and below the HUD's top bar, and has faded in by the end screen.
+func _assert_stills_in_view(size: Vector2i) -> void:
 	var save := SaveService.data()
 	var book := CollectionScreen.disasters(Fixtures.schedule())
 	for k: int in range(0, book.size(), 2):
 		save.unlock_disaster(book[k]["id"])
-	var main := MainScene.open(self, _args())
+	var main := MainScene.open(self, _args(), true, size)
 	var car := MainScene.car(main)
+	var camera: CameraRig = main.get_node("%Camera")
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	assert_eq(GameState.state, ARRIVED)
 	var seen := save.seen_disasters()
@@ -124,21 +128,40 @@ func test_each_legend_collected_waits_in_view_as_the_car_stops() -> void:
 	for still: LegendStill in stills:
 		ids.append(still.id)
 	assert_eq(ids, collected, "a still of each legend collected, in the Book's order, and no other")
+	var screen := main.get_viewport().get_visible_rect()
+	assert_eq(screen.size, Vector2(size), "the screen")
+	var hidden := 0
 	while GameState.state == ARRIVED and car.sim.speed > 0.0:
 		simulate(main, 1, MainScene.DELTA)
+		# The camera moves the view as the engine flushes its transform's change, which simulate()
+		# doesn't: so it moves it now.
+		camera.force_update_scroll()
+		hidden += int(not screen.encloses(_on_screen(car.get_parent(), car.body_rect())))
 	assert_eq(GameState.state, ARRIVED)
 	assert_eq(car.sim.speed, 0.0, "the car stopped")
-	# The camera moves the view as the engine flushes its transform's change, which simulate()
-	# doesn't: so it moves it now.
-	(main.get_node("%Camera") as CameraRig).force_update_scroll()
-	var screen := main.get_viewport().get_visible_rect()
-	assert_eq(screen.size, Vector2(360.0, 640.0))
-	var body := _on_screen(car.get_parent(), car.body_rect())
-	assert_true(screen.encloses(body), "the car is in view, at %s" % body)
+	assert_eq(hidden, 0, "frames of the arrival without the car in view")
+	assert_eq(camera.zoom, Vector2.ONE, "at zoom 1")
+	var top := (main.get_node("%HUD/Top") as Control).get_global_rect().end.y
 	for still: LegendStill in stills:
 		var rect := _on_screen(still, still.get_rect())
 		assert_true(screen.encloses(rect), "%s is in view, at %s" % [still.id, rect])
+		assert_gte(rect.position.y, top, "%s is below the HUD's top bar" % still.id)
 	MainScene.run_while(self, main, ARRIVED, 600)
 	assert_eq(GameState.state, GAME_OVER)
 	for still: LegendStill in stills:
 		assert_eq(still.modulate.a, 1.0, "%s has faded in by the end screen" % still.id)
+
+
+func test_each_legend_collected_waits_in_view_as_the_car_stops() -> void:
+	_assert_stills_in_view(Vector2i(360, 640))
+
+
+## The Fold4's inner screen in portrait shows 320 px high at zoom 2, too small for the welcome and
+## the car: the arrival zooms out a step.
+func test_on_the_fold4s_inner_screen_the_arrival_zooms_out_to_show_them() -> void:
+	_assert_stills_in_view(Vector2i(532, 640))
+
+
+## And so it does on the widest reference screen, the Fold4's cover screen in landscape.
+func test_on_the_widest_screen_the_arrival_zooms_out_to_show_them() -> void:
+	_assert_stills_in_view(Vector2i(1639, 640))

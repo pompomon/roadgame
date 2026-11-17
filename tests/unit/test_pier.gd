@@ -309,6 +309,25 @@ func test_the_welcome_stands_the_legends_collected_in_the_books_grid() -> void:
 		assert_eq(ids, collected, run + ": the legends collected, in the Book's order")
 
 
+func test_the_welcomes_bounds_hold_the_grid_and_each_still_drawn() -> void:
+	# The death worm, taller than a row, stands out of the grid's last row: the camera's view must
+	# hold it too, and no more than the grid and the stills.
+	var schedule := Fixtures.schedule()
+	for heading: int in HEADINGS:
+		var pier := _piece(PIER, heading) as Pier
+		var run := Heading.NAMES[heading]
+		pier.welcome(schedule, _book(schedule))
+		var drawn := pier.welcome_rect
+		var out: Array[StringName] = []
+		for still: LegendStill in _stills(pier):
+			var rect := still.get_transform() * still.get_rect()
+			drawn = drawn.merge(rect)
+			if not pier.welcome_rect.encloses(rect):
+				out.append(still.id)
+		assert_has(out, &"death_worm", run + ": out of the grid")
+		assert_eq(pier.welcome_bounds, drawn, run + ": the bounds")
+
+
 func test_the_welcome_stands_over_the_sea_past_the_piers_end_and_clear_of_it() -> void:
 	var schedule := Fixtures.schedule()
 	for heading: int in HEADINGS:
