@@ -1,5 +1,5 @@
 extends GutTest
-## The Headless Horseman, Rural's third legend (POOLS_PLAN.md §5.4). Dusk falls, and a rider with no
+## The Headless Horseman, Rural's third legend (docs/POOLS.md §5.4). Dusk falls, and a rider with no
 ## head gallops along the road to the car on a black horse and halts in front of it. He raises a
 ## ball of ghost-fire, not a pumpkin, and hurls it at the car. Pale flames run over the car, which
 ## pales to a ghost of itself and fades, as he wheels round and gallops off the way he came. His
@@ -969,7 +969,7 @@ func test_its_light_rises_at_each_point_at_most_once_wherever_the_car_stopped() 
 
 func test_he_his_ghost_fire_and_his_hoofprints_stand_out_from_the_fields_by_night() -> void:
 	# Each frame of each sheet, against Rural's road and ground, in each key light, under his dusk
-	# veil; and the ghost-fire's glow, added over them as bright as it gets (POOLS_PLAN.md §5.6,
+	# veil; and the ghost-fire's glow, added over them as bright as it gets (docs/POOLS.md §5.6,
 	# V15, P13b).
 	var legend := _legend()
 	var parts: Dictionary[String, Sprite2D] = {

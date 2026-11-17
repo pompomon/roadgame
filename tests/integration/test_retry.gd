@@ -87,7 +87,7 @@ func test_retry_starts_the_next_run_afresh() -> void:
 
 func test_a_retry_weighs_the_disaster_just_seen_less() -> void:
 	# Each run reads the collection as it starts, with the last run's disaster in it
-	# (POOLS_PLAN.md Q2, V2).
+	# (docs/POOLS.md Q2, V2).
 	SaveService.use_memory()
 	var main := MainScene.open(self, ["--seed=1"])
 	var director: DisasterDirector = main.get_node("%Director")

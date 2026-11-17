@@ -1,5 +1,5 @@
 extends RefCounted
-## The Mothman's sheets (POOLS_PLAN.md §5.4), drawn into assets/legends/mothman/ by
+## The Mothman's sheets (docs/POOLS.md §5.4), drawn into assets/legends/mothman/ by
 ## tools/art/make_legends.gd. `mothman.png`: a tall dark figure with a great moth's wings, feathered
 ## feelers and two red eyes, facing the viewer, the same on each side: perched with its wings folded
 ## about it like a cloak, then standing with them spread, then flying with them raised and its legs

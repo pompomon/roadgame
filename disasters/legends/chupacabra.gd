@@ -1,6 +1,6 @@
 class_name Chupacabra
 extends Legend
-## The Desert's third legend (POOLS_PLAN.md §5.4), from the goat-sucker of Puerto Rico, 1995: a
+## The Desert's third legend (docs/POOLS.md §5.4), from the goat-sucker of Puerto Rico, 1995: a
 ## grey, spined beast creeps out of the scrub, across the car's road and down the screen from it,
 ## slower and slower, and crouches by the car. It leaps onto the car's roof and perches there,
 ## hunched, and the car's colours drain to grey as grey dust flakes off it: the car's double fades,

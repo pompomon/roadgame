@@ -60,8 +60,8 @@ road/         heading.gd, road_tile.gd, road_generator.gd, occupancy_grid.gd,
               road_buffer.gd, junction_trigger.gd, road_geometry.gd
 world/        world.tscn, world_renderer.gd, prop_pool.gd, iso.gd, camera_rig.gd
 car/          car.tscn, car_controller.gd, car_sim.gd, input_router.gd, autopilot.gd
-disasters/    disaster_director.gd, disaster_base.gd, disaster_params.gd, legend.gd,
-              legends/ (phantom_bus, ufo, fairy_ring, witch_hex, death_worm; M6)
+disasters/    disaster_director.gd, disaster_picks.gd, disaster_base.gd, disaster_params.gd,
+              legend.gd, legends/ (three for each area: M6's five, docs/POOLS.md's ten)
 areas/        area_def.gd, prop_def.gd, area_schedule.gd,
               city.tres, rural.tres, meadows.tres, village.tres, desert.tres, schedule.tres
 setpieces/    set_piece.gd, tunnel.tscn, bridge.tscn
@@ -98,7 +98,7 @@ Sizes: **S** ≤ 1 day, **M** 2–3 days, **L** 4–6 days (one developer).
 | M6 | Each area's disaster comes from a legend, with its veil, art, sound, fate and lore, and nothing flashes (`docs/M6.md`) | L |
 | M7 | Orientation and foldable handling, haptics, Web audio unlock, signed release pipeline, device QA | M |
 
-M0–M6 are done. Between M6 and M7, five smaller plans changed the game: junction kinds, side roads and decoys (`docs/ROADGEN.md`), the start area in debug builds (`docs/ZONE_SELECT.md`), the tutorial (`docs/TUTORIAL.md`), day and night (`docs/DAYNIGHT.md`), and the car's wheels and the City's streets (`docs/VISUALS.md`). `docs/README.md` lists every summary.
+M0–M6 are done. Between M6 and M7, six smaller plans changed the game: junction kinds, side roads and decoys (`docs/ROADGEN.md`), the start area in debug builds (`docs/ZONE_SELECT.md`), the tutorial (`docs/TUTORIAL.md`), day and night (`docs/DAYNIGHT.md`), the car's wheels and the City's streets (`docs/VISUALS.md`), and two more legends in each area, picked by the collection (`docs/POOLS.md`). `docs/README.md` lists every summary.
 
 ---
 
@@ -161,7 +161,7 @@ M0–M6 are done. Each of their packages says what it built and where; `docs/M<n
 
 ### M6 — Legends (done: `docs/M6.md`)
 
-Five disasters from myths, folk tales and urban legends replaced the natural four, one for each area: the phantom bus (City), the UFO (Rural), the fairy ring (Meadows), the witch's hex (Village) and the death worm (Desert). `docs/M6.md` §3.3 has two more options for each area. `Legend` (`disasters/legend.gd`) adds beats on one clock, a veil that darkens the World, glows, standing parts that sort with the props, and a double that takes the car's place. Each disaster has a fate, which game over shows, and a lore, which its card in the collection shows.
+Five disasters from myths, folk tales and urban legends replaced the natural four, one for each area: the phantom bus (City), the UFO (Rural), the fairy ring (Meadows), the witch's hex (Village) and the death worm (Desert). `docs/M6.md` §3.3 listed two more for each area, which PL added after M6, with the Grim Reaper in the Sewer Gator's place (`docs/POOLS.md` §5.4). `Legend` (`disasters/legend.gd`) adds beats on one clock, a veil that darkens the World, glows, standing parts that sort with the props, and a double that takes the car's place. Each disaster has a fate, which game over shows, and a lore, which its card in the collection shows.
 
 ---
 
@@ -171,12 +171,12 @@ What the plans before it leave to M7 (each summary's §9 has more):
 - **Settings.** M5 saves and shows the orientation and haptics settings. M7.1 and M7.2 read them with `SaveService.setting("orientation")` and `SaveService.setting("haptics")` (`docs/M5.md` Q3).
 - **New views.** Each screen that M7 must fit, the Fold4's two included, goes in the tests' `SCREENS` lists: `test_props_in_view.gd`'s, which `test_view_veil.gd` reads too to check that the night's veil covers every view (`docs/DAYNIGHT.md` §9), `test_camera_rig.gd`'s, `test_world_renderer.gd`'s and `test_title_screen.gd`'s. Tall windows may need a larger `BUFFER_BEHIND` (`docs/M5.md` Q9).
 - **Margins and tiles.** Integer scaling leaves black margins on the Fold4, where the game draws 50–78% of the screen, and the inner screen in portrait shows 3.72 tiles across, under M7.5's 5 (`docs/M2.md` H18, Q17, §6.5). M7.1 decides on both; the tiles change with `VISIBLE_TILES` or `CAMERA_ZOOMS`.
-- **Haptics.** A disaster's pulse can follow `EventBus.disaster_started`, which comes once the car has stopped. They can pulse on a legend's beats, which `Beats` gives (`docs/M6.md` §5.2). If they mark a correct turn, they mark the tutorial's streak too: `EventBus.streak_changed` with a streak above 0, as the chime does (`docs/TUTORIAL.md` §5.4). The light drives neither sound nor haptics: add them to `test_the_light_changes_nothing_but_the_view`'s `_sound()`.
+- **Haptics.** A disaster's pulse can follow `EventBus.disaster_started`, which comes once the car has stopped. They can pulse on each of the fifteen legends' beats, which `Beats` gives (`docs/M6.md` §5.2, `docs/POOLS.md` §5.4). If they mark a correct turn, they mark the tutorial's streak too: `EventBus.streak_changed` with a streak above 0, as the chime does (`docs/TUTORIAL.md` §5.4). The light drives neither sound nor haptics: add them to `test_the_light_changes_nothing_but_the_view`'s `_sound()`.
 - **The Web.** Browsers start audio only after a gesture. The tap on Play is the first, so the title stays silent and a run's music starts on that tap (`docs/M5.md` Q4). M7.3 also decides on the gap at the end of a looped sample (`docs/M5.md` L20, Q11), unless Godot 4.8, which loops Web samples natively (godotengine/godot#123996), has come. Godot 4.7.2 tells the game nothing when a page closes, reloads or is hidden (`docs/M5.md` L10).
-- **The release.** The store's content rating declares the legends' horror: fear, with no blood or gore (`docs/M6.md` Q8). The HUD shows the version and the seed in every build (`ui/hud.gd`), and game over shows the seed only in debug builds: decide what the release shows. M7.4's tag is the first run of `release.yml`'s signing and publishing; retry a failed one by re-running its own run, since a manual run fails if the tag exists (`docs/M0.md` F7, F32, §9). The release is signed with another key than the debug APK, so it installs over it only after an uninstall, which empties the save, as `adb shell pm clear com.pompomon.roadgame` does (`docs/ZONE_SELECT.md` Z5).
+- **The release.** The store's content rating declares the legends' horror: fear, with no blood or gore (`docs/M6.md` Q8), which PL's ten keep, the chupacabra draining colour, not blood (`docs/POOLS.md` §5.4). The HUD shows the version and the seed in every build (`ui/hud.gd`), and game over shows the seed only in debug builds: decide what the release shows. A seed replays its legend only with the save from before its run (`docs/POOLS.md` §8). M7.4's tag is the first run of `release.yml`'s signing and publishing; retry a failed one by re-running its own run, since a manual run fails if the tag exists (`docs/M0.md` F7, F32, §9). The release is signed with another key than the debug APK, so it installs over it only after an uninstall, which empties the save, as `adb shell pm clear com.pompomon.roadgame` does (`docs/ZONE_SELECT.md` Z5).
 - **Motion.** The car and the camera move in `_physics_process` at 60 Hz without physics interpolation, so a screen whose refresh rate isn't a multiple of 60 Hz may show uneven motion. If M7.5 sees it, turn on `physics/common/physics_interpolation` (M2's §8, `git show 08f316f:M2_PLAN.md`). With it, the car's wheels still add up the distance driven in `_physics_process()` and turn in `_process()`, a phase a drawn frame at most; a sprite's frame doesn't interpolate (`docs/VISUALS.md` §5.1).
-- **Device checks.** In debug builds, the title's Start button chooses the area that Play starts in (`docs/ZONE_SELECT.md`), so M7.5 can check each area's art, legend and haptics on both screens and through a fold. These Fold4 checks of earlier plans aren't recorded as done: M0's E6, M2's E12, M3's E13, M4's E14, M5's E14 with its crossing run (L8) and listening (L29), M6's E11, RG's E10, ZS's E8, TUT's E9, DN's E13 and VIS's E9, each in its summary.
-- **Later.** Art for the set pieces, the river's shader, and the tunnel's darkening through `Daylight`, not a `CanvasModulate` (`docs/DAYNIGHT.md` C15). More buildings for the City, other areas' wide props on lots, front wheels that steer, and, if the City drops frames on the Fold4, the changes in `docs/VISUALS.md` §9.
+- **Device checks.** In debug builds, the title's Start button chooses the area that Play starts in (`docs/ZONE_SELECT.md`), so M7.5 can check each area's art, legends and haptics on both screens and through a fold. These Fold4 checks of earlier plans aren't recorded as done: M0's E6, M2's E12, M3's E13, M4's E14, M5's E14 with its crossing run (L8) and listening (L29), M6's E11, RG's E10, ZS's E8, TUT's E9, DN's E13 and VIS's E9, each in its summary.
+- **Later.** Art for the set pieces, the river's shader, and the tunnel's darkening through `Daylight`, not a `CanvasModulate` (`docs/DAYNIGHT.md` C15). More buildings for the City, other areas' wide props on lots, front wheels that steer, and, if the City drops frames on the Fold4, the changes in `docs/VISUALS.md` §9. The legends' notes in `docs/POOLS.md` §9: loading them lazily if the boot grows (E11), and a `--legend=` flag for device checks and reports.
 
 #### M7.1 Orientation and foldables (M)
 - Map the saved orientation setting to exactly one value (`sensor` → `DisplayServer.SCREEN_SENSOR`, `portrait` → `DisplayServer.SCREEN_PORTRAIT`, `landscape` → `DisplayServer.SCREEN_LANDSCAPE`) and pass only that value to `DisplayServer.screen_set_orientation()`.
@@ -203,7 +203,7 @@ What the plans before it leave to M7 (each summary's §9 has more):
 - [ ] Informal 60 fps on the Fold4 (Godot monitor overlay, or an APK exported with `debug/settings/stdout/print_fps`, which prints it to `adb logcat`); not a blocker (`plan.md` §10). Read it in the City by day and at night too (`docs/VISUALS.md` E8).
 - [ ] A new save starts the tutorial; it reads well on both screens and through a fold.
 - [ ] Side roads and decoys in each area but the City read as roads, and choosing between straight on and the turn feels fair.
-- [ ] Each area's legend, day and night, on both screens.
+- [ ] Each area's three legends, day and night, on both screens. With the Start choice and Retry, meeting an area's three takes about 4.25 wrong turns from a fresh save (`docs/POOLS.md` §5.3); in Incognito, the Web build's `--area` and `--seed` meet each at once with `docs/POOLS.md` §6's seeds (`docs/agents/checks.md`).
 
 #### M7.6 Visual screenshots (S, non-blocking)
 - `tools/screenshots.gd`: boots `main.tscn` with `--seed`, `--autopilot` and `--fixed-fps 60`, drives to turns {0, 34, 100, 200, 220}, and saves PNGs for portrait (360×640) and landscape (640×360). It must drive there, not skip ahead, or it misses junctions that the game counts, and it needs `--audio-driver Dummy` (`docs/M1.md` G16).
@@ -228,7 +228,7 @@ EventBus ─▶ GameState (state machine) ─▶ HUD / AudioDirector / SaveServi
 `Main` (`ui/main.tscn`, script `main.gd` owns run lifecycle) → `World` (`world.tscn`: `GroundLayer`, `RoadLayer`, `Props` + `WorldRenderer`, `PropPool`, `RoadBuffer` holder) → `DisasterLayer` → `CameraRig` → `UI` (`HUD`, `TouchZones`, `Overlays`).
 
 ### 5.3 Determinism rules
-- Only `RoadGenerator` (the road's stream and `props_seed`) and `DisasterDirector` (the disaster stream, and its `DisasterPicks`' stream for each area) use RNG; they are seeded only from `GameState.run_seed`, the picks with the area's id too. The picks are also weighted by the collection (`POOLS_PLAN.md` §5.1). Any `randf()` call on the global RNG is banned in gameplay code (enforced by a `gdlint`-adjacent grep in `tools/ci/lint.sh`).
+- Only `RoadGenerator` (the road's stream and `props_seed`) and `DisasterDirector` (the disaster stream, and its `DisasterPicks`' stream for each area) use RNG; they are seeded only from `GameState.run_seed`, the picks with the area's id too. The picks are also weighted by the collection (`docs/POOLS.md` §5.1). Any `randf()` call on the global RNG is banned in gameplay code (enforced by a `gdlint`-adjacent grep in `tools/ci/lint.sh`).
 - Simulation runs in `_physics_process` with `physics/common/physics_ticks_per_second=60`, and tests step `CarSim` with a fixed `delta`.
 
 ### 5.4 Error handling and debug

@@ -1,6 +1,6 @@
 class_name GrimReaper
 extends Legend
-## The City's third legend (POOLS_PLAN.md §5.4): Death of the plague years. Dusk falls, and a
+## The City's third legend (docs/POOLS.md §5.4): Death of the plague years. Dusk falls, and a
 ## hooded figure with a scythe steps out at the roadside ahead and beckons the car with one bony
 ## hand. The road opens into a grave in front of the car: a crack, then a pit, its earth heaped
 ## beside it. The car rolls forward into the grave and sinks, as the earth falls in on it, and a

@@ -164,20 +164,20 @@ AreaDef
 
 ### 4.2 DisasterDirector
 1. Disables player input, then eases the car to a stop or moves it into the dead end.
-2. Plays the current area's disaster for the run: the scene that the area's own `pick` stream drew from its pool as the car reached the area, with each disaster in the collection half as likely as each one not seen yet (`POOLS_PLAN.md` §5.1).
+2. Plays the current area's disaster for the run: the scene that the area's own `pick` stream drew from its pool as the car reached the area, with each disaster in the collection half as likely as each one not seen yet (`docs/POOLS.md` §5.1).
 3. Sets random parameters (direction, intensity, timing, particle counts) from the seed so no two disasters look the same.
 4. Plays the sequence (2–4 s), records it in the disaster collection and shows the game-over screen.
 
 ### 4.3 Disaster pools
-Since M6 the disasters come from myths, folk tales and urban legends: one for each area, from three options each (`docs/M6.md` §3.3). They replaced the MVP's natural four: the sinkhole, the tornado, the flood and the quicksand.
+Since M6 the disasters come from myths, folk tales and urban legends (`docs/M6.md` §3.3), and each area's pool holds three (`docs/POOLS.md` §5.4): a run plays the one picked for the area where it ends (§4.2). They replaced the MVP's natural four: the sinkhole, the tornado, the flood and the quicksand.
 
 | Area | Disasters |
 |---|---|
-| City | Phantom Bus |
-| Rural | UFO |
-| Meadows | Fairy Ring |
-| Village | Witch's Hex |
-| Desert | Death Worm |
+| City | Phantom Bus, Mothman, Grim Reaper |
+| Rural | UFO, Scarecrow, Headless Horseman |
+| Meadows | Fairy Ring, Kelpie, Will-o'-the-Wisp |
+| Village | Witch's Hex, Frau Holle's Well, Baba Yaga's Hut |
+| Desert | Death Worm, Marfa Lights, Chupacabra |
 
 Each disaster is a self-contained scene (animation, GPU particles, shaders, sound effects) that follows a common interface: `play(params) -> signal finished`.
 
@@ -326,7 +326,7 @@ autoload/      game_state.gd, event_bus.gd, save_service.gd, audio_director.gd
 road/          road_generator.gd, road_tile.gd, junction_trigger.gd
 world/         world.tscn, world_renderer.gd, prop_pool.gd
 car/           car.tscn, car_controller.gd, input_router.gd
-disasters/     disaster_director.gd, legend.gd, legends/phantom_bus.tscn, legends/ufo.tscn, ...
+disasters/     disaster_director.gd, disaster_picks.gd, legend.gd, legends/phantom_bus.tscn, legends/ufo.tscn, ...
 areas/         city.tres, rural.tres, meadows.tres, village.tres, desert.tres, schedule.tres
 setpieces/     tunnel.tscn, bridge.tscn
 ui/            title.tscn, hud.tscn, game_over.tscn, atlas.tscn

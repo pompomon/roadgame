@@ -36,7 +36,7 @@ static func _title(main: Node) -> TitleScreen:
 
 
 ## The place of the disaster `id` among the collection's cards, which follow the pools: in the City,
-## not always the first (POOLS_PLAN.md V7).
+## not always the first (docs/POOLS.md V7).
 static func _card_of(main: Node, id: StringName) -> int:
 	var disasters := CollectionScreen.disasters(_title(main).schedule)
 	for k: int in disasters.size():

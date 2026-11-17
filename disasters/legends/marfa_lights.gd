@@ -1,6 +1,6 @@
 class_name MarfaLights
 extends Legend
-## The Desert's second legend (POOLS_PLAN.md §5.4), from the lights seen at night near Marfa,
+## The Desert's second legend (docs/POOLS.md §5.4), from the lights seen at night near Marfa,
 ## Texas: night falls, and three lights, white and amber, glimmer far off over the desert, one after
 ## another, up the screen from the car and to one side. They dance, drifting back across as they
 ## bob, then come close round the car, which turns to face up the screen after them. It leaves the

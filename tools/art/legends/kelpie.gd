@@ -1,5 +1,5 @@
 extends RefCounted
-## The kelpie's sheets (POOLS_PLAN.md §5.4), drawn into assets/legends/kelpie/ by
+## The kelpie's sheets (docs/POOLS.md §5.4), drawn into assets/legends/kelpie/ by
 ## tools/art/make_legends.gd. `kelpie.png`: a black water horse standing in its pool to its knees,
 ## wet, a sheen of the night on its back, weed in its ink mane and tail, facing the screen's right:
 ## its head high as it rises, lowered to the car as it waits, then plunging head first into the

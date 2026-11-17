@@ -1,5 +1,5 @@
 extends GutTest
-## The Headless Horseman's hoofprints on the road (POOLS_PLAN.md §5.4): as he gallops off, they show
+## The Headless Horseman's hoofprints on the road (docs/POOLS.md §5.4): as he gallops off, they show
 ## for the strides that lie on the road, as far as it runs on, and for none past: strides_on()
 ## counts them. A review found them on the grass where the road ended short of them, which
 ## test_headless_horseman.gd plays.

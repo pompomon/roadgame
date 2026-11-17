@@ -160,7 +160,7 @@ func record_disaster(id: StringName, area_id: StringName, stats: Dictionary) -> 
 
 
 ## The ids of the disasters seen at least once: those that the collection shows (plan.md §2.6),
-## and that weigh less in a run's picks (POOLS_PLAN.md Q2, Q3).
+## and that weigh less in a run's picks (docs/POOLS.md Q2, Q3).
 func seen_disasters() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for id: String in disasters:

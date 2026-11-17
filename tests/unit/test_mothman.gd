@@ -1,5 +1,5 @@
 extends GutTest
-## The Mothman, the City's second legend (POOLS_PLAN.md §5.4). Night falls, and two red eyes open in
+## The Mothman, the City's second legend (docs/POOLS.md §5.4). Night falls, and two red eyes open in
 ## a grey shape that perches at the roadside ahead. It spreads its wings, glides over to the car and
 ## takes it in its talons, and its wingbeats whirl the dust up off the road as it carries the car up
 ## and out of sight. A grey feather drifts down to the road where the car stood, and stays.
@@ -472,7 +472,7 @@ func test_its_eyes_light_each_point_at_most_once_whichever_way_it_flies() -> voi
 
 func test_it_stands_out_from_the_city_by_night() -> void:
 	# Each frame of its sheet, against the City's road and ground, in each key light, under its
-	# veil (POOLS_PLAN.md §5.6, V15).
+	# veil (docs/POOLS.md §5.6, V15).
 	var mothman := _mothman()
 	var moth := _moth(mothman)
 	var share := Art.night_share(moth.texture.get_image(), moth.hframes, CITY, mothman.veil_kind)

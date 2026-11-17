@@ -1,5 +1,5 @@
 extends RefCounted
-## The Marfa Lights' sheet (POOLS_PLAN.md §5.4), drawn into assets/legends/marfa_lights/ by
+## The Marfa Lights' sheet (docs/POOLS.md §5.4), drawn into assets/legends/marfa_lights/ by
 ## tools/art/make_legends.gd. `tracks.png`: the tyre tracks that the car leaves as it follows the
 ## lights off the road, up the screen, smaller and smaller: two dark grooves that run from under its
 ## back wheels to where it goes, and meet there, narrowing from 2 px to 1 as they go. They are in

@@ -1,5 +1,5 @@
 extends GutTest
-## The scarecrow, Rural's second legend (POOLS_PLAN.md §5.4). A scarecrow by the road ahead turns
+## The scarecrow, Rural's second legend (docs/POOLS.md §5.4). A scarecrow by the road ahead turns
 ## its head to the car, and crows rise from its arms. They fly to the car and settle on its roof,
 ## then carry it off low over the fields and out of sight, in the light of the hour. The scarecrow
 ## stays, its head turned after the car.
@@ -423,7 +423,7 @@ func test_it_plays_in_the_light_of_the_hour_with_no_veil_and_no_glow() -> void:
 
 
 func test_it_and_its_crows_stand_out_from_the_fields_by_night() -> void:
-	# Each frame of each sheet, against Rural's road and ground, in each key light (POOLS_PLAN.md
+	# Each frame of each sheet, against Rural's road and ground, in each key light (docs/POOLS.md
 	# §5.6, V15): the crows carry the car by night too.
 	var scarecrow := _scarecrow()
 	var figure := _figure(scarecrow)

@@ -1,5 +1,5 @@
 extends RefCounted
-## The chupacabra's sheets (POOLS_PLAN.md §5.4), drawn into assets/legends/chupacabra/ by
+## The chupacabra's sheets (docs/POOLS.md §5.4), drawn into assets/legends/chupacabra/ by
 ## tools/art/make_legends.gd. `beast.png`: a hairless grey beast that faces the screen's right, a
 ## ridge of pale spines down its back, its eyes red: creeping, its near legs forward and then its
 ## far ones; crouched to spring, its spines up; leaping, stretched out; and perched, hunched. The

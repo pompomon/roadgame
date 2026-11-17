@@ -1,6 +1,6 @@
 class_name WillOWisp
 extends Legend
-## The Meadows' third legend (POOLS_PLAN.md §5.4), from the lights over marshes that lead
+## The Meadows' third legend (docs/POOLS.md §5.4), from the lights over marshes that lead
 ## travellers astray: night falls, and four pale wisps glimmer out over the meadow round the car,
 ## one after another. They circle it, closing in, and it shrinks into a light at its middle, a fifth
 ## wisp, as tufts of bog cotton sprout where it stood and their seeds blow up. The five drift off
