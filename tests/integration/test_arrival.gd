@@ -81,8 +81,8 @@ func test_with_every_legend_collected_the_book_is_full() -> void:
 
 
 ## A run that starts in a later area (--area, the title's Start, Departures) reaches the finish,
-## but it hasn't driven the whole road: no arrival is counted, and no legend unlocked (Q4). The sea
-## is still the next goal (ENDGAME_PLAN.md §5.9).
+## but it hasn't driven the whole road: no arrival is counted, no legend unlocked (Q4), and no
+## overall best set, only its area's (W22). The sea is still the next goal (ENDGAME_PLAN.md §5.9).
 func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--area=rural", "--finish=36"])
@@ -93,12 +93,14 @@ func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	var save := SaveService.data()
 	assert_eq(save.arrivals, {} as Dictionary[String, Dictionary])
 	assert_eq(_unlocked(save), [] as Array[StringName])
+	assert_eq(save.best, SaveData.BEST)
+	assert_eq(save.atlas["rural"]["best_turns"], 2)
 	var game_over: GameOver = main.get_node("%GameOver")
 	assert_false(game_over.get_node("%Fate").visible, "no line")
 	assert_false(game_over.get_node("%NewLegend").visible, "no new legend")
 	assert_signal_not_emitted(EventBus, "new_legend_shown")
 	var turns := Fixtures.schedule().finish_turn
-	assert_eq(game_over.get_node("%Goal").text, GameOver.GOAL_SEA % [2, turns], "the best, saved")
+	assert_eq(game_over.get_node("%Goal").text, GameOver.GOAL_SEA % [0, turns], "no best yet")
 
 
 ## ENDGAME_PLAN.md §5.9: an arrival that unlocks a legend shows NEW LEGEND!, and its jingle plays

@@ -28,6 +28,7 @@ func test_start_run_resets_the_stats() -> void:
 	_state.seconds = 9.5
 	_state.clean = false
 	_state.area_id = &"desert"
+	_state.whole_road = false
 	_state.start_run(42)
 	assert_eq(_state.state, GameStateScript.State.RUNNING)
 	assert_eq(
@@ -41,6 +42,7 @@ func test_start_run_resets_the_stats() -> void:
 			"area_id": &"",
 			"cause": &"",
 			"areas": {},
+			"whole_road": true,
 		}
 	)
 	assert_signal_emitted_with_parameters(EventBus, "run_started", [42])
@@ -75,7 +77,8 @@ func test_health_and_offroad_are_crashes() -> void:
 
 
 func test_end_run_emits_the_cause_and_stats() -> void:
-	_state.start_run(7)
+	# A departure from a later area (ENDGAME_PLAN.md W22).
+	_state.start_run(7, false, false)
 	_state.turn_index = 2
 	_state.distance = 30.5
 	_state.enter_area(&"rural", 30.5, 2)
@@ -89,6 +92,7 @@ func test_end_run_emits_the_cause_and_stats() -> void:
 		"area_id": &"rural",
 		"cause": CarSim.WRONG_TURN,
 		"areas": {&"rural": {"distance": 0.0, "turns": 0}},
+		"whole_road": false,
 	}
 	assert_signal_emitted_with_parameters(EventBus, "run_ended", [CarSim.WRONG_TURN, stats])
 

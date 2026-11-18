@@ -224,6 +224,20 @@ func test_record_run_keeps_the_best_of_each_area_and_overall() -> void:
 	assert_eq(data.best, {"distance": 40.0, "turns": 11}, "the best of each, not of one run")
 
 
+func test_a_departure_keeps_the_overall_best() -> void:
+	# ENDGAME_PLAN.md W22: a run from a later area counts for its areas, not overall.
+	var data := SaveData.new()
+	data.record_run(_stats(40.0, 9, {&"city": {"distance": 40.0, "turns": 9}}))
+	var departure := _stats(90.0, 25, {&"desert": {"distance": 90.0, "turns": 25}})
+	departure["whole_road"] = false
+	data.record_run(departure)
+	assert_eq(data.best, {"distance": 40.0, "turns": 9})
+	assert_eq(data.atlas["desert"], {"discovered": true, "best_distance": 90.0, "best_turns": 25})
+	departure["whole_road"] = true
+	data.record_run(departure)
+	assert_eq(data.best, {"distance": 90.0, "turns": 25}, "the same run, driven whole")
+
+
 func test_record_disaster_counts_and_keeps_the_first_sighting() -> void:
 	var data := SaveData.new()
 	data.record_disaster(&"sinkhole", &"city", _stats(12.5, 3, {}))

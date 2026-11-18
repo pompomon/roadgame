@@ -5,10 +5,11 @@ extends Control
 ## The game starts on it, and the game-over screen's Title button comes back to it. Esc, and
 ## Android's back button through main.gd, leave a screen for the title (docs/M5.md L13), or first a
 ## page that it shows, such as a legend's in the Book. On the Web, the tap on Play is also the first
-## gesture, which lets the game start its sound (M7.3). In debug builds, the Start button steps
-## through the schedule's areas, to choose the area that Play starts the run in, for checks on a
-## phone (docs/ZONE_SELECT.md Z1): a button, as a dropdown's popup would let Android's back button
-## quit the game (Z7).
+## gesture, which lets the game start its sound (M7.3). The Start button steps through the areas
+## that Play can start the run in: the road's first, and each later area discovered, but a home
+## stretch, Departures (ENDGAME_PLAN.md §5.11), or in debug builds every area, for checks on a phone
+## (docs/ZONE_SELECT.md Z1). It shows only when there is a choice, and is a button, as a dropdown's
+## popup would let Android's back button quit the game (Z7).
 
 ## Play was pressed.
 signal play_requested
@@ -17,13 +18,14 @@ signal play_requested
 const START_TEXT := "Start in: %s"
 
 ## The game's schedule: the Atlas and the Book show its areas and legends, and the Start
-## button steps through its areas.
+## button steps through its departures().
 var schedule: AreaSchedule
-## Whether the title shows the Start button: in debug builds only, like the game-over screen's seed
-## (docs/M3.md J19; docs/ZONE_SELECT.md Z4). Tests change it.
-var area_choice := OS.is_debug_build()
-## The area that Play starts the run in, with area_choice. main.gd sets it first; open() makes it
-## the schedule's first area if it isn't one of the schedule's.
+## Whether the Start button offers every area: in debug builds only, like the game-over screen's
+## seed (docs/M3.md J19; docs/ZONE_SELECT.md Z4). Otherwise it offers the departures. Tests change
+## it.
+var every_area := OS.is_debug_build()
+## The area that Play starts the run in. main.gd sets it first; open() makes it the first of the
+## departures if it isn't one of them.
 var start_area: AreaDef
 
 ## The button that opens each screen, which takes the focus back when the screen closes.
@@ -57,15 +59,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Shows the title, with the bests from the save, and the Start button with area_choice.
+## Shows the title, with the bests from the save, and the Start button if there are departures to
+## choose from.
 func open() -> void:
 	_close_screen()
 	_best.text = AtlasScreen.best_text(SaveService.data().best)
-	var areas := schedule.areas()
+	var areas := departures(schedule, SaveService.data(), every_area)
 	if not areas.has(start_area):
 		start_area = areas[0]
 	_start.text = START_TEXT % start_area.display_name
-	_start.visible = area_choice
+	_start.visible = areas.size() > 1
 	_main_page.show()
 	show()
 	_play.grab_focus()
@@ -88,6 +91,22 @@ func go_back() -> bool:
 	_main_page.show()
 	_buttons[screen].grab_focus()
 	return true
+
+
+## The areas of `road` that Play can start a run in, in the order a run reaches them: with `every`,
+## as in debug builds, each one (docs/ZONE_SELECT.md Z1). Otherwise the road's first area, and each
+## later one that `data`'s atlas has discovered, but a home stretch, which has no junction to play:
+## Departures (ENDGAME_PLAN.md §5.11).
+static func departures(road: AreaSchedule, data: SaveData, every: bool) -> Array[AreaDef]:
+	if every:
+		return road.areas()
+	var areas: Array[AreaDef] = []
+	# endless() leaves out a home stretch.
+	for area: AreaDef in road.endless().areas():
+		var entry: Dictionary = data.atlas.get(String(area.id), SaveData.ATLAS_ENTRY)
+		if areas.is_empty() or entry["discovered"]:
+			areas.append(area)
+	return areas
 
 
 ## The screen that is open, or null.
@@ -132,8 +151,8 @@ func _on_play_pressed() -> void:
 		play_requested.emit()
 
 
-## The next area of the schedule, and after the last, the first.
+## The next of the departures, and after the last, the first.
 func _on_start_pressed() -> void:
-	var areas := schedule.areas()
+	var areas := departures(schedule, SaveService.data(), every_area)
 	start_area = areas[(areas.find(start_area) + 1) % areas.size()]
 	_start.text = START_TEXT % start_area.display_name

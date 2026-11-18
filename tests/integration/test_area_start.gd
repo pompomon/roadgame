@@ -1,9 +1,9 @@
 extends GutTest
 ## Each run starts by naming its area (IMPLEMENTATION_PLAN.md M4.3, docs/M4.md K4): main reports
 ## the first area as it reports each later one, to GameState and on EventBus, and the HUD shows its
-## name. --area=<id> starts every run in that area (K10), and so does the title's Start button in
-## debug builds, which --area presets (docs/ZONE_SELECT.md Z1, Z6). SaveService keeps the save in
-## memory.
+## name. --area=<id> starts every run in that area (K10), and so does the title's Start button,
+## which --area presets: in debug builds over every area (docs/ZONE_SELECT.md Z1, Z6), and in others
+## over the areas discovered (ENDGAME_PLAN.md §5.11). SaveService keeps the save in memory.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -30,11 +30,12 @@ static func _start(main: Node) -> Button:
 	return main.get_node("%Title/%StartArea")
 
 
-## The main scene on its title screen, with the Start button, as a debug build shows it (Z4).
+## The main scene on its title screen, with every area on the Start button, as a debug build
+## offers them (Z4).
 func _open_title(args: Array[String]) -> Node:
 	var main := MainScene.open(self, args, false)
 	var title: TitleScreen = main.get_node("%Title")
-	title.area_choice = true
+	title.every_area = true
 	title.open()
 	return main
 
@@ -191,21 +192,22 @@ func test_the_area_argument_presets_the_choice_and_the_world_has_every_area() ->
 	assert_eq(_prop_sheets(main), city, "the world has the City's props (Z2)")
 
 
-func test_a_hidden_start_button_leaves_the_run_to_the_area_argument() -> void:
-	# Release builds hide it (Z4): a choice left from before doesn't count then.
-	var runs: Array[Array] = [["--seed=1"], ["--seed=1", "--area=village"]]
-	for run: Array in runs:
-		var args: Array[String] = []
-		args.assign(run)
-		var main := MainScene.open(self, args, false)
+func test_in_other_builds_the_area_argument_presets_only_an_area_discovered() -> void:
+	# ENDGAME_PLAN.md §5.11: there the Start button offers the City and the areas discovered, and Play
+	# starts in its choice. Until a run discovers the Village, --area=village gives way to the City.
+	for discovered: bool in [false, true]:
+		if discovered:
+			SaveService.data().record_run({"areas": {&"village": {}}})
+		var main := MainScene.open(self, ["--seed=1", "--area=village"], false)
 		var title: TitleScreen = main.get_node("%Title")
-		title.area_choice = false
-		title.start_area = title.schedule.areas()[-1]
+		title.every_area = false
 		title.open()
-		assert_false(_start(main).visible, " ".join(args))
+		var why := "discovered" if discovered else "not discovered"
+		assert_eq(_start(main).visible, discovered, why)
+		assert_eq(_start(main).text, "Start in: Village" if discovered else "Start in: City", why)
 		MainScene.press_key(main, KEY_ENTER)
-		var area := &"village" if args.has("--area=village") else &"city"
-		assert_eq(MainScene.car(main).sim.area.id, area, " ".join(args))
+		var area := &"village" if discovered else &"city"
+		assert_eq(MainScene.car(main).sim.area.id, area, why)
 		main.get_parent().free()
 
 
