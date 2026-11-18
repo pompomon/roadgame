@@ -278,6 +278,43 @@ func test_the_road_home_counts_under_home() -> void:
 	assert_eq(road.text, "Road: Home", "the last choice")
 
 
+## ENDGAME_PLAN.md §5.13, E11: after the first arrival, the title also offers Keep Driving, the
+## game's road with no end, endless(), where the Desert goes on as on main. Play drives it whole,
+## from the City, and its runs count as main's did, for the overall bests, the areas and the
+## legends, but for no road's farthest turn, as none can arrive.
+func test_keep_driving_is_the_endless_road_after_the_first_arrival() -> void:
+	var main := _open()
+	var title := _title(main)
+	var road: Button = title.get_node("%Road")
+	SaveService.data().record_arrival(&"pier", {"seconds": 600.0})
+	title.open()
+	road.pressed.emit()
+	road.pressed.emit()
+	assert_eq(road.text, "Road: Endless")
+	assert_eq((title.get_node("%StartArea") as Button).text, "Start in: City")
+	var areas := title.schedule.areas()
+	assert_eq(title.road.areas(), areas.slice(0, -1), "the Coast's home stretch left out")
+	# Past the sea's finish, the road goes on in the Desert.
+	var generator := RoadGenerator.new(1, title.road)
+	while generator.turn_count < title.schedule.finish_turn + 20 and not generator.finished():
+		generator.next_tile()
+	assert_eq([generator.finished(), generator.current_area.id], [false, &"desert"])
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(GameState.state, RUNNING)
+	assert_eq([GameState.whole_road, GameState.road], [true, &""])
+	_to_game_over(main)
+	var save := SaveService.data()
+	assert_eq(save.best["turns"], GameState.turn_index, "the overall best")
+	assert_gt(save.best["distance"], 0.0)
+	assert_gt(save.atlas["city"]["best_distance"], 0.0)
+	assert_eq(save.seen_disasters().size(), 1, "the City's legend")
+	assert_eq(save.arrivals.keys(), ["pier"], "no road's farthest turn")
+	assert_eq(save.arrivals["pier"]["farthest"], 0)
+	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
+	assert_ne((title.get_node("%Best") as Label).text, "")
+	assert_eq(road.text, "Road: Endless", "the last choice")
+
+
 func test_androids_back_button_in_each_state() -> void:
 	var main := _open()
 	watch_signals(main)

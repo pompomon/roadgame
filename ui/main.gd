@@ -15,9 +15,9 @@ extends Node
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
 ## that many turns, at most its own, with the areas before it, for tests and manual checks of the
 ## end of the road (ENDGAME_PLAN.md §5.7). --home drives the Road Home, and presets the title's Road
-## choice, which offers it after the first arrival at the sea (§5.12). --collected=<id> marks
-## each legend of that area's pool seen, in the save in use, and --collected=all every pool's, for
-## checks of the Book's seals and of a full Book (§5.7).
+## choice, which offers it after the first arrival at the sea, and Keep Driving's endless road too
+## (§5.12, §5.13). --collected=<id> marks each legend of that area's pool seen, in the save in use,
+## and --collected=all every pool's, for checks of the Book's seals and of a full Book (§5.7).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
@@ -26,7 +26,7 @@ const CAR_SCENE := preload("res://car/car.tscn")
 ## The game's road, to the sea, and the Road Home (ENDGAME_PLAN.md §5.12).
 const ROAD := "res://areas/schedule.tres"
 const HOME_ROAD := "res://areas/schedule_home.tres"
-## The finish of --finish's road, on a schedule with none.
+## The finish of --finish's road, on a schedule with none, such as Keep Driving's.
 const DEBUG_FINISH := &"pier"
 
 ## The user arguments. Tests set them before adding the scene to the tree.
@@ -38,7 +38,11 @@ var _autopilot := false
 var _whole_schedule: AreaSchedule
 ## The Road Home's.
 var _home_schedule: AreaSchedule
-## The road that the runs drive: the game's, or with --home or the title's choice the Road Home.
+## Keep Driving's: the game's road with no end, where the Desert goes on (ENDGAME_PLAN.md §5.13).
+## Its runs count as the game's did before the road had one, and none can arrive.
+var _endless_schedule: AreaSchedule
+## The road that the runs drive: the game's, or with --home or the title's choice the Road Home, or
+## with the title's, Keep Driving's.
 var _road: AreaSchedule
 ## The run's: the road, or a copy that starts in --area's area or the title's choice, or that ends
 ## after --finish's turns.
@@ -75,6 +79,7 @@ func _ready() -> void:
 	_autopilot = args.has("--autopilot")
 	_whole_schedule = load(ROAD)
 	_home_schedule = load(HOME_ROAD)
+	_endless_schedule = _whole_schedule.endless()
 	_road = _home_schedule if args.has("--home") else _whole_schedule
 	var collected := _parse_collected(args, _whole_schedule)
 	if not collected.is_empty():
@@ -98,7 +103,7 @@ func _ready() -> void:
 	_game_over.title_requested.connect(_to_title)
 	# The Atlas and the Book show the whole schedule, also with --area or --home.
 	_title.schedule = _whole_schedule
-	_title.roads = [_whole_schedule, _home_schedule]
+	_title.roads = [_whole_schedule, _home_schedule, _endless_schedule]
 	_title.road = _road
 	_title.start_area = _schedule.areas()[0]
 	_title.play_requested.connect(_play)

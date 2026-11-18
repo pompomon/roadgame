@@ -25,7 +25,7 @@ func _title() -> TitleScreen:
 	var title: TitleScreen = TITLE_SCENE.instantiate()
 	title.schedule = load("res://areas/schedule.tres")
 	var home: AreaSchedule = load("res://areas/schedule_home.tres")
-	title.roads = [title.schedule, home]
+	title.roads = [title.schedule, home, title.schedule.endless()]
 	title.road = title.schedule
 	view.add_child(title)
 	return title
@@ -207,7 +207,7 @@ func test_the_title_page_fits_a_portrait_screen_with_each_road_and_start_area() 
 	var widths: Array[float] = []
 	for road: AreaSchedule in title.roads:
 		for area: AreaDef in road.areas():
-			var shown := "%s, %s" % [road.finish, area.id]
+			var shown := "%s, %s" % [TitleScreen.ROAD_NAMES[road.finish], area.id]
 			title.road = road
 			title.start_area = area
 			title.open()
@@ -224,10 +224,11 @@ func test_the_title_page_fits_a_portrait_screen_with_each_road_and_start_area() 
 	assert_eq(widths.count(widths[0]), widths.size(), "one width for each: %s" % [widths])
 
 
-func test_the_road_button_offers_the_road_home_after_an_arrival_at_the_sea() -> void:
+func test_the_road_button_offers_the_other_roads_after_an_arrival_at_the_sea() -> void:
 	# ENDGAME_PLAN.md §5.12: the road to the sea alone, until it has an arrival. The Road Home then
-	# starts from its first area, the Desert, and the Start button steps through its own areas. A
-	# choice that isn't offered gives way to the road to the sea, from its first area.
+	# starts from its first area, the Desert, and the Start button steps through its own areas, and
+	# Keep Driving's endless road from the City (§5.13). A choice that isn't offered gives way to
+	# the road to the sea, from its first area.
 	var title := _title()
 	title.every_area = false
 	var road := _button(title, "Road")
@@ -240,7 +241,7 @@ func test_the_road_button_offers_the_road_home_after_an_arrival_at_the_sea() -> 
 	title.open()
 	assert_true(road.visible)
 	var texts: Array[String] = [road.text + ", " + start.text]
-	for _press: int in 2:
+	for _press: int in 3:
 		road.pressed.emit()
 		texts.append(road.text + ", " + start.text)
 	assert_eq(
@@ -248,6 +249,7 @@ func test_the_road_button_offers_the_road_home_after_an_arrival_at_the_sea() -> 
 		[
 			"Road: To the sea, Start in: City",
 			"Road: Home, Start in: Desert",
+			"Road: Endless, Start in: City",
 			"Road: To the sea, Start in: City",
 		]
 	)
