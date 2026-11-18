@@ -190,23 +190,30 @@ func test_a_first_sighting_or_an_unlock_shows_new_legend() -> void:
 
 
 ## ENDGAME_PLAN.md §5.9: the first goal that holds, from the player's progress alone: the sea, with
-## the best turn; the legends still missing; a clean arrival; the best time.
+## the best turn; the Road Home (§5.12); the legends still missing; a clean arrival at the sea; the
+## best time there.
 func test_the_next_goal_follows_the_players_progress() -> void:
 	var schedule := Fixtures.schedule()
 	assert_eq(schedule.finish, GameOver.SEA, "the game's road ends at the sea")
+	assert_eq(Fixtures.schedule_home().finish, GameOver.HOME, "the Road Home at home")
 	var turns := schedule.finish_turn
 	var data := SaveData.new()
 	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [0, turns], "a new save")
 	data.record_run({"turn_index": 212, "distance": 900.0})
 	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [212, turns])
-	data.record_arrival(&"home", {"seconds": 400.0, "clean": true})
-	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [212, turns], "home isn't")
+	var home_first := SaveData.new()
+	home_first.record_arrival(GameOver.HOME, {"seconds": 400.0, "clean": true})
+	assert_eq(
+		GameOver.next_goal(home_first, schedule), GameOver.GOAL_SEA % [0, turns], "home isn't"
+	)
 	data.record_arrival(GameOver.SEA, {"seconds": 581.0, "clean": false})
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_HOME, "arrived at the sea")
+	data.record_arrival(GameOver.HOME, {"seconds": 400.0, "clean": true})
 	var none: Array[StringName] = []
 	var legends := LegendUnlock.locked(schedule, none)
 	assert_gt(legends.size(), 2)
 	var missing := GameOver.GOAL_LEGENDS % legends.size()
-	assert_eq(GameOver.next_goal(data, schedule), missing, "arrived")
+	assert_eq(GameOver.next_goal(data, schedule), missing, "and home")
 	data.record_disaster(legends[0], &"city", {})
 	for id: StringName in legends.slice(1, legends.size() - 2):
 		data.unlock_disaster(id)
@@ -233,6 +240,7 @@ func test_the_next_goal_is_one_line_of_the_fonts_glyphs() -> void:
 	var none: Array[StringName] = []
 	var lines: Array[String] = [
 		GameOver.GOAL_SEA % [schedule.finish_turn, schedule.finish_turn],
+		GameOver.GOAL_HOME,
 		GameOver.GOAL_LEGENDS % LegendUnlock.locked(schedule, none).size(),
 		GameOver.GOAL_LAST_LEGEND,
 		GameOver.GOAL_CLEAN,

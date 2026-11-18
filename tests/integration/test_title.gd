@@ -1,7 +1,8 @@
 extends GutTest
 ## The title screen in the game (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): the game starts on it,
-## Play starts a run, and the game-over screen's Title goes back to it, where the Atlas and the Book
-## of Legends show what the run found. --collected fills the Book (ENDGAME_PLAN.md §5.7, §5.10).
+## Play starts a run, on the road chosen (ENDGAME_PLAN.md §5.12), and the game-over screen's Title
+## goes back to it, where the Atlas and the Book of Legends show what the run found. --collected
+## fills the Book (§5.7, §5.10).
 ## Android's back button leaves a legend's page, then each screen, and quits only from the title
 ## (docs/M5.md L13). SaveService keeps the save in memory, except where a test gives it a file.
 
@@ -10,6 +11,7 @@ const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
 const TITLE := GameState.State.TITLE
 const RUNNING := GameState.State.RUNNING
 const PAUSED := GameState.State.PAUSED
+const ARRIVED := GameState.State.ARRIVED
 const DISASTER := GameState.State.DISASTER
 const GAME_OVER := GameState.State.GAME_OVER
 const DIR := "user://save_tests"
@@ -222,6 +224,58 @@ func test_departures_offer_only_the_areas_discovered() -> void:
 	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
 	assert_eq((title.get_node("%Best") as Label).text, "", "no overall best")
 	assert_eq(start.text, "Start in: Desert", "the last choice")
+
+
+## ENDGAME_PLAN.md §5.12, E9: once the road to the sea has an arrival, the title offers the Road
+## Home too, and Play drives it whole, from the Desert, heading west. An arrival home alone, which
+## only --home makes, offers nothing.
+func test_the_road_home_is_offered_after_the_first_arrival() -> void:
+	var main := _open()
+	var title := _title(main)
+	var road: Button = title.get_node("%Road")
+	assert_false(road.visible, "the road to the sea alone")
+	SaveService.data().record_arrival(&"home", {"seconds": 600.0})
+	title.open()
+	assert_false(road.visible, "an arrival home")
+	SaveService.data().record_arrival(&"pier", {"seconds": 600.0})
+	title.open()
+	assert_true(road.visible)
+	assert_eq(road.text, "Road: To the sea")
+	road.pressed.emit()
+	assert_eq(road.text, "Road: Home")
+	assert_eq((title.get_node("%StartArea") as Button).text, "Start in: Desert")
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(GameState.state, RUNNING)
+	var buffer := MainScene.car(main).sim.buffer
+	var first := buffer.path_tile(buffer.first_index())
+	assert_eq([first.heading, first.area_id], [Heading.W, &"desert"])
+	assert_eq([GameState.whole_road, GameState.road], [true, &"home"])
+
+
+## ENDGAME_PLAN.md §5.12, E9: a run on the Road Home, from the title, counts its arrival under home,
+## not the sea's, and unlocks a legend. Its farthest turn is the finish's. The title keeps the road
+## chosen until the game closes.
+func test_the_road_home_counts_under_home() -> void:
+	SaveService.data().record_arrival(&"pier", {"seconds": 600.0, "turn_index": 280})
+	var main := _open(["--seed=12345", "--finish=2"])
+	var road: Button = _title(main).get_node("%Road")
+	road.pressed.emit()
+	MainScene.press_key(main, KEY_ENTER)
+	var router: InputRouter = main.get_node("%InputRouter")
+	router.autopilot = Autopilot.new(MainScene.car(main).sim)
+	MainScene.run_while(self, main, RUNNING, 60 * 90)
+	assert_eq(GameState.state, ARRIVED)
+	var save := SaveService.data()
+	assert_eq([save.arrival_count(&"home"), save.arrival_count(&"pier")], [1, 1])
+	assert_eq([save.arrivals["home"]["farthest"], save.arrivals["pier"]["farthest"]], [2, 280])
+	var unlocked := 0
+	for entry: Dictionary in save.disasters.values():
+		unlocked += int(entry["unlocked"])
+	assert_eq(unlocked, 1, "a legend")
+	MainScene.run_while(self, main, ARRIVED, 600)
+	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
+	assert_eq(GameState.state, TITLE)
+	assert_eq(road.text, "Road: Home", "the last choice")
 
 
 func test_androids_back_button_in_each_state() -> void:

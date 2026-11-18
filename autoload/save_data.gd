@@ -11,7 +11,7 @@ extends RefCounted
 ## What load_json() made of the text.
 enum Status { LOADED, CORRUPT, NEWER }
 
-const VERSION := 3
+const VERSION := 4
 const ORIENTATIONS: Array[String] = ["sensor", "portrait", "landscape"]
 const DEFAULT_SETTINGS := {
 	"music": 0.8,
@@ -32,8 +32,9 @@ const DISASTER_ENTRY := {
 }
 ## The arrivals at a road's finish, by the finish's id (ENDGAME_PLAN.md §5.4): how many runs that
 ## drove the whole road arrived, the least seconds one took, 0 before the first, and whether one
-## never left the road.
-const ARRIVAL_ENTRY := {"count": 0, "best_seconds": 0.0, "clean": false}
+## never left the road; and the farthest turn that such a run reached on the road, arrived or not
+## (§5.12).
+const ARRIVAL_ENTRY := {"count": 0, "best_seconds": 0.0, "clean": false, "farthest": 0}
 const BEST := {"distance": 0.0, "turns": 0}
 ## Whether the player has finished the tutorial, which runs start with until then
 ## (docs/TUTORIAL.md §5.6).
@@ -42,6 +43,11 @@ const TUTORIAL := {"done": false}
 ## number holds exactly. Past it, int() can't hold a count, and the HUD's metres overflow (L5). An
 ## int: Godot reads the float literal 9007199254740991.0 as 9007199254740990.0.
 const MAX_NUMBER := 9007199254740991
+## The finish of the road to the sea, the only road whose runs counted in "best" in version 3, the
+## debug flags aside (ENDGAME_PLAN.md §5.12).
+const V3_SEA := "pier"
+## The turns of both roads in version 3, to the sea and home.
+const V3_FINISH_TURN := 280
 
 ## By area id.
 var atlas: Dictionary[String, Dictionary] = {}
@@ -59,7 +65,7 @@ var problems := PackedStringArray()
 ## How each older version of the file becomes the next: {from_version: Callable(Dictionary) ->
 ## Dictionary}. migrate() then sets the version.
 static func migrations() -> Dictionary[int, Callable]:
-	return {0: _v0_to_v1, 1: _v1_to_v2, 2: _v2_to_v3}
+	return {0: _v0_to_v1, 1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4}
 
 
 ## Version 0 is a file with no "version" (docs/M5.md Q8). It has plan.md §9's keys, and the keys
@@ -88,6 +94,31 @@ static func _v1_to_v2(data: Dictionary) -> Dictionary:
 ## Version 3 adds the arrivals and the disasters' "unlocked" (ENDGAME_PLAN.md §5.4, §5.5). Both
 ## come from the defaults: no run has arrived, and no disaster was unlocked.
 static func _v2_to_v3(data: Dictionary) -> Dictionary:
+	return data
+
+
+## Version 4 adds each road's farthest turn to its arrival entry (ENDGAME_PLAN.md §5.12). A road
+## with an arrival was driven to its finish, V3_FINISH_TURN. Otherwise the road to the sea's is the
+## best turns, at most that, as no other road counted in "best", and the others' 0. A value of the
+## wrong type counts as none: _read() then reports it, and an "arrivals" that isn't an object stays.
+static func _v3_to_v4(data: Dictionary) -> Dictionary:
+	var old_arrivals: Variant = data.get("arrivals", {})
+	if not old_arrivals is Dictionary:
+		return data
+	var old_best: Variant = data.get("best")
+	var turns: Variant = old_best.get("turns") if old_best is Dictionary else null
+	if not _is_count(turns):
+		turns = 0
+	if turns > 0 and not old_arrivals.has(V3_SEA):
+		old_arrivals[V3_SEA] = {}
+	for id: String in old_arrivals:
+		var entry: Variant = old_arrivals[id]
+		var count: Variant = entry.get("count") if entry is Dictionary else null
+		if _is_count(count) and count > 0:
+			entry["farthest"] = V3_FINISH_TURN
+		elif id == V3_SEA and entry is Dictionary:
+			entry["farthest"] = mini(int(turns), V3_FINISH_TURN)
+	data["arrivals"] = old_arrivals
 	return data
 
 
@@ -151,9 +182,10 @@ func to_json() -> String:
 
 
 ## Records a finished run's GameState.stats(): the areas it reached, the distance and turns it made
-## in each, and its distance and turns overall, if it drove the whole road. A departure from a later
-## area sets no overall best (ENDGAME_PLAN.md W22). Stats without "whole_road" count as a whole
-## road's.
+## in each; its turns as its road's farthest, if it drove a road with a finish whole, the "road" of
+## the stats (ENDGAME_PLAN.md §5.12); and its distance and turns overall, if it drove the whole
+## road. A departure from a later area sets neither (W22). Stats without "whole_road" count as a
+## whole road's, and without "road" as one without a finish.
 func record_run(stats: Dictionary) -> void:
 	var areas: Dictionary = stats.get("areas", {})
 	for id: StringName in areas:
@@ -163,6 +195,11 @@ func record_run(stats: Dictionary) -> void:
 		entry["best_distance"] = maxf(entry["best_distance"], made.get("distance", 0.0))
 		entry["best_turns"] = maxi(entry["best_turns"], made.get("turns", 0))
 		atlas[String(id)] = entry
+	var road: StringName = stats.get("road", &"")
+	if road != &"":
+		var progress: Dictionary = arrivals.get(String(road), ARRIVAL_ENTRY.duplicate())
+		progress["farthest"] = maxi(progress["farthest"], stats.get("turn_index", 0))
+		arrivals[String(road)] = progress
 	if not stats.get("whole_road", true):
 		return
 	best["distance"] = maxf(best["distance"], stats.get("distance", 0.0))
@@ -192,7 +229,8 @@ func seen_disasters() -> Array[StringName]:
 
 
 ## Records that a run that drove the whole road reached the finish `finish` with `stats`, from
-## GameState.stats(): one more arrival, the best time and the clean run.
+## GameState.stats(): one more arrival, the best time and the clean run, and its turns, the
+## finish's, as the road's farthest (ENDGAME_PLAN.md §5.12).
 func record_arrival(finish: StringName, stats: Dictionary) -> void:
 	var entry: Dictionary = arrivals.get(String(finish), ARRIVAL_ENTRY.duplicate())
 	var seconds: float = stats.get("seconds", 0.0)
@@ -200,6 +238,7 @@ func record_arrival(finish: StringName, stats: Dictionary) -> void:
 	if entry["best_seconds"] == 0.0 or seconds < entry["best_seconds"]:
 		entry["best_seconds"] = seconds
 	entry["clean"] = entry["clean"] or bool(stats.get("clean", false))
+	entry["farthest"] = maxi(entry["farthest"], int(stats.get("turn_index", 0)))
 	arrivals[String(finish)] = entry
 
 

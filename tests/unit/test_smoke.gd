@@ -22,7 +22,8 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# font shows as a box. The HUD, the game-over screen and the title's screens (M5.5) also show
 	# numbers, the areas' and the disasters' names, the disasters' fates and lore (docs/M6.md S8,
 	# S12), the Book's initials of the names (ENDGAME_PLAN.md §5.10), the title's start area in debug
-	# builds (docs/ZONE_SELECT.md Z8), and messages they keep in constants.
+	# builds (docs/ZONE_SELECT.md Z8) and its road (ENDGAME_PLAN.md §5.12), and messages they keep in
+	# constants.
 	var main := _main()
 	var shown: Array[Control] = []
 	shown.append_array(main.find_children("*", "Label", true, false))
@@ -38,6 +39,8 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	texts.append_array(SettingsScreen.ORIENTATION_NAMES)
 	texts.append(AtlasScreen.best_text({"distance": 1.0, "turns": 1}))
 	texts.append(AtlasScreen.area_text(SaveData.ATLAS_ENTRY))
+	for road: String in TitleScreen.ROAD_NAMES.values():
+		texts.append(TitleScreen.ROAD_TEXT % road)
 	var schedule: AreaSchedule = load("res://areas/schedule.tres")
 	for entry: AreaScheduleEntry in schedule.entries:
 		var stats := {"distance": 1.0, "turn_index": 1, "run_seed": 1}

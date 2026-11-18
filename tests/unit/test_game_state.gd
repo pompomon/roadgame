@@ -29,6 +29,7 @@ func test_start_run_resets_the_stats() -> void:
 	_state.clean = false
 	_state.area_id = &"desert"
 	_state.whole_road = false
+	_state.road = &"home"
 	_state.start_run(42)
 	assert_eq(_state.state, GameStateScript.State.RUNNING)
 	assert_eq(
@@ -43,6 +44,7 @@ func test_start_run_resets_the_stats() -> void:
 			"cause": &"",
 			"areas": {},
 			"whole_road": true,
+			"road": &"",
 		}
 	)
 	assert_signal_emitted_with_parameters(EventBus, "run_started", [42])
@@ -93,8 +95,21 @@ func test_end_run_emits_the_cause_and_stats() -> void:
 		"cause": CarSim.WRONG_TURN,
 		"areas": {&"rural": {"distance": 0.0, "turns": 0}},
 		"whole_road": false,
+		"road": &"",
 	}
 	assert_signal_emitted_with_parameters(EventBus, "run_ended", [CarSim.WRONG_TURN, stats])
+
+
+## ENDGAME_PLAN.md §5.12: the stats name the finish of the road that the run drives whole, whose
+## farthest turn the save keeps.
+func test_the_stats_name_the_road_driven_whole() -> void:
+	_state.start_run(3, false, true, &"home")
+	_state.end_run(CarSim.WRONG_TURN)
+	var stats: Dictionary = get_signal_parameters(EventBus, "run_ended")[1]
+	assert_eq([stats["whole_road"], stats["road"]], [true, &"home"])
+	_state.show_game_over()
+	_state.start_run(4)
+	assert_eq(_state.stats()["road"], &"", "the next run's own")
 
 
 ## ENDGAME_PLAN.md §5.3: the end of the road ends the run, and its end screen follows, as after a

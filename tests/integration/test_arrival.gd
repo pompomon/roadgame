@@ -104,8 +104,10 @@ func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 
 
 ## ENDGAME_PLAN.md §5.9: an arrival that unlocks a legend shows NEW LEGEND!, and its jingle plays
-## once. The next goal is then to find the legends still missing, one fewer.
+## once. The next goal is then to find the legends still missing, one fewer, once the Road Home has
+## an arrival too (§5.12).
 func test_an_arrival_that_unlocks_shows_new_legend() -> void:
+	SaveService.data().record_arrival(GameOver.HOME, {"seconds": 900.0})
 	watch_signals(EventBus)
 	watch_signals(AudioDirector)
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=1"])
