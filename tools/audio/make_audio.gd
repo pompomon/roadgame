@@ -39,6 +39,7 @@ func _initialize() -> void:
 	_save("sfx/crash", _crash(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/arrival", _jingle(), Tuning.EFFECT_PEAK, false)
+	_save("sfx/new_legend", _new_legend(), Tuning.EFFECT_PEAK, false)
 	for area: StringName in LATER_AREAS:
 		_rng.seed = hash(String(area))
 		_save_area(area)
@@ -201,6 +202,23 @@ func _jingle() -> PackedFloat32Array:
 	for midi: int in arpeggio.slice(0, 3):
 		var freq := 440.0 * pow(2.0, (midi - 69) / 12.0)
 		_add(out, _fade_out(_tone(freq, 1.0, "triangle")), 0.48, 0.15)
+	return out
+
+
+## NEW LEGEND!'s jingle (ENDGAME_PLAN.md §5.9): a whole-tone run that sparkles up to a bell chord of
+## G major, over a low fifth. It draws no noise, so no other sound changes it.
+func _new_legend() -> PackedFloat32Array:
+	var out := _silence(roundi(1.4 * RATE))
+	var sparkle: Array[int] = [84, 86, 88, 90]
+	for k: int in sparkle.size():
+		var freq := 440.0 * pow(2.0, (sparkle[k] - 69) / 12.0)
+		_add(out, _decay(_tone(freq, 0.3, "sine"), 0.08), k * 0.06, 0.4)
+	for midi: int in [79, 83, 86, 91]:
+		var freq := 440.0 * pow(2.0, (midi - 69) / 12.0)
+		_add(out, _fade_out(_bell(freq, 1.1)), 0.3, 0.5)
+	for midi: int in [55, 62]:
+		var freq := 440.0 * pow(2.0, (midi - 69) / 12.0)
+		_add(out, _fade_out(_tone(freq, 1.1, "triangle")), 0.3, 0.1)
 	return out
 
 
@@ -842,10 +860,11 @@ func _gull(freq: float) -> PackedFloat32Array:
 	return out
 
 
-func _bell(freq: float) -> PackedFloat32Array:
-	var out := _silence(roundi(1.5 * RATE))
+func _bell(freq: float, seconds := 1.5) -> PackedFloat32Array:
+	var out := _silence(roundi(seconds * RATE))
 	for partial: float in [1.0, 2.0, 2.76, 5.4]:
-		_add(out, _decay(_tone(freq * partial, 1.5, "sine"), 0.6 / partial), 0.0, 0.3 / partial)
+		var ring := _decay(_tone(freq * partial, seconds, "sine"), 0.6 / partial)
+		_add(out, ring, 0.0, 0.3 / partial)
 	return out
 
 

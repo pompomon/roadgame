@@ -1,14 +1,18 @@
 extends GutTest
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3) on its own: why the run ended,
-## the disaster's fate (docs/M6.md S8), its stats, the seed, Retry, and Title (M5.5). It runs in a
-## SubViewport, so that Retry can take the focus.
+## the disaster's fate (docs/M6.md S8), its stats, the seed, Retry, and Title (M5.5); NEW LEGEND!
+## and the next goal (ENDGAME_PLAN.md §5.9). It runs in a SubViewport, so that Retry can take the
+## focus.
 
 const GAME_OVER_SCENE := preload("res://ui/game_over.tscn")
+const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+## The SubViewport's, the game's portrait view.
+const VIEW := Rect2(0, 0, 360, 640)
 
 
 func _game_over() -> GameOver:
 	var view := SubViewport.new()
-	view.size = Vector2i(360, 640)
+	view.size = Vector2i(VIEW.size)
 	add_child_autofree(view)
 	var game_over: GameOver = GAME_OVER_SCENE.instantiate()
 	view.add_child(game_over)
@@ -149,3 +153,100 @@ func test_it_shows_the_fate_of_the_disaster_that_ended_the_run_under_the_cause()
 	game_over.open(_stats(CarSim.OFFROAD), _rural())
 	assert_false(fate.visible, "no fate after a crash")
 	assert_eq(fate.text, "")
+
+
+## ENDGAME_PLAN.md §5.9 (Q16): NEW LEGEND!, above the fate, in large letters that stay still, as its
+## jingle's signal goes out once. With every line the screen may show, it all fits the view. A run
+## with no new legend shows neither.
+func test_a_first_sighting_or_an_unlock_shows_new_legend() -> void:
+	var game_over := _game_over()
+	game_over.show_seed = true
+	var news: Label = game_over.get_node("%NewLegend")
+	assert_eq(news.get_parent(), game_over.get_node("%Cause").get_parent())
+	assert_eq(news.get_index(), 0, "above the cause and the fate")
+	assert_false(news.visible)
+	watch_signals(EventBus)
+	var fate := LegendUnlock.UNLOCKED % "Headless Horseman"
+	game_over.open(_stats(CarSim.ARRIVAL), _rural(), fate, true, GameOver.GOAL_CLEAN)
+	assert_true(news.visible)
+	assert_eq(news.text, "NEW LEGEND!")
+	assert_signal_emit_count(EventBus, "new_legend_shown", 1)
+	await wait_process_frames(2)
+	var still := [news.global_position, news.scale, news.modulate, news.self_modulate, news.visible]
+	await wait_process_frames(30)
+	assert_eq(
+		[news.global_position, news.scale, news.modulate, news.self_modulate, news.visible],
+		still,
+		"it stays still"
+	)
+	assert_gt((game_over.get_node("%Fate") as Label).get_line_count(), 1, "a fate of two lines")
+	for control: Control in game_over.get_node("%Cause").get_parent().get_children():
+		assert_true(control.visible, control.name)
+		assert_true(VIEW.encloses(control.get_global_rect()), "%s in the view" % control.name)
+	game_over.close()
+	game_over.open(_stats(CarSim.WRONG_TURN), _rural(), "A ghost took you.")
+	assert_false(news.visible, "no new legend")
+	assert_signal_emit_count(EventBus, "new_legend_shown", 1, "and no jingle")
+
+
+## ENDGAME_PLAN.md §5.9: the first goal that holds, from the player's progress alone: the sea, with
+## the best turn; the legends still missing; a clean arrival; the best time.
+func test_the_next_goal_follows_the_players_progress() -> void:
+	var schedule := Fixtures.schedule()
+	assert_eq(schedule.finish, GameOver.SEA, "the game's road ends at the sea")
+	var turns := schedule.finish_turn
+	var data := SaveData.new()
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [0, turns], "a new save")
+	data.record_run({"turn_index": 212, "distance": 900.0})
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [212, turns])
+	data.record_arrival(&"home", {"seconds": 400.0, "clean": true})
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [212, turns], "home isn't")
+	data.record_arrival(GameOver.SEA, {"seconds": 581.0, "clean": false})
+	var none: Array[StringName] = []
+	var legends := LegendUnlock.locked(schedule, none)
+	assert_gt(legends.size(), 2)
+	var missing := GameOver.GOAL_LEGENDS % legends.size()
+	assert_eq(GameOver.next_goal(data, schedule), missing, "arrived")
+	data.record_disaster(legends[0], &"city", {})
+	for id: StringName in legends.slice(1, legends.size() - 2):
+		data.unlock_disaster(id)
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_LEGENDS % 2, "seen or unlocked")
+	data.unlock_disaster(legends[-2])
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_LAST_LEGEND)
+	data.record_disaster(legends[-1], &"desert", {})
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_CLEAN, "every legend found")
+	data.record_arrival(GameOver.SEA, {"seconds": 600.0, "clean": true})
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_TIME % "9:41", "the best time")
+	# A save from before the road had an end may hold a best past it.
+	var endless := SaveData.new()
+	endless.record_run({"turn_index": turns + 50})
+	assert_eq(GameOver.next_goal(endless, schedule), GameOver.GOAL_SEA % [turns, turns])
+
+
+## ENDGAME_PLAN.md §5.9: each goal, with the largest numbers it may show, is one line of the font's
+## glyphs that fits the view.
+func test_the_next_goal_is_one_line_of_the_fonts_glyphs() -> void:
+	var game_over := _game_over()
+	var goal: Label = game_over.get_node("%Goal")
+	var font := goal.get_theme_font("font")
+	var schedule := Fixtures.schedule()
+	var none: Array[StringName] = []
+	var lines: Array[String] = [
+		GameOver.GOAL_SEA % [schedule.finish_turn, schedule.finish_turn],
+		GameOver.GOAL_LEGENDS % LegendUnlock.locked(schedule, none).size(),
+		GameOver.GOAL_LAST_LEGEND,
+		GameOver.GOAL_CLEAN,
+		GameOver.GOAL_TIME % GameOver.time_text(5999.0),
+	]
+	for line: String in lines:
+		for c: String in line:
+			assert_true(font.has_char(c.unicode_at(0)), "%s: '%s'" % [line, c])
+		game_over.open(_stats(CarSim.ARRIVAL), _rural(), "", true, line)
+		await wait_process_frames(2)
+		assert_true(goal.visible, line)
+		assert_eq(goal.text, line)
+		assert_eq(goal.get_line_count(), 1, line)
+		assert_true(VIEW.encloses(goal.get_global_rect()), "%s: in the view" % line)
+		game_over.close()
+	game_over.open(_stats(CarSim.WRONG_TURN), _rural())
+	assert_false(goal.visible, "no goal, no line")

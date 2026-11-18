@@ -3,6 +3,7 @@ extends GutTest
 ## --finish's, to its finish. The run ends in an arrival, the car rolls to a stop, and the end
 ## screen shows ARRIVAL_SECONDS later, with the run's time. A run that drove the whole road counts
 ## the arrival and unlocks a legend that the player hasn't collected; one from a later area doesn't.
+## The unlock shows NEW LEGEND!, and the end screen the next goal (§5.9).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -66,6 +67,7 @@ func test_with_every_legend_collected_the_book_is_full() -> void:
 	for legend: Dictionary in CollectionScreen.disasters(Fixtures.schedule()):
 		save.unlock_disaster(legend["id"])
 	var before := save.disasters.duplicate(true)
+	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--autopilot", "--seed=7", "--finish=1"])
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	MainScene.run_while(self, main, ARRIVED, 600)
@@ -73,11 +75,16 @@ func test_with_every_legend_collected_the_book_is_full() -> void:
 	assert_eq(game_over.get_node("%Fate").text, LegendUnlock.BOOK_FULL)
 	assert_eq(save.disasters, before, "nothing new")
 	assert_eq(save.arrival_count(), 1)
+	assert_true(game_over.visible)
+	assert_false(game_over.get_node("%NewLegend").visible, "no new legend (ENDGAME_PLAN.md §5.9)")
+	assert_signal_not_emitted(EventBus, "new_legend_shown")
 
 
 ## A run that starts in a later area (--area, the title's Start, Departures) reaches the finish,
-## but it hasn't driven the whole road: no arrival is counted, and no legend unlocked (Q4).
+## but it hasn't driven the whole road: no arrival is counted, and no legend unlocked (Q4). The sea
+## is still the next goal (ENDGAME_PLAN.md §5.9).
 func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
+	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--area=rural", "--finish=36"])
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	assert_eq(GameState.state, ARRIVED)
@@ -88,6 +95,33 @@ func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	assert_eq(_unlocked(save), [] as Array[StringName])
 	var game_over: GameOver = main.get_node("%GameOver")
 	assert_false(game_over.get_node("%Fate").visible, "no line")
+	assert_false(game_over.get_node("%NewLegend").visible, "no new legend")
+	assert_signal_not_emitted(EventBus, "new_legend_shown")
+	var turns := Fixtures.schedule().finish_turn
+	assert_eq(game_over.get_node("%Goal").text, GameOver.GOAL_SEA % [2, turns], "the best, saved")
+
+
+## ENDGAME_PLAN.md §5.9: an arrival that unlocks a legend shows NEW LEGEND!, and its jingle plays
+## once. The next goal is then to find the legends still missing, one fewer.
+func test_an_arrival_that_unlocks_shows_new_legend() -> void:
+	watch_signals(EventBus)
+	watch_signals(AudioDirector)
+	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=1"])
+	MainScene.run_while(self, main, RUNNING, FRAMES)
+	assert_eq(GameState.state, ARRIVED)
+	var game_over: GameOver = main.get_node("%GameOver")
+	MainScene.run_while(self, main, ARRIVED, 600)
+	assert_true(game_over.visible)
+	assert_true(game_over.get_node("%NewLegend").visible)
+	assert_signal_emit_count(EventBus, "new_legend_shown", 1)
+	var jingles := 0
+	for k: int in get_signal_emit_count(AudioDirector, "effect_played"):
+		if get_signal_parameters(AudioDirector, "effect_played", k)[0] == &"new_legend":
+			jingles += 1
+	assert_eq(jingles, 1, "the jingle, once")
+	var none: Array[StringName] = []
+	var missing := LegendUnlock.locked(Fixtures.schedule(), none).size() - 1
+	assert_eq(game_over.get_node("%Goal").text, GameOver.GOAL_LEGENDS % missing)
 
 
 ## ENDGAME_PLAN.md §5.3: the run's clock stops while the run pauses. simulate() steps a paused tree

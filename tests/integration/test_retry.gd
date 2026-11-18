@@ -177,12 +177,16 @@ func test_a_retry_while_the_run_goes_on_is_an_error() -> void:
 	assert_eq(MainScene.car(main), car, "the same run")
 
 
-func test_a_crash_after_a_disaster_shows_no_fate() -> void:
-	# docs/M6.md S8: the fate is the disaster's, and a retry forgets it.
+func test_a_crash_after_a_disaster_shows_no_fate_and_no_new_legend() -> void:
+	# docs/M6.md S8: the fate is the disaster's, and a retry forgets it. It forgets the run's new
+	# legends too (ENDGAME_PLAN.md §5.9).
+	SaveService.use_memory()
 	var main := MainScene.open(self, ["--seed=1"])
 	_to_game_over(main, false)
 	var fate: Label = main.get_node("%GameOver/%Fate")
+	var news: Label = main.get_node("%GameOver/%NewLegend")
 	assert_true(fate.visible, "the disaster's fate")
+	assert_true(news.visible, "a legend met for the first time")
 	MainScene.press_key(main, KEY_ENTER)
 	assert_eq(GameState.state, RUNNING)
 	# Sideways off the first straight, as test_crash.gd crashes.
@@ -192,3 +196,5 @@ func test_a_crash_after_a_disaster_shows_no_fate() -> void:
 	assert_eq(GameState.state, GAME_OVER)
 	assert_has([CarSim.OFFROAD, CarSim.HEALTH], GameState.end_cause, "a crash")
 	assert_false(fate.visible, "no fate")
+	assert_false(news.visible, "no new legend")
+	SaveService.use_memory()

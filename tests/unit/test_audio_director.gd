@@ -351,6 +351,14 @@ func test_the_jingle_plays_only_as_an_arrivals_car_stops() -> void:
 	assert_signal_not_emitted(_audio, "effect_played", "every sound stopped")
 
 
+## ENDGAME_PLAN.md §5.9 (Q16): as the end screen shows NEW LEGEND!, its jingle plays, once.
+func test_new_legend_plays_its_jingle_once() -> void:
+	watch_signals(_audio)
+	EventBus.new_legend_shown.emit()
+	assert_signal_emit_count(_audio, "effect_played", 1, "once")
+	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"new_legend"])
+
+
 func test_every_disaster_of_every_area_has_its_sound() -> void:
 	var ids := _disaster_ids()
 	assert_eq(ids.size(), Disasters.scenes().size(), "each disaster of the pools has its own id")
