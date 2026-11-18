@@ -34,6 +34,31 @@ rotation = 0.7853982
 pivot_offset = Vector2(8, 8)
 mouse_filter = 2
 
+[node name="Hollow" type="Control" parent="Seal"]
+unique_name_in_owner = true
+layout_mode = 0
+mouse_filter = 2
+
+[node name="InnerSquare" type="ColorRect" parent="Seal/Hollow"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+color = Color(0.078431375, 0.07058824, 0.09411765, 1)
+
+[node name="InnerDiamond" type="ColorRect" parent="Seal/Hollow"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 18.0
+offset_bottom = 18.0
+rotation = 0.7853982
+pivot_offset = Vector2(6, 6)
+mouse_filter = 2
+color = Color(0.078431375, 0.07058824, 0.09411765, 1)
+
 [node name="Core" type="ColorRect" parent="Seal"]
 layout_mode = 0
 offset_left = 9.0

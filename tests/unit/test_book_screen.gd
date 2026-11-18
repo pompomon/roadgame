@@ -4,8 +4,9 @@ extends GutTest
 ## and its name's initials, a seal on each row whose legends are all found, and a found legend's
 ## page: how often, where and how far into a run it was first seen (docs/M6.md S12), its fate and
 ## its lore; how a finger's drag and tap reach the Book, what a screen reader reads, and that a
-## silhouette and a seal stand out from their grounds. The pools hold test legends, so that a change
-## to the game's leaves these tests alone (S15), except where a test reads the game's.
+## silhouette and a seal stand out from their grounds, a seal not earned yet hollow. The pools hold
+## test legends, so that a change to the game's leaves these tests alone (S15), except where a test
+## reads the game's.
 
 const BOOK_SCENE := preload("res://ui/book_screen.tscn")
 const TITLE_SCENE := preload("res://ui/title_screen.tscn")
@@ -404,6 +405,22 @@ func test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds() -> vo
 	var backdrop := (title.get_node("%Background") as ColorRect).color
 	assert_gte(_contrast(BookScreen.SILHOUETTE, backdrop), NON_TEXT_CONTRAST, "a seal on the title")
 	assert_eq(_rows(book)[0].seal_color(), BookScreen.SILHOUETTE)
+
+
+## ENDGAME_PLAN.md W26: a seal not earned yet is hollow, its star's outline, and an earned one is
+## whole, so that they differ by their shapes too: the City's colour, Color(0.55, 0.58, 0.63), has a
+## contrast of 1.28:1 with SILHOUETTE, in much the same hue.
+func test_a_seal_not_earned_is_hollow_and_an_earned_one_whole() -> void:
+	var data := SaveData.new()
+	var book := _book()
+	var schedule := _schedule()
+	book.open(data, schedule)
+	for row: BookRow in _rows(book):
+		assert_true(row.hollow())
+	data.record_disaster(&"ghost", &"town", _stats(1.0, 1))
+	book.open(data, schedule)
+	assert_false(_rows(book)[0].hollow(), "the Town's ghost")
+	assert_true(_rows(book)[1].hollow(), "the Farm's legends are missing")
 
 
 ## What a screen reader reads on a row: its area, how many of its legends are found and whether

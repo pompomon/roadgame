@@ -15,9 +15,10 @@ extends MenuScreen
 ## Tuning.BOOK_SCROLL_DEADZONE, so that a tap that wobbles less still opens a page. A screen reader
 ## reads each row as its area and how many of its legends are found (ROW_NAME), and each cell's
 ## words, a silhouette's initials too. Like the HUD, its text uses only the font's glyphs. A
-## silhouette and a seal not earned yet stand out from their grounds, the cell's and the backdrop's
-## (ENDGAME_PLAN.md W26). A glow's still adds no more light than its ground leaves below white: its
-## cell's, or on its page the backdrop's (docs/M6.md S10).
+## silhouette and a seal not earned yet stand out from their grounds, the cell's and the backdrop's,
+## and such a seal is hollow, so that an earned one differs by its shape too (ENDGAME_PLAN.md W26).
+## A glow's still adds no more light than its ground leaves below white: its cell's, or on its page
+## the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
 const CELL_SCENE := preload("res://ui/book_cell.tscn")
@@ -31,8 +32,9 @@ const ROW_SEALED := ", sealed"
 const NOT_SEEN := "Not seen yet"
 ## Its page's words.
 const UNLOCKED := "Unlocked by an arrival\nNot seen yet"
-## The colour of a legend's silhouette, and of a seal not earned yet: a grey with a contrast of 3:1
-## or more with a silhouette's cell and with the title's background (ENDGAME_PLAN.md W26).
+## The colour of a legend's silhouette, and of the outline of a seal not earned yet: a grey with a
+## contrast of 3:1 or more with a silhouette's cell and with the title's background (ENDGAME_PLAN.md
+## W26).
 const SILHOUETTE := Color(0.5, 0.5, 0.55)
 ## What draws a silhouette: its still's shape, flat in its `fill`.
 const SILHOUETTE_SHADER := preload("res://ui/silhouette.gdshader")
