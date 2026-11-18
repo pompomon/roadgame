@@ -8,13 +8,16 @@ extends MenuScreen
 ## name, and one not found as its still's silhouette and its name's initials. A row whose legends
 ## are all collected has a seal in its area's colour (BookRow). Tapping a legend collected opens its
 ## page: how often it was seen, and where and how far into a run first (docs/M6.md S12), its fate
-## and its lore; a legend unlocked and not seen yet has its lore, but not how it ends a run. Back,
-## Esc and Android's back button close the page before the Book. A drag scrolls the Book wherever
-## it starts, on a cell too, once it goes further than Tuning.BOOK_SCROLL_DEADZONE, so that a tap
-## that wobbles less still opens a page. A screen reader reads each row as its area and how many of
-## its legends are found (ROW_NAME), and reaches it though its cells are all silhouettes. Like the
-## HUD, its text uses only the font's glyphs. A glow's still adds no more light than its ground
-## leaves below white: its cell's, or on its page the backdrop's (docs/M6.md S10).
+## and its lore; a legend unlocked and not seen yet has its lore, but not how it ends a run. The
+## page scrolls on its own, in place of the Book, which keeps its place: closing the page shows the
+## Book as it was left, its cell in view. Back, Esc and Android's back button close the page before
+## the Book. A drag scrolls the Book wherever it starts, on a cell too, once it goes further than
+## Tuning.BOOK_SCROLL_DEADZONE, so that a tap that wobbles less still opens a page. A screen reader
+## reads each row as its area and how many of its legends are found (ROW_NAME), and each cell's
+## words, a silhouette's initials too. Like the HUD, its text uses only the font's glyphs. A
+## silhouette and a seal not earned yet stand out from their grounds, the cell's and the backdrop's
+## (ENDGAME_PLAN.md W26). A glow's still adds no more light than its ground leaves below white: its
+## cell's, or on its page the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
 const CELL_SCENE := preload("res://ui/book_cell.tscn")
@@ -28,8 +31,11 @@ const ROW_SEALED := ", sealed"
 const NOT_SEEN := "Not seen yet"
 ## Its page's words.
 const UNLOCKED := "Unlocked by an arrival\nNot seen yet"
-## The colour of a legend's silhouette, and of a seal not earned yet.
-const SILHOUETTE := Color(0.1, 0.1, 0.12)
+## The colour of a legend's silhouette, and of a seal not earned yet: a grey with a contrast of 3:1
+## or more with a silhouette's cell and with the title's background (ENDGAME_PLAN.md W26).
+const SILHOUETTE := Color(0.5, 0.5, 0.55)
+## What draws a silhouette: its still's shape, flat in its `fill`.
+const SILHOUETTE_SHADER := preload("res://ui/silhouette.gdshader")
 ## How much larger than the world a page shows its legend's still.
 const PAGE_ZOOM := 2.0
 
@@ -43,7 +49,7 @@ var _open_cell: BookCell
 @onready var _heading: Label = %Heading
 @onready var _scroll: ScrollContainer = %Scroll
 @onready var _grid: VBoxContainer = %Grid
-@onready var _page: VBoxContainer = %Page
+@onready var _page_scroll: ScrollContainer = %PageScroll
 @onready var _page_art: Control = %PageArt
 @onready var _page_pivot: Control = %PagePivot
 @onready var _page_name: Label = %PageName
@@ -61,6 +67,8 @@ func _ready() -> void:
 ## Shows the Book of the legends in `data` of `schedule`'s pools.
 func open(data: SaveData, schedule: AreaSchedule) -> void:
 	_clear_page()
+	_scroll.scroll_horizontal = 0
+	_scroll.scroll_vertical = 0
 	for row: Node in _grid.get_children():
 		row.free()
 	var words := _words_of(schedule)
@@ -95,8 +103,8 @@ func open(data: SaveData, schedule: AreaSchedule) -> void:
 	_back.grab_focus()
 
 
-## Closes the open page for the grid, and gives its cell the focus. Returns false if no page was
-## open.
+## Closes the open page for the grid, as it was left, and gives its cell the focus. Returns false if
+## no page was open.
 func close_page() -> bool:
 	var cell := _open_cell
 	if cell == null:
@@ -198,16 +206,19 @@ static func _find_area(schedule: AreaSchedule, id: String) -> AreaDef:
 
 
 ## The still of the legend of `scene`, or null, with an error, if it has none. It draws in the
-## order of the Book's controls, not the world's z; a legend not `found` draws as its silhouette,
-## dark and without its glow's blend.
+## order of the Book's controls, not the world's z; a legend not `found` draws as its silhouette:
+## its shape, flat in SILHOUETTE, without its colours or its glow's blend.
 static func _still(scene: PackedScene, found: bool) -> LegendStill:
 	var still := LegendStill.of(scene)
 	if still != null:
 		still.z_index = 0
 		still.z_as_relative = true
 		if not found:
-			still.modulate = SILHOUETTE
-			still.material = null
+			var flat := ShaderMaterial.new()
+			flat.shader = SILHOUETTE_SHADER
+			flat.set_shader_parameter(&"fill", SILHOUETTE)
+			still.material = flat
+			still.self_modulate = Color.WHITE
 	return still
 
 
@@ -242,21 +253,20 @@ func _open_page(cell: BookCell) -> void:
 	_fate.visible = _fate.text != ""
 	_lore.text = cell.page[2]
 	_lore.visible = _lore.text != ""
-	_grid.hide()
-	_page.show()
-	_scroll.scroll_vertical = 0
+	_scroll.hide()
+	_page_scroll.show()
+	_page_scroll.scroll_vertical = 0
 	_back.grab_focus()
 
 
-## Leaves the page for the grid, without moving the focus.
+## Leaves the page for the grid, scrolled where it was, without moving the focus.
 func _clear_page() -> void:
 	_open_cell = null
 	for child: Node in _page_pivot.get_children():
 		child.free()
 	_page_art.custom_minimum_size.y = 0.0
-	_page.hide()
-	_grid.show()
-	_scroll.scroll_vertical = 0
+	_page_scroll.hide()
+	_scroll.show()
 
 
 func _on_back_pressed() -> void:

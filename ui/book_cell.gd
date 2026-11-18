@@ -2,7 +2,8 @@ class_name BookCell
 extends Button
 ## A cell of the Book of Legends (ENDGAME_PLAN.md §5.10): a legend's still, over a band with its
 ## name, or its initials, and a note. BookScreen fills it. Only a found legend's cell takes the
-## focus and a tap, which opens its page; a drag that starts on any cell goes on to the Book's
+## focus and a tap, which opens its page; a silhouette's takes only a screen reader's focus, which
+## reads its initials and opens nothing, and a drag that starts on any cell goes on to the Book's
 ## scroll. The still and the band stay inside the button's border, which shows the focus, and the
 ## still stays above the band: a band taller than the scene leaves room for, as a name of two lines
 ## over a note makes it, raises the art's bottom to its top. A still larger than the cell's art is
@@ -45,7 +46,8 @@ func _ready() -> void:
 
 ## Shows `p_still`, unless it's null, over `p_text` and `note`, unless it's "". A glow's still shows
 ## as much of its light as ground() leaves (LegendStill.strength()). Only a cell whose legend is
-## `p_found` takes the focus and a tap. The cell must be in the tree.
+## `p_found` takes the focus and a tap; any other, only a screen reader's focus. The cell must be in
+## the tree.
 func show_legend(p_still: LegendStill, p_text: String, note: String, p_found: bool) -> void:
 	for child: Node in _pivot.get_children():
 		child.free()
@@ -61,7 +63,7 @@ func show_legend(p_still: LegendStill, p_text: String, note: String, p_found: bo
 	accessibility_name = p_text if note == "" else "%s, %s" % [p_text, note]
 	found = p_found
 	disabled = not found
-	focus_mode = FOCUS_ALL if found else FOCUS_NONE
+	focus_mode = FOCUS_ALL if found else FOCUS_ACCESSIBILITY
 
 
 ## The still that the cell shows, or null.

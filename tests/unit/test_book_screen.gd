@@ -3,17 +3,20 @@ extends GutTest
 ## cell for each slot, "Legends n/N", a legend's still and name once it is found, or its silhouette
 ## and its name's initials, a seal on each row whose legends are all found, and a found legend's
 ## page: how often, where and how far into a run it was first seen (docs/M6.md S12), its fate and
-## its lore; how a finger's drag and tap reach the Book, and what a screen reader reads. The pools
-## hold test legends, so that a change to the game's leaves these tests alone (S15), except where a
-## test reads the game's.
+## its lore; how a finger's drag and tap reach the Book, what a screen reader reads, and that a
+## silhouette and a seal stand out from their grounds. The pools hold test legends, so that a change
+## to the game's leaves these tests alone (S15), except where a test reads the game's.
 
 const BOOK_SCENE := preload("res://ui/book_screen.tscn")
+const TITLE_SCENE := preload("res://ui/title_screen.tscn")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const GHOST_FATE := "The ghost drove off in your car."
 const GHOST_LORE := "A sheet with two holes cut in it, out on the road at night."
 const GHOUL_FATE := "The ghoul kept your car."
 const GHOUL_LORE := "It waits by the graveyard gate."
+## WCAG 2.2 1.4.11: the contrast with what is next to it that a shape needs to be made out.
+const NON_TEXT_CONTRAST := 3.0
 ## A save that recorded the sinkhole, which left the game in M6 PR 8.
 const RETIRED_SAVE := """{
 	"version": 1,
@@ -124,6 +127,39 @@ static func _page(book: BookScreen) -> Array[String]:
 static func _page_still(book: BookScreen) -> LegendStill:
 	var pivot: Control = book.get_node("%PagePivot")
 	return pivot.get_child(0) as LegendStill if pivot.get_child_count() > 0 else null
+
+
+## Whether `still` draws as its legend's silhouette: its shape, flat in BookScreen.SILHOUETTE.
+static func _is_silhouette(still: LegendStill) -> bool:
+	var flat := still.material as ShaderMaterial
+	return (
+		flat != null
+		and flat.shader == BookScreen.SILHOUETTE_SHADER
+		and flat.get_shader_parameter(&"fill") == BookScreen.SILHOUETTE
+		and still.self_modulate == Color.WHITE
+		and still.modulate == Color.WHITE
+	)
+
+
+## The contrast ratio of two colours, as WCAG 2.2 has it, from their relative luminance.
+static func _contrast(a: Color, b: Color) -> float:
+	var lighter := a.srgb_to_linear().get_luminance()
+	var darker := b.srgb_to_linear().get_luminance()
+	if darker > lighter:
+		var swap := lighter
+		lighter = darker
+		darker = swap
+	return (lighter + 0.05) / (darker + 0.05)
+
+
+## Whether `control` is all in the part of `scroll` that shows its content, inside its scroll bars.
+static func _in_view(scroll: ScrollContainer, control: Control) -> bool:
+	var shown := scroll.get_global_rect()
+	if scroll.get_v_scroll_bar().visible:
+		shown.size.x -= scroll.get_v_scroll_bar().size.x
+	if scroll.get_h_scroll_bar().visible:
+		shown.size.y -= scroll.get_h_scroll_bar().size.y
+	return shown.encloses(control.get_global_rect())
 
 
 ## The lightest channel of `ground` once a white texel of `still` adds its light, as a glow does.
@@ -245,14 +281,14 @@ func test_a_legend_not_found_is_its_silhouette_and_its_initials_and_has_no_page(
 		var still := cell.still()
 		assert_not_null(still, "its still")
 		assert_eq(still.id, cell.legend["id"])
-		assert_eq(still.modulate, BookScreen.SILHOUETTE, "as a silhouette")
+		assert_true(_is_silhouette(still), "as a silhouette")
 		assert_true(cell.disabled)
-		assert_eq(cell.focus_mode, Control.FOCUS_NONE)
+		assert_eq(cell.focus_mode, Control.FOCUS_ACCESSIBILITY, "a screen reader's focus only")
 	assert_eq(names, ["G____", "G____", "G____", "B____ D__", "W_____"])
 	var ghoul := _cell(book, &"ghoul")
 	ghoul.pressed.emit()
-	assert_null(book.open_cell(), "no page")
-	assert_false((book.get_node("%Page") as Control).visible)
+	assert_null(book.open_cell(), "no page, even for a screen reader's click")
+	assert_false((book.get_node("%Page") as Control).is_visible_in_tree())
 
 
 func test_a_legend_found_shows_its_still_and_its_name() -> void:
@@ -282,7 +318,7 @@ func test_a_found_legends_page_has_its_still_its_sightings_and_its_words() -> vo
 	assert_eq(
 		_page(book), ["Ghoul", "Seen 2 times\nFirst: Farm, 400 m, 4 turns", GHOUL_FATE, GHOUL_LORE]
 	)
-	assert_false((book.get_node("%Grid") as Control).visible, "in place of the grid")
+	assert_false((book.get_node("%Grid") as Control).is_visible_in_tree(), "in place of the grid")
 	var still := _page_still(book)
 	assert_eq(still.id, &"ghoul")
 	assert_eq(still.modulate, Color.WHITE)
@@ -354,9 +390,24 @@ func test_a_row_whose_legends_are_all_found_has_a_seal_in_its_areas_colour() -> 
 	assert_eq(_rows(book)[1].seal_color(), Color.DARK_GREEN)
 
 
+## ENDGAME_PLAN.md W26: a silhouette shows its legend's shape, flat in a grey that stands out from
+## its cell's ground, the cell's disabled style, and a seal not earned yet, in the same grey, stands
+## out from the title's background, which the Book draws over.
+func test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds() -> void:
+	var book := _book()
+	book.open(SaveData.new(), _schedule())
+	var ghoul := _cell(book, &"ghoul")
+	var ground := (ghoul.get_theme_stylebox(&"disabled") as StyleBoxFlat).bg_color
+	assert_gte(_contrast(BookScreen.SILHOUETTE, ground), NON_TEXT_CONTRAST, "on its cell")
+	assert_true(_is_silhouette(ghoul.still()), "flat, in that grey")
+	var title: Control = autofree(TITLE_SCENE.instantiate())
+	var backdrop := (title.get_node("%Background") as ColorRect).color
+	assert_gte(_contrast(BookScreen.SILHOUETTE, backdrop), NON_TEXT_CONTRAST, "a seal on the title")
+	assert_eq(_rows(book)[0].seal_color(), BookScreen.SILHOUETTE)
+
+
 ## What a screen reader reads on a row: its area, how many of its legends are found and whether
-## its seal is earned. Only a screen reader's focus stops on it, so that it reaches a row of
-## silhouettes, which take no focus.
+## its seal is earned. Only a screen reader's focus stops on it, as on a silhouette.
 func test_a_row_names_its_area_and_how_many_of_its_legends_are_found() -> void:
 	var data := SaveData.new()
 	var book := _book()
@@ -429,8 +480,7 @@ func test_a_glow_draws_in_the_books_order_and_a_silhouette_has_no_glow() -> void
 		assert_eq(still.z_index, 0, "%s: in the Book's order" % still.id)
 		assert_true(still.z_as_relative)
 	assert_not_null(wisp.material, "a glow, found")
-	assert_null(lights.material, "a silhouette")
-	assert_eq(lights.modulate, BookScreen.SILHOUETTE)
+	assert_true(_is_silhouette(lights), "a silhouette, without its glow's blend")
 	_cell(book, &"will_o_wisp").pressed.emit()
 	assert_eq(_page_still(book).z_index, 0)
 	assert_true(_page_still(book).z_as_relative)
@@ -476,8 +526,8 @@ func test_back_closes_the_page_and_gives_its_cell_the_focus_then_asks_to_close()
 	assert_signal_not_emitted(book, "back_requested")
 	assert_null(book.open_cell())
 	assert_null(_page_still(book), "its still is gone")
-	assert_true((book.get_node("%Grid") as Control).visible)
-	assert_false((book.get_node("%Page") as Control).visible)
+	assert_true((book.get_node("%Grid") as Control).is_visible_in_tree())
+	assert_false((book.get_node("%Page") as Control).is_visible_in_tree())
 	assert_true(ghoul.has_focus(), "back on its cell")
 	back.pressed.emit()
 	assert_signal_emit_count(book, "back_requested", 1)
@@ -494,9 +544,40 @@ func test_opening_again_replaces_the_rows_and_closes_the_page() -> void:
 	assert_eq(_rows(book).size(), 2, "the old rows are gone")
 	assert_null(book.open_cell())
 	assert_null(_page_still(book))
-	assert_true((book.get_node("%Grid") as Control).visible)
+	assert_true((book.get_node("%Grid") as Control).is_visible_in_tree())
 	assert_true((book.get_node("%Back") as Button).has_focus())
 	assert_no_new_orphans()
+
+
+## A page scrolls on its own, in place of the Book. Closing it shows the Book as it was left, with
+## its cell in view, though the cell is where the Book scrolls both ways: the wraith's, the last of
+## the Farm's, in a Book too short for its two rows. Opening the Book again starts at its top left.
+func test_a_page_closes_to_its_cell_in_view_where_the_book_was_left() -> void:
+	var data := SaveData.new()
+	data.record_disaster(&"wraith", &"farm", _stats(1.0, 1))
+	var book := _book()
+	(book.get_viewport() as SubViewport).size = Vector2i(360, 300)
+	book.open(data, _schedule())
+	await wait_process_frames(2)
+	var scroll: ScrollContainer = book.get_node("%Scroll")
+	var wraith := _cell(book, &"wraith")
+	wraith.grab_focus()
+	await wait_process_frames(2)
+	var left := Vector2i(scroll.scroll_horizontal, scroll.scroll_vertical)
+	assert_gt(left.x, 0, "scrolled sideways")
+	assert_gt(left.y, 0, "and down")
+	assert_true(_in_view(scroll, wraith))
+	wraith.pressed.emit()
+	await wait_process_frames(2)
+	assert_eq(book.open_cell(), wraith)
+	assert_true(book.close_page())
+	assert_true(wraith.has_focus())
+	await wait_process_frames(2)
+	assert_eq(Vector2i(scroll.scroll_horizontal, scroll.scroll_vertical), left, "where it was left")
+	assert_true(_in_view(scroll, wraith), "its cell in view")
+	book.open(data, _schedule())
+	await wait_process_frames(2)
+	assert_eq(Vector2i(scroll.scroll_horizontal, scroll.scroll_vertical), Vector2i.ZERO)
 
 
 ## A drag scrolls the Book wherever it starts: on a found legend's cell, which it doesn't open, and
@@ -618,4 +699,4 @@ func test_a_save_that_recorded_a_retired_disaster_loads_and_shows_only_the_pools
 	assert_eq((book.get_node("%Heading") as Label).text, "Legends 0/%d" % legends)
 	for cell: BookCell in cells:
 		assert_eq(_text(cell), [BookScreen.initials(cell.legend["name"]), ""])
-		assert_eq(cell.still().modulate, BookScreen.SILHOUETTE)
+		assert_true(_is_silhouette(cell.still()))
