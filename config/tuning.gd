@@ -127,6 +127,10 @@ const AREA_BANNER_SECONDS := 2.0
 ## than this many pixels of the view, so that a tap that wobbles less still opens a legend's page.
 ## Near Android's touch slop, 8 dp.
 const BOOK_SCROLL_DEADZONE := 8
+## How far an arrow key scrolls the Book, or a legend's page, where the focus has nowhere to go that
+## way: this share of what shows of it. A mouse wheel's notch scrolls an eighth too, in Godot
+## 4.7.2's ScrollContainer (ENDGAME_PLAN.md W28).
+const BOOK_KEY_SCROLL := 0.125
 
 ## The tutorial (docs/TUTORIAL.md §5): a road in the City's look, where every wrong exit loops back
 ## to the path and nothing ends the run. It ends after TUTORIAL_STREAK correct turns in a row. In
