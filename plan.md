@@ -267,7 +267,7 @@ Main
 ├── Camera2D (follows car, look-ahead)
 ├── Daylight (ViewVeil: the zone's light over the world, §5.5)
 └── UI (CanvasLayer)
-    ├── HUD (distance, turns, health, pause)
+    ├── HUD (distance, turns, health, pause, the route strip)
     ├── TouchZones
     └── Overlays (pause, game over)
 ```

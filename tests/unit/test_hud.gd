@@ -1,23 +1,52 @@
 extends GutTest
 ## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6, M3.3) on its own: what it shows, the pause input,
-## and the fresh start of each run. The integration test checks the Pause button inside the main
-## scene, and the game-over screen has its own test.
+## the route strip (ENDGAME_PLAN.md §5.14), and the fresh start of each run. The integration test
+## checks the Pause button inside the main scene, and the game-over screen has its own test.
+## SaveService keeps the save in memory.
 
 const HUD_SCENE := preload("res://ui/hud.tscn")
+const ROAD := preload("res://areas/schedule.tres")
+const HOME_ROAD := preload("res://areas/schedule_home.tres")
 const DELTA := 1.0 / 60.0
 ## The frames that add up to AREA_BANNER_SECONDS. Sums of 1/60 can fall short, so the name may stay
 ## a frame longer.
 const BANNER_FRAMES := roundi(Tuning.AREA_BANNER_SECONDS / DELTA)
+## A HUD this tall has a route strip 280 pixels long: a pixel for each of the roads' turns.
+const PIXEL_A_TURN := 700.0
+## The heights of the reference screens (docs/M2.md §6.5): most of them, the phone's and the Fold4
+## cover's.
+const SCREEN_HEIGHTS: Array[float] = [640.0, 800.0, 922.0]
+
+
+func before_each() -> void:
+	SaveService.use_memory()
 
 
 func after_each() -> void:
 	GameState.quit_to_title()
+	SaveService.use_memory()
 
 
 func _hud() -> Hud:
 	var hud: Hud = HUD_SCENE.instantiate()
 	add_child_autofree(hud)
 	return hud
+
+
+## A HUD that fills a screen: a Control that _strip() resizes. Resizing the HUD itself, whose
+## anchors fill its parent, would warn in the frame of its _ready().
+func _hud_on_screen() -> Hud:
+	var screen := Control.new()
+	add_child_autofree(screen)
+	var hud: Hud = HUD_SCENE.instantiate()
+	screen.add_child(hud)
+	return hud
+
+
+## The route strip of a HUD from _hud_on_screen(), on a screen 360 pixels wide and `height` tall.
+static func _strip(hud: Hud, height := PIXEL_A_TURN) -> RouteStrip:
+	(hud.get_parent() as Control).size = Vector2(360.0, height)
+	return hud.get_node("%RouteStrip")
 
 
 static func _text(hud: Hud, label: String) -> String:
@@ -210,3 +239,95 @@ func test_the_tutorial_shows_its_streak_and_goal_until_it_is_done() -> void:
 	GameState.start_run(3)
 	assert_eq(_text(hud, "Turns"), "turns 0")
 	assert_true(distance.visible)
+
+
+## ENDGAME_PLAN.md §5.14, E12: on a road with a finish, a strip up the HUD's right edge, 6 pixels
+## wide and 40% of its height, with a tick at each area's first turn, the Coast's at the finish; the
+## car, which climbs a pixel or so a turn on each reference screen, and never more than two; and the
+## best run, the road's farthest turn as the run starts. A run from a later area starts at its
+## area's tick, and in the tutorial the car waits at the foot.
+func test_the_route_strip_marks_each_area_the_car_and_the_best() -> void:
+	var hud := _hud_on_screen()
+	var strip := _strip(hud)
+	hud.road = ROAD
+	GameState.start_run(1, false, true, &"pier")
+	assert_true(strip.visible)
+	var rect := strip.get_rect()
+	assert_true(rect.is_equal_approx(Rect2(342.0, 210.0, 6.0, 280.0)), str(rect))
+	assert_eq(strip.tick_heights(), [0, 34, 100, 200, 220, 280], "the City's to the Coast's")
+	assert_eq([strip.car_height(), strip.best_height()], [0, -1], "at the foot, and no best yet")
+	EventBus.turn_completed.emit(34)
+	assert_eq(strip.car_height(), 34, "at Rural's tick")
+	for screen_height: float in SCREEN_HEIGHTS:
+		_strip(hud, screen_height)
+		EventBus.turn_completed.emit(0)
+		var climbs: Array[int] = []
+		for turn: int in range(1, ROAD.finish_turn + 1):
+			var before := strip.car_height()
+			EventBus.turn_completed.emit(turn)
+			climbs.append(strip.car_height() - before)
+		var why := "%d pixels high" % screen_height
+		assert_between(climbs.min(), 0, 1, why)
+		assert_between(climbs.max(), 1, 2, why)
+		assert_eq(strip.car_height(), roundi(strip.size.y), why + ": at the top")
+	_strip(hud)
+	GameState.turn_index = 140
+	GameState.end_run(CarSim.WRONG_TURN)
+	GameState.show_game_over()
+	GameState.start_run(2, false, true, &"pier")
+	assert_eq([strip.car_height(), strip.best_height()], [0, 140], "the next run, after turn 140")
+	watch_signals(strip)
+	await wait_process_frames(1)
+	assert_signal_emitted(strip, "draw", "each mark, with no error")
+	hud.start_turn = 220
+	GameState.quit_to_title()
+	GameState.start_run(3, false, false)
+	assert_eq(strip.car_height(), 220, "a run from the Desert")
+	EventBus.turn_completed.emit(10)
+	assert_eq(strip.car_height(), 230)
+	hud.start_turn = 0
+	GameState.quit_to_title()
+	GameState.start_run(4, true, true, &"pier")
+	EventBus.streak_changed.emit(3)
+	assert_eq(strip.car_height(), 0, "the tutorial")
+	GameState.end_tutorial()
+	EventBus.tutorial_completed.emit()
+	assert_eq(strip.car_height(), 0, "the City's run")
+	EventBus.turn_completed.emit(1)
+	assert_eq(strip.car_height(), 1)
+
+
+## ENDGAME_PLAN.md §5.13, §5.14: the strip shows each road with a finish, with its own areas and
+## best run: the Road Home's from the Desert, and --finish's short road, where the road's best run
+## is past its finish, at the top. Keep Driving's endless road has none, nor has a HUD with no road.
+func test_the_route_strip_shows_only_on_a_road_with_a_finish() -> void:
+	var hud := _hud_on_screen()
+	var strip := _strip(hud)
+	assert_false(strip.visible, "before a run")
+	GameState.start_run(1)
+	assert_false(strip.visible, "no road")
+	SaveService.data().record_run({"road": &"home", "turn_index": 80})
+	hud.road = HOME_ROAD
+	GameState.quit_to_title()
+	GameState.start_run(2, false, true, &"home")
+	assert_true(strip.visible, "the Road Home")
+	assert_eq(strip.tick_heights(), [0, 60, 80, 180, 246], "the Desert's to the City's")
+	assert_eq(strip.best_height(), 80)
+	hud.road = ROAD.endless()
+	GameState.quit_to_title()
+	GameState.start_run(3)
+	assert_false(strip.visible, "Keep Driving")
+	hud.road = ROAD
+	GameState.quit_to_title()
+	GameState.start_run(4, false, true, &"pier")
+	assert_true(strip.visible, "the road to the sea")
+	assert_eq(strip.best_height(), -1, "the Road Home's best run is its own")
+	SaveService.data().record_run({"road": &"pier", "turn_index": 140})
+	hud.road = ROAD.ending_at(3, &"pier")
+	GameState.quit_to_title()
+	GameState.start_run(5, false, true, &"pier")
+	assert_true(strip.visible, "--finish=3")
+	assert_eq(strip.tick_heights(), [0], "the City alone")
+	assert_eq(strip.best_height(), 280, "turn 140, past the finish")
+	EventBus.turn_completed.emit(3)
+	assert_eq(strip.car_height(), 280, "at the finish")

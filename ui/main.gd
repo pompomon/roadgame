@@ -190,6 +190,11 @@ func _start_run(run_seed: int) -> void:
 	_input.autopilot = Autopilot.new(_sim) if _autopilot else null
 	_input.enabled = true
 	_hud.show()
+	# The route strip shows the road whole, from where the run starts on it: a run from a later area
+	# has its finish as many turns closer (ENDGAME_PLAN.md §5.14).
+	var route := _run_schedule(&"")
+	_hud.road = route
+	_hud.start_turn = route.finish_turn - _schedule.finish_turn
 	_car = CAR_SCENE.instantiate() as CarController
 	_car.sim = _sim
 	_car.input = _input

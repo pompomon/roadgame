@@ -446,3 +446,36 @@ func test_play_and_title_are_errors_in_other_states() -> void:
 	assert_push_error("Play is only allowed on the title screen")
 	assert_eq(GameState.state, RUNNING)
 	assert_eq(_cars(main), 1, "the same run")
+
+
+## ENDGAME_PLAN.md §5.14, E12: the route strip shows the road chosen on the title whole, with the
+## car where the run starts on it and that road's best run: a run from the Desert on the road to the
+## sea, at the Desert's tick, under the arrival's best at the finish; the Road Home from its foot,
+## with its own best. Keep Driving's road has no strip.
+func test_the_route_strip_shows_the_road_chosen() -> void:
+	SaveService.data().record_arrival(&"pier", {"seconds": 600.0, "turn_index": 280})
+	SaveService.data().record_run({"road": &"home", "turn_index": 50})
+	var main := _open(["--seed=1", "--area=desert"])
+	var road: Button = _title(main).get_node("%Road")
+	var strip: RouteStrip = main.get_node("%HUD/%RouteStrip")
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(MainScene.car(main).sim.area.id, &"desert")
+	assert_true(strip.visible, "the road to the sea")
+	var ticks := strip.tick_heights()
+	assert_eq([strip.car_height(), strip.best_height()], [ticks[4], ticks[5]])
+	_to_game_over(main, false)
+	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
+	road.pressed.emit()
+	assert_eq(road.text, "Road: Home")
+	MainScene.press_key(main, KEY_ENTER)
+	assert_true(strip.visible, "the Road Home")
+	var home: AreaSchedule = load("res://areas/schedule_home.tres")
+	var best := RouteStrip.height(50, home.finish_turn, strip.size.y)
+	assert_eq([strip.car_height(), strip.best_height()], [0, best])
+	_to_game_over(main, false)
+	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
+	road.pressed.emit()
+	assert_eq(road.text, "Road: Endless")
+	MainScene.press_key(main, KEY_ENTER)
+	assert_true((main.get_node("%HUD") as Control).visible)
+	assert_false(strip.visible, "Keep Driving")

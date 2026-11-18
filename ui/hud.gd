@@ -2,16 +2,24 @@ class_name Hud
 extends Control
 ## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6): distance, turns, health and the pause button,
 ## and a message while the game is paused. When the car enters an area, the area's name shows for
-## AREA_BANNER_SECONDS (M4.3). It reads GameState, listens to EventBus, starts afresh with each
-## run, and processes while the game is paused. When the run ends it hides the pause button and
-## the area's name, and the game-over screen shows why it ended (M3.3). Its text uses only
-## characters in Godot's default font: the Web build has no system font to fall back on.
+## AREA_BANNER_SECONDS (M4.3). On a road with a finish, the route strip shows the road's areas, the
+## car and the best run (ENDGAME_PLAN.md §5.14). It reads GameState and the save, listens to
+## EventBus, starts afresh with each run, and processes while the game is paused. When the run ends
+## it hides the pause button and the area's name, and the game-over screen shows why it ended
+## (M3.3). Its text uses only characters in Godot's default font: the Web build has no system font
+## to fall back on.
 
 const PAUSED_MESSAGE := "Paused\nTap II or press Esc to go on"
 ## The area banner when a run starts with the tutorial: its name and its goal, TUTORIAL_STREAK.
 const TUTORIAL_BANNER := "Tutorial\n%d turns in a row"
 ## The turns label in the tutorial: the turns in a row, of TUTORIAL_STREAK.
 const STREAK_TEXT := "turns %d/%d"
+
+## The road that the next run drives, whole, for the route strip: also for a run from a later area,
+## which starts at `start_turn` of it, as the route shows where the run starts (§5.11). null, or a
+## road with no finish, hides the strip. main.gd sets both before each run starts.
+var road: AreaSchedule
+var start_turn := 0
 
 ## Seconds left to show the area's name.
 var _banner_left := 0.0
@@ -23,6 +31,7 @@ var _banner_left := 0.0
 @onready var _message: Label = %Message
 @onready var _info: Label = %Info
 @onready var _area_banner: Label = %AreaBanner
+@onready var _route: RouteStrip = %RouteStrip
 
 
 func _ready() -> void:
@@ -70,7 +79,13 @@ static func distance_text(tiles: float) -> String:
 
 
 ## What a run starts with. A retry starts the next run without reloading the HUD (docs/M3.md J10).
+## The strip's best run is the road's farthest turn as the run starts (ENDGAME_PLAN.md §5.12).
 func _reset() -> void:
+	var best := 0
+	if road != null and road.has_finish():
+		var arrivals := SaveService.data().arrivals
+		best = int(arrivals.get(String(road.finish), SaveData.ARRIVAL_ENTRY)["farthest"])
+	_route.show_road(road, start_turn, best)
 	_distance.visible = not GameState.in_tutorial
 	if GameState.in_tutorial:
 		_on_streak_changed(0)
@@ -88,8 +103,10 @@ func _on_run_started(_run_seed: int) -> void:
 	_reset()
 
 
+## The tutorial's turns don't come here, so the strip's car waits at the foot until it is done.
 func _on_turn_completed(turn_index: int) -> void:
 	_turns.text = "turns %d" % turn_index
+	_route.move_car(start_turn + turn_index)
 
 
 func _on_health_changed(value: float) -> void:
