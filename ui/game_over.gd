@@ -27,12 +27,15 @@ const FALLBACK_MESSAGE := "Game over"
 ## The next goal's lines (ENDGAME_PLAN.md §5.9), in next_goal()'s order: the first that holds shows.
 ## Each is a line of the font's glyphs that fits the screen.
 const GOAL_SEA := "Next: reach the sea. Your best: turn %d of %d"
+const GOAL_HOME := "Next: drive the Road Home"
 const GOAL_LEGENDS := "Next: find the %d legends still missing"
 const GOAL_LAST_LEGEND := "Next: find the last legend still missing"
 const GOAL_CLEAN := "Next: reach the sea without leaving the road"
 const GOAL_TIME := "Next: beat your best time, %s"
 ## The finish of the road to the sea (areas/schedule.tres).
 const SEA := &"pier"
+## The Road Home's (areas/schedule_home.tres, ENDGAME_PLAN.md §5.12).
+const HOME := &"home"
 
 ## Whether open() shows the seed. Tests change it.
 var show_seed := OS.is_debug_build()
@@ -103,15 +106,17 @@ static func time_text(seconds: float) -> String:
 
 
 ## The player's next goal in `data`, the first that holds (ENDGAME_PLAN.md §5.9): to reach the sea,
-## with their best turn of `schedule`'s, the game's road; then to find the legends of its pools
-## still missing; then to reach the sea without leaving the road; then to beat their best time
-## there. Only the player's progress changes it.
+## with their best turn of `schedule`'s, the game's road; then to drive the Road Home to its end
+## (§5.12); then to find the legends of its pools still missing; then to reach the sea without
+## leaving the road; then to beat their best time there. Only the player's progress changes it.
 static func next_goal(data: SaveData, schedule: AreaSchedule) -> String:
 	var sea: Dictionary = data.arrivals.get(String(SEA), SaveData.ARRIVAL_ENTRY)
 	if sea["count"] == 0:
 		# A save from before the road had an end may hold a best past it.
 		var best := mini(data.best["turns"], schedule.finish_turn)
 		return GOAL_SEA % [best, schedule.finish_turn]
+	if data.arrival_count(HOME) == 0:
+		return GOAL_HOME
 	var missing := LegendUnlock.locked(schedule, data.seen_disasters()).size()
 	if missing > 1:
 		return GOAL_LEGENDS % missing

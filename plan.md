@@ -23,7 +23,7 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 ## 2. Game Rules
 
 ### 2.1 Run flow
-1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7). The title also offers a **departure** from each later area that a run has discovered, but the Coast's home stretch: it counts for its areas and its legends, but sets no overall best and counts no arrival (§2.6, `ENDGAME_PLAN.md` §5.11).
+1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7). The title also offers a **departure** from each later area that a run has discovered, but the Coast's home stretch: it counts for its areas and its legends, but sets no overall best and counts no arrival (§2.6, `ENDGAME_PLAN.md` §5.11). After the first arrival at the sea, it also offers the **Road Home**: the Desert to the City, heading west, the turns mirrored, to the end of the road at home (`ENDGAME_PLAN.md` §5.12).
 2. The car controls its speed automatically (§2.3). The player only steers.
 3. The road has straights and **junctions**. At each junction the player must take the next turn in the global pattern `L, R, L, R, …`. The first turn is always **Left**. A **decoy** junction doesn't offer that turn, only straight on and the other turn: there straight on is correct, and the turn waits for a later junction.
 4. Taking the wrong exit, or continuing straight through a junction that offers the turn (a "missed turn"), triggers a **disaster** and ends the run.
@@ -63,9 +63,9 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 
 ### 2.6 Meta-progression
 None that makes a run easier or harder. Persisted between runs:
-- **Atlas:** areas discovered, plus best distance and best turn count overall and for each area. Only a run that drove the whole road, from the City, sets the overall bests; a departure from a later area sets its areas' (`ENDGAME_PLAN.md` W22).
+- **Atlas:** areas discovered, plus best distance and best turn count overall and for each area. Only a run that drove a whole road, from its first area, sets the overall bests; a departure from a later area sets its areas' (`ENDGAME_PLAN.md` W22).
 - **Book of Legends:** the disaster collection, each legend witnessed, with its area and run stats, in a row for each area with a pool. A legend not found yet shows as a silhouette with its name's initials, and an area whose legends are all found has a seal in its colour (`ENDGAME_PLAN.md` §5.10). A legend in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner.
-- **Arrivals:** for each finish, the runs that drove the whole road from its first area and arrived, the best time, and whether one never left the road. Each unlocks a legend of the road's pools not yet collected, each as likely: it joins the Book, "Not seen yet" until a run meets it, and weighs as seen in the picks (`ENDGAME_PLAN.md` §5.4, §5.5).
+- **Arrivals:** for each finish, the sea's and home's, the runs that drove the whole road from its first area and arrived, the best time, whether one never left the road, and the farthest turn that such a run reached, arrived or not (`ENDGAME_PLAN.md` §5.12). Each arrival unlocks a legend of the road's pools not yet collected, each as likely: it joins the Book, "Not seen yet" until a run meets it, and weighs as seen in the picks (§5.4, §5.5).
 - Settings (volume, orientation lock, haptics).
 
 ### 2.7 Tutorial
@@ -347,16 +347,16 @@ tests/         GUT tests
 `user://save.json`:
 ```json
 {
-  "version": 3,
+  "version": 4,
   "atlas": { "city": { "discovered": true, "best_distance": 0, "best_turns": 0 } },
   "best": { "distance": 0, "turns": 0 },
   "disasters": { "phantom_bus": { "seen": 3, "first_area": "city", "first_distance": 0, "first_turns": 0, "unlocked": false } },
-  "arrivals": { "pier": { "count": 1, "best_seconds": 581.0, "clean": false } },
+  "arrivals": { "pier": { "count": 1, "best_seconds": 581.0, "clean": false, "farthest": 280 } },
   "settings": { "music": 0.8, "sfx": 1.0, "ambient": 0.8, "haptics": true, "orientation": "sensor" },
   "tutorial": { "done": false }
 }
 ```
-The file has a version number so it can be migrated when the format changes. Version 3 adds `arrivals` and each disaster's `unlocked` (`ENDGAME_PLAN.md` W3). It is written on `run_ended`, when settings change, as the tutorial is done (§2.7), and on an arrival that counts.
+The file has a version number so it can be migrated when the format changes. Version 3 adds `arrivals` and each disaster's `unlocked` (`ENDGAME_PLAN.md` W3), and version 4 each arrival's `farthest` (§5.12). It is written on `run_ended`, when settings change, as the tutorial is done (§2.7), and on an arrival that counts.
 
 ---
 

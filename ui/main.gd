@@ -13,8 +13,9 @@ extends Node
 ## and in others the first or one that the player has discovered (ENDGAME_PLAN.md §5.11). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
-## that many turns, at most its own, with the areas before it, and --home drives the Road Home, for
-## tests and manual checks of the end of the road (ENDGAME_PLAN.md §5.7). --collected=<id> marks
+## that many turns, at most its own, with the areas before it, for tests and manual checks of the
+## end of the road (ENDGAME_PLAN.md §5.7). --home drives the Road Home, and presets the title's Road
+## choice, which offers it after the first arrival at the sea (§5.12). --collected=<id> marks
 ## each legend of that area's pool seen, in the save in use, and --collected=all every pool's, for
 ## checks of the Book's seals and of a full Book (§5.7).
 
@@ -22,6 +23,9 @@ extends Node
 signal quit_requested
 
 const CAR_SCENE := preload("res://car/car.tscn")
+## The game's road, to the sea, and the Road Home (ENDGAME_PLAN.md §5.12).
+const ROAD := "res://areas/schedule.tres"
+const HOME_ROAD := "res://areas/schedule_home.tres"
 ## The finish of --finish's road, on a schedule with none.
 const DEBUG_FINISH := &"pier"
 
@@ -29,10 +33,15 @@ const DEBUG_FINISH := &"pier"
 var args := OS.get_cmdline_user_args()
 
 var _autopilot := false
-## The game's schedule. The world, the Atlas and the Book show all of its areas.
+## The game's schedule. The world, the Atlas and the Book show all of its areas, which the Road Home
+## shares.
 var _whole_schedule: AreaSchedule
-## The run's: the game's, or a copy that starts in --area's area or the title's choice, or that
-## ends after --finish's turns.
+## The Road Home's.
+var _home_schedule: AreaSchedule
+## The road that the runs drive: the game's, or with --home or the title's choice the Road Home.
+var _road: AreaSchedule
+## The run's: the road, or a copy that starts in --area's area or the title's choice, or that ends
+## after --finish's turns.
 var _schedule: AreaSchedule
 ## --finish's turns, or -1.
 var _finish_turns := -1
@@ -64,14 +73,13 @@ var _new_legends: Array[StringName] = []
 
 func _ready() -> void:
 	_autopilot = args.has("--autopilot")
-	var path := (
-		"res://areas/schedule_home.tres" if args.has("--home") else "res://areas/schedule.tres"
-	)
-	_whole_schedule = load(path)
+	_whole_schedule = load(ROAD)
+	_home_schedule = load(HOME_ROAD)
+	_road = _home_schedule if args.has("--home") else _whole_schedule
 	var collected := _parse_collected(args, _whole_schedule)
 	if not collected.is_empty():
 		SaveService.collect(collected)
-	_finish_turns = _parse_finish(args, _whole_schedule)
+	_finish_turns = _parse_finish(args, _road)
 	_schedule = _run_schedule(_parse_area(args))
 	var start := Time.get_ticks_usec()
 	# Every area's, whichever a run starts in (docs/ZONE_SELECT.md Z2).
@@ -88,8 +96,10 @@ func _ready() -> void:
 	_director.disaster_appeared.connect(_on_disaster_appeared)
 	_game_over.retry_requested.connect(_retry)
 	_game_over.title_requested.connect(_to_title)
-	# The Atlas and the Book show the whole schedule, also with --area.
+	# The Atlas and the Book show the whole schedule, also with --area or --home.
 	_title.schedule = _whole_schedule
+	_title.roads = [_whole_schedule, _home_schedule]
+	_title.road = _road
 	_title.start_area = _schedule.areas()[0]
 	_title.play_requested.connect(_play)
 	quit_requested.connect(get_tree().quit)
@@ -188,7 +198,8 @@ func _start_run(run_seed: int) -> void:
 	# The disasters that the player has seen weigh less in each area's pick (docs/POOLS.md V2).
 	_collected = SaveService.data().seen_disasters()
 	_director.start_run(run_seed, _collected)
-	GameState.start_run(run_seed, tutorial, _drives_whole_road())
+	var whole := _drives_whole_road()
+	GameState.start_run(run_seed, tutorial, whole, _schedule.finish if whole else &"")
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
 	_on_area_changed(_sim.area)
 	# A new run is a cut: it shows the morning, or --hour's light, at once (docs/DAYNIGHT.md §5.4).
@@ -217,21 +228,23 @@ func _to_title() -> void:
 	_show_title()
 
 
-## Play on the title screen: a run, as with --play, that starts in the title's choice of area, as
-## --area would start it, and so do its retries (docs/ZONE_SELECT.md Z6, ENDGAME_PLAN.md §5.11).
+## Play on the title screen: a run, as with --play, on the title's choice of road, and from its
+## choice of area, as --home and --area would start it, and so do its retries
+## (docs/ZONE_SELECT.md Z6, ENDGAME_PLAN.md §5.11, §5.12).
 func _play() -> void:
 	if GameState.state != GameState.State.TITLE:
 		push_error("main: Play is only allowed on the title screen")
 		return
 	_title.close()
+	_road = _title.road
 	_schedule = _run_schedule(_title.start_area.id)
 	_start_run(_parse_seed(args))
 
 
-## The run's schedule: the game's, from the area `id` on unless it's &"", and ending after
+## The run's schedule: the road's, from the area `id` on unless it's &"", and ending after
 ## --finish's turns if there are any.
 func _run_schedule(id: StringName) -> AreaSchedule:
-	var schedule := _whole_schedule
+	var schedule := _road
 	if _finish_turns >= 0:
 		var finish := schedule.finish if schedule.has_finish() else DEBUG_FINISH
 		schedule = schedule.ending_at(_finish_turns, finish)
@@ -303,10 +316,10 @@ func _welcome() -> void:
 		_camera.arrive(pier.welcome_bounds)
 
 
-## Whether the run starts in the route's first area: not a run from a later area, chosen with
+## Whether the run starts in the road's first area: not a run from a later area, chosen with
 ## --area or on the title (ZS, and Departures, ENDGAME_PLAN.md Q4, W22).
 func _drives_whole_road() -> bool:
-	return _schedule.entries[0].area == _whole_schedule.entries[0].area
+	return _schedule.entries[0].area == _road.entries[0].area
 
 
 ## A clean run never leaves the road (ENDGAME_PLAN.md §5.4). The tutorial's mistakes don't count.

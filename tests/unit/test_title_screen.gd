@@ -1,7 +1,7 @@
 extends GutTest
-## The title screen (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5) on its own: Play, the best run, and
-## the Atlas, the Book of Legends and the settings, each left for the title by its Back button or
-## Esc.
+## The title screen (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5) on its own: Play, the best run, the
+## road and the area that Play starts in, and the Atlas, the Book of Legends and the settings, each
+## left for the title by its Back button or Esc.
 ## SaveService keeps the save in memory.
 
 const TITLE_SCENE := preload("res://ui/title_screen.tscn")
@@ -24,6 +24,9 @@ func _title() -> TitleScreen:
 	add_child_autofree(view)
 	var title: TitleScreen = TITLE_SCENE.instantiate()
 	title.schedule = load("res://areas/schedule.tres")
+	var home: AreaSchedule = load("res://areas/schedule_home.tres")
+	title.roads = [title.schedule, home]
+	title.road = title.schedule
 	view.add_child(title)
 	return title
 
@@ -193,25 +196,72 @@ func test_the_start_button_steps_through_the_areas_and_open_keeps_the_last() -> 
 	assert_eq(title.start_area.id, &"city", "an area the schedule lacks: its first")
 
 
-func test_the_title_page_fits_a_portrait_screen_with_each_start_area() -> void:
-	# The Start button keeps its width as it steps, so that each tap lands on it (Z9).
+func test_the_title_page_fits_a_portrait_screen_with_each_road_and_start_area() -> void:
+	# The Road and Start buttons keep their widths as they step, so that each tap lands on them (Z9,
+	# ENDGAME_PLAN.md §5.12).
 	SaveService.data().record_run({"distance": 9999.9, "turn_index": 999})
+	SaveService.data().record_arrival(&"pier", {"seconds": 99999.9})
 	var title := _title()
 	title.every_area = true
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
-	var start := _button(title, "StartArea")
 	var widths: Array[float] = []
-	for area: AreaDef in title.schedule.areas():
-		title.start_area = area
-		title.open()
-		await wait_process_frames(2)
-		for control: Control in title.find_children("*", "Control", true, false):
-			if control.is_visible_in_tree():
-				var rect := control.get_global_rect()
-				assert_true(bounds.encloses(rect), "%s: %s at %s" % [area.id, control.name, rect])
-		assert_eq(start.size.x, start.custom_minimum_size.x, "%s: no text widens it" % area.id)
-		widths.append(start.size.x)
-	assert_eq(widths.count(widths[0]), widths.size(), "one width for each area: %s" % [widths])
+	for road: AreaSchedule in title.roads:
+		for area: AreaDef in road.areas():
+			var shown := "%s, %s" % [road.finish, area.id]
+			title.road = road
+			title.start_area = area
+			title.open()
+			await wait_process_frames(2)
+			for control: Control in title.find_children("*", "Control", true, false):
+				if control.is_visible_in_tree():
+					var rect := control.get_global_rect()
+					assert_true(bounds.encloses(rect), "%s: %s at %s" % [shown, control.name, rect])
+			for button: Button in [_button(title, "Road"), _button(title, "StartArea")]:
+				assert_true(button.visible, "%s: %s" % [shown, button.name])
+				var width := button.custom_minimum_size.x
+				assert_eq(button.size.x, width, "%s: no text widens %s" % [shown, button.name])
+				widths.append(button.size.x)
+	assert_eq(widths.count(widths[0]), widths.size(), "one width for each: %s" % [widths])
+
+
+func test_the_road_button_offers_the_road_home_after_an_arrival_at_the_sea() -> void:
+	# ENDGAME_PLAN.md §5.12: the road to the sea alone, until it has an arrival. The Road Home then
+	# starts from its first area, the Desert, and the Start button steps through its own areas. A
+	# choice that isn't offered gives way to the road to the sea, from its first area.
+	var title := _title()
+	title.every_area = false
+	var road := _button(title, "Road")
+	var start := _button(title, "StartArea")
+	var data := SaveService.data()
+	data.record_run({"areas": {&"rural": {}, &"desert": {}, &"village": {}}})
+	title.open()
+	assert_false(road.visible, "no arrival")
+	data.record_arrival(&"pier", {"seconds": 600.0})
+	title.open()
+	assert_true(road.visible)
+	var texts: Array[String] = [road.text + ", " + start.text]
+	for _press: int in 2:
+		road.pressed.emit()
+		texts.append(road.text + ", " + start.text)
+	assert_eq(
+		texts,
+		[
+			"Road: To the sea, Start in: City",
+			"Road: Home, Start in: Desert",
+			"Road: To the sea, Start in: City",
+		]
+	)
+	road.pressed.emit()
+	texts.clear()
+	for _press: int in 3:
+		start.pressed.emit()
+		texts.append(start.text)
+	assert_eq(texts, ["Start in: Village", "Start in: Rural", "Start in: Desert"], "home's order")
+	assert_true(_button(title, "Play").has_focus())
+	SaveService.use_memory()
+	title.open()
+	assert_false(road.visible)
+	assert_eq([title.road, title.start_area], [title.schedule, title.schedule.areas()[0]])
 
 
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:

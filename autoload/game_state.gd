@@ -39,16 +39,19 @@ var in_tutorial := false
 ## Whether the run drives the whole road, from its first area: not a departure from a later one.
 ## Only such a run counts an arrival and the overall bests (ENDGAME_PLAN.md Q4, W22).
 var whole_road := true
+## The finish of the road that the run drives whole, whose farthest turn the save keeps
+## (ENDGAME_PLAN.md §5.12): &"" for a run from a later area, and on a road without a finish.
+var road := &""
 
 ## Where each area the run entered begins, in order: [area id, distance, turns], the path distance
 ## to the area's first tile and the turns at the junctions before it (docs/M5.md L8).
 var _entries: Array[Array] = []
 
 
-## Starts a run from TITLE or GAME_OVER: with the tutorial if `tutorial`, and as a departure from a
-## later area than the road's first if not `p_whole_road`. A paused run must be resumed or quit
-## first.
-func start_run(p_run_seed: int, tutorial := false, p_whole_road := true) -> void:
+## Starts a run from TITLE or GAME_OVER: with the tutorial if `tutorial`; as a departure from a
+## later area than the road's first if not `p_whole_road`; and on the road whose finish is `p_road`,
+## if it drives that road whole. A paused run must be resumed or quit first.
+func start_run(p_run_seed: int, tutorial := false, p_whole_road := true, p_road := &"") -> void:
 	if state == State.PAUSED:
 		push_error("GameState: start_run() in PAUSED is not allowed")
 		return
@@ -63,6 +66,7 @@ func start_run(p_run_seed: int, tutorial := false, p_whole_road := true) -> void
 	end_cause = &""
 	in_tutorial = tutorial
 	whole_road = p_whole_road
+	road = p_road
 	_entries = []
 	EventBus.run_started.emit(run_seed)
 
@@ -142,6 +146,7 @@ func stats() -> Dictionary:
 		"cause": end_cause,
 		"areas": _area_stats(),
 		"whole_road": whole_road,
+		"road": road,
 	}
 
 

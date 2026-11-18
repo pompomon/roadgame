@@ -32,7 +32,7 @@ func test_json_round_trip() -> void:
 	data.tutorial["done"] = true
 	data.record_run(_stats(40.5, 9, {&"city": {"distance": 30.25, "turns": 7}}))
 	data.record_disaster(&"tornado", &"city", _stats(40.5, 9, {}))
-	data.record_arrival(&"pier", {"seconds": 512.25, "clean": true})
+	data.record_arrival(&"pier", {"seconds": 512.25, "clean": true, "turn_index": 9})
 	data.unlock_disaster(&"ufo")
 	data.set_setting("music", 0.3)
 	data.set_setting("orientation", "landscape")
@@ -48,7 +48,8 @@ func test_json_round_trip() -> void:
 	assert_typeof(again.best["turns"], TYPE_INT, "JSON reads every number as a float")
 	assert_typeof(again.atlas["city"]["best_turns"], TYPE_INT)
 	assert_typeof(again.arrivals["pier"]["count"], TYPE_INT)
-	assert_true(data.to_json().contains('"version": 3'))
+	assert_typeof(again.arrivals["pier"]["farthest"], TYPE_INT)
+	assert_true(data.to_json().contains('"version": 4'))
 
 
 func test_a_v0_file_is_migrated_and_keeps_its_values() -> void:
@@ -72,7 +73,7 @@ func test_each_load_starts_from_the_defaults() -> void:
 	var loads := {
 		"{}": SaveData.Status.LOADED,
 		"not json": SaveData.Status.CORRUPT,
-		'{"version": 4}': SaveData.Status.NEWER,
+		'{"version": 5}': SaveData.Status.NEWER,
 		'{"settings": {"music": 2}}': SaveData.Status.LOADED,
 	}
 	for text: String in loads:
@@ -208,7 +209,7 @@ func test_numbers_past_the_largest_exact_whole_number_get_their_defaults() -> vo
 
 func test_a_later_version_is_read_as_far_as_it_is_known() -> void:
 	var data := SaveData.new()
-	var text := JSON.stringify({"version": 4, "best": {"distance": 5, "turns": 1}, "new": 1})
+	var text := JSON.stringify({"version": 5, "best": {"distance": 5, "turns": 1}, "new": 1})
 	assert_eq(data.load_json(text), SaveData.Status.NEWER)
 	assert_eq(data.best, {"distance": 5.0, "turns": 1})
 
@@ -274,7 +275,7 @@ func test_a_v2_file_is_migrated_with_no_arrivals_and_nothing_unlocked() -> void:
 	assert_eq(data.arrivals, {} as Dictionary[String, Dictionary])
 	assert_eq(data.disasters["ufo"]["seen"], 2)
 	assert_false(data.disasters["ufo"]["unlocked"])
-	assert_true(data.to_json().contains('"version": 3'))
+	assert_true(data.to_json().contains('"version": 4'))
 
 
 func test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one() -> void:
@@ -283,11 +284,91 @@ func test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one() -> voi
 	data.record_arrival(&"pier", {"seconds": 498.5, "clean": false})
 	data.record_arrival(&"pier", {"seconds": 610.0, "clean": false})
 	data.record_arrival(&"home", {"seconds": 700.0, "clean": false})
-	assert_eq(data.arrivals["pier"], {"count": 3, "best_seconds": 498.5, "clean": true})
-	assert_eq(data.arrivals["home"], {"count": 1, "best_seconds": 700.0, "clean": false})
+	var pier := {"count": 3, "best_seconds": 498.5, "clean": true, "farthest": 0}
+	var home := {"count": 1, "best_seconds": 700.0, "clean": false, "farthest": 0}
+	assert_eq([data.arrivals["pier"], data.arrivals["home"]], [pier, home])
 	assert_eq(data.arrival_count(), 4)
 	assert_eq([data.arrival_count(&"pier"), data.arrival_count(&"home")], [3, 1], "each finish's")
 	assert_eq(data.arrival_count(&"nowhere"), 0)
+
+
+## ENDGAME_PLAN.md §5.12: version 4 keeps each road's farthest turn. In version 3 both roads had 280
+## turns: one with an arrival was driven to its end. Otherwise the pier's is the best turns, at most
+## 280, as only the road to the sea counted in the best run, and home's 0, as only --home drove it.
+## The arrivals keep their other values.
+func test_a_v3_file_is_migrated_with_each_roads_farthest() -> void:
+	# Each file, and the pier's farthest and home's that it gets.
+	var files: Array[Array] = [
+		[{"best": {"turns": 212}}, 212, 0],
+		[{"best": {"turns": 350}, "arrivals": {}}, 280, 0],
+		[{"best": {"turns": 0}, "arrivals": {}}, 0, 0],
+		[{"best": {"turns": 212}, "arrivals": {"pier": {"count": 1}}}, 280, 0],
+		[{"best": {"turns": 212}, "arrivals": {"home": {"count": 2}}}, 212, 280],
+		[{"best": {"turns": "far"}, "arrivals": {"pier": {"count": "one"}}}, 0, 0],
+		[{"best": [212], "arrivals": {"pier": {"count": 1}, "home": {}}}, 280, 0],
+	]
+	for file: Array in files:
+		var root: Dictionary = file[0]
+		root["version"] = 3
+		var text := JSON.stringify(root)
+		var data := SaveData.new()
+		assert_eq(data.load_json(text), SaveData.Status.LOADED, text)
+		var farthest := [
+			data.arrivals.get("pier", SaveData.ARRIVAL_ENTRY)["farthest"],
+			data.arrivals.get("home", SaveData.ARRIVAL_ENTRY)["farthest"],
+		]
+		assert_eq(farthest, [file[1], file[2]], text)
+	var kept := SaveData.new()
+	var arrivals := {"home": {"count": 2, "best_seconds": 600.0, "clean": true}}
+	kept.load_json(JSON.stringify({"version": 3, "arrivals": arrivals, "best": {"turns": 9}}))
+	assert_eq(kept.problems, PackedStringArray())
+	var home := {"count": 2, "best_seconds": 600.0, "clean": true, "farthest": 280}
+	assert_eq(kept.arrivals["home"], home)
+	assert_eq(
+		kept.arrivals["pier"], {"count": 0, "best_seconds": 0.0, "clean": false, "farthest": 9}
+	)
+	assert_eq(kept.best["turns"], 9)
+	assert_true(kept.to_json().contains('"version": 4'))
+
+
+## ENDGAME_PLAN.md §5.12: a run raises the farthest turn of the road that it drove whole, from its
+## first area, and no other road's. A run from a later area, or on a road without a finish, raises
+## none.
+func test_a_run_raises_only_its_roads_farthest() -> void:
+	var data := SaveData.new()
+	var sea := _stats(40.0, 9, {})
+	sea["road"] = &"pier"
+	data.record_run(sea)
+	sea["turn_index"] = 5
+	data.record_run(sea)
+	var home := _stats(10.0, 30, {})
+	home["road"] = &"home"
+	data.record_run(home)
+	var departure := _stats(90.0, 60, {})
+	departure["whole_road"] = false
+	data.record_run(departure)
+	data.record_run(_stats(95.0, 70, {}))
+	assert_eq(data.arrivals.keys(), ["pier", "home"])
+	assert_eq(data.arrivals["pier"]["farthest"], 9, "the farthest, not the last")
+	assert_eq(data.arrivals["home"]["farthest"], 30)
+	assert_eq(data.arrival_count(), 0, "and no arrival")
+	assert_eq(data.best["turns"], 70, "the overall best counts every whole road")
+
+
+## ENDGAME_PLAN.md E9: the save keeps a Road Home run's progress, though it never arrives. Its
+## arrival is at the finish's turn.
+func test_a_road_home_run_that_never_arrives_keeps_its_farthest() -> void:
+	var data := SaveData.new()
+	var run := _stats(300.0, 120, {&"desert": {"distance": 300.0, "turns": 60}})
+	run["road"] = &"home"
+	data.record_run(run)
+	var again := SaveData.new()
+	assert_eq(again.load_json(data.to_json()), SaveData.Status.LOADED)
+	var home := {"count": 0, "best_seconds": 0.0, "clean": false, "farthest": 120}
+	assert_eq(again.arrivals["home"], home)
+	again.record_arrival(&"home", {"seconds": 600.0, "turn_index": 280})
+	assert_eq(again.arrivals["home"]["farthest"], 280)
+	assert_eq(again.arrival_count(&"home"), 1)
 
 
 ## ENDGAME_PLAN.md W14: an unlocked legend shows as found in the Book of Legends, and weighs less

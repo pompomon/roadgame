@@ -592,10 +592,13 @@ func test_set_piece_at_is_the_set_piece_over_a_path_index() -> void:
 
 
 func test_every_finish_has_its_scene() -> void:
-	# The game's road, the Road Home, and main's --finish on a road without a finish each end in
-	# their set piece, which build() checks for, as it checks the areas' (ENDGAME_PLAN.md §5.7, §5.8).
+	# main's roads, the game's and the Road Home, and its --finish on a road without a finish each
+	# end in their set piece, which build() checks for, as it checks the areas' (ENDGAME_PLAN.md
+	# §5.7, §5.8). main builds the world from the game's road alone, whose areas the Road Home
+	# shares (§5.12), so each road is built here.
 	var finishes: Array[StringName] = []
-	for schedule: AreaSchedule in [Fixtures.schedule(), Fixtures.schedule_home()]:
+	for path: String in [MainScript.ROAD, MainScript.HOME_ROAD]:
+		var schedule: AreaSchedule = load(path)
 		var world: WorldRenderer = add_child_autofree(WORLD.instantiate())
 		world.build(schedule)
 		finishes.append(schedule.finish)
