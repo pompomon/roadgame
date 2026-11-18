@@ -1,0 +1,82 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://setpieces/last_gas.gd" id="1_last_gas"]
+
+[node name="LastGas" type="Node2D"]
+script = ExtResource("1_last_gas")
+
+[node name="Forecourt" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.6, 0.6, 0.58, 1)
+
+[node name="Island" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.78, 0.78, 0.74, 1)
+
+[node name="ShackX" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.72, 0.68, 0.6, 1)
+
+[node name="ShackY" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.86, 0.82, 0.72, 1)
+
+[node name="Door" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.2, 0.19, 0.24, 1)
+
+[node name="Window" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.3, 0.42, 0.5, 1)
+
+[node name="ShackRoof" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.36, 0.37, 0.41, 1)
+
+[node name="EndPost" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.88, 0.88, 0.85, 1)
+
+[node name="EndPump" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.76, 0.16, 0.14, 1)
+
+[node name="EndPanel" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.95, 0.95, 0.9, 1)
+
+[node name="StartPump" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.76, 0.16, 0.14, 1)
+
+[node name="StartPanel" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.95, 0.95, 0.9, 1)
+
+[node name="StartPost" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.88, 0.88, 0.85, 1)
+
+[node name="CanopyX" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.7, 0.14, 0.12, 1)
+
+[node name="CanopyY" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.84, 0.2, 0.16, 1)
+
+[node name="CanopyTop" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.93, 0.93, 0.9, 1)
+
+[node name="SignPole" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.42, 0.42, 0.45, 1)
+
+[node name="SignPanel" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.8, 0.18, 0.14, 1)
+
+[node name="SignBand" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+color = Color(0.96, 0.84, 0.3, 1)

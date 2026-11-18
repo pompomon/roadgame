@@ -7,7 +7,7 @@ extends Node
 ## (docs/M5.md L1). Music and ambient sound go on while the game is paused; the car's sounds pause.
 ## On an arrival, the engine winds down with the car and stops with it, as a jingle plays, and the
 ## area's music fades out under its ambient sound (ENDGAME_PLAN.md §5.8). The end screen's NEW
-## LEGEND! has a jingle of its own (§5.9).
+## LEGEND! has a jingle of its own (§5.9), and a pit stop's repair a ding (§5.15).
 
 ## A one-shot sound started, or would have if can_play were on.
 signal effect_played(id: StringName)
@@ -35,6 +35,7 @@ const EFFECTS: Dictionary[StringName, AudioStream] = {
 	&"junction": preload("res://assets/audio/sfx/junction.wav"),
 	&"arrival": preload("res://assets/audio/sfx/arrival.wav"),
 	&"new_legend": preload("res://assets/audio/sfx/new_legend.wav"),
+	&"repair": preload("res://assets/audio/sfx/repair.wav"),
 	# The City's legends.
 	&"phantom_bus": preload("res://assets/audio/sfx/phantom_bus.wav"),
 	&"mothman": preload("res://assets/audio/sfx/mothman.wav"),
@@ -96,6 +97,7 @@ func _ready() -> void:
 	EventBus.run_ended.connect(_on_run_ended)
 	EventBus.disaster_appeared.connect(_on_disaster_appeared)
 	EventBus.new_legend_shown.connect(_on_new_legend_shown)
+	EventBus.car_repaired.connect(_on_car_repaired)
 	SaveService.settings_changed.connect(_on_settings_changed)
 
 
@@ -316,6 +318,10 @@ func _on_disaster_appeared(id: StringName, _area: AreaDef) -> void:
 
 func _on_new_legend_shown() -> void:
 	play_effect(&"new_legend")
+
+
+func _on_car_repaired() -> void:
+	play_effect(&"repair")
 
 
 func _on_settings_changed(key: String) -> void:

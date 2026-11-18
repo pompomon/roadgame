@@ -184,6 +184,7 @@ func _start_run(run_seed: int) -> void:
 	_sim.crashed.connect(_on_crashed)
 	_sim.arrived.connect(_on_arrived)
 	_sim.health_changed.connect(EventBus.health_changed.emit)
+	_sim.repaired.connect(EventBus.car_repaired.emit)
 	_sim.offroad_changed.connect(EventBus.car_offroad_changed.emit)
 	_sim.offroad_changed.connect(_on_offroad_changed)
 	_sim.area_changed.connect(_on_area_changed)

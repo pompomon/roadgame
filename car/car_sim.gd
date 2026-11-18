@@ -10,6 +10,9 @@ extends RefCounted
 ##
 ## On a road with a finish, the run ends when the car reaches it (ENDGAME_PLAN.md §5.2): it then
 ## rolls to a stop on the finish's set piece, straightening up as it goes.
+##
+## A pit stop repairs the car by PIT_STOP_HEAL, up to START_HEALTH, as it drives out of the pit
+## stop's tiles on the road, once in a run (ENDGAME_PLAN.md §5.15).
 
 signal health_changed(value: float)
 signal offroad_changed(is_offroad: bool)
@@ -21,6 +24,8 @@ signal crashed(cause: StringName)
 signal rescued
 ## The car reached the finish: the run is won (ENDGAME_PLAN.md §5.2).
 signal arrived
+## The car drove out of a pit stop on the road, which repaired it (ENDGAME_PLAN.md §5.15).
+signal repaired
 
 enum State { DRIVING, BRAKING, OFFROAD, DISASTER, CRASHED, ARRIVED }
 
@@ -65,6 +70,8 @@ var _stop_rate := 0.0
 ## Once the car has arrived: the centre of the finish's first tile, and the finish's heading.
 var _finish_centre := Vector2.ZERO
 var _finish_axis := Vector2.ZERO
+## The path index of the last tile of the last pit stop that the car drove out of, or -1.
+var _pit_stop_passed := -1
 
 
 ## Puts the car on the centre of the buffer's first path tile, facing along it, at speed 0.
@@ -121,6 +128,8 @@ func step(delta: float, steer: float) -> void:
 		trigger.on_cell_crossed(cell, crossed[i], state != State.OFFROAD)
 		if is_over():
 			return
+		if state != State.OFFROAD:
+			_leave_pit_stop(cell, crossed[i])
 		if state == State.OFFROAD and areas[i + 1] != areas[i]:
 			_drive_off_road((at - _offroad_since) * delta, areas[i])
 			_offroad_since = at
@@ -356,6 +365,24 @@ func _drive_off_road(seconds: float, rates: AreaDef) -> void:
 			trigger.on_offroad_limit()
 		else:
 			_crash(OFFROAD)
+
+
+## The car, on the road, crossed from `cell` into `next`. If that drove it out of a pit stop's
+## tiles, onto the path tile after their last, it repairs the car, once for each pit stop: at full
+## health, it passes the pit stop by. A car that turned round, and drove back out of their first
+## tile, isn't.
+func _leave_pit_stop(cell: Vector2i, next: Vector2i) -> void:
+	var tile := buffer.tile_at(cell)
+	var after := buffer.tile_at(next)
+	if tile == null or after == null or not tile.pit_stop or after.pit_stop:
+		return
+	if after.path_index != tile.path_index + 1 or tile.path_index <= _pit_stop_passed:
+		return
+	_pit_stop_passed = tile.path_index
+	if health < Tuning.START_HEALTH:
+		health = minf(Tuning.START_HEALTH, health + Tuning.PIT_STOP_HEAL)
+		health_changed.emit(health)
+		repaired.emit()
 
 
 func _crash(cause: StringName) -> void:

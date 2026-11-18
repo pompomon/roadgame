@@ -75,6 +75,9 @@ const BRAKE := 4.0
 const STEER_RATE := 3.0
 const STRAIGHTEN_RATE := 1.0
 const START_HEALTH := 100.0
+## What a pit stop repairs (ENDGAME_PLAN.md §5.15): half the car's health, what 1.4 to 2 seconds
+## off the road cost, at the areas' 35 to 25 a second.
+const PIT_STOP_HEAL := 50.0
 ## Skid marks (docs/M5.md §5.7): while the car brakes for a junction, a pair every SKID_SPACING
 ## tiles, SKID_REAR tiles behind its centre and SKID_TRACK tiles apart, at SKID_ALPHA. At most
 ## SKID_MARKS show.

@@ -5,15 +5,16 @@ extends RefCounted
 ## on every run, at every frame rate and on every screen.
 ##
 ## Path tile k lies on screen row -k: the tiles whose cells add up to -k, side by side across the
-## screen. Row k's props stand on the ground of the PROP_SPREAD tiles either side of path tile k,
-## of those that are neither road nor within set_piece_margin() tiles of a set piece's road. Each
-## such tile's ground cells make lots of each size that its props take (PropDef.lot), the largest
-## first. Each lot that no larger prop stands on shows one prop of its size or none: its hash with
-## props_seed picks one by their densities, or by a street by their street densities (§5.8). A lot
-## of one cell has the cell's own hash, so props that take one cell stand where they stood before
-## lots (docs/VISUALS.md §5.4). A prop whose frame would touch a road tile's diamond is left out,
-## and its lot stays free, so that no prop hides the road or the car on it; but for a see-through
-## one, which may rise over the road behind it, and fades where it would hide the car (§5.9).
+## screen. Row k's props stand on the ground of the PROP_SPREAD tiles either side of path tile k, of
+## those that are neither road nor within set_piece_margin() tiles of a set piece's road, or of the
+## straight that Last Gas stands by (ENDGAME_PLAN.md §5.15). Each such tile's ground cells make lots
+## of each size that its props take (PropDef.lot), the largest first. Each lot that no larger prop
+## stands on shows one prop of its size or none: its hash with props_seed picks one by their
+## densities, or by a street by their street densities (§5.8). A lot of one cell has the cell's own
+## hash, so props that take one cell stand where they stood before lots (docs/VISUALS.md §5.4). A
+## prop whose frame would touch a road tile's diamond is left out, and its lot stays free, so that
+## no prop hides the road or the car on it; but for a see-through one, which may rise over the road
+## behind it, and fades where it would hide the car (§5.9).
 
 
 ## A prop of a row: which, where its foot stands, in world pixels, and where its animation starts,
@@ -185,13 +186,14 @@ static func set_piece_margin() -> int:
 	return ceili(Tuning.RIVER_REACH)
 
 
-## Whether a set-piece tile is within set_piece_margin() tiles of `tile` along each axis.
+## Whether a set-piece tile, or a pit stop's, is within set_piece_margin() tiles of `tile` along
+## each axis.
 static func near_set_piece(tile: Vector2i, buffer: RoadBuffer) -> bool:
 	var margin := set_piece_margin()
 	for y: int in range(-margin, margin + 1):
 		for x: int in range(-margin, margin + 1):
 			var near := buffer.tile_at(tile + Vector2i(x, y))
-			if near != null and near.type == RoadTile.Type.SET_PIECE:
+			if near != null and (near.type == RoadTile.Type.SET_PIECE or near.pit_stop):
 				return true
 	return false
 
