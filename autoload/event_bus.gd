@@ -19,6 +19,9 @@ signal disaster_started(id: StringName, area: AreaDef)
 signal disaster_appeared(id: StringName, area: AreaDef)
 ## `cause` is one of CarSim's causes; `stats` comes from GameState.stats().
 signal run_ended(cause: StringName, stats: Dictionary)
+## The end screen showed NEW LEGEND!, for a run that met or unlocked a legend that wasn't collected
+## as it started (ENDGAME_PLAN.md §5.9).
+signal new_legend_shown
 signal car_offroad_changed(is_offroad: bool)
 signal paused_changed(paused: bool)
 ## The tutorial's correct turns in a row are now `streak`: one more, or none after a mistake

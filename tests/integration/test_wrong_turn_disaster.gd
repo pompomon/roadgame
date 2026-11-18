@@ -150,3 +150,39 @@ func _played(id: StringName) -> bool:
 		if get_signal_parameters(AudioDirector, "effect_played", k) == [id]:
 			return true
 	return false
+
+
+## ENDGAME_PLAN.md §5.9: a legend met for the first time is new to the run, and the end screen shows
+## NEW LEGEND!, with its jingle.
+func test_a_first_sighting_shows_new_legend() -> void:
+	SaveService.use_memory()
+	watch_signals(EventBus)
+	var main := _wrong_turn()
+	MainScene.run_while(self, main, DISASTER, 600)
+	var game_over: GameOver = main.get_node("%GameOver")
+	assert_true(game_over.visible)
+	assert_true(game_over.get_node("%NewLegend").visible)
+	assert_signal_emit_count(EventBus, "new_legend_shown", 1)
+	SaveService.use_memory()
+
+
+## A legend that was collected as the run started, seen or unlocked, isn't new: every one of the
+## City's is, so whichever the run meets.
+func test_a_legend_collected_before_the_run_is_not_new() -> void:
+	SaveService.use_memory()
+	var save := SaveService.data()
+	var city: AreaDef = CITY
+	for k: int in city.disasters.size():
+		var id := DisasterPicks.id_of(city.disasters[k])
+		if k == 0:
+			save.record_disaster(id, city.id, {})
+		else:
+			save.unlock_disaster(id)
+	watch_signals(EventBus)
+	var main := _wrong_turn()
+	MainScene.run_while(self, main, DISASTER, 600)
+	var game_over: GameOver = main.get_node("%GameOver")
+	assert_true(game_over.visible)
+	assert_false(game_over.get_node("%NewLegend").visible)
+	assert_signal_not_emitted(EventBus, "new_legend_shown")
+	SaveService.use_memory()

@@ -44,6 +44,10 @@ var _car: CarController
 ## What the disaster that ended the run did to the car, for the game-over screen (docs/M6.md S8), or
 ## the legend that an arrival unlocked (ENDGAME_PLAN.md §5.5).
 var _fate := ""
+## The legends collected as the run started, which its picks were made with (docs/POOLS.md V2), and
+## those that it met or unlocked that weren't among them: its new legends (ENDGAME_PLAN.md §5.9).
+var _collected: Array[StringName] = []
+var _new_legends: Array[StringName] = []
 
 @onready var _world: WorldRenderer = %World
 @onready var _input: InputRouter = %InputRouter
@@ -176,7 +180,8 @@ func _start_run(run_seed: int) -> void:
 	_world.car = _car
 	AudioDirector.follow(_sim)
 	# The disasters that the player has seen weigh less in each area's pick (docs/POOLS.md V2).
-	_director.start_run(run_seed, SaveService.data().seen_disasters())
+	_collected = SaveService.data().seen_disasters()
+	_director.start_run(run_seed, _collected)
 	GameState.start_run(run_seed, tutorial)
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
 	_on_area_changed(_sim.area)
@@ -248,6 +253,7 @@ func _clear_run() -> void:
 	_car.free()
 	_car = null
 	_fate = ""
+	_new_legends.clear()
 
 
 func _on_turn_completed(turn_index: int) -> void:
@@ -277,6 +283,7 @@ func _on_arrived() -> void:
 		var id := LegendUnlock.pick(_whole_schedule, data.seen_disasters(), GameState.run_seed)
 		SaveService.record_arrival(_schedule.finish, GameState.stats(), id)
 		_fate = LegendUnlock.text(_whole_schedule, id)
+		_found(id)
 	_welcome()
 	_director.play_arrival(_car, _camera)
 
@@ -360,6 +367,14 @@ func _on_disaster_appeared(disaster: DisasterBase, area: AreaDef) -> void:
 func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
 	EventBus.disaster_started.emit(disaster.id, area)
 	_fate = disaster.fate
+	_found(disaster.id)
+
+
+## The run met or unlocked the legend `id`, if it isn't &"": a new legend, unless it was collected
+## as the run started (ENDGAME_PLAN.md §5.9).
+func _found(id: StringName) -> void:
+	if id != &"" and id not in _collected and id not in _new_legends:
+		_new_legends.append(id)
 
 
 ## The run is over the moment it ends (docs/M3.md J1): the input stops, and GameState reports the
@@ -372,10 +387,13 @@ func _end_run(cause: StringName) -> void:
 		push_error("main: the autopilot's run ended: %s" % cause)
 
 
-## The disaster, the crash or the arrival has played: game over.
+## The disaster, the crash or the arrival has played: game over. The next goal counts what the run
+## did, which the save already holds.
 func _on_sequence_finished() -> void:
 	GameState.show_game_over()
-	_game_over.open(GameState.stats(), _buffer.generator.find_area(GameState.area_id), _fate)
+	var area := _buffer.generator.find_area(GameState.area_id)
+	var goal := GameOver.next_goal(SaveService.data(), _whole_schedule)
+	_game_over.open(GameState.stats(), area, _fate, not _new_legends.is_empty(), goal)
 
 
 ## Whether the next run starts with the tutorial (docs/TUTORIAL.md §5.6): only one that starts in

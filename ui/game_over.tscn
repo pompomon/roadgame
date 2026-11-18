@@ -37,6 +37,17 @@ grow_vertical = 2
 alignment = 1
 theme_override_constants/separation = 16
 
+[node name="NewLegend" type="Label" parent="Box"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9254902, 0.76862746, 0.2509804, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 32
+text = "NEW LEGEND!"
+horizontal_alignment = 1
+
 [node name="Cause" type="Label" parent="Box"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -61,6 +72,15 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+horizontal_alignment = 1
+
+[node name="Goal" type="Label" parent="Box"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 8
 horizontal_alignment = 1
 
 [node name="Retry" type="Button" parent="Box"]
