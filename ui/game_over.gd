@@ -4,11 +4,11 @@ extends Control
 ## disaster did to the car (docs/M6.md S8), the run's distance, its turns and the area it reached,
 ## after an arrival its time, and whether it beat the best (ENDGAME_PLAN.md §5.16), and the Retry
 ## and Title buttons. The main scene opens it once the end of the run has played.
-## Over them, NEW LEGEND! for a run that met or unlocked a legend that wasn't collected as it
-## started, in large letters that stay still, and under the stats the player's next goal, in a line
-## (ENDGAME_PLAN.md §5.9). Retry starts the next run in place; Title goes back to the title screen
-## (M5.5). Retry takes the focus, so Enter and Space press it too. The run's seed shows in small
-## text in debug builds. Like the HUD, its text uses only characters in the game's font.
+## Over them, NEW LEGEND! for a run that met, found or unlocked a legend that wasn't collected as
+## it started, in large letters that stay still, and under the stats the player's next goal, in a
+## line (ENDGAME_PLAN.md §5.9). Retry starts the next run in place; Title goes back to the title
+## screen (M5.5). Retry takes the focus, so Enter and Space press it too. The run's seed shows in
+## small text in debug builds. Like the HUD, its text uses only characters in the game's font.
 
 ## Retry was pressed while the screen was open.
 signal retry_requested
@@ -31,6 +31,7 @@ const GOAL_SEA := "Next: reach the sea. Your best: turn %d of %d"
 const GOAL_HOME := "Next: drive the Road Home"
 const GOAL_LEGENDS := "Next: find the %d legends still missing"
 const GOAL_LAST_LEGEND := "Next: find the last legend still missing"
+const GOAL_HITCHHIKER := "Next: someone waits on the Road Home"
 const GOAL_CLEAN := "Next: reach the sea without leaving the road"
 const GOAL_TIME := "Next: beat your best time, %s"
 ## Under an arrival's time, when it beat the best time at its finish (ENDGAME_PLAN.md §5.16).
@@ -114,8 +115,10 @@ static func time_text(seconds: float) -> String:
 
 ## The player's next goal in `data`, the first that holds (ENDGAME_PLAN.md §5.9): to reach the sea,
 ## with their best turn of `schedule`'s, the game's road; then to drive the Road Home to its end
-## (§5.12); then to find the legends of its pools still missing; then to reach the sea without
-## leaving the road; then to beat their best time there. Only the player's progress changes it.
+## (§5.12); then to find the legends of its pools still missing; then to find the Vanishing
+## Hitchhiker, who waits on the Road Home once they are all found (§5.17); then to reach the sea
+## without leaving the road; then to beat their best time there. Only the player's progress changes
+## it.
 static func next_goal(data: SaveData, schedule: AreaSchedule) -> String:
 	var sea: Dictionary = data.arrivals.get(String(SEA), SaveData.ARRIVAL_ENTRY)
 	if sea["count"] == 0:
@@ -129,6 +132,8 @@ static func next_goal(data: SaveData, schedule: AreaSchedule) -> String:
 		return GOAL_LEGENDS % missing
 	if missing == 1:
 		return GOAL_LAST_LEGEND
+	if not data.seen_disasters().has(Hitchhiker.ID):
+		return GOAL_HITCHHIKER
 	if not sea["clean"]:
 		return GOAL_CLEAN
 	return GOAL_TIME % time_text(sea["best_seconds"])

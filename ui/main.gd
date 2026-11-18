@@ -17,12 +17,14 @@ extends Node
 ## end of the road (ENDGAME_PLAN.md §5.7). --home drives the Road Home, and presets the title's Road
 ## choice, which offers it after the first arrival at the sea, and Keep Driving's endless road too
 ## (§5.12, §5.13). --collected=<id> marks each legend of that area's pool seen, in the save in use,
-## and --collected=all every pool's, for checks of the Book's seals and of a full Book (§5.7).
+## and --collected=all every pool's, for checks of the Book's seals and of a full Book (§5.7), which
+## brings the Vanishing Hitchhiker to the Road Home (§5.17).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
 
 const CAR_SCENE := preload("res://car/car.tscn")
+const HITCHHIKER_SCENE := preload("res://world/hitchhiker.tscn")
 ## The game's road, to the sea, and the Road Home (ENDGAME_PLAN.md §5.12).
 const ROAD := "res://areas/schedule.tres"
 const HOME_ROAD := "res://areas/schedule_home.tres"
@@ -57,6 +59,9 @@ var _turn_base := 0
 var _buffer: RoadBuffer
 var _sim: CarSim
 var _car: CarController
+## The Vanishing Hitchhiker, on a run of the Road Home that shows her (ENDGAME_PLAN.md §5.17), or
+## null.
+var _hitchhiker: Hitchhiker
 ## What the disaster that ended the run did to the car, for the game-over screen (docs/M6.md S8), or
 ## the legend that an arrival unlocked (ENDGAME_PLAN.md §5.5).
 var _fate := ""
@@ -213,6 +218,7 @@ func _start_run(run_seed: int) -> void:
 	# The disasters that the player has seen weigh less in each area's pick (docs/POOLS.md V2).
 	_collected = SaveService.data().seen_disasters()
 	_director.start_run(run_seed, _collected)
+	_place_hitchhiker(route)
 	var whole := _drives_whole_road()
 	GameState.start_run(run_seed, tutorial, whole, _schedule.finish if whole else &"")
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
@@ -274,8 +280,8 @@ func _show_title() -> void:
 	_title.open()
 
 
-## Frees the last run's car and disaster at once, not queued, so that no frame shows two cars
-## (docs/M3.md J13).
+## Frees the last run's car, disaster and Hitchhiker at once, not queued, so that no frame shows two
+## cars (docs/M3.md J13).
 func _clear_run() -> void:
 	_game_over.close()
 	_director.clear()
@@ -285,6 +291,9 @@ func _clear_run() -> void:
 	_world.car = null
 	_car.free()
 	_car = null
+	if _hitchhiker != null:
+		_hitchhiker.free()
+		_hitchhiker = null
 	_fate = ""
 	_new_legends.clear()
 	_new_best = false
@@ -332,6 +341,32 @@ func _welcome() -> void:
 	if pier != null:
 		pier.welcome(_whole_schedule, SaveService.data().seen_disasters())
 		_camera.arrive(pier.welcome_bounds)
+
+
+## Places the Vanishing Hitchhiker on the run's road if she shows on it (ENDGAME_PLAN.md §5.17):
+## before the junction of the player's farthest turn on the Road Home, or before its finish once
+## they have arrived home, unless the run starts past it. `route` is the run's road whole, from its
+## first area: a run from a later area numbers its turns from there, as many fewer.
+func _place_hitchhiker(route: AreaSchedule) -> void:
+	var data := SaveService.data()
+	if not Hitchhiker.shows(data, _schedule.finish, _whole_schedule):
+		return
+	var skipped := route.finish_turn - _schedule.finish_turn
+	var turn := Hitchhiker.road_turn(data, route.finish_turn) - skipped
+	if turn < 0:
+		return
+	_hitchhiker = HITCHHIKER_SCENE.instantiate() as Hitchhiker
+	_hitchhiker.sim = _sim
+	_hitchhiker.passed.connect(_on_hitchhiker_passed)
+	_world.get_node("%Props").add_child(_hitchhiker)
+	_hitchhiker.watch(_buffer, turn, _schedule.finish_turn)
+
+
+## The car passed the Vanishing Hitchhiker, in a run that goes on: the run found her, a new legend
+## (ENDGAME_PLAN.md §5.17), which the save keeps at once, in the area that the car is in.
+func _on_hitchhiker_passed() -> void:
+	SaveService.record_found(Hitchhiker.ID, _sim.area.id)
+	_found(Hitchhiker.ID)
 
 
 ## Whether the run starts in the road's first area: not a run from a later area, chosen with
@@ -420,8 +455,8 @@ func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
 	_found(disaster.id)
 
 
-## The run met or unlocked the legend `id`, if it isn't &"": a new legend, unless it was collected
-## as the run started (ENDGAME_PLAN.md §5.9).
+## The run met, found or unlocked the legend `id`, if it isn't &"": a new legend, unless it was
+## collected as the run started (ENDGAME_PLAN.md §5.9).
 func _found(id: StringName) -> void:
 	if id != &"" and id not in _collected and id not in _new_legends:
 		_new_legends.append(id)

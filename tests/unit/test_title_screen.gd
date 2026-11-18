@@ -295,19 +295,20 @@ func test_the_title_shows_the_arrivals_and_the_best_time() -> void:
 
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings). Every
-	# legend of the pools is seen, so that each cell shows its name and its still, and each page its
-	# fate and lore (docs/M6.md S15, ENDGAME_PLAN.md §5.10).
+	# legend of the pools is seen, and the Vanishing Hitchhiker, so that each cell shows its name and
+	# its still, and each page its fate and lore (docs/M6.md S15, ENDGAME_PLAN.md §5.10, §5.17).
 	var data := SaveService.data()
 	var areas := {}
 	for id: StringName in [&"city", &"rural", &"meadows", &"village", &"desert", &"coast"]:
 		areas[id] = {"distance": 9999.9, "turns": 999}
 	data.record_run({"areas": areas, "distance": 9999.9, "turn_index": 999})
 	var title := _title()
+	var legends: Array[StringName] = [Hitchhiker.ID]
 	for disaster: Dictionary in BookScreen.disasters(title.schedule):
+		legends.append(disaster["id"])
+	for id: StringName in legends:
 		for _seen: int in 5:
-			data.record_disaster(
-				disaster["id"], &"meadows", {"distance": 9999.9, "turn_index": 999}
-			)
+			data.record_disaster(id, &"meadows", {"distance": 9999.9, "turn_index": 999})
 	title.open()
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
 	# The Book's rows and the Atlas's postcards may run below the screen, as their scrolls scroll to
@@ -342,7 +343,7 @@ func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	var cells: Array[BookCell] = []
 	for row: BookRow in grid.get_children():
 		cells.append_array(row.cells())
-	assert_eq(cells.size(), 15, "five areas' pools of three")
+	assert_eq(cells.size(), 16, "five areas' pools of three, and her page")
 	for cell: BookCell in cells:
 		var art := (cell.get_node("%Art") as Control).get_global_rect()
 		var still := cell.still().get_global_transform() * cell.still().get_rect()

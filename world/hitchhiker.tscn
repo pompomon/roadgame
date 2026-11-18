@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://world/hitchhiker.gd" id="1_hitchhiker"]
+[ext_resource type="Texture2D" path="res://assets/legends/hitchhiker/hitchhiker.png" id="2_hitchhiker"]
+
+[node name="Hitchhiker" type="Sprite2D"]
+visible = false
+texture = ExtResource("2_hitchhiker")
+centered = false
+offset = Vector2(-14, -40)
+script = ExtResource("1_hitchhiker")
+display_name = "Vanishing Hitchhiker"
+lore = "Roads the world over: a girl in white asks for a ride home, and vanishes on the way."

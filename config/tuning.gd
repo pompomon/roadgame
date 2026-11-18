@@ -197,6 +197,12 @@ const WELCOME_DELAY := 1.0 / ARRIVAL_PAN_RATE
 const WELCOME_FADE := 0.5
 const WELCOME_STEP := 0.1
 const STILL_MIN_SIDE := 30.0
+## The Vanishing Hitchhiker (ENDGAME_PLAN.md §5.17) stands HITCHHIKER_ASIDE tiles across from the
+## centre of the straight that she stands by, as SetPiece.point() measures: below 0, toward its far
+## side, just off the road, whose half width is ROAD_HALF_WIDTH. Once the car has passed her, she
+## fades away in HITCHHIKER_FADE_SECONDS.
+const HITCHHIKER_ASIDE := -0.42
+const HITCHHIKER_FADE_SECONDS := 0.5
 ## Where a legend's parts draw (docs/M6.md §5.5): a part in the sky, such as the UFO's saucer, over
 ## the props and the car; the veil over them all; and the glows over the veil, which they light.
 const SKY_Z := 1
