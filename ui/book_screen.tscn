@@ -41,27 +41,30 @@ layout_mode = 2
 size_flags_vertical = 3
 follow_focus = true
 
-[node name="Content" type="VBoxContainer" parent="Margin/Box/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Grid" type="VBoxContainer" parent="Margin/Box/Scroll/Content"]
+[node name="Grid" type="VBoxContainer" parent="Margin/Box/Scroll"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="Page" type="VBoxContainer" parent="Margin/Box/Scroll/Content"]
+[node name="PageScroll" type="ScrollContainer" parent="Margin/Box"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Page" type="VBoxContainer" parent="Margin/Box/PageScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="PageArt" type="Control" parent="Margin/Box/Scroll/Content/Page"]
+[node name="PageArt" type="Control" parent="Margin/Box/PageScroll/Page"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 
-[node name="PagePivot" type="Control" parent="Margin/Box/Scroll/Content/Page/PageArt"]
+[node name="PagePivot" type="Control" parent="Margin/Box/PageScroll/Page/PageArt"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -73,24 +76,24 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="PageName" type="Label" parent="Margin/Box/Scroll/Content/Page"]
+[node name="PageName" type="Label" parent="Margin/Box/PageScroll/Page"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Details" type="Label" parent="Margin/Box/Scroll/Content/Page"]
+[node name="Details" type="Label" parent="Margin/Box/PageScroll/Page"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="Fate" type="Label" parent="Margin/Box/Scroll/Content/Page"]
+[node name="Fate" type="Label" parent="Margin/Box/PageScroll/Page"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="Lore" type="Label" parent="Margin/Box/Scroll/Content/Page"]
+[node name="Lore" type="Label" parent="Margin/Box/PageScroll/Page"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3

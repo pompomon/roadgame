@@ -2,11 +2,15 @@ class_name BookCell
 extends Button
 ## A cell of the Book of Legends (ENDGAME_PLAN.md §5.10): a legend's still, over a band with its
 ## name, or its initials, and a note. BookScreen fills it. Only a found legend's cell takes the
-## focus and a tap, which opens its page. The still and the band stay inside the button's border,
-## which shows the focus. A still larger than the cell's art is shown smaller, divided by the least
-## whole number that makes it fit, so that its pixels stay square, as LegendStill's do. A glow's
-## still adds no more light than the cell's lightest style leaves below white (docs/M6.md S10). A
-## word of the name too wide for the cell breaks after a hyphen (break_hyphens()).
+## focus and a tap, which opens its page; a silhouette's takes only a screen reader's focus, which
+## reads its initials and opens nothing, and a drag that starts on any cell goes on to the Book's
+## scroll. The still and the band stay inside the button's border, which shows the focus, and the
+## still stays above the band: a band taller than the scene leaves room for, as a name of two lines
+## over a note makes it, raises the art's bottom to its top. A still larger than the cell's art is
+## shown smaller, divided by the least whole number that makes it fit, so that its pixels stay
+## square, as LegendStill's do. A glow's still adds no more light than the cell's lightest style
+## leaves below white (docs/M6.md S10). A word of the name too wide for the cell breaks after a
+## hyphen (break_hyphens()). A screen reader reads the cell's words, the name whole.
 
 ## The theme's styles that a found cell draws under its still: its state's, and its focus's over it.
 const GROUND_STYLES: Array[StringName] = [&"normal", &"hover", &"pressed", &"focus"]
@@ -23,21 +27,27 @@ var page := PackedStringArray()
 var _still_scale := Vector2.ONE
 ## The name or the initials that the cell shows, before break_hyphens().
 var _name_text := ""
+## The art's bottom offset as the scene lays it out, with room below it for a band of two lines.
+var _art_bottom := 0.0
 
 @onready var _art: Control = %Art
 @onready var _pivot: Control = %Pivot
+@onready var _band: Control = %Band
 @onready var _name: Label = %Name
 @onready var _note: Label = %Note
 
 
 func _ready() -> void:
+	_art_bottom = _art.offset_bottom
 	_art.resized.connect(_fit)
+	_band.resized.connect(_clear_band)
 	_name.resized.connect(_wrap_name)
 
 
 ## Shows `p_still`, unless it's null, over `p_text` and `note`, unless it's "". A glow's still shows
 ## as much of its light as ground() leaves (LegendStill.strength()). Only a cell whose legend is
-## `p_found` takes the focus and a tap. The cell must be in the tree.
+## `p_found` takes the focus and a tap; any other, only a screen reader's focus. The cell must be in
+## the tree.
 func show_legend(p_still: LegendStill, p_text: String, note: String, p_found: bool) -> void:
 	for child: Node in _pivot.get_children():
 		child.free()
@@ -50,9 +60,10 @@ func show_legend(p_still: LegendStill, p_text: String, note: String, p_found: bo
 	_wrap_name()
 	_note.text = note
 	_note.visible = note != ""
+	accessibility_name = p_text if note == "" else "%s, %s" % [p_text, note]
 	found = p_found
 	disabled = not found
-	focus_mode = FOCUS_ALL if found else FOCUS_NONE
+	focus_mode = FOCUS_ALL if found else FOCUS_ACCESSIBILITY
 
 
 ## The still that the cell shows, or null.
@@ -114,6 +125,12 @@ func _wrap_name() -> void:
 	var width := _name.size.x - _name.get_theme_stylebox(&"normal").get_minimum_size().x
 	var font := _name.get_theme_font(&"font")
 	_name.text = break_hyphens(_name_text, font, _name.get_theme_font_size(&"font_size"), width)
+
+
+## Keeps the art's bottom at the band's top, or above it where the scene puts it; the art's resize
+## fits the still again.
+func _clear_band() -> void:
+	_art.offset_bottom = minf(_art_bottom, _band.offset_bottom - _band.size.y)
 
 
 func _fit() -> void:

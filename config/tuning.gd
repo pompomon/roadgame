@@ -123,6 +123,10 @@ const METRES_PER_TILE := 10
 ## How long the HUD shows the name of the area the car enters, in seconds of the run: the time
 ## while the game is paused doesn't count (IMPLEMENTATION_PLAN.md M4.3).
 const AREA_BANNER_SECONDS := 2.0
+## The Book of Legends (ENDGAME_PLAN.md §5.10): a drag scrolls it once the finger has gone further
+## than this many pixels of the view, so that a tap that wobbles less still opens a legend's page.
+## Near Android's touch slop, 8 dp.
+const BOOK_SCROLL_DEADZONE := 8
 
 ## The tutorial (docs/TUTORIAL.md §5): a road in the City's look, where every wrong exit loops back
 ## to the path and nothing ends the run. It ends after TUTORIAL_STREAK correct turns in a row. In
