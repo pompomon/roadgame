@@ -61,10 +61,10 @@ func still() -> LegendStill:
 func ground() -> Color:
 	var lightest := Color.BLACK
 	for style_name: StringName in GROUND_STYLES:
-		var flat := get_theme_stylebox(style_name) as StyleBoxFlat
-		if flat != null and flat.draw_center:
+		var box := get_theme_stylebox(style_name) as StyleBoxFlat
+		if box != null and box.draw_center:
 			for channel: int in 3:
-				lightest[channel] = maxf(lightest[channel], flat.bg_color[channel])
+				lightest[channel] = maxf(lightest[channel], box.bg_color[channel])
 	return lightest
 
 
