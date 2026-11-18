@@ -344,6 +344,56 @@ func test_a_found_legends_page_has_its_still_its_sightings_and_its_words() -> vo
 	)
 
 
+## A screen reader's focus, which Tab moves, reaches each line of words that a page shows, from the
+## count over it, in the order that they show. Without a screen reader, no line takes the focus, and
+## Tab leaves it on Back. Godot 4.7.2 has a screen reader on the desktop builds only, and none
+## headless, so the test reads the focus that each line takes.
+func test_a_screen_reader_reaches_the_count_and_each_line_of_a_page() -> void:
+	var data := SaveData.new()
+	data.record_disaster(&"ghoul", &"farm", _stats(40.0, 4))
+	var book := _book()
+	book.open(data, _schedule())
+	_cell(book, &"ghoul").pressed.emit()
+	var lines: Array[Array] = []
+	for label: Label in book.find_children("*", "Label", true, false):
+		if label.is_visible_in_tree():
+			lines.append([label.text, label.focus_mode])
+	var reader := Control.FOCUS_ACCESSIBILITY
+	assert_eq(
+		lines,
+		[
+			["Legends 1/4", reader],
+			["Ghoul", reader],
+			["Seen once\nFirst: Farm, 400 m, 4 turns", reader],
+			[GHOUL_FATE, reader],
+			[GHOUL_LORE, reader],
+		]
+	)
+	var back: Button = book.get_node("%Back")
+	assert_eq(back.find_next_valid_focus(), back, "without a screen reader, Tab stays on Back")
+
+
+## A page scrolls to the line that has the focus, as a screen reader's moves down it: the ghoul's
+## lore, below the fold of a page too short for it. Headless, with no screen reader, the lore takes
+## any focus here, as a screen reader lets it.
+func test_a_page_scrolls_to_the_line_that_has_the_focus() -> void:
+	var data := SaveData.new()
+	data.record_disaster(&"ghoul", &"farm", _stats(1.0, 1))
+	var book := _book()
+	(book.get_viewport() as SubViewport).size = Vector2i(360, 300)
+	book.open(data, _schedule())
+	_cell(book, &"ghoul").pressed.emit()
+	await wait_process_frames(2)
+	var page: ScrollContainer = book.get_node("%PageScroll")
+	var lore: Label = book.get_node("%Lore")
+	assert_false(_in_view(page, lore), "below the fold")
+	lore.focus_mode = Control.FOCUS_ALL
+	lore.grab_focus()
+	await wait_process_frames(2)
+	assert_gt(page.scroll_vertical, 0)
+	assert_true(_in_view(page, lore), "scrolled to it")
+
+
 ## ENDGAME_PLAN.md §5.5: a legend that an arrival unlocked shows its still and its name, and that
 ## it hasn't been seen yet; its page has its lore, but not its fate. Once seen, it is a seen
 ## legend's.
