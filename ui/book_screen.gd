@@ -10,11 +10,11 @@ extends MenuScreen
 ## page: how often it was seen, and where and how far into a run first (docs/M6.md S12), its fate
 ## and its lore; a legend unlocked and not seen yet has its lore, but not how it ends a run. Back,
 ## Esc and Android's back button close the page before the Book. A drag scrolls the Book wherever
-## it starts, on a cell too, once it goes further than the scroll's deadzone, so that a tap that
-## wobbles less still opens a page. A screen reader reads each row as its area and how many of its
-## legends are found (ROW_NAME), and reaches it though its cells are all silhouettes. Like the HUD,
-## its text uses only the font's glyphs. A glow's still adds no more light than its ground leaves
-## below white: its cell's, or on its page the backdrop's (docs/M6.md S10).
+## it starts, on a cell too, once it goes further than Tuning.BOOK_SCROLL_DEADZONE, so that a tap
+## that wobbles less still opens a page. A screen reader reads each row as its area and how many of
+## its legends are found (ROW_NAME), and reaches it though its cells are all silhouettes. Like the
+## HUD, its text uses only the font's glyphs. A glow's still adds no more light than its ground
+## leaves below white: its cell's, or on its page the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
 const CELL_SCENE := preload("res://ui/book_cell.tscn")
@@ -54,6 +54,7 @@ var _open_cell: BookCell
 
 
 func _ready() -> void:
+	_scroll.scroll_deadzone = Tuning.BOOK_SCROLL_DEADZONE
 	_back.pressed.connect(_on_back_pressed)
 
 

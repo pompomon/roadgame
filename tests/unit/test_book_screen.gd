@@ -530,7 +530,8 @@ func test_a_tap_that_wobbles_opens_the_page() -> void:
 	book.open(data, _schedule())
 	await wait_process_frames(2)
 	var ghoul := _cell(book, &"ghoul")
-	var wobble: Array[Vector2] = [Vector2(-5, 3), Vector2(-2, -6), Vector2(4, 2)]
+	var near := Tuning.BOOK_SCROLL_DEADZONE - 1.0
+	var wobble: Array[Vector2] = [Vector2(-near, near / 2), Vector2(near, -near), Vector2(-2, near)]
 	_finger(ghoul, wobble)
 	assert_eq(book.open_cell(), ghoul)
 	assert_eq((book.get_node("%Scroll") as ScrollContainer).scroll_horizontal, 0)
