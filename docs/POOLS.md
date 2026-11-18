@@ -13,7 +13,7 @@ Nothing else changes: the junctions, the params, the end's timing, game over and
 
 - **V1.** The pick was even, blind to the collection, and on the params' stream, which pools of three would shift. **Δ plan.md §3.5, §4.2; IP §5.3:** `DisasterPicks` (§5.1).
 - **V2.** The director didn't know the collection: `_start_run()` passes `SaveData.seen_disasters()` to `start_run()`, so a retry weighs the disaster just seen less.
-- **V3.** The Atlas shows areas, not disasters: "unlocked" means a card that the collection shows, `seen` above 0 (Q3).
+- **V3.** The Atlas shows areas, not disasters: "unlocked" means a legend that the Book of Legends shows as found, `seen` above 0 (Q3). Since EG, an arrival's unlock shows one as found too (ENDGAME_PLAN.md W14, §5.10).
 - **V4.** `rand_weighted()` gives −1 with no weight above 0, and `pool[-1]` would play the last scene. Now an error, and the first (§5.1).
 - **V5.** Saves keep ids that no pool has, such as `sinkhole`; the weights ignore them.
 - **V6.** **Δ plan.md §2.6:** what persists changes nothing "that makes a run easier or harder".
@@ -34,7 +34,7 @@ Nothing else changes: the junctions, the params, the end's timing, game over and
 
 - **Q1.** Three legends in each pool, the ★ and two more: ten new ones, in two waves.
 - **Q2.** A seen disaster weighs `SEEN_DISASTER_WEIGHT`, 0.5, and one not seen yet 1: half as likely as each unseen one, not half an even share (§5.3).
-- **Q3.** Seen means seen once, anywhere: a card in the collection (V3).
+- **Q3.** Seen means seen once, anywhere: a legend that the Book of Legends shows as found (V3).
 - **Q4.** Picked as the car reaches the area, on its own stream: the pick that the run's start would make (§5.2).
 - **Q5.** The legends load at boot (V12, E11).
 - **Q6.** The City's third is the Grim Reaper (V17).

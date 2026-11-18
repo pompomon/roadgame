@@ -94,7 +94,7 @@ func test_every_legend_of_the_game_can_be_unlocked() -> void:
 	var schedule := Fixtures.schedule()
 	var collected: Array[StringName] = []
 	var expected: Array[StringName] = []
-	for legend: Dictionary in CollectionScreen.disasters(schedule):
+	for legend: Dictionary in BookScreen.disasters(schedule):
 		expected.append(legend["id"])
 	for run_seed: int in expected.size():
 		var id := LegendUnlock.pick(schedule, collected, run_seed)

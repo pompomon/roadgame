@@ -57,7 +57,7 @@ func test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions
 
 
 func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
-	# The Atlas's cards and the collection's order (M5.5).
+	# The Atlas's cards and the Book of Legends' rows (M5.5, ENDGAME_PLAN.md §5.10).
 	var ids: Array[StringName] = []
 	for area: AreaDef in Fixtures.schedule().areas():
 		ids.append(area.id)

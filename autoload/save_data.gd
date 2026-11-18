@@ -176,9 +176,9 @@ func record_disaster(id: StringName, area_id: StringName, stats: Dictionary) -> 
 	disasters[String(id)] = entry
 
 
-## The ids of the disasters seen at least once, or unlocked: those that the collection shows
-## (plan.md §2.6, ENDGAME_PLAN.md W14), and that weigh less in a run's picks (docs/POOLS.md Q2,
-## Q3).
+## The ids of the disasters seen at least once, or unlocked: those that the Book of Legends
+## shows as found (plan.md §2.6, ENDGAME_PLAN.md W14), and that weigh less in a run's picks
+## (docs/POOLS.md Q2, Q3).
 func seen_disasters() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for id: String in disasters:
@@ -199,8 +199,8 @@ func record_arrival(finish: StringName, stats: Dictionary) -> void:
 	arrivals[String(finish)] = entry
 
 
-## Unlocks the disaster `id` for the collection, which then shows it as if it was seen
-## (ENDGAME_PLAN.md §5.5).
+## Unlocks the disaster `id`: the Book of Legends shows it, "Not seen yet" until a run meets it,
+## and the picks weigh it as seen (ENDGAME_PLAN.md §5.5, §5.10).
 func unlock_disaster(id: StringName) -> void:
 	var entry: Dictionary = disasters.get(String(id), DISASTER_ENTRY.duplicate())
 	entry["unlocked"] = true

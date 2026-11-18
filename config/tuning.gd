@@ -123,6 +123,14 @@ const METRES_PER_TILE := 10
 ## How long the HUD shows the name of the area the car enters, in seconds of the run: the time
 ## while the game is paused doesn't count (IMPLEMENTATION_PLAN.md M4.3).
 const AREA_BANNER_SECONDS := 2.0
+## The Book of Legends (ENDGAME_PLAN.md §5.10): a drag scrolls it once the finger has gone further
+## than this many pixels of the view, so that a tap that wobbles less still opens a legend's page.
+## Near Android's touch slop, 8 dp.
+const BOOK_SCROLL_DEADZONE := 8
+## How far an arrow key scrolls the Book, or a legend's page, where the focus has nowhere to go that
+## way: this share of what shows of it. A mouse wheel's notch scrolls an eighth too, in Godot
+## 4.7.2's ScrollContainer (ENDGAME_PLAN.md W28).
+const BOOK_KEY_SCROLL := 0.125
 
 ## The tutorial (docs/TUTORIAL.md §5): a road in the City's look, where every wrong exit loops back
 ## to the path and nothing ends the run. It ends after TUTORIAL_STREAK correct turns in a row. In
@@ -152,8 +160,9 @@ const DISASTER_INTENSITY_MIN := 0.5
 const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
-## How much a disaster that the player has seen, which the collection shows, weighs in its area's
-## pick, against 1 for one not seen yet (docs/POOLS.md Q2): half as likely as each unseen one.
+## How much a disaster that the player has seen, which the Book of Legends shows as found, weighs
+## in its area's pick, against 1 for one not seen yet (docs/POOLS.md Q2): half as likely as each
+## unseen one.
 const SEEN_DISASTER_WEIGHT := 0.5
 ## The end of the road (ENDGAME_PLAN.md §5.1, §5.2): the finish's set piece, such as the pier, is
 ## FINISH_TILES path tiles long. A car that reaches it rolls to a stop ARRIVE_STOP_SHORT tiles

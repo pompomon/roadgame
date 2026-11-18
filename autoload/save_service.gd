@@ -196,6 +196,16 @@ func record_arrival(finish: StringName, stats: Dictionary, unlocked: StringName)
 	flush()
 
 
+## Marks each legend of `legends` that wasn't seen yet as seen once, in the area that it maps to,
+## at the start of a run, and writes the save: main.gd's --collected (ENDGAME_PLAN.md §5.7).
+func collect(legends: Dictionary[StringName, StringName]) -> void:
+	for id: StringName in legends:
+		if data().disasters.get(String(id), SaveData.DISASTER_ENTRY)["seen"] == 0:
+			data().record_disaster(id, legends[id], {})
+	_dirty = true
+	flush()
+
+
 func _on_run_ended(_cause: StringName, stats: Dictionary) -> void:
 	data().record_run(stats)
 	_dirty = true

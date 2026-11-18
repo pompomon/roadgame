@@ -234,9 +234,9 @@ func test_record_disaster_counts_and_keeps_the_first_sighting() -> void:
 	assert_eq(data.disasters["sinkhole"], expected)
 
 
-func test_the_disasters_seen_are_those_the_collection_shows() -> void:
-	# A file may hold an entry seen 0 times, and a count of the wrong type gets 0: the collection
-	# shows neither, and neither weighs less in a run's picks (docs/POOLS.md Q3).
+func test_the_disasters_seen_are_those_the_book_shows() -> void:
+	# A file may hold an entry seen 0 times, and a count of the wrong type gets 0: the Book of
+	# Legends shows neither as found, and neither weighs less in a run's picks (docs/POOLS.md Q3).
 	var data := SaveData.new()
 	assert_eq(data.seen_disasters(), [] as Array[StringName], "none in a new save")
 	var text := JSON.stringify(
@@ -276,8 +276,8 @@ func test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one() -> voi
 	assert_eq(data.arrival_count(&"nowhere"), 0)
 
 
-## ENDGAME_PLAN.md W14: an unlocked legend shows in the collection, and weighs less in the picks,
-## as one seen does.
+## ENDGAME_PLAN.md W14: an unlocked legend shows as found in the Book of Legends, and weighs less
+## in the picks, as one seen does.
 func test_an_unlocked_disaster_is_collected_as_if_seen() -> void:
 	var data := SaveData.new()
 	data.unlock_disaster(&"mothman")

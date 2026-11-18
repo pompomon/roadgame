@@ -64,8 +64,8 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 ### 2.6 Meta-progression
 None that makes a run easier or harder. Persisted between runs:
 - **Atlas:** areas discovered, plus best distance and best turn count overall and for each area.
-- **Disaster collection:** each disaster type witnessed, with its area and run stats. A disaster in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner.
-- **Arrivals:** for each finish, the runs that drove the whole road from its first area and arrived, the best time, and whether one never left the road. Each unlocks a legend of the road's pools not yet collected, each as likely: it joins the collection as if seen, and weighs as seen in the picks (`ENDGAME_PLAN.md` §5.4, §5.5).
+- **Book of Legends:** the disaster collection, each legend witnessed, with its area and run stats, in a row for each area with a pool. A legend not found yet shows as a silhouette with its name's initials, and an area whose legends are all found has a seal in its colour (`ENDGAME_PLAN.md` §5.10). A legend in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner.
+- **Arrivals:** for each finish, the runs that drove the whole road from its first area and arrived, the best time, and whether one never left the road. Each unlocks a legend of the road's pools not yet collected, each as likely: it joins the Book, "Not seen yet" until a run meets it, and weighs as seen in the picks (`ENDGAME_PLAN.md` §5.4, §5.5).
 - Settings (volume, orientation lock, haptics).
 
 ### 2.7 Tutorial

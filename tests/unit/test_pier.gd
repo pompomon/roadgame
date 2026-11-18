@@ -277,7 +277,7 @@ static func _stills(pier: Pier) -> Array[LegendStill]:
 ## The ids of the legends in `schedule`'s pools, in the Book's order.
 static func _book(schedule: AreaSchedule) -> Array[StringName]:
 	var ids: Array[StringName] = []
-	for disaster: Dictionary in CollectionScreen.disasters(schedule):
+	for disaster: Dictionary in BookScreen.disasters(schedule):
 		ids.append(disaster["id"])
 	return ids
 

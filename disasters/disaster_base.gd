@@ -18,13 +18,13 @@ const OUTLINE_POINTS := 32
 
 ## What the disaster collection will record it as (plan.md §9), such as &"phantom_bus".
 @export var id := &""
-## What the disaster collection calls it, such as "Phantom Bus" (M5.5).
+## What the Book of Legends calls it, such as "Phantom Bus" (M5.5).
 @export var display_name := ""
 ## What the game-over screen says it did to the car, such as "The bus with no driver took you
 ## aboard.", in at most 40 characters (docs/M6.md S8).
 @export var fate := ""
-## A line of its lore, which the collection shows on its card once it's seen, in at most 80
-## characters (docs/M6.md S12).
+## A line of its lore, which the Book of Legends shows on its page once it's found, in at most
+## 80 characters (docs/M6.md S12).
 @export_multiline var lore := ""
 
 ## The stopped car. A disaster may change its scale, modulate and rotation, but not its position,
