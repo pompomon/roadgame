@@ -1,6 +1,7 @@
 extends GutTest
 ## LegendStill (ENDGAME_PLAN.md §5.8): the frame of its figure that each legend's scene names, whole
-## and in full view, whatever its rest pose hides, drawn as the figure draws, and centred.
+## and in full view, whatever its rest pose hides, drawn as the figure draws, and centred; and a
+## glow's light, bounded by the ground under it.
 
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const PIER := preload("res://setpieces/pier.tscn")
@@ -78,6 +79,37 @@ func test_a_small_still_is_scaled_up_by_the_least_whole_number_that_makes_it_lar
 			assert_lt(side * (by - 1.0), Tuning.STILL_MIN_SIDE, at + ": the least such")
 			scaled.append(still.id)
 	assert_eq(scaled, [&"fairy_ring"] as Array[StringName])
+
+
+func test_a_glows_still_adds_no_more_light_than_its_ground_leaves_below_white() -> void:
+	# The Will-o'-the-Wisp's and the Marfa Lights' figures add light, which their legends' veils
+	# and alphas keep from clipping, and a still has neither (docs/M6.md S10). Over each ground, a
+	# white texel of a glow's still adds to no channel more than the ground leaves below white: over
+	# black it shows whole, over the sea a part, and over white none. Every other still shows whole.
+	var pier: Pier = autofree(PIER.instantiate())
+	var sea := (pier.get_node("%Sea") as Polygon2D).color
+	var grounds: Array[Color] = [Color.BLACK, sea, Color.WHITE]
+	var glows: Array[StringName] = []
+	for scene: PackedScene in Disasters.scenes():
+		var still: LegendStill = autofree(LegendStill.of(scene))
+		var blend := still.material as CanvasItemMaterial
+		if blend == null or blend.blend_mode != CanvasItemMaterial.BLEND_MODE_ADD:
+			for ground: Color in grounds:
+				assert_eq(still.strength(ground), 1.0, "%s over %s: whole" % [still.id, ground])
+			continue
+		glows.append(still.id)
+		var tint := still.self_modulate
+		for ground: Color in grounds:
+			var shown := still.strength(ground)
+			var lit := ground + Color(tint.r, tint.g, tint.b) * (tint.a * shown)
+			var most := maxf(lit.r, maxf(lit.g, lit.b))
+			assert_lte(
+				most, 1.0 + 1e-6, "%s over %s, %.3f shown: no clip" % [still.id, ground, shown]
+			)
+		assert_eq(still.strength(Color.BLACK), 1.0, "%s: whole over black" % still.id)
+		assert_between(still.strength(sea), 0.1, 0.9, "%s: a part over the sea" % still.id)
+		assert_eq(still.strength(Color.WHITE), 0.0, "%s: none over white" % still.id)
+	assert_eq(glows, [&"will_o_wisp", &"marfa_lights"] as Array[StringName])
 
 
 func test_a_scene_that_isnt_a_legend_or_names_no_figure_has_no_still() -> void:
