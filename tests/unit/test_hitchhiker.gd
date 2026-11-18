@@ -211,11 +211,11 @@ func test_the_car_passing_her_finds_her_once_and_she_fades_away() -> void:
 	hitchhiker.sim.progress = 3.01
 	simulate(hitchhiker, 1, DELTA)
 	assert_signal_emit_count(hitchhiker, "passed", 1, "past the centre of her straight")
-	var fade := roundi(Tuning.HITCHHIKER_FADE_SECONDS / DELTA)
-	simulate(hitchhiker, fade / 2, DELTA)
+	var half := roundi(Tuning.HITCHHIKER_FADE_SECONDS / 2.0 / DELTA)
+	simulate(hitchhiker, half, DELTA)
 	assert_almost_eq(hitchhiker.modulate.a, 0.5, 0.01, "half faded")
 	assert_true(hitchhiker.visible)
-	simulate(hitchhiker, fade / 2 - 1, DELTA)
+	simulate(hitchhiker, half - 1, DELTA)
 	assert_true(hitchhiker.visible, "until the fade's last frame")
 	# One frame more for the float sum, which may fall short.
 	simulate(hitchhiker, 2, DELTA)
