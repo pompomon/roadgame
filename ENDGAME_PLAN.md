@@ -473,6 +473,7 @@ Fixes from the prototype's build, the internal review (§4.4) and the PRs' revie
 | 11 | The internal review: a car that turned back out of a pit stop was repaired; the repair waits for the path tile after its last, once | `test_turning_back_out_of_a_pit_stop_repairs_nothing` | N229 |
 | 12 | The internal review: the Atlas didn't follow a screen reader's focus; `%Scroll` does | `test_the_atlas_scrolls_to_the_postcard_that_has_the_focus` | N265 |
 | 13 | The warnings check: two integer divisions at 3c71ca7 (`test_hitchhiker.gd`:215 and :218); 30d6f1a divides as floats | §6.3's check | None: §6.3 |
+| 13 | [Copilot](https://github.com/pompomon/roadgame/pull/113#discussion_r4619812635): her entry kept the distance of the step before the one that passed her, as the car steps after `main` takes it. 5b968d1 takes it again as she is passed, as `_end_run()` does | `test_passing_her_finds_her_and_the_end_screen_shows_a_new_legend` | N298 |
 
 ### 4.4 Internal review
 
@@ -722,7 +723,7 @@ PR 2's:
 | 6, #106 | N102–N120, N125–N130, N138–N163 | The whole suite: 811–823 tests. N130 is N20 on the Book, and N154 fails a frame of the Book, as GUT draws nothing |
 | 7, #107 | N131–N137 | The whole suite, on 3ec3ae9: 815 tests |
 | 8–12, #108–#112 | N164–N182, N183–N188, N189–N200, N201–N229, N230–N267 | `-gtest=` on the test scripts of the tests that each names |
-| 13, #113 | N268–N297 | `-gselect=` on the scripts that each names; N295–N297, the whole suite of 903 tests |
+| 13, #113 | N268–N298 | `-gselect=` on the scripts that each names; N295–N297, the whole suite of 903 tests |
 
 ### 6.3 Editor warnings
 
