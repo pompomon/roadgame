@@ -38,6 +38,7 @@ func _initialize() -> void:
 	_save("sfx/damage", _thump(0.2, 90.0, 40.0), Tuning.EFFECT_PEAK, false)
 	_save("sfx/crash", _crash(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
+	_save("sfx/arrival", _jingle(), Tuning.EFFECT_PEAK, false)
 	for area: StringName in LATER_AREAS:
 		_rng.seed = hash(String(area))
 		_save_area(area)
@@ -187,6 +188,19 @@ func _chime() -> PackedFloat32Array:
 	var out := _silence(roundi(0.35 * RATE))
 	_add(out, _note(84, 0.15, "square", 0.3), 0.0)
 	_add(out, _note(91, 0.2, "square", 0.3), 0.12)
+	return out
+
+
+## The arrival's jingle (ENDGAME_PLAN.md §5.8): the junction's chime grown into a rising arpeggio
+## of D major, which rings on as its chord.
+func _jingle() -> PackedFloat32Array:
+	var out := _silence(roundi(1.5 * RATE))
+	var arpeggio: Array[int] = [74, 78, 81, 86]
+	for k: int in arpeggio.size():
+		_add(out, _note(arpeggio[k], 0.2, "square", 0.3), k * 0.12)
+	for midi: int in arpeggio.slice(0, 3):
+		var freq := 440.0 * pow(2.0, (midi - 69) / 12.0)
+		_add(out, _fade_out(_tone(freq, 1.0, "triangle")), 0.48, 0.15)
 	return out
 
 

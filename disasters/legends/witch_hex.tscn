@@ -20,10 +20,12 @@ colors = PackedColorArray(0.078431, 0.070588, 0.094118, 1, 0.439216, 0.282353, 0
 offsets = PackedFloat32Array(0, 0.6, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="WitchHex" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="WitchHex" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_witch")
 veil_kind = 1
 standing = [NodePath("Pumpkin")]
+figure = NodePath("Witch")
+figure_frame = 1
 id = &"witch_hex"
 display_name = "Witch's Hex"
 fate = "The witch made you her jack-o'-lantern."

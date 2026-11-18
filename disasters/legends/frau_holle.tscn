@@ -12,9 +12,11 @@ colors = PackedColorArray(0.941176, 0.941176, 0.909804, 1, 0.619608, 0.780392, 0
 offsets = PackedFloat32Array(0, 0.8, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="FrauHolle" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="FrauHolle" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_frau_holle")
 standing = [NodePath("Well")]
+figure = NodePath("Well")
+figure_frame = 2
 id = &"frau_holle"
 display_name = "Frau Holle's Well"
 fate = "You fell down Frau Holle's well."

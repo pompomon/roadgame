@@ -14,9 +14,11 @@ colors = PackedColorArray(0.639216, 0.666667, 0.709804, 1, 0.462745, 0.490196, 0
 offsets = PackedFloat32Array(0, 0.6, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="Chupacabra" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="Chupacabra" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_chupacabra")
 standing = [NodePath("Husk"), NodePath("Beast")]
+figure = NodePath("Beast")
+figure_frame = 2
 id = &"chupacabra"
 display_name = "Chupacabra"
 fate = "The chupacabra drank you dry."

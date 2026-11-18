@@ -135,6 +135,15 @@ func prop_scatter() -> PropScatter:
 	return _scatter
 
 
+## The set piece over path index `index`, or null if there's none there.
+func set_piece_at(index: int) -> SetPiece:
+	for end: int in _set_pieces_by_end:
+		var piece := _set_pieces_by_end[end]
+		if end - roundi(piece.run_length()) < index and index <= end:
+			return piece
+	return null
+
+
 func _on_tiles_generated(tiles: Array[RoadTile]) -> void:
 	for tile: RoadTile in tiles:
 		var source: int = _road_sources.get(tile.area_id, 0)

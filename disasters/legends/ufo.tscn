@@ -8,10 +8,11 @@
 [ext_resource type="Texture2D" path="res://assets/legends/ufo/grey.png" id="6_grey"]
 [ext_resource type="Texture2D" path="res://assets/legends/ufo/crop_circle.png" id="7_circle"]
 
-[node name="Ufo" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="Ufo" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_ufo")
 veil_kind = 2
 standing = [NodePath("GreyA"), NodePath("GreyB"), NodePath("GreyC")]
+figure = NodePath("Saucer")
 id = &"ufo"
 display_name = "UFO"
 fate = "They took you. Two hours are missing."

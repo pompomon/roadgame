@@ -15,9 +15,10 @@ interpolation_mode = 1
 offsets = PackedFloat32Array(0, 0.5)
 colors = PackedColorArray(0.619608, 0.780392, 0.941176, 1, 0.941176, 0.941176, 0.909804, 1)
 
-[node name="Kelpie" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="Kelpie" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_kelpie")
 standing = [NodePath("Horse")]
+figure = NodePath("Horse")
 id = &"kelpie"
 display_name = "Kelpie"
 fate = "A kelpie carried you into the loch."

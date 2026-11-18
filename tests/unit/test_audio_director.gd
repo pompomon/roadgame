@@ -270,13 +270,85 @@ func test_damage_thumps_each_time_the_health_falls_past_a_step() -> void:
 
 func test_a_crash_sounds_only_when_the_car_is_wrecked_or_lost_off_the_road() -> void:
 	watch_signals(_audio)
-	for cause: StringName in [CarSim.WRONG_TURN, CarSim.MISSED_TURN]:
+	for cause: StringName in [CarSim.WRONG_TURN, CarSim.MISSED_TURN, CarSim.ARRIVAL]:
 		EventBus.run_ended.emit(cause, {})
-	assert_signal_not_emitted(_audio, "effect_played", "a disaster has its own sound")
+	assert_signal_not_emitted(
+		_audio, "effect_played", "a disaster has its own sound, and so has an arrival"
+	)
 	for cause: StringName in [CarSim.HEALTH, CarSim.OFFROAD]:
 		EventBus.run_ended.emit(cause, {})
 	assert_signal_emit_count(_audio, "effect_played", 2)
 	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"crash"])
+
+
+## The run ends in an arrival with the car rolling, `sim`'s, which the AudioDirector follows.
+func _arrive(sim: CarSim) -> void:
+	sim.speed = Tuning.GLOBAL_SPEED_CAP / 2.0
+	_audio._physics_process(DELTA)
+	EventBus.run_ended.emit(CarSim.ARRIVAL, {})
+	_audio._physics_process(DELTA)
+
+
+## On an arrival (ENDGAME_PLAN.md §5.8), the engine winds down with the car and stops with it, as
+## the arrival's jingle plays, once. The rumble stops at once, and the area's music fades out under
+## its ambient sound.
+func test_an_arrival_winds_the_engine_down_and_plays_its_jingle() -> void:
+	var sim := _sim()
+	var engine: AudioStreamPlayer = _audio._loop_players[&"engine"]
+	_audio.follow(sim)
+	EventBus.area_changed.emit(CITY)
+	EventBus.run_started.emit(1)
+	EventBus.car_offroad_changed.emit(true)
+	watch_signals(_audio)
+	_arrive(sim)
+	assert_true(_audio.is_loop_on(&"engine"), "the engine runs on")
+	assert_false(_audio.is_loop_on(&"rumble"), "the rumble stops")
+	var tracks: Array[AudioStream] = [null, CITY.ambient_loop]
+	assert_eq(_audio.tracks(), tracks, "the music fades out")
+	for speed: float in [3.0, 1.5, 0.2]:
+		sim.speed = speed
+		_audio._physics_process(DELTA)
+		var pitch := AudioDirectorScript.engine_pitch(speed)
+		assert_almost_eq(engine.pitch_scale, pitch, 1e-6, "it winds down, at %.1f" % speed)
+	assert_true(_audio.is_loop_on(&"engine"), "while the car rolls")
+	assert_signal_not_emitted(_audio, "effect_played", "nothing plays while it rolls")
+	sim.speed = 0.0
+	_audio._physics_process(DELTA)
+	assert_false(_audio.is_loop_on(&"engine"), "the engine stops with the car")
+	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"arrival"])
+	_audio._physics_process(DELTA)
+	assert_signal_emit_count(_audio, "effect_played", 1, "once")
+
+
+func test_the_jingle_plays_only_as_an_arrivals_car_stops() -> void:
+	# Not for a car that stops after a run ended otherwise, nor once a new run has started, the
+	# car has gone or every sound has stopped: a retry, a quit to the title.
+	var sim := _sim()
+	_audio.follow(sim)
+	watch_signals(_audio)
+	EventBus.run_started.emit(1)
+	EventBus.run_ended.emit(CarSim.WRONG_TURN, {})
+	sim.speed = 0.0
+	_audio._physics_process(DELTA)
+	assert_signal_not_emitted(_audio, "effect_played", "a run that ended otherwise")
+	EventBus.run_started.emit(2)
+	_arrive(sim)
+	EventBus.run_started.emit(3)
+	sim.speed = 0.0
+	_audio._physics_process(DELTA)
+	assert_signal_not_emitted(_audio, "effect_played", "a new run started")
+	_arrive(sim)
+	_audio.follow(null)
+	_audio.follow(sim)
+	sim.speed = 0.0
+	_audio._physics_process(DELTA)
+	assert_signal_not_emitted(_audio, "effect_played", "the car went")
+	EventBus.run_started.emit(4)
+	_arrive(sim)
+	_audio.stop_all()
+	sim.speed = 0.0
+	_audio._physics_process(DELTA)
+	assert_signal_not_emitted(_audio, "effect_played", "every sound stopped")
 
 
 func test_every_disaster_of_every_area_has_its_sound() -> void:

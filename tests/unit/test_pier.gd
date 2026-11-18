@@ -1,9 +1,11 @@
 extends GutTest
 ## The ends of the road (ENDGAME_PLAN.md §5.8, E7). The pier: a deck on the finish's tiles, on piles
 ## and between railings, and the sea over every cell at or past its first tile, out past the view's
-## edge, with waves that roll in to the shore. Home, the Road Home's end: a fence across the drive's
-## end, with a gate, and a house past it.
+## edge, with waves that roll in to the shore; on an arrival, the legends collected welcome the car
+## over the sea past its end. Home, the Road Home's end: a fence across the drive's end, with a
+## gate, and a house past it.
 
+const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const PIER := preload("res://setpieces/pier.tscn")
 const HOME := preload("res://setpieces/home.tscn")
 const DELTA := 1.0 / 60.0
@@ -261,6 +263,188 @@ func test_the_pier_is_never_redrawn() -> void:
 	await wait_process_frames(2)
 	assert_ne([wave.position, wave.self_modulate], before, "the waves moved and faded")
 	assert_eq(draws[0], 0, "no redraws")
+
+
+## The welcome's stills, in the order they fade in.
+static func _stills(pier: Pier) -> Array[LegendStill]:
+	var stills: Array[LegendStill] = []
+	for node: Node in pier.get_children():
+		if node is LegendStill:
+			stills.append(node)
+	return stills
+
+
+## The ids of the legends in `schedule`'s pools, in the Book's order.
+static func _book(schedule: AreaSchedule) -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for disaster: Dictionary in CollectionScreen.disasters(schedule):
+		ids.append(disaster["id"])
+	return ids
+
+
+func test_the_welcome_stands_the_legends_collected_in_the_books_grid() -> void:
+	# A row for each area with a pool, five, as the Coast has none, and a column for each of their
+	# three legends, in the Book's order. A legend not collected leaves its place empty, and an id
+	# of no legend is ignored.
+	var schedule := Fixtures.schedule()
+	var book := _book(schedule)
+	assert_eq(book.size(), 15, "five pools of three")
+	var collected: Array[StringName] = []
+	for k: int in range(0, book.size(), 2):
+		collected.append(book[k])
+	for heading: int in HEADINGS:
+		var pier := _piece(PIER, heading) as Pier
+		var run := Heading.NAMES[heading]
+		pier.welcome(schedule, collected + ([&"no_such_legend"] as Array[StringName]))
+		var grid := pier.welcome_rect
+		assert_eq(grid.size, Vector2(3.0, 5.0) * Tuning.WELCOME_CELL, run + ": the grid")
+		var ids: Array[StringName] = []
+		for still: LegendStill in _stills(pier):
+			ids.append(still.id)
+			var k := book.find(still.id)
+			var place := Vector2(k % 3, floorf(k / 3.0)) + Vector2(0.5, 0.5)
+			var at := grid.position + place * Tuning.WELCOME_CELL
+			var where := "%s: %s" % [run, still.id]
+			assert_almost_eq(still.position, at, Vector2.ONE * 1e-3, where)
+		assert_eq(ids, collected, run + ": the legends collected, in the Book's order")
+
+
+func test_the_welcomes_bounds_hold_the_grid_and_each_still_drawn() -> void:
+	# The death worm, taller than a row, stands out of the grid's last row: the camera's view must
+	# hold it too, and no more than the grid and the stills.
+	var schedule := Fixtures.schedule()
+	for heading: int in HEADINGS:
+		var pier := _piece(PIER, heading) as Pier
+		var run := Heading.NAMES[heading]
+		pier.welcome(schedule, _book(schedule))
+		var drawn := pier.welcome_rect
+		var out: Array[StringName] = []
+		for still: LegendStill in _stills(pier):
+			var rect := still.get_transform() * still.get_rect()
+			drawn = drawn.merge(rect)
+			if not pier.welcome_rect.encloses(rect):
+				out.append(still.id)
+		assert_has(out, &"death_worm", run + ": out of the grid")
+		assert_eq(pier.welcome_bounds, drawn, run + ": the bounds")
+
+
+func test_the_welcome_stands_over_the_sea_past_the_piers_end_and_clear_of_it() -> void:
+	var schedule := Fixtures.schedule()
+	for heading: int in HEADINGS:
+		var pier := _piece(PIER, heading) as Pier
+		var run := Heading.NAMES[heading]
+		pier.welcome(schedule, _book(schedule))
+		var centre := Iso.world_to_tile(pier.welcome_rect.get_center())
+		var past := (centre - pier.point(pier.run_length(), 0.0)).dot(pier.forward())
+		assert_gt(past, 0.0, run + ": the grid's centre is past the pier's end")
+		var parts: Array[Polygon2D] = []
+		for part: StringName in [&"Deck", &"FarRailing", &"NearRailing", &"EndRailing", &"Fascia"]:
+			parts.append(pier.get_node("%" + part) as Polygon2D)
+		for pile: Node in pier.get_node("%Piles").get_children():
+			parts.append(pile as Polygon2D)
+		var stills := _stills(pier)
+		assert_eq(stills.size(), 15, run)
+		var inland := PackedStringArray()
+		var on_pier := PackedStringArray()
+		for still: LegendStill in stills:
+			var drawn := still.get_transform() * still.get_rect()
+			var corners := PackedVector2Array(
+				[
+					drawn.position,
+					Vector2(drawn.end.x, drawn.position.y),
+					drawn.end,
+					Vector2(drawn.position.x, drawn.end.y)
+				]
+			)
+			for corner: Vector2 in corners:
+				if not pier.water.has_point(Iso.world_to_tile(corner)):
+					inland.append("%s at %s" % [still.id, corner])
+			for part: Polygon2D in parts:
+				var polygon := part.get_transform() * part.polygon
+				if not Geometry2D.intersect_polygons(corners, polygon).is_empty():
+					on_pier.append("%s over %s" % [still.id, part.name])
+		assert_eq(inland, PackedStringArray(), run + ": over the sea")
+		assert_eq(on_pier, PackedStringArray(), run + ": clear of the pier")
+
+
+func test_the_stills_fade_in_one_after_another_once_the_view_is_there() -> void:
+	# The camera's pan takes 1 / ARRIVAL_PAN_RATE seconds. Then each still fades in, in the Book's
+	# order, over WELCOME_FADE seconds, WELCOME_STEP after the one before, and the last of the
+	# fifteen is in before the arrival's ARRIVAL_SECONDS end.
+	var pan := 1.0 / Tuning.ARRIVAL_PAN_RATE
+	var rate := DELTA / Tuning.WELCOME_FADE + 1e-6
+	for k: int in 15:
+		var shown := 0.0
+		var early := 0
+		var too_fast := 0
+		var out_of_step := 0
+		for frame: int in ceili(Tuning.ARRIVAL_SECONDS / DELTA) + 1:
+			var time := frame * DELTA
+			var alpha := Pier.welcome_alpha(k, time)
+			early += int(time <= pan and alpha > 0.0)
+			too_fast += int(alpha < shown or alpha - shown > rate)
+			shown = alpha
+			if k > 0:
+				var before := Pier.welcome_alpha(k - 1, time - Tuning.WELCOME_STEP)
+				out_of_step += int(absf(alpha - before) > 1e-6)
+		assert_eq(early, 0, "%d: frames it shows before the pan ends" % k)
+		assert_eq(too_fast, 0, "%d: frames that fade it out, or in too fast" % k)
+		assert_eq(out_of_step, 0, "%d: frames not WELCOME_STEP after the one before" % k)
+		assert_eq(shown, 1.0, "%d: in by the arrival's end" % k)
+	var schedule := Fixtures.schedule()
+	var pier := _piece(PIER, Heading.N) as Pier
+	pier.welcome(schedule, _book(schedule))
+	var stills := _stills(pier)
+	for still: LegendStill in stills:
+		assert_eq(still.modulate.a, 0.0, "%s: unseen at first" % still.id)
+	simulate(pier, 90, DELTA)
+	for k: int in stills.size():
+		var alpha := Pier.welcome_alpha(k, 90 * DELTA)
+		assert_almost_eq(stills[k].modulate.a, alpha, 1e-4, "%s after 1.5 s" % stills[k].id)
+
+
+func test_a_new_welcome_replaces_the_last() -> void:
+	var schedule := Fixtures.schedule()
+	var book := _book(schedule)
+	var pier := _piece(PIER, Heading.W) as Pier
+	pier.welcome(schedule, book)
+	var first := _stills(pier)
+	simulate(pier, 120, DELTA)
+	pier.welcome(schedule, book.slice(0, 2))
+	for still: LegendStill in first:
+		assert_false(is_instance_valid(still), "the last welcome's stills are gone")
+	var stills := _stills(pier)
+	assert_eq(stills.size(), 2)
+	for still: LegendStill in stills:
+		assert_eq(still.modulate.a, 0.0, "%s: fades in anew" % still.id)
+
+
+func test_a_legend_in_two_pools_stands_in_the_first() -> void:
+	# The Book has it once, in the first area's pool, and so does the welcome.
+	var city: AreaDef = load("res://areas/city.tres")
+	var rural := (load("res://areas/rural.tres") as AreaDef).duplicate() as AreaDef
+	var pool: Array[PackedScene] = [city.disasters[1], rural.disasters[0]]
+	rural.disasters = pool
+	var schedule := AreaSchedule.new()
+	for area: AreaDef in [city, rural]:
+		var entry := AreaScheduleEntry.new()
+		entry.turn = schedule.entries.size() * 10
+		entry.area = area
+		schedule.entries.append(entry)
+	var book := _book(schedule)
+	assert_eq(book.size(), 4)
+	var pier := _piece(PIER, Heading.N) as Pier
+	pier.welcome(schedule, [book[1], book[3]] as Array[StringName])
+	var grid := pier.welcome_rect
+	assert_eq(grid.size, Vector2(3.0, 2.0) * Tuning.WELCOME_CELL)
+	var stills := _stills(pier)
+	assert_eq(stills.size(), 2)
+	if stills.size() == 2:
+		assert_eq([stills[0].id, stills[1].id], [book[1], book[3]])
+		var cell := Tuning.WELCOME_CELL
+		var within := Vector2.ONE * 1e-3
+		assert_almost_eq(stills[0].position, grid.position + Vector2(1.5, 0.5) * cell, within)
+		assert_almost_eq(stills[1].position, grid.position + Vector2(1.5, 1.5) * cell, within)
 
 
 func test_home_fences_the_drives_end_and_stands_past_it() -> void:

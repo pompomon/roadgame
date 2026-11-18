@@ -10,9 +10,10 @@ interpolation_mode = 1
 offsets = PackedFloat32Array(0, 0.333333, 0.666667)
 colors = PackedColorArray(0.784314, 0.666667, 0.423529, 1, 0.901961, 0.788235, 0.541176, 1, 0.956863, 0.878431, 0.666667, 1)
 
-[node name="MarfaLights" type="Node2D"]
+[node name="MarfaLights" type="Node2D" node_paths=PackedStringArray("figure")]
 script = ExtResource("1_marfa_lights")
 veil_kind = 2
+figure = NodePath("Middle")
 id = &"marfa_lights"
 display_name = "Marfa Lights"
 fate = "You followed the Marfa lights."

@@ -10,10 +10,11 @@ interpolation_mode = 1
 offsets = PackedFloat32Array(0, 0.5)
 colors = PackedColorArray(0.941176, 0.941176, 0.909804, 1, 0.858824, 0.858824, 0.8, 1)
 
-[node name="WillOWisp" type="Node2D" node_paths=PackedStringArray("standing")]
+[node name="WillOWisp" type="Node2D" node_paths=PackedStringArray("standing", "figure")]
 script = ExtResource("1_will_o_wisp")
 veil_kind = 2
 standing = [NodePath("Tuft1"), NodePath("Tuft2"), NodePath("Tuft3")]
+figure = NodePath("Wisp1")
 id = &"will_o_wisp"
 display_name = "Will-o'-the-Wisp"
 fate = "The wisps made you one of them."

@@ -164,6 +164,27 @@ const FINISH_TILES := 8
 const ARRIVE_STOP_SHORT := 0.5
 const ARRIVE_ROLL_SECONDS := 4.0
 const ARRIVAL_SECONDS := 5.0
+## The arrival's scene (ENDGAME_PLAN.md §5.8). The sun sets: the clock stands at ARRIVAL_HOUR,
+## LIGHT_DUSK's key. The camera's target eases from the car to the welcome, in 1 / ARRIVAL_PAN_RATE
+## seconds, and keeps the car's body in view with ARRIVAL_MARGIN_PX round it. The welcome is a grid
+## of the legends' stills, an area a row and a slot of its pool a column, as the Book has them,
+## WELCOME_CELL px apart and centred WELCOME_AHEAD tiles past the pier's end and WELCOME_ASIDE tiles
+## across it, as SetPiece.point() measures: below 0, toward its far side. The 96-px worm stands
+## clear of the still above it, and the grid with the car fits the base view, 360 × 640; where the
+## view is smaller, 320 px high at zoom 2, the camera zooms out (CameraRig.arrive()). Once the pan
+## has ended, each still collected fades in over WELCOME_FADE seconds, WELCOME_STEP after the one
+## before. A still whose frame is smaller than STILL_MIN_SIDE px, such as the Fairy Ring's
+## toadstool, is scaled up by a whole number, to read at 360 × 640.
+const ARRIVAL_HOUR := 18.5
+const ARRIVAL_PAN_RATE := 1.0
+const ARRIVAL_MARGIN_PX := 16.0
+const WELCOME_CELL := Vector2(72.0, 64.0)
+const WELCOME_AHEAD := 2.7
+const WELCOME_ASIDE := -0.4
+const WELCOME_DELAY := 1.0 / ARRIVAL_PAN_RATE
+const WELCOME_FADE := 0.5
+const WELCOME_STEP := 0.1
+const STILL_MIN_SIDE := 30.0
 ## Where a legend's parts draw (docs/M6.md §5.5): a part in the sky, such as the UFO's saucer, over
 ## the props and the car; the veil over them all; and the glows over the veil, which they light.
 const SKY_Z := 1
