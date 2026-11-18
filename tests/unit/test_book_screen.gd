@@ -76,6 +76,16 @@ static func _rows(book: BookScreen) -> Array[BookRow]:
 	return rows
 
 
+## The colours that a row's seal draws, each once, from the back: those of its parts that show.
+static func _seal_colors(row: BookRow) -> Array[Color]:
+	var colors: Array[Color] = []
+	for part: Node in row.get_node(^"Seal").find_children("*", "ColorRect", true, false):
+		var rect := part as ColorRect
+		if rect.is_visible_in_tree() and not colors.has(rect.color):
+			colors.append(rect.color)
+	return colors
+
+
 static func _cells(book: BookScreen) -> Array[BookCell]:
 	var cells: Array[BookCell] = []
 	for row: BookRow in _rows(book):
@@ -409,7 +419,8 @@ func test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds() -> vo
 
 ## ENDGAME_PLAN.md W26: a seal not earned yet is hollow, its star's outline, and an earned one is
 ## whole, so that they differ by their shapes too: the City's colour, Color(0.55, 0.58, 0.63), has a
-## contrast of 1.28:1 with SILHOUETTE, in much the same hue.
+## contrast of 1.28:1 with SILHOUETTE, in much the same hue. A hollow seal's outline stands out from
+## the dark inside it, and a whole one draws its area's colour alone.
 func test_a_seal_not_earned_is_hollow_and_an_earned_one_whole() -> void:
 	var data := SaveData.new()
 	var book := _book()
@@ -417,9 +428,14 @@ func test_a_seal_not_earned_is_hollow_and_an_earned_one_whole() -> void:
 	book.open(data, schedule)
 	for row: BookRow in _rows(book):
 		assert_true(row.hollow())
+		var colors := _seal_colors(row)
+		assert_eq(colors.size(), 2, "an outline and its inside")
+		assert_eq(colors.front(), BookScreen.SILHOUETTE)
+		assert_gte(_contrast(colors.front(), colors.back()), NON_TEXT_CONTRAST)
 	data.record_disaster(&"ghost", &"town", _stats(1.0, 1))
 	book.open(data, schedule)
 	assert_false(_rows(book)[0].hollow(), "the Town's ghost")
+	assert_eq(_seal_colors(_rows(book)[0]), [Color.DARK_RED], "whole, with nothing drawn in it")
 	assert_true(_rows(book)[1].hollow(), "the Farm's legends are missing")
 
 
