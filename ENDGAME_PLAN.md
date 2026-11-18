@@ -462,7 +462,7 @@ Fixes from the prototype's build, the internal review (§4.4) and the PRs' revie
 | 12 | Copilot's overview: damage by `area_id` goes to the next area in a step that crosses, and misses one entered off the road; `damaged` names the area charged (§5.16) | `test_damage_across_a_border_names_each_area` | PR 12's N230 and N231 |
 | 8, 12 | Copilot's review of 94b5007: PR 8 opens the Road Home, but only PR 12 kept a road's `farthest`, and its migration set Home's to 0, losing a run's progress there between them. PR 8's version 4 keeps each road's `farthest` from the Road Home's first run, and PR 12's version 5 keeps it (§5.12, §5.16) | `test_a_road_home_run_that_never_arrives_keeps_its_farthest`; `test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest` | PR 8's N167 and N168; PR 12's N240 and N241 |
 | 3 | [Copilot](https://github.com/pompomon/roadgame/pull/103#discussion_r4605314853): `--finish=281` laid a junction on the Coast, which has no pool. 6dd4985: a `--finish` past the road's own end, 280, is an error (§5.7) | `test_a_finish_past_the_roads_own_end_is_an_error_and_the_road_is_the_games` | N45 |
-| 4 | PR 4's probes at real sizes: the welcome didn't fit at zoom 2. 7e9077e zooms the arrival out (§5.8's Δ) | `test_the_welcome_shows_at_zoom_1_on_every_screen`, `test_on_the_fold4s_inner_screen_the_arrival_zooms_out_to_show_them`, `test_an_arrival_eases_the_view_to_show_the_welcome_and_the_car` | N72–N84 |
+| 4 | PR 4's probes at real sizes: the welcome didn't fit at zoom 2. 7e9077e zooms the arrival out (§5.8's Δ) | `test_the_welcome_shows_at_zoom_1_on_every_screen`, `test_on_the_fold4s_inner_screen_the_arrival_zooms_out_to_show_them`, `test_an_arrival_eases_the_view_to_show_the_welcome_and_the_car` | N72–N74, N76–N84 |
 | 4 | The internal review of 7e9077e: a resize during an arrival hid the car, for 52 frames on a fold to the cover. bdb1471 moves the camera at once; a probe of 1,300 resizes found no frame without the car | `test_a_resize_during_an_arrival_keeps_the_car_in_view` | N85 |
 | 4 | [Copilot](https://github.com/pompomon/roadgame/pull/104#discussion_r4607979789): a glow's still clipped over the sea, the wisp's green at 1.25. b0e2ed0: `LegendStill.strength()` | `test_a_glows_still_adds_no_more_light_than_its_ground_leaves_below_white`, `test_the_glows_on_the_shore_never_clip_as_the_sun_sets` | N121–N124 |
 | 6 | The warnings check: a local `flat` shadowed a base class's member at 5cc4f6b (`book_cell.gd`:64); 0bbfcde names it `box` | §6.3's check | None: §6.3 |
@@ -717,7 +717,7 @@ PR 2's:
 | PR | Cases | How they ran, with `run_tests.sh` |
 |---|---|---|
 | 3, #103 | N33–N45 | The whole suite: 762 tests, and 763 for N45 |
-| 4, #104 | N46–N85, N121–N124 | The whole suite: 788 tests, and 790 for N121–N124 |
+| 4, #104 | N46–N74, N76–N85, N121–N124 | The whole suite: 788 tests, and 790 for N121–N124. N75, a probe, fails no test, as expected |
 | 5, #105 | N86–N101 | The whole suite: 797 tests |
 | 6, #106 | N102–N120, N125–N130, N138–N163 | The whole suite: 811–823 tests. N130 is N20 on the Book, and N154 fails a frame of the Book, as GUT draws nothing |
 | 7, #107 | N131–N137 | The whole suite, on 3ec3ae9: 815 tests |
@@ -779,7 +779,7 @@ The probes ran headless with Godot 4.7.2: P2, P3 and P5 on 93a85f5, whose result
 | Now | Land #104, PR 4, if its two Δs are right (E7, §5.8) | Squash it; agents then land #105 (§4.2) |
 | Now | Choose #106's row labels | (a), (b) or (c), in [the options](https://github.com/pompomon/roadgame/pull/106#issuecomment-6970573638); then land #106, after which agents land #107–#112 in order |
 | Now, if wanted | Play the prototype's arrival | `gh workflow run ci.yml -R pompomon/roadgame --ref eg/prototype -f upload-builds=true`, then docs/agents/checks.md §4's download and patch, and `?arg=--autopilot&arg=--finish=3`, or with `&arg=--home` |
-| Now | E16 on the Fold4, on both screens, for PRs 3–13 at once | §6.4's list, on PR 13's build, [run 44367702653](https://github.com/pompomon/roadgame/actions/runs/44367702653) |
+| Now | E16 on the Fold4, on both screens, for PRs 3–13 at once | §6.4's list, on PR 13's build, [run 44367702653](https://github.com/pompomon/roadgame/actions/runs/44367702653), whose artifacts are kept a day. A new build: `gh workflow run ci.yml -R pompomon/roadgame --ref eg/13-hitchhiker -f upload-builds=true` |
 | To land EG | Land PR 13 (#113) once PRs 1–12 have landed and the device checks pass; then PR 14, from `main` | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.2) |
 | After PR 14 | Tag the prototype, which this plan cites, and delete EG's branches | `git fetch origin eg/prototype && git push origin FETCH_HEAD:refs/tags/archive/eg/prototype`, then `git push origin --delete eg/plan eg/prototype` and §4's 14 branches |
 
