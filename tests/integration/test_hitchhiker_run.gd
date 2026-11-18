@@ -14,9 +14,14 @@ const GAME_OVER := GameState.State.GAME_OVER
 ## Long enough for a few turns, and short enough to fail fast.
 const FRAMES := 60 * 90
 
+## The car's progress each time a Hitchhiker's `passed` reached the test, which hears it after
+## main does, in the same step.
+var _passed_at: Array[float] = []
+
 
 func before_each() -> void:
 	SaveService.use_memory()
+	_passed_at.clear()
 
 
 func after_each() -> void:
@@ -63,6 +68,11 @@ func _to_game_over(main: Node) -> void:
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	MainScene.run_while(self, main, DISASTER, 600)
 	assert_eq(GameState.state, GAME_OVER, "game over")
+
+
+## Keeps the progress of `sim`, the run's car, as a Hitchhiker's `passed` reaches the test.
+func _on_passed(sim: CarSim) -> void:
+	_passed_at.append(sim.progress)
 
 
 func test_she_stands_before_the_junction_of_the_players_farthest_turn_on_the_road_home() -> void:
@@ -113,10 +123,12 @@ func test_passing_her_finds_her_and_the_end_screen_shows_a_new_legend() -> void:
 	assert_not_null(hitchhiker)
 	if hitchhiker == null:
 		return
-	var buffer := MainScene.car(main).sim.buffer
+	var sim := MainScene.car(main).sim
+	var buffer := sim.buffer
 	assert_eq(hitchhiker.index, _last_plain(buffer, buffer.generator.finish_index), "the finish")
 	watch_signals(hitchhiker)
 	watch_signals(EventBus)
+	hitchhiker.passed.connect(_on_passed.bind(sim))
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	assert_eq(GameState.state, ARRIVED)
 	assert_signal_emit_count(hitchhiker, "passed", 1)
@@ -124,6 +136,12 @@ func test_passing_her_finds_her_and_the_end_screen_shows_a_new_legend() -> void:
 	assert_eq(entry.get("seen"), 1, "found")
 	assert_eq(entry.get("first_area"), "desert")
 	assert_eq(entry.get("first_turns"), 3, "past the last junction")
+	# The run starts at the road's start, so its distance is the car's progress: the step's that
+	# passed her, not the step's before.
+	assert_eq(_passed_at.size(), 1, "passed once")
+	if _passed_at.size() == 1:
+		assert_gt(_passed_at[0], float(hitchhiker.index), "past her tile's centre")
+		assert_eq(entry.get("first_distance"), _passed_at[0], "the distance as the car passed her")
 	MainScene.run_while(self, main, ARRIVED, 600)
 	assert_false(hitchhiker.visible, "she vanished")
 	var game_over: GameOver = main.get_node("%GameOver")

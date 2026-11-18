@@ -363,8 +363,11 @@ func _place_hitchhiker(route: AreaSchedule) -> void:
 
 
 ## The car passed the Vanishing Hitchhiker, in a run that goes on: the run found her, a new legend
-## (ENDGAME_PLAN.md §5.17), which the save keeps at once, in the area that the car is in.
+## (ENDGAME_PLAN.md §5.17), which the save keeps at once, in the area that the car is in. The car
+## has stepped since _physics_process took its distance, so her entry takes it again, as _end_run()
+## does.
 func _on_hitchhiker_passed() -> void:
+	GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
 	SaveService.record_found(Hitchhiker.ID, _sim.area.id)
 	_found(Hitchhiker.ID)
 
