@@ -7,6 +7,7 @@ extends GutTest
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+const Art := preload("res://tests/helpers/art_checks.gd")
 const ARRIVED := GameState.State.ARRIVED
 const RUNNING := GameState.State.RUNNING
 const GAME_OVER := GameState.State.GAME_OVER
@@ -97,6 +98,111 @@ func test_the_sun_sets_as_the_car_arrives_and_a_retry_starts_the_day_again() -> 
 
 func test_the_sun_sets_on_an_arrival_at_night_too() -> void:
 	_assert_sunset(0.0)
+
+
+## The most light that a texel of `still`'s frame adds in each channel: its colour times its alpha.
+static func _brightest(still: LegendStill) -> Color:
+	var size := Vector2i(still.get_rect().size)
+	var image := still.texture.get_image().get_region(Rect2i(still.frame_coords * size, size))
+	image.convert(Image.FORMAT_RGBA8)
+	var data := image.get_data()
+	var most := Color(0.0, 0.0, 0.0)
+	for i: int in range(0, data.size(), 4):
+		var alpha := data[i + 3] / 255.0
+		for channel: int in 3:
+			most[channel] = maxf(most[channel], data[i + channel] / 255.0 * alpha)
+	return most
+
+
+## What `item` draws its texels in: its self_modulate, times its modulate and each parent's.
+static func _tint(item: CanvasItem) -> Color:
+	var tint := item.self_modulate
+	var node: Node = item
+	while node is CanvasItem:
+		tint *= (node as CanvasItem).modulate
+		node = node.get_parent()
+	return tint
+
+
+## `ground` with the light added by a glow's texel that adds `brightest`, drawn in `tint`.
+static func _lit(ground: Color, brightest: Color, tint: Color) -> Color:
+	var added := Color(brightest.r * tint.r, brightest.g * tint.g, brightest.b * tint.b) * tint.a
+	return Color(ground.r + added.r, ground.g + added.g, ground.b + added.b)
+
+
+## A glow's still, the Will-o'-the-Wisp's or the Marfa Lights', has neither its legend's veil nor
+## its alpha, so over the sea it could clip to white (docs/M6.md S10). With them alone collected,
+## they fade in first, as the sun starts to set from white light, the brightest: on each frame of
+## the arrival, each adds to no channel more than the lit sea leaves below white. Its only ground is
+## the sea, past the surf, with no still under it; and once the sun has set, it still lights it.
+func test_the_glows_on_the_shore_never_clip_as_the_sun_sets() -> void:
+	var glows: Array[StringName] = []
+	for area: AreaDef in Fixtures.schedule().areas():
+		for scene: PackedScene in area.disasters:
+			var still: LegendStill = autofree(LegendStill.of(scene))
+			var blend := still.material as CanvasItemMaterial
+			if blend != null and blend.blend_mode == CanvasItemMaterial.BLEND_MODE_ADD:
+				if still.id not in glows:
+					glows.append(still.id)
+					SaveService.data().unlock_disaster(still.id)
+	assert_false(glows.is_empty(), "a legend whose still adds light")
+	var main := MainScene.open(self, _args())
+	var cycle: DayCycle = (main.get_node("%Daylight") as Daylight).cycle
+	MainScene.run_while(self, main, RUNNING, FRAMES)
+	assert_eq(GameState.state, ARRIVED)
+	var pier := _pier(main)
+	assert_not_null(pier, "the road ends at a pier")
+	if pier == null:
+		return
+	var sea := (pier.get_node("%Sea") as Polygon2D).color
+	var stills := _stills(pier)
+	var lit: Array[LegendStill] = []
+	var brightest: Array[Color] = []
+	for still: LegendStill in stills:
+		if still.id in glows:
+			lit.append(still)
+			brightest.append(_brightest(still))
+	assert_eq(lit.size(), glows.size(), "a still of each glow on the shore")
+	var start := pier.point(0.0, 0.0)
+	for still: LegendStill in lit:
+		var drawn := still.get_transform() * still.get_rect()
+		var corners: Array[Vector2] = [
+			drawn.position,
+			Vector2(drawn.end.x, drawn.position.y),
+			drawn.end,
+			Vector2(drawn.position.x, drawn.end.y)
+		]
+		for corner: Vector2 in corners:
+			var out := (Iso.world_to_tile(corner) - start).dot(pier.forward())
+			assert_gt(out, Pier.SURF_REACH + Pier.WAVE_WIDTH, "%s is past the surf" % still.id)
+		for other: LegendStill in stills:
+			var under := other.get_transform() * other.get_rect()
+			assert_true(
+				other == still or not drawn.intersects(under), still.id + " over " + other.id
+			)
+	var most := 0.0
+	var where := "none"
+	var before_dusk := 0
+	var frames := 0
+	while GameState.state == ARRIVED and frames < 600:
+		simulate(main, 1, MainScene.DELTA)
+		frames += 1
+		for k: int in lit.size():
+			var tint := _tint(lit[k])
+			var drawn := _lit(sea * cycle.light, brightest[k], tint)
+			if maxf(drawn.r, maxf(drawn.g, drawn.b)) > most:
+				most = maxf(drawn.r, maxf(drawn.g, drawn.b))
+				where = "%s, frame %d, light %s" % [lit[k].id, frames, cycle.light]
+			before_dusk += int(tint.a > 0.0 and cycle.light != Tuning.LIGHT_DUSK)
+	assert_eq(GameState.state, GAME_OVER, "the end screen shows")
+	assert_gt(before_dusk, 0, "frames that show a glow before the sun has set")
+	assert_lte(most, 1.0 + 1e-5, "the most a glow lights a channel of the sea: " + where)
+	assert_eq(cycle.light, Tuning.LIGHT_DUSK, "the sun has set")
+	var ground := sea * cycle.light
+	var contrast := Art.NIGHT_CONTRAST * cycle.light.get_luminance()
+	for k: int in lit.size():
+		var glowing := _lit(ground, brightest[k], _tint(lit[k])).get_luminance()
+		assert_gt(glowing - ground.get_luminance(), contrast, "%s lights the sea" % lit[k].id)
 
 
 ## Drives to the finish on a screen of `size` with every other legend collected, and checks that

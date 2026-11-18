@@ -4,7 +4,9 @@ extends Sprite2D
 ## frame of its figure that its scene names (Legend.figure, figure_frame), whole and in full view,
 ## whatever its rest pose hides, centred on the still's position. It draws as the figure does, in
 ## its texture and frames, its flips, its self_modulate and its material, at its z_index: a glow
-## stays above the veil, and lights the world. A frame smaller than Tuning.STILL_MIN_SIDE px is
+## stays above the veil, and lights the world. A glow's still has neither its legend's veil nor the
+## alpha that its legend gives it, which keep the figure's light from clipping, so what stands one
+## over a ground bounds its light by strength(). A frame smaller than Tuning.STILL_MIN_SIDE px is
 ## scaled up by the least whole number that makes it as large, so that its pixels stay square.
 
 ## The legend's id (DisasterBase.id).
@@ -41,3 +43,19 @@ static func of(scene: PackedScene) -> LegendStill:
 	if node != null:
 		node.free()
 	return still
+
+
+## How much of its light the still may show over `ground`, the colour under it as drawn by day: all
+## of it, unless it adds light as a glow does. Then it adds to no channel more than the ground
+## leaves below white, as if its texels were white, so that it never clips, in any light (docs/M6.md
+## S10, Lamps.strength()).
+func strength(ground: Color) -> float:
+	var blend := material as CanvasItemMaterial
+	if blend == null or blend.blend_mode != CanvasItemMaterial.BLEND_MODE_ADD:
+		return 1.0
+	var shown := 1.0
+	for channel: int in 3:
+		var glow: float = self_modulate[channel] * self_modulate.a
+		if glow > 0.0:
+			shown = minf(shown, (1.0 - ground[channel]) / glow)
+	return maxf(shown, 0.0)
