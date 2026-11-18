@@ -214,7 +214,8 @@ func test_in_other_builds_the_area_argument_presets_only_an_area_discovered() ->
 ## With no set piece between them, an area's first tile follows the junction that ends the area
 ## before, and the step that reaches it reports the area before it judges the turn there: that turn
 ## still counts for the area before, and the distance from the junction's far edge on for the next
-## (docs/M5.md L8). Seed 1's Village meets the Desert after turn 20.
+## (docs/M5.md L8). Seed 1's Village meets the Desert after turn 20. The car crosses the Village on
+## the road into the Desert, with no damage (ENDGAME_PLAN.md §5.16).
 func test_each_area_counts_from_its_first_tile() -> void:
 	var main := MainScene.open(self, ["--seed=1", "--area=village", "--autopilot"])
 	var buffer := MainScene.car(main).sim.buffer
@@ -228,9 +229,9 @@ func test_each_area_counts_from_its_first_tile() -> void:
 	assert_eq(GameState.state, RUNNING)
 	assert_eq(GameState.turn_index, 21)
 	assert_gt(boundary, 0.0)
-	var desert := {"distance": GameState.distance - boundary, "turns": 1}
+	var desert := {
+		"distance": GameState.distance - boundary, "turns": 1, "damaged": false, "crossed": false
+	}
 	assert_gt(desert["distance"], 0.0)
-	assert_eq(
-		GameState.stats()["areas"],
-		{&"village": {"distance": boundary, "turns": 20}, &"desert": desert}
-	)
+	var village := {"distance": boundary, "turns": 20, "damaged": false, "crossed": true}
+	assert_eq(GameState.stats()["areas"], {&"village": village, &"desert": desert})

@@ -64,6 +64,8 @@ var _fate := ""
 ## those that it met or unlocked that weren't among them: its new legends (ENDGAME_PLAN.md §5.9).
 var _collected: Array[StringName] = []
 var _new_legends: Array[StringName] = []
+## Whether the run's arrival beat the best time at its finish (ENDGAME_PLAN.md §5.16).
+var _new_best := false
 
 @onready var _world: WorldRenderer = %World
 @onready var _input: InputRouter = %InputRouter
@@ -188,6 +190,8 @@ func _start_run(run_seed: int) -> void:
 	_sim.offroad_changed.connect(EventBus.car_offroad_changed.emit)
 	_sim.offroad_changed.connect(_on_offroad_changed)
 	_sim.area_changed.connect(_on_area_changed)
+	_sim.damaged.connect(_on_damaged)
+	_sim.area_crossed.connect(_on_area_crossed)
 	_input.autopilot = Autopilot.new(_sim) if _autopilot else null
 	_input.enabled = true
 	_hud.show()
@@ -283,6 +287,7 @@ func _clear_run() -> void:
 	_car = null
 	_fate = ""
 	_new_legends.clear()
+	_new_best = false
 
 
 func _on_turn_completed(turn_index: int) -> void:
@@ -303,12 +308,14 @@ func _on_crashed(cause: StringName) -> void:
 
 
 ## The car reached the finish (ENDGAME_PLAN.md §5.3): the run ends in an arrival, and the car rolls
-## to a stop. A run that drove the whole road, from the route's first area, counts the arrival, and
-## unlocks a legend that the player hasn't collected, at random (§5.5). Then the scene (§5.8).
+## to a stop. A run that drove the whole road, from the route's first area, counts the arrival,
+## which may beat the best time (§5.16), and unlocks a legend that the player hasn't collected, at
+## random (§5.5). Then the scene (§5.8).
 func _on_arrived() -> void:
 	_end_run(CarSim.ARRIVAL)
 	if GameState.whole_road:
 		var data := SaveService.data()
+		_new_best = data.beats_best_time(_schedule.finish, GameState.seconds)
 		var id := LegendUnlock.pick(_whole_schedule, data.seen_disasters(), GameState.run_seed)
 		SaveService.record_arrival(_schedule.finish, GameState.stats(), id)
 		_fate = LegendUnlock.text(_whole_schedule, id)
@@ -337,6 +344,20 @@ func _drives_whole_road() -> bool:
 func _on_offroad_changed(is_offroad: bool) -> void:
 	if is_offroad and not GameState.in_tutorial:
 		GameState.clean = false
+
+
+## Driving off the road took health at the rates of `area`, which then has no clean crossing
+## (ENDGAME_PLAN.md §5.16). As for a clean run, the tutorial's damage doesn't count.
+func _on_damaged(area: AreaDef) -> void:
+	if not GameState.in_tutorial:
+		GameState.damage_area(area.id)
+
+
+## The car crossed `area` on the road, onto the next area's first tile (§5.16). The tutorial's
+## crossings don't count.
+func _on_area_crossed(area: AreaDef) -> void:
+	if not GameState.in_tutorial:
+		GameState.cross_area(area.id)
 
 
 ## The car reached `area`. GameState counts the area's distance and turns from its first tile, which
@@ -422,7 +443,7 @@ func _on_sequence_finished() -> void:
 	GameState.show_game_over()
 	var area := _buffer.generator.find_area(GameState.area_id)
 	var goal := GameOver.next_goal(SaveService.data(), _whole_schedule)
-	_game_over.open(GameState.stats(), area, _fate, not _new_legends.is_empty(), goal)
+	_game_over.open(GameState.stats(), area, _fate, not _new_legends.is_empty(), goal, _new_best)
 
 
 ## Whether the next run starts with the tutorial (docs/TUTORIAL.md §5.6): only one that starts in

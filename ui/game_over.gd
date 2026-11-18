@@ -2,7 +2,8 @@ class_name GameOver
 extends Control
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3): why the run ended, what the
 ## disaster did to the car (docs/M6.md S8), the run's distance, its turns and the area it reached,
-## and the Retry and Title buttons. The main scene opens it once the end of the run has played.
+## after an arrival its time, and whether it beat the best (ENDGAME_PLAN.md §5.16), and the Retry
+## and Title buttons. The main scene opens it once the end of the run has played.
 ## Over them, NEW LEGEND! for a run that met or unlocked a legend that wasn't collected as it
 ## started, in large letters that stay still, and under the stats the player's next goal, in a line
 ## (ENDGAME_PLAN.md §5.9). Retry starts the next run in place; Title goes back to the title screen
@@ -32,6 +33,8 @@ const GOAL_LEGENDS := "Next: find the %d legends still missing"
 const GOAL_LAST_LEGEND := "Next: find the last legend still missing"
 const GOAL_CLEAN := "Next: reach the sea without leaving the road"
 const GOAL_TIME := "Next: beat your best time, %s"
+## Under an arrival's time, when it beat the best time at its finish (ENDGAME_PLAN.md §5.16).
+const NEW_BEST_TIME := "New best time!"
 ## The finish of the road to the sea (areas/schedule.tres).
 const SEA := &"pier"
 ## The Road Home's (areas/schedule_home.tres, ENDGAME_PLAN.md §5.12).
@@ -57,9 +60,11 @@ func _ready() -> void:
 
 ## Shows the end of the run with `stats`, from GameState.stats(), whose farthest tile was in `area`;
 ## the `fate` of the disaster that ended it, if one did (DisasterBase.fate), or of the legend that
-## its arrival unlocked; NEW LEGEND! if `new_legend`, with its jingle; and the player's next `goal`,
-## from next_goal().
-func open(stats: Dictionary, area: AreaDef, fate := "", new_legend := false, goal := "") -> void:
+## its arrival unlocked; NEW LEGEND! if `new_legend`, with its jingle; the player's next `goal`,
+## from next_goal(); and whether its arrival was a `new_best` time.
+func open(
+	stats: Dictionary, area: AreaDef, fate := "", new_legend := false, goal := "", new_best := false
+) -> void:
 	var cause: StringName = stats["cause"]
 	if not END_MESSAGES.has(cause):
 		push_error("GameOver: no message for the cause '%s'" % cause)
@@ -67,7 +72,7 @@ func open(stats: Dictionary, area: AreaDef, fate := "", new_legend := false, goa
 	_cause.text = END_MESSAGES.get(cause, FALLBACK_MESSAGE)
 	_fate.text = fate
 	_fate.visible = fate != ""
-	_stats.text = stats_text(stats, area)
+	_stats.text = stats_text(stats, area, new_best)
 	_goal.text = goal
 	_goal.visible = goal != ""
 	_seed.text = "seed %d" % stats["run_seed"]
@@ -85,8 +90,8 @@ func close() -> void:
 
 
 ## The run's distance in metres, its turns and the name of `area`, a line each, and after an
-## arrival its time (ENDGAME_PLAN.md §5.3).
-static func stats_text(stats: Dictionary, area: AreaDef) -> String:
+## arrival its time (ENDGAME_PLAN.md §5.3), and NEW_BEST_TIME under it if it is a `new_best`.
+static func stats_text(stats: Dictionary, area: AreaDef, new_best := false) -> String:
 	var distance: float = stats["distance"]
 	var turns: int = stats["turn_index"]
 	var text := (
@@ -95,6 +100,8 @@ static func stats_text(stats: Dictionary, area: AreaDef) -> String:
 	)
 	if stats.get("cause", &"") == CarSim.ARRIVAL:
 		text += "\nTime: %s" % time_text(stats.get("seconds", 0.0))
+		if new_best:
+			text += "\n" + NEW_BEST_TIME
 	return text
 
 

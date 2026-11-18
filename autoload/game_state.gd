@@ -46,6 +46,10 @@ var road := &""
 ## Where each area the run entered begins, in order: [area id, distance, turns], the path distance
 ## to the area's first tile and the turns at the junctions before it (docs/M5.md L8).
 var _entries: Array[Array] = []
+## The areas where the car took damage, and those it crossed: onto the next area's first tile on
+## the road, or by arriving in the last (ENDGAME_PLAN.md §5.16). The tutorial's count for neither.
+var _damaged: Dictionary[StringName, bool] = {}
+var _crossed: Dictionary[StringName, bool] = {}
 
 
 ## Starts a run from TITLE or GAME_OVER: with the tutorial if `tutorial`; as a departure from a
@@ -68,6 +72,8 @@ func start_run(p_run_seed: int, tutorial := false, p_whole_road := true, p_road 
 	whole_road = p_whole_road
 	road = p_road
 	_entries = []
+	_damaged = {}
+	_crossed = {}
 	EventBus.run_started.emit(run_seed)
 
 
@@ -84,6 +90,16 @@ func end_tutorial() -> void:
 func enter_area(id: StringName, start_distance: float, start_turns: int) -> void:
 	area_id = id
 	_entries.append([id, start_distance, start_turns])
+
+
+## The car took damage in the area `id`, at its rates (ENDGAME_PLAN.md §5.16).
+func damage_area(id: StringName) -> void:
+	_damaged[id] = true
+
+
+## The car crossed the area `id` on the road, onto the next area's first tile (§5.16).
+func cross_area(id: StringName) -> void:
+	_crossed[id] = true
 
 
 func pause() -> void:
@@ -103,7 +119,7 @@ func resume() -> void:
 
 
 ## Ends the run with one of CarSim's causes: DISASTER for a wrong or missed turn, ARRIVED at the
-## finish, otherwise CRASH.
+## finish, otherwise CRASH. An arrival crosses the area that it ends in, the road's last.
 func end_run(cause: StringName) -> void:
 	var next := State.CRASH
 	if cause in [CarSim.WRONG_TURN, CarSim.MISSED_TURN]:
@@ -113,6 +129,8 @@ func end_run(cause: StringName) -> void:
 	if not _change_to(next):
 		return
 	end_cause = cause
+	if cause == CarSim.ARRIVAL:
+		cross_area(area_id)
 	EventBus.run_ended.emit(cause, stats())
 
 
@@ -133,8 +151,9 @@ func quit_to_title() -> void:
 		EventBus.paused_changed.emit(false)
 
 
-## The run's stats. "areas" has the distance and the turns the run made in each area it entered:
-## {id: {"distance": float, "turns": int}}.
+## The run's stats. "areas" has, for each area it entered, the distance and the turns the run made
+## there, and whether the car took damage there and crossed it (ENDGAME_PLAN.md §5.16):
+## {id: {"distance": float, "turns": int, "damaged": bool, "crossed": bool}}.
 func stats() -> Dictionary:
 	return {
 		"run_seed": run_seed,
@@ -162,6 +181,8 @@ func _area_stats() -> Dictionary[StringName, Dictionary]:
 		var made: Dictionary = areas.get(entry[0], {"distance": 0.0, "turns": 0})
 		made["distance"] += maxf(to_distance - entry[1], 0.0)
 		made["turns"] += maxi(to_turns - entry[2], 0)
+		made["damaged"] = _damaged.has(entry[0])
+		made["crossed"] = _crossed.has(entry[0])
 		areas[entry[0]] = made
 	return areas
 

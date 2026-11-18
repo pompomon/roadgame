@@ -11,6 +11,7 @@ extends GutTest
 const BOOK_SCENE := preload("res://ui/book_screen.tscn")
 const TITLE_SCENE := preload("res://ui/title_screen.tscn")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
+const Finger := preload("res://tests/helpers/finger.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const GHOST_FATE := "The ghost drove off in your car."
 const GHOST_LORE := "A sheet with two holes cut in it, out on the road at night."
@@ -183,48 +184,6 @@ static func _lit(still: LegendStill, ground: Color) -> float:
 ## Stats as GameState.stats() gives them, `distance` tiles and `turns` turns into a run.
 static func _stats(distance: float, turns: int) -> Dictionary:
 	return {"distance": distance, "turn_index": turns}
-
-
-## A finger that touches the middle of `cell`, moves by each of `moves` and lifts, all in one frame.
-## Android sends each touch and move as Input's emulated mouse event first, then as itself.
-static func _finger(cell: Control, moves: Array[Vector2]) -> void:
-	var view := cell.get_viewport()
-	var at := cell.get_global_rect().get_center()
-	view.push_input(_mouse_button(at, true), true)
-	view.push_input(_touch(at, true), true)
-	for move: Vector2 in moves:
-		at += move
-		var motion := InputEventMouseMotion.new()
-		motion.device = InputEvent.DEVICE_ID_EMULATION
-		motion.position = at
-		motion.global_position = at
-		motion.relative = move
-		motion.button_mask = MOUSE_BUTTON_MASK_LEFT
-		view.push_input(motion, true)
-		var drag := InputEventScreenDrag.new()
-		drag.position = at
-		drag.relative = move
-		view.push_input(drag, true)
-	view.push_input(_mouse_button(at, false), true)
-	view.push_input(_touch(at, false), true)
-
-
-static func _mouse_button(at: Vector2, pressed: bool) -> InputEventMouseButton:
-	var button := InputEventMouseButton.new()
-	button.device = InputEvent.DEVICE_ID_EMULATION
-	button.button_index = MOUSE_BUTTON_LEFT
-	button.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
-	button.pressed = pressed
-	button.position = at
-	button.global_position = at
-	return button
-
-
-static func _touch(at: Vector2, pressed: bool) -> InputEventScreenTouch:
-	var touch := InputEventScreenTouch.new()
-	touch.pressed = pressed
-	touch.position = at
-	return touch
 
 
 ## Presses `key` and lets it go, through the Book's viewport, as a keyboard does: what has the focus
@@ -773,12 +732,12 @@ func test_a_drag_from_any_cell_scrolls_the_book_and_opens_no_page() -> void:
 	var bar := scroll.get_h_scroll_bar()
 	assert_gt(bar.max_value - bar.page, 64.0, "wider than the Book")
 	var left: Array[Vector2] = [Vector2(-16, 0), Vector2(-16, 0), Vector2(-16, 0), Vector2(-16, 0)]
-	_finger(_cell(book, &"ghoul"), left)
+	Finger.drag(_cell(book, &"ghoul"), left)
 	assert_eq(scroll.scroll_horizontal, 64, "from a found legend's cell")
 	assert_null(book.open_cell(), "no page")
 	await wait_process_frames(2)
 	var right: Array[Vector2] = [Vector2(16, 0), Vector2(16, 0), Vector2(16, 0), Vector2(16, 0)]
-	_finger(_cell(book, &"black_dog"), right)
+	Finger.drag(_cell(book, &"black_dog"), right)
 	assert_eq(scroll.scroll_horizontal, 0, "from a silhouette's")
 	assert_null(book.open_cell())
 
@@ -794,7 +753,7 @@ func test_a_tap_that_wobbles_opens_the_page() -> void:
 	var ghoul := _cell(book, &"ghoul")
 	var near := Tuning.BOOK_SCROLL_DEADZONE - 1.0
 	var wobble: Array[Vector2] = [Vector2(-near, near / 2), Vector2(near, -near), Vector2(-2, near)]
-	_finger(ghoul, wobble)
+	Finger.drag(ghoul, wobble)
 	assert_eq(book.open_cell(), ghoul)
 	assert_eq((book.get_node("%Scroll") as ScrollContainer).scroll_horizontal, 0)
 

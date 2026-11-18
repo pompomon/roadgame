@@ -80,6 +80,10 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	assert_eq(_label(main, "Turns").text, "turns 0/%d" % Tuning.TUTORIAL_STREAK)
 	assert_eq(_label(main, "AreaBanner").text, Hud.TUTORIAL_BANNER % Tuning.TUTORIAL_STREAK)
 	(main.get_node("%InputRouter") as InputRouter).autopilot = Autopilot.new(sim)
+	# The tutorial's damage and crossings count for nothing (ENDGAME_PLAN.md §5.16).
+	var city := sim.buffer.generator.find_area(&"city")
+	sim.damaged.emit(city)
+	sim.area_crossed.emit(city)
 	# simulate() doesn't move the autoloads on: bring the area's tracks in, as real frames would.
 	AudioDirector.advance(Tuning.CROSS_FADE_SECONDS)
 	assert_eq(AudioDirector._music_players[AudioDirector._music.current].volume_linear, 1.0)
@@ -113,7 +117,10 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	assert_almost_eq(GameState.distance, distance, 1e-6)
 	var areas: Dictionary = GameState.stats()["areas"]
 	assert_eq(areas.size(), 1, "only the City")
-	assert_eq(areas.get(&"city"), {"distance": GameState.distance, "turns": 2})
+	assert_eq(
+		areas.get(&"city"),
+		{"distance": GameState.distance, "turns": 2, "damaged": false, "crossed": false}
+	)
 	# The schedule counts from the City's first turn, too: Rural comes after its turns there.
 	var schedule: AreaSchedule = load("res://areas/schedule.tres")
 	var rural := schedule.entries[1].turn
@@ -125,6 +132,8 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	areas = GameState.stats()["areas"]
 	assert_eq(areas[&"city"]["turns"], rural, "the City's turns")
 	assert_eq(areas[&"rural"]["turns"], 1, "Rural's first")
+	assert_eq([areas[&"city"]["damaged"], areas[&"city"]["crossed"]], [false, true], "the City's")
+	assert_false(areas[&"rural"]["crossed"], "Rural, not yet")
 	var distance_sum: float = areas[&"city"]["distance"] + areas[&"rural"]["distance"]
 	assert_almost_eq(distance_sum, GameState.distance, 1e-6, "the areas' distances")
 	assert_gt(areas[&"rural"]["distance"], 0.0, "Rural's distance")
@@ -184,7 +193,10 @@ func test_the_city_run_after_the_tutorial_ends_and_retries_without_it() -> void:
 	assert_almost_eq(GameState.distance, expected, 1e-6, "from the run's start")
 	var areas: Dictionary = GameState.stats()["areas"]
 	assert_eq(areas.size(), 1, "only the City")
-	assert_eq(areas.get(&"city"), {"distance": GameState.distance, "turns": 0})
+	assert_eq(
+		areas.get(&"city"),
+		{"distance": GameState.distance, "turns": 0, "damaged": false, "crossed": false}
+	)
 
 
 ## docs/TUTORIAL.md §5.3: with no input, the car drives on off the road at the first junction, with

@@ -11,7 +11,8 @@ extends Control
 ## areas of the road that Play can start the run in: its first, and each later area discovered, but
 ## a home stretch, Departures (§5.11), or in debug builds every area, for checks on a phone
 ## (docs/ZONE_SELECT.md Z1). Each shows only when there is a choice, and is a button, as a
-## dropdown's popup would let Android's back button quit the game (Z7).
+## dropdown's popup would let Android's back button quit the game (Z7). Once a run has arrived, the
+## records of the road that Play drives show under the bests (ENDGAME_PLAN.md §5.16).
 
 ## Play was pressed.
 signal play_requested
@@ -24,6 +25,12 @@ const ROAD_TEXT := "Road: %s"
 const ROAD_NAMES: Dictionary[StringName, String] = {
 	&"pier": "To the sea", &"home": "Home", &"": "Endless"
 }
+## The records' lines (ENDGAME_PLAN.md §5.16): the arrivals at the road's finish, the best time
+## there, and whether one never left the road. %Records keeps the height of the three, so that the
+## Road button stays put as it steps through roads with fewer (docs/ZONE_SELECT.md Z9).
+const ARRIVALS_TEXT := "Arrivals: %d"
+const BEST_TIME_TEXT := "Best time: %s"
+const CLEAN_TEXT := "Clean arrival"
 
 ## The game's schedule: the Atlas and the Book show its areas and legends.
 var schedule: AreaSchedule
@@ -47,6 +54,7 @@ var _buttons: Dictionary[MenuScreen, Button] = {}
 @onready var _background: ColorRect = %Background
 @onready var _main_page: Control = %MainPage
 @onready var _best: Label = %Best
+@onready var _records: Label = %Records
 @onready var _play: Button = %Play
 @onready var _road_button: Button = %Road
 @onready var _start: Button = %StartArea
@@ -75,7 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## Shows the title, with the bests from the save, the Road button if there are roads to choose
-## from, and the Start button if there are departures.
+## from, the road's records once a run has arrived, and the Start button if there are departures.
 func open() -> void:
 	_close_screen()
 	var data := SaveService.data()
@@ -118,6 +126,21 @@ static func offered_roads(p_roads: Array[AreaSchedule], data: SaveData) -> Array
 	if data.arrival_count(p_roads[0].finish) > 0:
 		return p_roads
 	return p_roads.slice(0, 1)
+
+
+## The records of the arrivals at `p_road`'s finish in `data`, a line each (ENDGAME_PLAN.md
+## §5.16): how many, and after the first the best time, and whether one was clean. Empty for a road
+## without a finish.
+static func records_text(p_road: AreaSchedule, data: SaveData) -> String:
+	if not p_road.has_finish():
+		return ""
+	var entry: Dictionary = data.arrivals.get(String(p_road.finish), SaveData.ARRIVAL_ENTRY)
+	var lines := PackedStringArray([ARRIVALS_TEXT % entry["count"]])
+	if entry["count"] > 0:
+		lines.append(BEST_TIME_TEXT % GameOver.time_text(entry["best_seconds"]))
+	if entry["clean"]:
+		lines.append(CLEAN_TEXT)
+	return "\n".join(lines)
 
 
 ## The areas of `p_road` that Play can start a run in, in the order a run reaches them: with
@@ -194,9 +217,11 @@ func _on_start_pressed() -> void:
 
 
 ## Names the road and the area that Play starts in on their buttons, each shown only if there is a
-## choice.
+## choice, and shows the road's records once a run has arrived.
 func _show_choices() -> void:
 	var data := SaveService.data()
+	_records.text = records_text(road, data)
+	_records.visible = data.arrival_count() > 0
 	_road_button.text = ROAD_TEXT % ROAD_NAMES.get(road.finish, String(road.finish))
 	_road_button.visible = offered_roads(roads, data).size() > 1
 	_start.text = START_TEXT % start_area.display_name

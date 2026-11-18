@@ -3,7 +3,8 @@ extends GutTest
 ## --finish's, to its finish. The run ends in an arrival, the car rolls to a stop, and the end
 ## screen shows ARRIVAL_SECONDS later, with the run's time. A run that drove the whole road counts
 ## the arrival and unlocks a legend that the player hasn't collected; one from a later area doesn't.
-## The unlock shows NEW LEGEND!, and the end screen the next goal (§5.9).
+## The unlock shows NEW LEGEND!, and the end screen the next goal (§5.9). An arrival crosses the
+## road's last area, which a run with no damage there stamps, and may beat the best time (§5.16).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -82,7 +83,8 @@ func test_with_every_legend_collected_the_book_is_full() -> void:
 
 ## A run that starts in a later area (--area, the title's Start, Departures) reaches the finish,
 ## but it hasn't driven the whole road: no arrival is counted, no legend unlocked (Q4), and no
-## overall best set, only its area's (W22). The sea is still the next goal (ENDGAME_PLAN.md §5.9).
+## overall best set, only its area's (W22), and the stamp of the area that it crossed with no
+## damage (§5.16). The sea is still the next goal (ENDGAME_PLAN.md §5.9).
 func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--area=rural", "--finish=36"])
@@ -95,6 +97,7 @@ func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	assert_eq(_unlocked(save), [] as Array[StringName])
 	assert_eq(save.best, SaveData.BEST)
 	assert_eq(save.atlas["rural"]["best_turns"], 2)
+	assert_true(save.atlas["rural"]["stamped"], "Rural, crossed by the arrival")
 	var game_over: GameOver = main.get_node("%GameOver")
 	assert_false(game_over.get_node("%Fate").visible, "no line")
 	assert_false(game_over.get_node("%NewLegend").visible, "no new legend")
@@ -229,3 +232,63 @@ func test_leaving_the_road_spoils_a_clean_run() -> void:
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	assert_eq(GameState.state, ARRIVED)
 	assert_false(SaveService.data().arrivals["pier"]["clean"])
+
+
+## ENDGAME_PLAN.md §5.16: an arrival crosses the road's last area, which it stamps if the car took
+## no damage there. --finish=1 keeps the whole road in the City.
+func test_an_arrival_with_no_damage_stamps_the_last_area() -> void:
+	for damaged: bool in [true, false]:
+		var why := "damaged" if damaged else "no damage"
+		var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=1"])
+		var sim := MainScene.car(main).sim
+		if damaged:
+			sim.damaged.emit(sim.area)
+		MainScene.run_while(self, main, RUNNING, FRAMES)
+		assert_eq(GameState.state, ARRIVED, why)
+		assert_eq(GameState.area_id, &"city", why)
+		var city: Dictionary = GameState.stats()["areas"][&"city"]
+		assert_eq([city["damaged"], city["crossed"]], [damaged, true], why)
+		assert_eq(SaveService.data().atlas["city"]["stamped"], not damaged, why)
+		main.get_parent().free()
+		GameState.quit_to_title()
+
+
+## ENDGAME_PLAN.md §5.16: the end screen says "New best time!" under an arrival's time when it beat
+## the best time at its finish: not on the first arrival, which has none to beat, nor on a slower
+## one.
+func test_an_arrival_that_beats_the_best_time_says_so() -> void:
+	var bests := {0.0: false, 9999.0: true, 1.0: false}
+	for best: float in bests:
+		SaveService.use_memory()
+		if best > 0.0:
+			SaveService.data().record_arrival(&"pier", {"seconds": best})
+		var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=1"])
+		MainScene.run_while(self, main, RUNNING, FRAMES)
+		MainScene.run_while(self, main, ARRIVED, 600)
+		var game_over: GameOver = main.get_node("%GameOver")
+		assert_true(game_over.visible, "best %s" % best)
+		var stats: String = (game_over.get_node("%Stats") as Label).text
+		assert_string_contains(stats, "\nTime: ")
+		assert_eq(stats.ends_with("\n" + GameOver.NEW_BEST_TIME), bests[best], "best %s" % best)
+		main.get_parent().free()
+		GameState.quit_to_title()
+
+
+## ENDGAME_PLAN.md §5.16: a retry forgets that the last arrival beat the best time. An arrival that
+## didn't drive the whole road, as a departure's, counts nothing (W22), so it beats no best time:
+## here the retry is made one by hand, as the title's Start would.
+func test_a_retry_forgets_the_new_best_time() -> void:
+	SaveService.data().record_arrival(&"pier", {"seconds": 9999.0})
+	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=1"])
+	MainScene.run_while(self, main, RUNNING, FRAMES)
+	MainScene.run_while(self, main, ARRIVED, 600)
+	var stats: Label = main.get_node("%GameOver/%Stats")
+	assert_true(stats.text.ends_with("\n" + GameOver.NEW_BEST_TIME), "the first arrival")
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(GameState.state, RUNNING, "Enter pressed Retry")
+	GameState.whole_road = false
+	MainScene.run_while(self, main, RUNNING, FRAMES)
+	MainScene.run_while(self, main, ARRIVED, 600)
+	assert_true((main.get_node("%GameOver") as Control).visible)
+	assert_string_contains(stats.text, "\nTime: ")
+	assert_false(stats.text.ends_with("\n" + GameOver.NEW_BEST_TIME), "the departure's")

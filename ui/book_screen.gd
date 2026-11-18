@@ -68,40 +68,16 @@ func _ready() -> void:
 	_back.pressed.connect(_on_back_pressed)
 
 
-## Scrolls the Book, or the page that is open, with the keys that move no focus: an arrow, where the
-## focus has nowhere to go that way, by Tuning.BOOK_KEY_SCROLL of what shows, Page Up and Page Down
-## by all of it, and Home and End to the top and the bottom. Without a screen reader, neither a
-## silhouette nor a page's line takes the focus, which the scroll follows, so these keys are what
-## brings them into view where they run past the screen (ENDGAME_PLAN.md W28).
+## Scrolls the Book, or the page that is open, with the keys that move no focus (scroll_by_key()).
+## Without a screen reader, neither a silhouette nor a page's line takes the focus, which the scroll
+## follows, so these keys are what brings them into view where they run past the screen
+## (ENDGAME_PLAN.md W28).
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_visible_in_tree():
 		return
 	var scroll := _page_scroll if _page_scroll.visible else _scroll
-	var across := scroll.get_h_scroll_bar()
-	var down := scroll.get_v_scroll_bar()
-	var by := Vector2.ZERO
-	if event.is_action_pressed(&"ui_left", true, true):
-		by.x = -across.page * Tuning.BOOK_KEY_SCROLL
-	elif event.is_action_pressed(&"ui_right", true, true):
-		by.x = across.page * Tuning.BOOK_KEY_SCROLL
-	elif event.is_action_pressed(&"ui_up", true, true):
-		by.y = -down.page * Tuning.BOOK_KEY_SCROLL
-	elif event.is_action_pressed(&"ui_down", true, true):
-		by.y = down.page * Tuning.BOOK_KEY_SCROLL
-	elif event.is_action_pressed(&"ui_page_up", true, true):
-		by.y = -down.page
-	elif event.is_action_pressed(&"ui_page_down", true, true):
-		by.y = down.page
-	elif event.is_action_pressed(&"ui_home", true, true):
-		by.y = -down.max_value
-	elif event.is_action_pressed(&"ui_end", true, true):
-		by.y = down.max_value
-	else:
-		return
-	# Each scroll stops at its ends.
-	scroll.scroll_horizontal += roundi(by.x)
-	scroll.scroll_vertical += roundi(by.y)
-	get_viewport().set_input_as_handled()
+	if scroll_by_key(scroll, event):
+		get_viewport().set_input_as_handled()
 
 
 ## Shows the Book of the legends in `data` of `schedule`'s pools.
