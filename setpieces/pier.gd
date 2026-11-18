@@ -116,7 +116,9 @@ func _physics_process(delta: float) -> void:
 ## Welcomes the car to the end of the road (ENDGAME_PLAN.md §5.8): a still of each legend in
 ## `collected` stands over the sea past the pier's end, in a grid as the Book has them, an area of
 ## `schedule` with a pool a row, from the first down, and a slot of its pool a column. A legend not
-## collected leaves its place empty. They fade in one after another, in the Book's order.
+## collected leaves its place empty. They fade in one after another, in the Book's order. A glow's
+## still adds only as much light as the sea leaves below white (LegendStill.strength()): it stands
+## past the surf, and no still under it, so it never clips as the sun sets.
 func welcome(schedule: AreaSchedule, collected: Array[StringName]) -> void:
 	for still: LegendStill in _stills:
 		still.free()
@@ -146,6 +148,7 @@ func welcome(schedule: AreaSchedule, collected: Array[StringName]) -> void:
 			if still != null:
 				var cell := Vector2(column, row) + Vector2(0.5, 0.5)
 				still.position = welcome_rect.position + cell * Tuning.WELCOME_CELL
+				still.self_modulate.a *= still.strength(_sea.color)
 				add_child(still)
 				_stills.append(still)
 				welcome_bounds = welcome_bounds.merge(still.get_transform() * still.get_rect())
