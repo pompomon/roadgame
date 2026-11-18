@@ -227,6 +227,17 @@ static func _touch(at: Vector2, pressed: bool) -> InputEventScreenTouch:
 	return touch
 
 
+## Presses `key` and lets it go, through the Book's viewport, as a keyboard does: what has the focus
+## gets it first, then the focus's moves, then what is left over.
+static func _key(book: BookScreen, key: Key) -> void:
+	for pressed: bool in [true, false]:
+		var event := InputEventKey.new()
+		event.keycode = key
+		event.physical_keycode = key
+		event.pressed = pressed
+		book.get_viewport().push_input(event)
+
+
 func test_the_legends_in_the_order_a_run_meets_them_each_once_with_their_words() -> void:
 	var found := BookScreen.disasters(_schedule())
 	assert_eq(
@@ -392,6 +403,93 @@ func test_a_page_scrolls_to_the_line_that_has_the_focus() -> void:
 	await wait_process_frames(2)
 	assert_gt(page.scroll_vertical, 0)
 	assert_true(_in_view(page, lore), "scrolled to it")
+
+
+## ENDGAME_PLAN.md W28: where the focus has nowhere to go, the keys scroll the Book, either way that
+## it runs past the screen: an arrow by Tuning.BOOK_KEY_SCROLL of what shows, Page Up and Page Down
+## by all of it, and Home and End to its top and its bottom. With nothing found, no cell takes the
+## focus, which stays on Back. Where an arrow can move the focus, it does, as before.
+func test_the_keys_scroll_the_book_where_the_focus_has_nowhere_to_go() -> void:
+	var book := _book()
+	(book.get_viewport() as SubViewport).size = Vector2i(360, 240)
+	book.open(SaveData.new(), _schedule())
+	await wait_process_frames(2)
+	var scroll: ScrollContainer = book.get_node("%Scroll")
+	var down := scroll.get_v_scroll_bar()
+	var across := scroll.get_h_scroll_bar()
+	var bottom := down.max_value - down.page
+	var right := across.max_value - across.page
+	var step := Vector2(across.page, down.page) * Tuning.BOOK_KEY_SCROLL
+	var wraith := _cell(book, &"wraith")
+	assert_gt(bottom, 2.0 * step.y, "taller than the screen")
+	assert_gt(right, step.x, "wider than the screen")
+	assert_false(_in_view(scroll, wraith), "the wraith runs past the screen")
+	_key(book, KEY_DOWN)
+	assert_eq(scroll.scroll_vertical, roundi(step.y), "Down")
+	_key(book, KEY_DOWN)
+	_key(book, KEY_UP)
+	assert_eq(scroll.scroll_vertical, roundi(step.y), "Down, Down, Up")
+	_key(book, KEY_END)
+	assert_almost_eq(float(scroll.scroll_vertical), bottom, 1.0, "End")
+	_key(book, KEY_HOME)
+	assert_eq(scroll.scroll_vertical, 0, "Home")
+	_key(book, KEY_PAGEDOWN)
+	assert_almost_eq(float(scroll.scroll_vertical), minf(down.page, bottom), 1.0, "Page Down")
+	_key(book, KEY_PAGEUP)
+	assert_eq(scroll.scroll_vertical, 0, "Page Up")
+	_key(book, KEY_RIGHT)
+	assert_eq(scroll.scroll_horizontal, roundi(step.x), "Right")
+	_key(book, KEY_LEFT)
+	assert_eq(scroll.scroll_horizontal, 0, "Left")
+	_key(book, KEY_END)
+	for i: int in ceili(right / roundi(step.x)):
+		_key(book, KEY_RIGHT)
+	await wait_process_frames(2)
+	assert_true(_in_view(scroll, wraith), "End, then Right till it shows")
+	assert_true((book.get_node("%Back") as Button).has_focus(), "the focus stayed on Back")
+	var data := SaveData.new()
+	data.record_disaster(&"ghost", &"town", _stats(1.0, 1))
+	book.open(data, _schedule())
+	await wait_process_frames(2)
+	_key(book, KEY_UP)
+	assert_is(
+		book.get_viewport().gui_get_focus_owner(), BookCell, "Up gives a found ghost the focus"
+	)
+
+
+## ENDGAME_PLAN.md W28: the keys scroll a page too, as no line of it takes the focus without a
+## screen reader: here to the ghoul's lore, below the fold. The Book's grid, behind the page, stays.
+func test_the_keys_scroll_a_page() -> void:
+	var data := SaveData.new()
+	data.record_disaster(&"ghoul", &"farm", _stats(1.0, 1))
+	var book := _book()
+	(book.get_viewport() as SubViewport).size = Vector2i(360, 240)
+	book.open(data, _schedule())
+	_cell(book, &"ghoul").pressed.emit()
+	await wait_process_frames(2)
+	var page: ScrollContainer = book.get_node("%PageScroll")
+	var down := page.get_v_scroll_bar()
+	var bottom := down.max_value - down.page
+	var step := roundi(down.page * Tuning.BOOK_KEY_SCROLL)
+	var lore: Label = book.get_node("%Lore")
+	assert_gt(bottom, 2.0 * step, "taller than the screen")
+	assert_false(_in_view(page, lore), "below the fold")
+	_key(book, KEY_DOWN)
+	assert_eq(page.scroll_vertical, step, "Down")
+	_key(book, KEY_DOWN)
+	_key(book, KEY_UP)
+	assert_eq(page.scroll_vertical, step, "Down, Down, Up")
+	_key(book, KEY_HOME)
+	assert_eq(page.scroll_vertical, 0, "Home")
+	_key(book, KEY_PAGEDOWN)
+	assert_almost_eq(float(page.scroll_vertical), minf(down.page, bottom), 1.0, "Page Down")
+	_key(book, KEY_PAGEUP)
+	assert_eq(page.scroll_vertical, 0, "Page Up")
+	_key(book, KEY_END)
+	await wait_process_frames(2)
+	assert_true(_in_view(page, lore), "End")
+	assert_eq((book.get_node("%Scroll") as ScrollContainer).scroll_vertical, 0, "the grid stayed")
+	assert_true((book.get_node("%Back") as Button).has_focus(), "the focus stayed on Back")
 
 
 ## ENDGAME_PLAN.md §5.5: a legend that an arrival unlocked shows its still and its name, and that

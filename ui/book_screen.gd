@@ -12,13 +12,14 @@ extends MenuScreen
 ## page scrolls on its own, in place of the Book, which keeps its place: closing the page shows the
 ## Book as it was left, its cell in view. Back, Esc and Android's back button close the page before
 ## the Book. A drag scrolls the Book wherever it starts, on a cell too, once it goes further than
-## Tuning.BOOK_SCROLL_DEADZONE, so that a tap that wobbles less still opens a page. A screen reader
-## reads each row as its area and how many of its legends are found (ROW_NAME), and each cell's
-## words, a silhouette's initials too. Like the HUD, its text uses only the font's glyphs. A
-## silhouette and a seal not earned yet stand out from their grounds, the cell's and the backdrop's,
-## and such a seal is hollow, so that an earned one differs by its shape too (ENDGAME_PLAN.md W26).
-## A glow's still adds no more light than its ground leaves below white: its cell's, or on its page
-## the backdrop's (docs/M6.md S10).
+## Tuning.BOOK_SCROLL_DEADZONE, so that a tap that wobbles less still opens a page. The keys that
+## move no focus scroll the Book or a page too, so that a keyboard reaches what takes no focus. A
+## screen reader reads each row as its area and how many of its legends are found (ROW_NAME), and
+## each cell's words, a silhouette's initials too. Like the HUD, its text uses only the font's
+## glyphs. A silhouette and a seal not earned yet stand out from their grounds, the cell's and the
+## backdrop's, and such a seal is hollow, so that an earned one differs by its shape too
+## (ENDGAME_PLAN.md W26). A glow's still adds no more light than its ground leaves below white: its
+## cell's, or on its page the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
 const CELL_SCENE := preload("res://ui/book_cell.tscn")
@@ -65,6 +66,42 @@ var _open_cell: BookCell
 func _ready() -> void:
 	_scroll.scroll_deadzone = Tuning.BOOK_SCROLL_DEADZONE
 	_back.pressed.connect(_on_back_pressed)
+
+
+## Scrolls the Book, or the page that is open, with the keys that move no focus: an arrow, where the
+## focus has nowhere to go that way, by Tuning.BOOK_KEY_SCROLL of what shows, Page Up and Page Down
+## by all of it, and Home and End to the top and the bottom. Without a screen reader, neither a
+## silhouette nor a page's line takes the focus, which the scroll follows, so these keys are what
+## brings them into view where they run past the screen (ENDGAME_PLAN.md W28).
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
+		return
+	var scroll := _page_scroll if _page_scroll.visible else _scroll
+	var across := scroll.get_h_scroll_bar()
+	var down := scroll.get_v_scroll_bar()
+	var by := Vector2.ZERO
+	if event.is_action_pressed(&"ui_left", true, true):
+		by.x = -across.page * Tuning.BOOK_KEY_SCROLL
+	elif event.is_action_pressed(&"ui_right", true, true):
+		by.x = across.page * Tuning.BOOK_KEY_SCROLL
+	elif event.is_action_pressed(&"ui_up", true, true):
+		by.y = -down.page * Tuning.BOOK_KEY_SCROLL
+	elif event.is_action_pressed(&"ui_down", true, true):
+		by.y = down.page * Tuning.BOOK_KEY_SCROLL
+	elif event.is_action_pressed(&"ui_page_up", true, true):
+		by.y = -down.page
+	elif event.is_action_pressed(&"ui_page_down", true, true):
+		by.y = down.page
+	elif event.is_action_pressed(&"ui_home", true, true):
+		by.y = -down.max_value
+	elif event.is_action_pressed(&"ui_end", true, true):
+		by.y = down.max_value
+	else:
+		return
+	# Each scroll stops at its ends.
+	scroll.scroll_horizontal += roundi(by.x)
+	scroll.scroll_vertical += roundi(by.y)
+	get_viewport().set_input_as_handled()
 
 
 ## Shows the Book of the legends in `data` of `schedule`'s pools.
