@@ -106,6 +106,28 @@ func test_close_closes_the_open_screen() -> void:
 	assert_null(title.open_screen())
 
 
+func test_a_glow_on_a_legends_page_adds_no_more_light_than_the_background_leaves() -> void:
+	# The Book has no background of its own: a legend's page draws over the title's, which bounds a
+	# glow's light there (docs/M6.md S10). Over it, a white texel of the Will-o'-the-Wisp's still
+	# would light the green past white.
+	var stats := {"distance": 1.0, "turn_index": 1}
+	SaveService.data().record_disaster(&"will_o_wisp", &"meadows", stats)
+	var title := _title()
+	title.open()
+	_button(title, "DisastersButton").pressed.emit()
+	var book: BookScreen = title.get_node("%Book")
+	var wisp: BookCell = null
+	for row: BookRow in book.get_node("%Grid").get_children():
+		for cell: BookCell in row.cells():
+			if cell.legend["id"] == &"will_o_wisp" and wisp == null:
+				wisp = cell
+	wisp.pressed.emit()
+	var still: LegendStill = book.get_node("%PagePivot").get_child(0)
+	var tint := still.self_modulate
+	var lit := (title.get_node("%Background") as ColorRect).color + tint * tint.a
+	assert_almost_eq(maxf(lit.r, maxf(lit.g, lit.b)), 1.0, 1e-5, "as bright as it can be")
+
+
 func test_the_start_button_shows_in_debug_builds_only() -> void:
 	# docs/ZONE_SELECT.md Z4: GUT runs a debug build, so the release default is a device check.
 	var title := _title()

@@ -29,6 +29,7 @@ var start_area: AreaDef
 ## The button that opens each screen, which takes the focus back when the screen closes.
 var _buttons: Dictionary[MenuScreen, Button] = {}
 
+@onready var _background: ColorRect = %Background
 @onready var _main_page: Control = %MainPage
 @onready var _best: Label = %Best
 @onready var _play: Button = %Play
@@ -42,6 +43,8 @@ var _buttons: Dictionary[MenuScreen, Button] = {}
 
 
 func _ready() -> void:
+	# The Book has no background of its own.
+	_book.backdrop = _background.color
 	_play.pressed.connect(_on_play_pressed)
 	_start.pressed.connect(_on_start_pressed)
 	_add_screen(_atlas, _atlas_button, _open_atlas)

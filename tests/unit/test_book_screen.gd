@@ -117,6 +117,13 @@ static func _page_still(book: BookScreen) -> LegendStill:
 	return pivot.get_child(0) as LegendStill if pivot.get_child_count() > 0 else null
 
 
+## The lightest channel of `ground` once a white texel of `still` adds its light, as a glow does.
+static func _lit(still: LegendStill, ground: Color) -> float:
+	var tint := still.self_modulate
+	var lit := ground + Color(tint.r, tint.g, tint.b) * tint.a
+	return maxf(lit.r, maxf(lit.g, lit.b))
+
+
 ## Stats as GameState.stats() gives them, `distance` tiles and `turns` turns into a run.
 static func _stats(distance: float, turns: int) -> Dictionary:
 	return {"distance": distance, "turn_index": turns}
@@ -343,6 +350,32 @@ func test_a_glow_draws_in_the_books_order_and_a_silhouette_has_no_glow() -> void
 	_cell(book, &"will_o_wisp").pressed.emit()
 	assert_eq(_page_still(book).z_index, 0)
 	assert_true(_page_still(book).z_as_relative)
+
+
+func test_a_glow_adds_no_more_light_than_its_cell_or_the_backdrop_leaves_below_white() -> void:
+	# The Will-o'-the-Wisp's and the Marfa Lights' stills add light, without their legends' veils
+	# and alphas, and over the cells' styles they would clip to white (docs/M6.md S10). In a cell, a
+	# white texel of each lights no channel past white over any style that the cell draws, and over
+	# the lightest it reaches white; on its page, it reaches white over the Book's backdrop.
+	var data := SaveData.new()
+	data.record_disaster(&"will_o_wisp", &"meadows", _stats(1.0, 1))
+	data.record_disaster(&"marfa_lights", &"desert", _stats(1.0, 1))
+	var book := _book()
+	book.backdrop = Color(0.5, 0.45, 0.4)
+	book.open(data, Fixtures.schedule())
+	for id: StringName in [&"will_o_wisp", &"marfa_lights"]:
+		var cell := _cell(book, id)
+		assert_not_null(cell.still().material, "%s: a glow" % id)
+		var lightest := 0.0
+		for style_name: StringName in [&"normal", &"hover", &"pressed"]:
+			var style: StyleBoxFlat = cell.get_theme_stylebox(style_name)
+			var lit := _lit(cell.still(), style.bg_color)
+			assert_lte(lit, 1.0 + 1e-6, "%s over the cell's %s style" % [id, style_name])
+			lightest = maxf(lightest, lit)
+		assert_almost_eq(lightest, 1.0, 1e-5, "%s: as bright as its cell lets it be" % id)
+		cell.pressed.emit()
+		assert_almost_eq(_lit(_page_still(book), book.backdrop), 1.0, 1e-5, "%s: its page" % id)
+		book.close_page()
 
 
 func test_back_closes_the_page_and_gives_its_cell_the_focus_then_asks_to_close() -> void:

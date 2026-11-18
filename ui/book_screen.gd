@@ -10,7 +10,8 @@ extends MenuScreen
 ## page: how often it was seen, and where and how far into a run first (docs/M6.md S12), its fate
 ## and its lore; a legend unlocked and not seen yet has its lore, but not how it ends a run. Back,
 ## Esc and Android's back button close the page before the Book. Like the HUD, its text uses only
-## the font's glyphs.
+## the font's glyphs. A glow's still adds no more light than its ground leaves below white: its
+## cell's, or on its page the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
 const CELL_SCENE := preload("res://ui/book_cell.tscn")
@@ -24,6 +25,10 @@ const UNLOCKED := "Unlocked by an arrival\nNot seen yet"
 const SILHOUETTE := Color(0.1, 0.1, 0.12)
 ## How much larger than the world a page shows its legend's still.
 const PAGE_ZOOM := 2.0
+
+## The colour that the Book draws over, which bounds a glow's light on a legend's page: TitleScreen
+## gives it its background's.
+var backdrop := Color.BLACK
 
 ## The cell whose page is open, or null.
 var _open_cell: BookCell
@@ -214,6 +219,7 @@ func _open_page(cell: BookCell) -> void:
 	var still := _still(cell.scene, true)
 	if still != null:
 		still.scale *= PAGE_ZOOM
+		still.self_modulate.a *= still.strength(backdrop)
 		_page_pivot.add_child(still)
 		_page_art.custom_minimum_size.y = still.get_rect().size.y * still.scale.y
 	_page_name.text = cell.legend["name"]
