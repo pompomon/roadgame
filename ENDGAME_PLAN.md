@@ -112,6 +112,7 @@ Line numbers are at 532908a, the head of PL's PR 1 (#81), from which the prototy
 | W21 | A `--finish` run from the City counts | The debug flag `--finish=<turns>` ends the road early; a run with it from the City records an arrival, and unlocks a legend | None: a debug build's save is the tester's own (docs/ZONE_SELECT.md Z5) |
 | W23 | IP lists what uses the RNG | IP §5.3 (:231) names the road's streams, the disaster stream and the picks' | **Δ IP §5.3:** and the unlock's, `hash("<seed>:unlock")` (§5.5). PR 2 |
 | W24 | The pit stops change a rule | `plan.md` §2.4 (:55): "There are **no pickups** in the MVP (no health, fuel or score pickups), and health does not regenerate."; §13 (:422), "Pickups: None in the MVP" | **Δ plan.md §2.4, §13**, in PR 11, if the owner agrees (Q10) |
+| W25 | Exported builds break a label's lines only at spaces | The text server breaks lines by Unicode's rules (UAX #14), from ICU data that the editor has built in but that an export carries only with `internationalization/locale/include_text_server_data`, about 4 MB, which `project.godot` doesn't set. Without it, a label cuts a word too wide where it overflows: PR 6's Web build showed the Book's "Will-o'-the-Wisp", 102 px in a cell's 88, as "Will-o'-the-Wi" over "sp", in Chrome and Firefox, where the editor breaks it after "the-" | `BookCell.break_hyphens()` breaks such a word after its last hyphen that fits (§5.10), rather than every build carrying the 4 MB. PR 6 (N138, N139) |
 
 ---
 
@@ -539,7 +540,7 @@ The collection becomes the Book. `ui/book_screen.gd` reads the game's pools, wha
 - a legend not found: its silhouette, the still in `SILHOUETTE` (`collection_screen.gd`:16), and its name's initials, "P______ B__";
 - an area whose legends are all found: a seal beside its row, a shape in the area's colour.
 
-At 360 × 640, five rows of three 96-pixel cells fit under the title, with the count. The silhouette and the initials hint without telling: an unfinished set pulls (the Zeigarnik effect), and Hades' Codex shows how a book that fills as the player plays brings them back for its last pages.
+At 360 × 640, five rows of three 96-pixel cells fit under the title, with the count. A word of a name too wide for its cell, as "Will-o'-the-Wisp" is, breaks after a hyphen, which an exported build's labels don't do themselves (W25). The silhouette and the initials hint without telling: an unfinished set pulls (the Zeigarnik effect), and Hades' Codex shows how a book that fills as the player plays brings them back for its last pages.
 
 ### 5.11 Departures (PR 7; Q11, W22; E10)
 

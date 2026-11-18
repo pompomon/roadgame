@@ -422,6 +422,39 @@ func test_initials_keep_each_words_first_letter_and_whatever_is_no_letter() -> v
 	assert_eq(BookScreen.initials("UFO"), "U__")
 
 
+func test_a_word_too_wide_for_its_cell_breaks_after_a_hyphen() -> void:
+	# An exported build's label breaks a line only at a space, and cuts a word too wide where it
+	# overflows (ENDGAME_PLAN.md W25). Tests run in the editor's build, which breaks after a hyphen
+	# itself, so this reads each cell's text: each part between its spaces and line breaks fits,
+	# whether the cell shows a name or initials. Of the game's legends, only the Will-o'-the-Wisp's
+	# name needs a break.
+	var schedule := Fixtures.schedule()
+	var data := SaveData.new()
+	var book := _book()
+	var broken: Array[String] = []
+	for found: bool in [false, true]:
+		if found:
+			for disaster: Dictionary in BookScreen.disasters(schedule):
+				data.record_disaster(disaster["id"], &"city", _stats(1.0, 1))
+		book.open(data, schedule)
+		await wait_process_frames(2)
+		assert_eq(_cells(book).size(), 15, "the five pools")
+		for cell: BookCell in _cells(book):
+			var label: Label = cell.get_node("%Name")
+			var font := label.get_theme_font(&"font")
+			var font_size := label.get_theme_font_size(&"font_size")
+			var width := label.size.x - label.get_theme_stylebox(&"normal").get_minimum_size().x
+			var whole: String = cell.legend["name"]
+			assert_eq(label.text.replace("\n", ""), whole if found else BookScreen.initials(whole))
+			assert_gt(width, 0.0, "laid out")
+			for part: String in label.text.replace("\n", " ").split(" "):
+				var drawn := font.get_string_size(part, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+				assert_lte(drawn.x, width, "%s: %s" % [cell.legend["id"], part])
+			if "\n" in label.text:
+				broken.append(label.text)
+	assert_eq(broken, ["Will-o'-the-\nWisp"])
+
+
 func test_a_save_that_recorded_a_retired_disaster_loads_and_shows_only_the_pools() -> void:
 	# docs/M6.md E10, Q3: the natural four left the game's pools and files in M6 PR 8. A save that
 	# recorded one still loads and keeps it, and the Book shows a cell for each slot of the game's
