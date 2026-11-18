@@ -23,7 +23,7 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 ## 2. Game Rules
 
 ### 2.1 Run flow
-1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7). The title also offers a **departure** from each later area that a run has discovered, but the Coast's home stretch: it counts for its areas and its legends, but sets no overall best and counts no arrival (§2.6, `ENDGAME_PLAN.md` §5.11). After the first arrival at the sea, it also offers the **Road Home**: the Desert to the City, heading west, the turns mirrored, to the end of the road at home (`ENDGAME_PLAN.md` §5.12).
+1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7). The title also offers a **departure** from each later area that a run has discovered, but the Coast's home stretch: it counts for its areas and its legends, but sets no overall best and counts no arrival (§2.6, `ENDGAME_PLAN.md` §5.11). After the first arrival at the sea, it also offers the **Road Home**: the Desert to the City, heading west, the turns mirrored, to the end of the road at home (`ENDGAME_PLAN.md` §5.12). And it offers **Keep Driving**, the endless road, where the Desert goes on forever (§3.6, `ENDGAME_PLAN.md` §5.13).
 2. The car controls its speed automatically (§2.3). The player only steers.
 3. The road has straights and **junctions**. At each junction the player must take the next turn in the global pattern `L, R, L, R, …`. The first turn is always **Left**. A **decoy** junction doesn't offer that turn, only straight on and the other turn: there straight on is correct, and the turn waits for a later junction.
 4. Taking the wrong exit, or continuing straight through a junction that offers the turn (a "missed turn"), triggers a **disaster** and ends the run.
@@ -125,7 +125,8 @@ Fixed areas are keyed by **correct-turn count**. The areas between schedule entr
 | 280 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`ENDGAME_PLAN.md` §5.8) |
 
 - When `turnIndex` reaches a schedule entry, the next straight is replaced by the set piece (a fixed run of straight tiles with no junction), then the area switches.
-- The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`ENDGAME_PLAN.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run, as the tests' endless road does.
+- The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`ENDGAME_PLAN.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run.
+- The **endless road**, `endless()`, is the schedule without its finish and the Coast's home stretch, which has no junction, so the Desert goes on forever, as before the road had an end. The tests drive it, and after the first arrival at the sea the title offers it as **Keep Driving**. Its runs count as the road's did then: a run from the City sets the overall bests, and each run its areas' bests and its legends, but none can arrive, and it keeps no road's farthest turn (`ENDGAME_PLAN.md` §5.12, §5.13).
 
 ### 3.7 AreaDef (Godot `Resource`, `.tres`)
 ```

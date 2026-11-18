@@ -6,12 +6,12 @@ extends Control
 ## Android's back button through main.gd, leave a screen for the title (docs/M5.md L13), or first a
 ## page that it shows, such as a legend's in the Book. On the Web, the tap on Play is also the first
 ## gesture, which lets the game start its sound (M7.3). The Road button steps through the roads that
-## Play can drive: the game's, to the sea, and after its first arrival the Road Home too
-## (ENDGAME_PLAN.md §5.12). The Start button steps through the areas of the road that Play can start
-## the run in: its first, and each later area discovered, but a home stretch, Departures (§5.11), or
-## in debug builds every area, for checks on a phone (docs/ZONE_SELECT.md Z1). Each shows only when
-## there is a choice, and is a button, as a dropdown's popup would let Android's back button quit
-## the game (Z7).
+## Play can drive: the game's, to the sea, and after its first arrival the Road Home and Keep
+## Driving's endless road too (ENDGAME_PLAN.md §5.12, §5.13). The Start button steps through the
+## areas of the road that Play can start the run in: its first, and each later area discovered, but
+## a home stretch, Departures (§5.11), or in debug builds every area, for checks on a phone
+## (docs/ZONE_SELECT.md Z1). Each shows only when there is a choice, and is a button, as a
+## dropdown's popup would let Android's back button quit the game (Z7).
 
 ## Play was pressed.
 signal play_requested
@@ -20,8 +20,10 @@ signal play_requested
 const START_TEXT := "Start in: %s"
 ## The Road button's text, with the road's name.
 const ROAD_TEXT := "Road: %s"
-## Each road's name, by its finish.
-const ROAD_NAMES: Dictionary[StringName, String] = {&"pier": "To the sea", &"home": "Home"}
+## Each road's name, by its finish: &"" is Keep Driving's, the endless road (ENDGAME_PLAN.md §5.13).
+const ROAD_NAMES: Dictionary[StringName, String] = {
+	&"pier": "To the sea", &"home": "Home", &"": "Endless"
+}
 
 ## The game's schedule: the Atlas and the Book show its areas and legends.
 var schedule: AreaSchedule
