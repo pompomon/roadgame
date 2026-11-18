@@ -13,7 +13,9 @@ extends Node
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
 ## that many turns, at most its own, with the areas before it, and --home drives the Road Home, for
-## tests and manual checks of the end of the road (ENDGAME_PLAN.md §5.7).
+## tests and manual checks of the end of the road (ENDGAME_PLAN.md §5.7). --collected=<id> marks
+## each legend of that area's pool seen, in the save in use, and --collected=all every pool's, for
+## checks of the Book's seals and of a full Book (§5.7).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
@@ -26,7 +28,7 @@ const DEBUG_FINISH := &"pier"
 var args := OS.get_cmdline_user_args()
 
 var _autopilot := false
-## The game's schedule. The world, the Atlas and the collection show all of its areas.
+## The game's schedule. The world, the Atlas and the Book show all of its areas.
 var _whole_schedule: AreaSchedule
 ## The run's: the game's, or a copy that starts in --area's area or the title's choice, or that
 ## ends after --finish's turns.
@@ -65,6 +67,9 @@ func _ready() -> void:
 		"res://areas/schedule_home.tres" if args.has("--home") else "res://areas/schedule.tres"
 	)
 	_whole_schedule = load(path)
+	var collected := _parse_collected(args, _whole_schedule)
+	if not collected.is_empty():
+		SaveService.collect(collected)
 	_finish_turns = _parse_finish(args, _whole_schedule)
 	_schedule = _run_schedule(_parse_area(args))
 	var start := Time.get_ticks_usec()
@@ -82,7 +87,7 @@ func _ready() -> void:
 	_director.disaster_appeared.connect(_on_disaster_appeared)
 	_game_over.retry_requested.connect(_retry)
 	_game_over.title_requested.connect(_to_title)
-	# The Atlas and the collection show the whole schedule, also with --area.
+	# The Atlas and the Book show the whole schedule, also with --area.
 	_title.schedule = _whole_schedule
 	_title.start_area = _schedule.areas()[0]
 	_title.play_requested.connect(_play)
@@ -446,6 +451,31 @@ static func _parse_finish(p_args: PackedStringArray, schedule: AreaSchedule) -> 
 			else:
 				return text.to_int()
 	return -1
+
+
+## The legends of --collected=<id> in `p_args`, those of the pool of the area `id` of `schedule`, or
+## with --collected=all, of every pool, each with the first area whose pool has it: {} without it.
+## An id that isn't an area of `schedule` with a pool is an error, and marks none (ENDGAME_PLAN.md
+## §5.7).
+static func _parse_collected(
+	p_args: PackedStringArray, schedule: AreaSchedule
+) -> Dictionary[StringName, StringName]:
+	var legends: Dictionary[StringName, StringName] = {}
+	for arg: String in p_args:
+		if arg.begins_with("--collected="):
+			var id := StringName(arg.trim_prefix("--collected="))
+			for area: AreaDef in schedule.areas():
+				if id == &"all" or area.id == id:
+					for scene: PackedScene in area.disasters:
+						var legend := DisasterPicks.id_of(scene)
+						if legend != &"" and not legends.has(legend):
+							legends[legend] = area.id
+			if legends.is_empty():
+				push_error(
+					"main: --collected= needs all or an area with legends, such as --collected=city"
+				)
+			return legends
+	return legends
 
 
 ## The hour of --hour=<h> in `p_args`, round the clock, which every zone's clock starts at

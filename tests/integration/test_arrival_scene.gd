@@ -104,7 +104,7 @@ func test_the_sun_sets_on_an_arrival_at_night_too() -> void:
 ## waits in view, at zoom 1 and below the HUD's top bar, and has faded in by the end screen.
 func _assert_stills_in_view(size: Vector2i) -> void:
 	var save := SaveService.data()
-	var book := CollectionScreen.disasters(Fixtures.schedule())
+	var book := BookScreen.disasters(Fixtures.schedule())
 	for k: int in range(0, book.size(), 2):
 		save.unlock_disaster(book[k]["id"])
 	var main := MainScene.open(self, _args(), true, size)

@@ -4,7 +4,7 @@ extends RefCounted
 ## that it's asked for, as the car reaches the area (Q4), and kept for the run. Each area draws on
 ## its own stream, from the run's seed and the area's id, so the pick doesn't depend on when it's
 ## made or on the areas before: --area, the title's Start choice and the tutorial leave it as it is
-## (V1). A disaster that the player has seen, which the collection shows, weighs
+## (V1). A disaster that the player has seen, which the Book of Legends shows as found, weighs
 ## Tuning.SEEN_DISASTER_WEIGHT against 1 for one not seen yet (Q2). So the same seed and the same
 ## collection give the same disasters (plan.md §3.5).
 

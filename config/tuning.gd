@@ -152,8 +152,9 @@ const DISASTER_INTENSITY_MIN := 0.5
 const DISASTER_INTENSITY_MAX := 1.0
 const PARTICLE_SCALE_MIN := 0.75
 const PARTICLE_SCALE_MAX := 1.25
-## How much a disaster that the player has seen, which the collection shows, weighs in its area's
-## pick, against 1 for one not seen yet (docs/POOLS.md Q2): half as likely as each unseen one.
+## How much a disaster that the player has seen, which the Book of Legends shows as found, weighs
+## in its area's pick, against 1 for one not seen yet (docs/POOLS.md Q2): half as likely as each
+## unseen one.
 const SEEN_DISASTER_WEIGHT := 0.5
 ## The end of the road (ENDGAME_PLAN.md §5.1, §5.2): the finish's set piece, such as the pier, is
 ## FINISH_TILES path tiles long. A car that reaches it rolls to a stop ARRIVE_STOP_SHORT tiles

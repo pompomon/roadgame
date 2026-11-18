@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://ui/title_screen.gd" id="1_title"]
 [ext_resource type="PackedScene" path="res://ui/atlas_screen.tscn" id="2_atlas"]
-[ext_resource type="PackedScene" path="res://ui/collection_screen.tscn" id="3_collection"]
+[ext_resource type="PackedScene" path="res://ui/book_screen.tscn" id="3_book"]
 [ext_resource type="PackedScene" path="res://ui/settings_screen.tscn" id="4_settings"]
 
 [node name="TitleScreen" type="Control"]
@@ -91,7 +91,7 @@ text = "Settings"
 unique_name_in_owner = true
 layout_mode = 1
 
-[node name="Collection" parent="." instance=ExtResource("3_collection")]
+[node name="Book" parent="." instance=ExtResource("3_book")]
 unique_name_in_owner = true
 layout_mode = 1
 

@@ -19,7 +19,7 @@ static func stream(run_seed: int) -> RandomNumberGenerator:
 
 
 ## The ids of the legends in the pools of `schedule`'s areas that aren't in `collected`, each once,
-## in the order of the areas, which is the collection's.
+## in the order of the areas, as the Book of Legends has them.
 static func locked(schedule: AreaSchedule, collected: Array[StringName]) -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for area: AreaDef in schedule.areas():

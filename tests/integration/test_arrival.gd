@@ -64,7 +64,7 @@ func test_the_autopilot_reaches_the_finish_and_unlocks_a_legend() -> void:
 
 func test_with_every_legend_collected_the_book_is_full() -> void:
 	var save := SaveService.data()
-	for legend: Dictionary in CollectionScreen.disasters(Fixtures.schedule()):
+	for legend: Dictionary in BookScreen.disasters(Fixtures.schedule()):
 		save.unlock_disaster(legend["id"])
 	var before := save.disasters.duplicate(true)
 	watch_signals(EventBus)

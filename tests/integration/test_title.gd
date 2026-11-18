@@ -1,8 +1,9 @@
 extends GutTest
 ## The title screen in the game (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): the game starts on it,
-## Play starts a run, and the game-over screen's Title goes back to it, where the Atlas and the
-## collection show what the run found. Android's back button leaves each screen, and quits only
-## from the title (docs/M5.md L13). SaveService keeps the save in memory.
+## Play starts a run, and the game-over screen's Title goes back to it, where the Atlas and the Book
+## of Legends show what the run found. --collected fills the Book (ENDGAME_PLAN.md §5.7, §5.10).
+## Android's back button leaves a legend's page, then each screen, and quits only from the title
+## (docs/M5.md L13). SaveService keeps the save in memory, except where a test gives it a file.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const WrongTurnPilot := preload("res://tests/helpers/wrong_turn_pilot.gd")
@@ -11,6 +12,8 @@ const RUNNING := GameState.State.RUNNING
 const PAUSED := GameState.State.PAUSED
 const DISASTER := GameState.State.DISASTER
 const GAME_OVER := GameState.State.GAME_OVER
+const DIR := "user://save_tests"
+const FILE := DIR + "/collected.json"
 
 
 func before_each() -> void:
@@ -22,6 +25,9 @@ func before_each() -> void:
 func after_each() -> void:
 	GameState.quit_to_title()
 	SaveService.use_memory()
+	if FileAccess.file_exists(FILE):
+		DirAccess.remove_absolute(FILE)
+	DirAccess.remove_absolute(DIR)
 
 
 ## The main scene with no --play, which must not quit the tests on the back button.
@@ -35,14 +41,21 @@ static func _title(main: Node) -> TitleScreen:
 	return main.get_node("%Title")
 
 
-## The place of the disaster `id` among the collection's cards, which follow the pools: in the City,
-## not always the first (docs/POOLS.md V7).
-static func _card_of(main: Node, id: StringName) -> int:
-	var disasters := CollectionScreen.disasters(_title(main).schedule)
-	for k: int in disasters.size():
-		if disasters[k]["id"] == id:
-			return k
-	return -1
+## The Book's rows, once it is open.
+static func _rows(main: Node) -> Array[BookRow]:
+	var rows: Array[BookRow] = []
+	rows.assign(_title(main).get_node("%Book/%Grid").get_children())
+	return rows
+
+
+## The Book's first cell of the legend `id`, or null. The cells follow the pools: in the City, not
+## always the first (docs/POOLS.md V7).
+static func _cell_of(main: Node, id: StringName) -> BookCell:
+	for row: BookRow in _rows(main):
+		for cell: BookCell in row.cells():
+			if cell.legend["id"] == id:
+				return cell
+	return null
 
 
 ## The cars in World's Props layer, which y-sorts them with the props (docs/M5.md §5.6).
@@ -145,13 +158,13 @@ func test_title_after_game_over_then_play_starts_afresh() -> void:
 	assert_eq(_cars(main), 1, "one car")
 
 
-func test_the_atlas_and_the_collection_show_a_wrong_turn() -> void:
+func test_the_atlas_and_the_book_show_a_wrong_turn() -> void:
 	var main := _open()
 	MainScene.press_key(main, KEY_ENTER)
 	_to_game_over(main)
 	var distance := Hud.distance_text(GameState.distance)
 	var seen := (main.get_node("%Director") as DisasterDirector).disaster
-	var at := _card_of(main, seen.id)
+	var seen_id := seen.id
 	var seen_name := seen.display_name
 	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
 	var title := _title(main)
@@ -165,10 +178,14 @@ func test_the_atlas_and_the_collection_show_a_wrong_turn() -> void:
 	assert_eq((cards[1].get_node("%Title") as Label).text, AtlasScreen.UNKNOWN)
 	title.go_back()
 	(title.get_node("%DisastersButton") as Button).pressed.emit()
-	cards = title.get_node("%Collection/%Cards").get_children()
-	assert_eq((cards[at].get_node("%Title") as Label).text, seen_name, "the City's disaster")
+	assert_eq((title.get_node("%Book/%Heading") as Label).text, "Legends 1/15")
+	var cell := _cell_of(main, seen_id)
+	assert_eq((cell.get_node("%Name") as Label).text, seen_name, "the City's disaster")
+	assert_true(_rows(main)[0].cells().has(cell), "in the City's row")
+	cell.pressed.emit()
+	assert_eq((title.get_node("%Book/%PageName") as Label).text, seen_name)
 	assert_eq(
-		(cards[at].get_node("%Details") as Label).text,
+		(title.get_node("%Book/%Details") as Label).text,
 		"Seen once\nFirst: City, %s, 2 turns" % distance
 	)
 
@@ -199,6 +216,83 @@ func test_androids_back_button_in_each_state() -> void:
 	assert_true(title.visible)
 	assert_eq(_cars(main), 0)
 	assert_signal_emit_count(main, "quit_requested", 1)
+
+
+func test_androids_back_button_closes_a_legends_page_before_the_book() -> void:
+	var main := _open(["--seed=1", "--collected=city"])
+	watch_signals(main)
+	var title := _title(main)
+	(title.get_node("%DisastersButton") as Button).pressed.emit()
+	var book: BookScreen = title.get_node("%Book")
+	var cell := _rows(main)[0].cells()[0]
+	cell.pressed.emit()
+	assert_eq(book.open_cell(), cell, "its page")
+	_back(main)
+	assert_null(book.open_cell(), "the page closes")
+	assert_eq(title.open_screen(), book, "the Book stays open")
+	assert_true(cell.has_focus(), "on the legend's cell")
+	_back(main)
+	assert_null(title.open_screen(), "then the Book closes")
+	assert_true((title.get_node("%DisastersButton") as Button).has_focus())
+	assert_signal_not_emitted(main, "quit_requested")
+
+
+func test_collected_city_fills_and_seals_the_citys_row() -> void:
+	var main := _open(["--seed=1", "--collected=city"])
+	var title := _title(main)
+	(title.get_node("%DisastersButton") as Button).pressed.emit()
+	assert_eq((title.get_node("%Book/%Heading") as Label).text, "Legends 3/15")
+	var rows := _rows(main)
+	assert_eq(rows.size(), 5, "the five pools")
+	for k: int in rows.size():
+		assert_eq(rows[k].sealed, k == 0, "only the City's row is sealed: row %d" % k)
+		for cell: BookCell in rows[k].cells():
+			assert_eq(cell.found, k == 0, "%s found" % cell.legend["id"])
+	var cell := rows[0].cells()[0]
+	cell.pressed.emit()
+	assert_eq(
+		(title.get_node("%Book/%Details") as Label).text,
+		"Seen once\nFirst: City, %s, 0 turns" % Hud.distance_text(0.0)
+	)
+	assert_eq(GameState.state, TITLE, "with no run")
+
+
+func test_collected_all_fills_the_book() -> void:
+	var main := _open(["--seed=1", "--collected=all"])
+	var title := _title(main)
+	(title.get_node("%DisastersButton") as Button).pressed.emit()
+	assert_eq((title.get_node("%Book/%Heading") as Label).text, "Legends 15/15")
+	for row: BookRow in _rows(main):
+		assert_true(row.sealed, "every row is sealed")
+	var data := SaveService.data()
+	for area: AreaDef in title.schedule.areas():
+		for scene: PackedScene in area.disasters:
+			var entry: Dictionary = data.disasters[String(DisasterPicks.id_of(scene))]
+			assert_eq(entry["first_area"], String(area.id), "in its own area")
+
+
+func test_collected_writes_the_save_and_keeps_what_was_seen() -> void:
+	DirAccess.make_dir_recursive_absolute(DIR)
+	SaveService.use_file(FILE)
+	SaveService.data().record_disaster(&"mothman", &"rural", {"distance": 12.0, "turn_index": 3})
+	var main := _open(["--seed=1", "--collected=city"])
+	main.get_parent().free()
+	SaveService.use_file(FILE)
+	var seen := SaveService.data().seen_disasters()
+	assert_eq(seen.size(), 3, "read back: %s" % [seen])
+	for id: StringName in [&"phantom_bus", &"mothman", &"grim_reaper"]:
+		assert_has(seen, id, "read back")
+	var mothman: Dictionary = SaveService.data().disasters["mothman"]
+	assert_eq(mothman["first_area"], "rural", "a legend seen keeps its entry")
+	assert_eq(int(mothman["seen"]), 1, "seen once, not twice")
+
+
+func test_collected_with_no_legends_is_an_error_and_collects_none() -> void:
+	for id: String in ["moon", "coast", ""]:
+		var main := _open(["--seed=1", "--collected=" + id])
+		assert_push_error("--collected= needs all or an area with legends", id)
+		assert_eq(SaveService.data().seen_disasters().size(), 0, id)
+		main.get_parent().free()
 
 
 func test_the_back_button_does_not_quit_on_its_own() -> void:

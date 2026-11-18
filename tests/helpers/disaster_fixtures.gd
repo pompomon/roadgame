@@ -500,3 +500,29 @@ static func packed(id: StringName, display_name: String, fate := "", lore := "")
 	scene.pack(made)
 	made.free()
 	return scene
+
+
+## A scene of a legend with only its words and a figure, a white sprite of `size` px, which plays
+## nothing, for the screens that show legends apart from the game's pools, such as the Book
+## (ENDGAME_PLAN.md §5.10).
+static func packed_legend(
+	id: StringName, display_name: String, fate := "", lore := "", size := Vector2i(32, 32)
+) -> PackedScene:
+	const WORDS_LEGEND := preload("res://tests/helpers/words_legend.gd")
+	var made: Legend = WORDS_LEGEND.new()
+	made.id = id
+	made.display_name = display_name
+	made.fate = fate
+	made.lore = lore
+	var image := Image.create(size.x, size.y, false, Image.FORMAT_RGBA8)
+	image.fill(Color.WHITE)
+	var figure := Sprite2D.new()
+	figure.name = "Figure"
+	figure.texture = ImageTexture.create_from_image(image)
+	made.add_child(figure)
+	figure.owner = made
+	made.figure = figure
+	var scene := PackedScene.new()
+	scene.pack(made)
+	made.free()
+	return scene

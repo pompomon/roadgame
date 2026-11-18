@@ -1,14 +1,13 @@
 extends GutTest
 ## The title screen (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5) on its own: Play, the best run, and
-## the Atlas, the collection and the settings, each left for the title by its Back button or Esc.
+## the Atlas, the Book of Legends and the settings, each left for the title by its Back button or
+## Esc.
 ## SaveService keeps the save in memory.
 
 const TITLE_SCENE := preload("res://ui/title_screen.tscn")
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 ## Each screen, and the title's button that opens it.
-const SCREENS := {
-	"Atlas": "AtlasButton", "Collection": "DisastersButton", "Settings": "SettingsButton"
-}
+const SCREENS := {"Atlas": "AtlasButton", "Book": "DisastersButton", "Settings": "SettingsButton"}
 
 
 func before_each() -> void:
@@ -175,23 +174,24 @@ func test_the_title_page_fits_a_portrait_screen_with_each_start_area() -> void:
 
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings). Every
-	# disaster of the pools is seen, so that each card shows its lore (docs/M6.md S15).
+	# legend of the pools is seen, so that each cell shows its name and its still, and each page its
+	# fate and lore (docs/M6.md S15, ENDGAME_PLAN.md §5.10).
 	var data := SaveService.data()
 	var areas := {}
 	for id: StringName in [&"city", &"rural", &"meadows", &"village", &"desert", &"coast"]:
 		areas[id] = {"distance": 9999.9, "turns": 999}
 	data.record_run({"areas": areas, "distance": 9999.9, "turn_index": 999})
 	var title := _title()
-	for disaster: Dictionary in CollectionScreen.disasters(title.schedule):
+	for disaster: Dictionary in BookScreen.disasters(title.schedule):
 		for _seen: int in 5:
 			data.record_disaster(
 				disaster["id"], &"meadows", {"distance": 9999.9, "turn_index": 999}
 			)
 	title.open()
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
-	# The collection's cards may run below the screen, as its scroll scrolls to them (S16).
-	var cards: Control = title.get_node("%Collection/%Cards")
-	var scroll: ScrollContainer = cards.get_parent()
+	# The Book's rows may run below the screen, as its scroll scrolls to them (S16).
+	var grid: Control = title.get_node("%Book/%Grid")
+	var scroll: ScrollContainer = title.get_node("%Book/%Scroll")
 	for button: String in ["", "AtlasButton", "DisastersButton", "SettingsButton"]:
 		if button != "":
 			_button(title, button).pressed.emit()
@@ -206,9 +206,29 @@ func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 		title.go_back()
 	_button(title, "DisastersButton").pressed.emit()
 	await wait_process_frames(2)
-	var last: Control = cards.get_child(cards.get_child_count() - 1)
+	var cells: Array[BookCell] = []
+	for row: BookRow in grid.get_children():
+		cells.append_array(row.cells())
+	assert_eq(cells.size(), 15, "five areas' pools of three")
+	for cell: BookCell in cells:
+		var art := (cell.get_node("%Art") as Control).get_global_rect()
+		var still := cell.still().get_global_transform() * cell.still().get_rect()
+		assert_true(art.encloses(still), "%s: its still, whole in %s" % [cell.legend["id"], art])
+	var last := cells[-1]
 	scroll.ensure_control_visible(last)
 	await wait_process_frames(2)
 	assert_true(
-		scroll.get_global_rect().encloses(last.get_global_rect()), "the last card scrolls in"
+		scroll.get_global_rect().encloses(last.get_global_rect()), "the last cell scrolls in"
 	)
+	# Each page, with the longest words, fits the screen without a scroll.
+	var page: Control = title.get_node("%Book/%Page")
+	for cell: BookCell in cells:
+		cell.pressed.emit()
+		await wait_process_frames(2)
+		assert_lte(page.size.y, scroll.size.y, "%s: its page fits" % cell.legend["id"])
+		for control: Control in page.find_children("*", "Control", true, false):
+			if control.is_visible_in_tree():
+				var rect := control.get_global_rect()
+				var fits := rect.position.x >= bounds.position.x and rect.end.x <= bounds.end.x
+				assert_true(fits, "%s: %s at %s" % [cell.legend["id"], control.name, rect])
+		assert_true(title.go_back(), "back to the grid")

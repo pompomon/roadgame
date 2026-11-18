@@ -21,8 +21,8 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# The Web build has no system fonts to fall back on: a glyph missing from the default
 	# font shows as a box. The HUD, the game-over screen and the title's screens (M5.5) also show
 	# numbers, the areas' and the disasters' names, the disasters' fates and lore (docs/M6.md S8,
-	# S12), the title's start area in debug builds (docs/ZONE_SELECT.md Z8), and messages they keep
-	# in constants.
+	# S12), the Book's initials of the names (ENDGAME_PLAN.md §5.10), the title's start area in debug
+	# builds (docs/ZONE_SELECT.md Z8), and messages they keep in constants.
 	var main := _main()
 	var shown: Array[Control] = []
 	shown.append_array(main.find_children("*", "Label", true, false))
@@ -33,7 +33,8 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	texts.append(Hud.TUTORIAL_BANNER % Tuning.TUTORIAL_STREAK)
 	texts.append(Hud.STREAK_TEXT % [Tuning.TUTORIAL_STREAK, Tuning.TUTORIAL_STREAK])
 	texts.append_array(GameOver.END_MESSAGES.values())
-	texts.append_array([AtlasScreen.UNKNOWN, AtlasScreen.NOT_REACHED, CollectionScreen.NOT_SEEN])
+	texts.append_array([AtlasScreen.UNKNOWN, AtlasScreen.NOT_REACHED])
+	texts.append_array([BookScreen.NOT_SEEN, BookScreen.UNLOCKED])
 	texts.append_array(SettingsScreen.ORIENTATION_NAMES)
 	texts.append(AtlasScreen.best_text({"distance": 1.0, "turns": 1}))
 	texts.append(AtlasScreen.area_text(SaveData.ATLAS_ENTRY))
@@ -44,9 +45,12 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 		texts.append(TitleScreen.START_TEXT % entry.area.display_name)
 		for seen: int in [1, 2]:
 			var first := {"seen": seen, "first_distance": 1.0, "first_turns": 1}
-			texts.append(CollectionScreen.seen_text(first, entry.area))
-	for disaster: Dictionary in CollectionScreen.disasters(schedule):
-		texts.append_array([disaster["name"], disaster["lore"]])
+			texts.append(BookScreen.seen_text(first, entry.area))
+	var legends := BookScreen.disasters(schedule)
+	texts.append(BookScreen.HEADING % [legends.size(), legends.size()])
+	for legend: Dictionary in legends:
+		var display: String = legend["name"]
+		texts.append_array([display, BookScreen.initials(display), legend["fate"], legend["lore"]])
 	for scene: PackedScene in Disasters.scenes():
 		texts.append(Disasters.disaster(self, scene, null, null).fate)
 	var missing := ""

@@ -93,7 +93,7 @@ func ending_at(turns: int, p_finish: StringName) -> AreaSchedule:
 
 
 ## Each area of the schedule once, in the order a run reaches them: the Atlas's cards and the
-## disaster collection's order (IMPLEMENTATION_PLAN.md M5.5).
+## Book of Legends' rows (IMPLEMENTATION_PLAN.md M5.5, ENDGAME_PLAN.md §5.10).
 func areas() -> Array[AreaDef]:
 	var found: Array[AreaDef] = []
 	for entry: AreaScheduleEntry in entries:

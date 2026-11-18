@@ -1,13 +1,14 @@
 class_name TitleScreen
 extends Control
-## The title screen (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): Play, and the Atlas, the disaster
-## collection and the settings, each a screen of its own with a Back button. The game starts on it,
-## and the game-over screen's Title button comes back to it. Esc, and Android's back button through
-## main.gd, leave a screen for the title (docs/M5.md L13). On the Web, the tap on Play is also the
-## first gesture, which lets the game start its sound (M7.3). In debug builds, the Start button
-## steps through the schedule's areas, to choose the area that Play starts the run in, for checks
-## on a phone (docs/ZONE_SELECT.md Z1): a button, as a dropdown's popup would let Android's back
-## button quit the game (Z7).
+## The title screen (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): Play, and the Atlas, the Book of
+## Legends (ENDGAME_PLAN.md §5.10) and the settings, each a screen of its own with a Back button.
+## The game starts on it, and the game-over screen's Title button comes back to it. Esc, and
+## Android's back button through main.gd, leave a screen for the title (docs/M5.md L13), or first a
+## page that it shows, such as a legend's in the Book. On the Web, the tap on Play is also the first
+## gesture, which lets the game start its sound (M7.3). In debug builds, the Start button steps
+## through the schedule's areas, to choose the area that Play starts the run in, for checks on a
+## phone (docs/ZONE_SELECT.md Z1): a button, as a dropdown's popup would let Android's back button
+## quit the game (Z7).
 
 ## Play was pressed.
 signal play_requested
@@ -15,7 +16,7 @@ signal play_requested
 ## The Start button's text, with the area's name.
 const START_TEXT := "Start in: %s"
 
-## The game's schedule: the Atlas and the collection show its areas and disasters, and the Start
+## The game's schedule: the Atlas and the Book show its areas and legends, and the Start
 ## button steps through its areas.
 var schedule: AreaSchedule
 ## Whether the title shows the Start button: in debug builds only, like the game-over screen's seed
@@ -33,7 +34,7 @@ var _buttons: Dictionary[MenuScreen, Button] = {}
 @onready var _play: Button = %Play
 @onready var _start: Button = %StartArea
 @onready var _atlas: AtlasScreen = %Atlas
-@onready var _collection: CollectionScreen = %Collection
+@onready var _book: BookScreen = %Book
 @onready var _settings: SettingsScreen = %Settings
 @onready var _atlas_button: Button = %AtlasButton
 @onready var _disasters_button: Button = %DisastersButton
@@ -44,7 +45,7 @@ func _ready() -> void:
 	_play.pressed.connect(_on_play_pressed)
 	_start.pressed.connect(_on_start_pressed)
 	_add_screen(_atlas, _atlas_button, _open_atlas)
-	_add_screen(_collection, _disasters_button, _open_collection)
+	_add_screen(_book, _disasters_button, _open_book)
 	_add_screen(_settings, _settings_button, _open_settings)
 
 
@@ -72,11 +73,15 @@ func close() -> void:
 	hide()
 
 
-## Leaves the open screen for the title. Returns false if none was open.
+## Leaves the open screen's page for the screen, or the screen for the title. Returns false if no
+## screen was open.
 func go_back() -> bool:
-	var screen := _close_screen()
+	var screen := open_screen()
 	if screen == null:
 		return false
+	if screen.close_page():
+		return true
+	_close_screen()
 	_main_page.show()
 	_buttons[screen].grab_focus()
 	return true
@@ -109,9 +114,9 @@ func _open_atlas() -> void:
 	_atlas.open(SaveService.data(), schedule)
 
 
-func _open_collection() -> void:
+func _open_book() -> void:
 	_main_page.hide()
-	_collection.open(SaveService.data(), schedule)
+	_book.open(SaveService.data(), schedule)
 
 
 func _open_settings() -> void:
