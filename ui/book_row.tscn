@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://ui/book_row.gd" id="1_row"]
 
 [node name="BookRow" type="HBoxContainer"]
+focus_mode = 3
 theme_override_constants/separation = 4
 alignment = 1
 script = ExtResource("1_row")

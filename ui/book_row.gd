@@ -2,7 +2,8 @@ class_name BookRow
 extends HBoxContainer
 ## A row of the Book of Legends (ENDGAME_PLAN.md §5.10): an area's seal, then a cell for each slot
 ## of its pool. The seal, an eight-pointed star of two squares, takes the area's colour once every
-## legend of the row is found, and is a silhouette until then.
+## legend of the row is found, and is a silhouette until then. Only a screen reader's focus stops
+## on the row, which BookScreen names.
 
 ## Whether every legend of the row is found.
 var sealed := false

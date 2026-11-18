@@ -9,14 +9,21 @@ extends MenuScreen
 ## are all collected has a seal in its area's colour (BookRow). Tapping a legend collected opens its
 ## page: how often it was seen, and where and how far into a run first (docs/M6.md S12), its fate
 ## and its lore; a legend unlocked and not seen yet has its lore, but not how it ends a run. Back,
-## Esc and Android's back button close the page before the Book. Like the HUD, its text uses only
-## the font's glyphs. A glow's still adds no more light than its ground leaves below white: its
-## cell's, or on its page the backdrop's (docs/M6.md S10).
+## Esc and Android's back button close the page before the Book. A drag scrolls the Book wherever
+## it starts, on a cell too, once it goes further than the scroll's deadzone, so that a tap that
+## wobbles less still opens a page. A screen reader reads each row as its area and how many of its
+## legends are found (ROW_NAME), and reaches it though its cells are all silhouettes. Like the HUD,
+## its text uses only the font's glyphs. A glow's still adds no more light than its ground leaves
+## below white: its cell's, or on its page the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
 const CELL_SCENE := preload("res://ui/book_cell.tscn")
 ## Over the grid: the legends collected, of the pools' legends.
 const HEADING := "Legends %d/%d"
+## A row's name for a screen reader: its area's, then how many of its legends are found, of all.
+const ROW_NAME := "%s: %d of %d legends found"
+## After ROW_NAME, once the row's seal is earned.
+const ROW_SEALED := ", sealed"
 ## Under the name of a legend that an arrival unlocked, before a run meets it.
 const NOT_SEEN := "Not seen yet"
 ## Its page's words.
@@ -64,7 +71,7 @@ func open(data: SaveData, schedule: AreaSchedule) -> void:
 	_heading.text = HEADING % [count, words.size()]
 	for area: AreaDef in schedule.areas():
 		var row: BookRow = null
-		var sealed := true
+		var found_count := 0
 		for scene: PackedScene in area.disasters:
 			if not words.has(scene):
 				continue
@@ -74,9 +81,15 @@ func open(data: SaveData, schedule: AreaSchedule) -> void:
 			var cell: BookCell = CELL_SCENE.instantiate()
 			row.add_child(cell)
 			_show_cell(cell, scene, words[scene], data, schedule)
-			sealed = sealed and cell.found
+			if cell.found:
+				found_count += 1
 		if row != null:
+			var cells := row.cells().size()
+			var sealed := found_count == cells
 			row.seal(area.id_color if sealed else SILHOUETTE, sealed)
+			row.accessibility_name = (
+				ROW_NAME % [area.display_name, found_count, cells] + (ROW_SEALED if sealed else "")
+			)
 	show()
 	_back.grab_focus()
 

@@ -3,8 +3,9 @@ extends GutTest
 ## cell for each slot, "Legends n/N", a legend's still and name once it is found, or its silhouette
 ## and its name's initials, a seal on each row whose legends are all found, and a found legend's
 ## page: how often, where and how far into a run it was first seen (docs/M6.md S12), its fate and
-## its lore. The pools hold test legends, so that a change to the game's leaves these tests alone
-## (S15), except where a test reads the game's.
+## its lore; how a finger's drag and tap reach the Book, and what a screen reader reads. The pools
+## hold test legends, so that a change to the game's leaves these tests alone (S15), except where a
+## test reads the game's.
 
 const BOOK_SCENE := preload("res://ui/book_screen.tscn")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
@@ -97,6 +98,14 @@ static func _cell(book: BookScreen, id: StringName) -> BookCell:
 	return null
 
 
+## Each row's name for a screen reader.
+static func _row_names(book: BookScreen) -> Array[String]:
+	var names: Array[String] = []
+	for row: BookRow in _rows(book):
+		names.append(row.accessibility_name)
+	return names
+
+
 ## A cell's name and note, "" when it shows none.
 static func _text(cell: BookCell) -> Array[String]:
 	var note: Label = cell.get_node("%Note")
@@ -127,6 +136,48 @@ static func _lit(still: LegendStill, ground: Color) -> float:
 ## Stats as GameState.stats() gives them, `distance` tiles and `turns` turns into a run.
 static func _stats(distance: float, turns: int) -> Dictionary:
 	return {"distance": distance, "turn_index": turns}
+
+
+## A finger that touches the middle of `cell`, moves by each of `moves` and lifts, all in one frame.
+## Android sends each touch and move as Input's emulated mouse event first, then as itself.
+static func _finger(cell: Control, moves: Array[Vector2]) -> void:
+	var view := cell.get_viewport()
+	var at := cell.get_global_rect().get_center()
+	view.push_input(_mouse_button(at, true), true)
+	view.push_input(_touch(at, true), true)
+	for move: Vector2 in moves:
+		at += move
+		var motion := InputEventMouseMotion.new()
+		motion.device = InputEvent.DEVICE_ID_EMULATION
+		motion.position = at
+		motion.global_position = at
+		motion.relative = move
+		motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+		view.push_input(motion, true)
+		var drag := InputEventScreenDrag.new()
+		drag.position = at
+		drag.relative = move
+		view.push_input(drag, true)
+	view.push_input(_mouse_button(at, false), true)
+	view.push_input(_touch(at, false), true)
+
+
+static func _mouse_button(at: Vector2, pressed: bool) -> InputEventMouseButton:
+	var button := InputEventMouseButton.new()
+	button.device = InputEvent.DEVICE_ID_EMULATION
+	button.button_index = MOUSE_BUTTON_LEFT
+	button.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+	button.pressed = pressed
+	button.position = at
+	button.global_position = at
+	return button
+
+
+static func _touch(at: Vector2, pressed: bool) -> InputEventScreenTouch:
+	var touch := InputEventScreenTouch.new()
+	touch.pressed = pressed
+	touch.position = at
+	return touch
 
 
 func test_the_legends_in_the_order_a_run_meets_them_each_once_with_their_words() -> void:
@@ -303,23 +354,56 @@ func test_a_row_whose_legends_are_all_found_has_a_seal_in_its_areas_colour() -> 
 	assert_eq(_rows(book)[1].seal_color(), Color.DARK_GREEN)
 
 
+## What a screen reader reads on a row: its area, how many of its legends are found and whether
+## its seal is earned. Only a screen reader's focus stops on it, so that it reaches a row of
+## silhouettes, which take no focus.
+func test_a_row_names_its_area_and_how_many_of_its_legends_are_found() -> void:
+	var data := SaveData.new()
+	var book := _book()
+	var schedule := _schedule()
+	book.open(data, schedule)
+	assert_eq(_row_names(book), ["Town: 0 of 1 legends found", "Farm: 0 of 4 legends found"])
+	for row: BookRow in _rows(book):
+		assert_eq(row.focus_mode, Control.FOCUS_ACCESSIBILITY)
+	data.record_disaster(&"ghost", &"town", _stats(1.0, 1))
+	data.unlock_disaster(&"black_dog")
+	book.open(data, schedule)
+	assert_eq(
+		_row_names(book),
+		["Town: 1 of 1 legends found, sealed", "Farm: 2 of 4 legends found"],
+		"seen or unlocked"
+	)
+
+
 func test_each_still_fits_its_cell_whole_with_square_pixels() -> void:
 	# The wraith's 96 px are too many for a cell: it shows at half its size. The imp's 10 px are
-	# few, and it keeps LegendStill's whole scale up.
+	# few, and it keeps LegendStill's whole scale up. The horseman, unlocked and not seen yet, has
+	# a name of two lines over a note: its band is taller than the scene leaves room for, and its
+	# 64 px still stays whole above it.
 	var schedule := _schedule()
-	var imp: Array[PackedScene] = [Disasters.packed_legend(&"imp", "Imp", "", "", Vector2i(10, 10))]
-	schedule.entries.append(_entry(&"moor", "Moor", Color.DARK_ORANGE, imp))
+	var moor: Array[PackedScene] = [
+		Disasters.packed_legend(&"imp", "Imp", "", "", Vector2i(10, 10)),
+		Disasters.packed_legend(&"horseman", "Headless Horseman", "", "", Vector2i(64, 64)),
+	]
+	schedule.entries.append(_entry(&"moor", "Moor", Color.DARK_ORANGE, moor))
 	var data := SaveData.new()
 	data.record_disaster(&"wraith", &"farm", _stats(1.0, 1))
+	data.unlock_disaster(&"horseman")
 	var book := _book()
 	book.open(data, schedule)
 	await wait_process_frames(2)
 	for cell: BookCell in _cells(book):
 		var still := cell.still()
 		var art := (cell.get_node("%Art") as Control).get_global_rect()
+		var band := (cell.get_node("%Band") as Control).get_global_rect()
 		var drawn := still.get_global_transform() * still.get_rect()
 		assert_gt(art.get_area(), 0.0, "%s: laid out" % still.id)
 		assert_true(art.encloses(drawn), "%s: %s in %s" % [still.id, drawn, art])
+		assert_false(band.intersects(drawn), "%s: %s clear of %s" % [still.id, drawn, band])
+	var horseman := _cell(book, &"horseman")
+	assert_eq((horseman.get_node("%Name") as Label).get_line_count(), 2)
+	assert_eq(_text(horseman)[1], BookScreen.NOT_SEEN)
+	assert_eq(horseman.still().scale, Vector2.ONE, "whole")
 	assert_eq(_cell(book, &"wraith").still().scale, Vector2.ONE * 0.5)
 	assert_eq(_cell(book, &"ghost").still().scale, Vector2.ONE)
 	assert_eq(_cell(book, &"imp").still().scale, Vector2.ONE * 3.0)
@@ -415,6 +499,43 @@ func test_opening_again_replaces_the_rows_and_closes_the_page() -> void:
 	assert_no_new_orphans()
 
 
+## A drag scrolls the Book wherever it starts: on a found legend's cell, which it doesn't open, and
+## on a silhouette's. The Farm's four cells are wider than the Book, which scrolls them sideways.
+func test_a_drag_from_any_cell_scrolls_the_book_and_opens_no_page() -> void:
+	var data := SaveData.new()
+	data.record_disaster(&"ghoul", &"farm", _stats(1.0, 1))
+	var book := _book()
+	book.open(data, _schedule())
+	await wait_process_frames(2)
+	var scroll: ScrollContainer = book.get_node("%Scroll")
+	var bar := scroll.get_h_scroll_bar()
+	assert_gt(bar.max_value - bar.page, 64.0, "wider than the Book")
+	var left: Array[Vector2] = [Vector2(-16, 0), Vector2(-16, 0), Vector2(-16, 0), Vector2(-16, 0)]
+	_finger(_cell(book, &"ghoul"), left)
+	assert_eq(scroll.scroll_horizontal, 64, "from a found legend's cell")
+	assert_null(book.open_cell(), "no page")
+	await wait_process_frames(2)
+	var right: Array[Vector2] = [Vector2(16, 0), Vector2(16, 0), Vector2(16, 0), Vector2(16, 0)]
+	_finger(_cell(book, &"black_dog"), right)
+	assert_eq(scroll.scroll_horizontal, 0, "from a silhouette's")
+	assert_null(book.open_cell())
+
+
+## A finger wobbles as it taps. Within the scroll's deadzone, the tap still opens the page, and the
+## Book doesn't scroll.
+func test_a_tap_that_wobbles_opens_the_page() -> void:
+	var data := SaveData.new()
+	data.record_disaster(&"ghoul", &"farm", _stats(1.0, 1))
+	var book := _book()
+	book.open(data, _schedule())
+	await wait_process_frames(2)
+	var ghoul := _cell(book, &"ghoul")
+	var wobble: Array[Vector2] = [Vector2(-5, 3), Vector2(-2, -6), Vector2(4, 2)]
+	_finger(ghoul, wobble)
+	assert_eq(book.open_cell(), ghoul)
+	assert_eq((book.get_node("%Scroll") as ScrollContainer).scroll_horizontal, 0)
+
+
 func test_initials_keep_each_words_first_letter_and_whatever_is_no_letter() -> void:
 	assert_eq(BookScreen.initials("Phantom Bus"), "P______ B__")
 	assert_eq(BookScreen.initials("Baba Yaga's Hut"), "B___ Y___'_ H__")
@@ -453,6 +574,27 @@ func test_a_word_too_wide_for_its_cell_breaks_after_a_hyphen() -> void:
 			if "\n" in label.text:
 				broken.append(label.text)
 	assert_eq(broken, ["Will-o'-the-\nWisp"])
+
+
+## The cell's button shows no text of its own. A screen reader reads the cell's words: its name,
+## whole where the label breaks it, or its initials, and its note.
+func test_a_cell_reads_its_words_to_a_screen_reader() -> void:
+	var schedule := _schedule()
+	var wisp: Array[PackedScene] = [Disasters.packed_legend(&"wisp", "Will-o'-the-Wisp")]
+	schedule.entries.append(_entry(&"moor", "Moor", Color.DARK_ORANGE, wisp))
+	var data := SaveData.new()
+	data.record_disaster(&"ghost", &"town", _stats(1.0, 1))
+	data.unlock_disaster(&"ghoul")
+	data.record_disaster(&"wisp", &"moor", _stats(1.0, 1))
+	var book := _book()
+	book.open(data, schedule)
+	await wait_process_frames(2)
+	assert_eq(_cell(book, &"ghost").accessibility_name, "Ghost")
+	assert_eq(_cell(book, &"ghoul").accessibility_name, "Ghoul, " + BookScreen.NOT_SEEN)
+	assert_eq(_cell(book, &"black_dog").accessibility_name, "B____ D__")
+	var wisp_cell := _cell(book, &"wisp")
+	assert_eq(_text(wisp_cell)[0], "Will-o'-the-\nWisp", "broken in its label")
+	assert_eq(wisp_cell.accessibility_name, "Will-o'-the-Wisp")
 
 
 func test_a_save_that_recorded_a_retired_disaster_loads_and_shows_only_the_pools() -> void:

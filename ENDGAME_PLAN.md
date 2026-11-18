@@ -540,7 +540,7 @@ The collection becomes the Book. `ui/book_screen.gd` reads the game's pools, wha
 - a legend not found: its silhouette, the still in `SILHOUETTE` (`collection_screen.gd`:16), and its name's initials, "P______ B__";
 - an area whose legends are all found: a seal beside its row, a shape in the area's colour.
 
-At 360 × 640, five rows of three 96-pixel cells fit under the title, with the count. A word of a name too wide for its cell, as "Will-o'-the-Wisp" is, breaks after a hyphen, which an exported build's labels don't do themselves (W25). The silhouette and the initials hint without telling: an unfinished set pulls (the Zeigarnik effect), and Hades' Codex shows how a book that fills as the player plays brings them back for its last pages.
+At 360 × 640, five rows of three 96-pixel cells fit under the title, with the count. A word of a name too wide for its cell, as "Will-o'-the-Wisp" is, breaks after a hyphen, which an exported build's labels don't do themselves (W25). A band taller than the cell leaves room for, a name of two lines over "Not seen yet", raises the still's area to its top, so that the still stays whole. A row wider than the screen scrolls, and a drag that starts on a cell scrolls it too, once it goes 8 pixels, the scroll's deadzone, so that a tap that wobbles less still opens the page. A screen reader, which Godot 4.7.2 has on the desktop builds only, reads a cell's words and a row's area with its legends found ("Meadows: 2 of 3 legends found"). The silhouette and the initials hint without telling: an unfinished set pulls (the Zeigarnik effect), and Hades' Codex shows how a book that fills as the player plays brings them back for its last pages.
 
 ### 5.11 Departures (PR 7; Q11, W22; E10)
 
