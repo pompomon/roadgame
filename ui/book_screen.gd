@@ -36,7 +36,8 @@ const UNLOCKED := "Unlocked by an arrival\nNot seen yet"
 ## contrast of 3:1 or more with a silhouette's cell and with the title's background (ENDGAME_PLAN.md
 ## W26).
 const SILHOUETTE := Color(0.5, 0.5, 0.55)
-## What draws a silhouette: its still's shape, flat in its `fill`.
+## What draws a silhouette: its still's shape, flat in its `fill`, each texel that the still covers
+## at all drawn whole.
 const SILHOUETTE_SHADER := preload("res://ui/silhouette.gdshader")
 ## How much larger than the world a page shows its legend's still.
 const PAGE_ZOOM := 2.0
@@ -209,7 +210,7 @@ static func _find_area(schedule: AreaSchedule, id: String) -> AreaDef:
 
 ## The still of the legend of `scene`, or null, with an error, if it has none. It draws in the
 ## order of the Book's controls, not the world's z; a legend not `found` draws as its silhouette:
-## its shape, flat in SILHOUETTE, without its colours or its glow's blend.
+## its shape, flat in SILHOUETTE, without its colours or its glow's blend, so a glow's is a disc.
 static func _still(scene: PackedScene, found: bool) -> LegendStill:
 	var still := LegendStill.of(scene)
 	if still != null:
