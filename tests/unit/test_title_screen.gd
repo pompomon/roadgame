@@ -128,22 +128,42 @@ func test_a_glow_on_a_legends_page_adds_no_more_light_than_the_background_leaves
 	assert_almost_eq(maxf(lit.r, maxf(lit.g, lit.b)), 1.0, 1e-5, "as bright as it can be")
 
 
-func test_the_start_button_shows_in_debug_builds_only() -> void:
+func test_the_start_button_offers_every_area_in_debug_builds_only() -> void:
 	# docs/ZONE_SELECT.md Z4: GUT runs a debug build, so the release default is a device check.
+	# Other builds offer the City alone until a run discovers a later area (ENDGAME_PLAN.md §5.11).
 	var title := _title()
-	assert_eq(title.area_choice, OS.is_debug_build())
+	assert_eq(title.every_area, OS.is_debug_build())
 	var start := _button(title, "StartArea")
-	for choice: bool in [true, false]:
-		title.area_choice = choice
+	for every: bool in [true, false]:
+		title.every_area = every
 		title.open()
-		assert_eq(start.visible, choice)
+		assert_eq(start.visible, every)
 		assert_eq(start.text, "Start in: City", "the schedule's first area")
 		assert_true(_button(title, "Play").has_focus())
 
 
+func test_other_builds_offer_the_areas_discovered_but_a_home_stretch() -> void:
+	# ENDGAME_PLAN.md §5.11: the City, then each later area that a run discovered, in the road's
+	# order, but the Coast, a home stretch with no junction to play. A choice that isn't one of
+	# them gives way to the City.
+	var title := _title()
+	title.every_area = false
+	SaveService.data().record_run({"areas": {&"desert": {}, &"coast": {}, &"rural": {}}})
+	title.start_area = title.schedule.areas()[3]
+	title.open()
+	var start := _button(title, "StartArea")
+	assert_true(start.visible)
+	var texts: Array[String] = [start.text]
+	for _press: int in 3:
+		start.pressed.emit()
+		texts.append(start.text)
+	assert_eq(texts, ["Start in: City", "Start in: Rural", "Start in: Desert", "Start in: City"])
+	assert_true(_button(title, "Play").has_focus())
+
+
 func test_the_start_button_steps_through_the_areas_and_open_keeps_the_last() -> void:
 	var title := _title()
-	title.area_choice = true
+	title.every_area = true
 	title.open()
 	var start := _button(title, "StartArea")
 	watch_signals(title)
@@ -177,7 +197,7 @@ func test_the_title_page_fits_a_portrait_screen_with_each_start_area() -> void:
 	# The Start button keeps its width as it steps, so that each tap lands on it (Z9).
 	SaveService.data().record_run({"distance": 9999.9, "turn_index": 999})
 	var title := _title()
-	title.area_choice = true
+	title.every_area = true
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
 	var start := _button(title, "StartArea")
 	var widths: Array[float] = []

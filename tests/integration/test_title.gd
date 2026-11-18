@@ -190,6 +190,40 @@ func test_the_atlas_and_the_book_show_a_wrong_turn() -> void:
 	)
 
 
+func test_departures_offer_only_the_areas_discovered() -> void:
+	# ENDGAME_PLAN.md §5.11, W22: other builds than debug offer the City alone, until a run discovers
+	# a later area; the Coast is a home stretch, with no junction. A run from the Desert then records
+	# the Desert's best and its legend, but no overall best.
+	var main := _open()
+	var title := _title(main)
+	title.every_area = false
+	title.open()
+	var start: Button = title.get_node("%StartArea")
+	assert_false(start.visible, "the City alone")
+	var areas := {&"rural": {}, &"desert": {}, &"coast": {}}
+	SaveService.data().record_run({"areas": areas, "whole_road": false})
+	title.open()
+	assert_true(start.visible)
+	var texts: Array[String] = []
+	for _press: int in 3:
+		start.pressed.emit()
+		texts.append(start.text)
+	assert_eq(texts, ["Start in: Rural", "Start in: Desert", "Start in: City"])
+	start.pressed.emit()
+	start.pressed.emit()
+	MainScene.press_key(main, KEY_ENTER)
+	assert_eq(MainScene.car(main).sim.area.id, &"desert")
+	assert_false(GameState.whole_road)
+	_to_game_over(main, false)
+	var save := SaveService.data()
+	assert_eq(save.best, SaveData.BEST)
+	assert_gt(save.atlas["desert"]["best_distance"], 0.0)
+	assert_eq(save.seen_disasters().size(), 1, "the Desert's legend")
+	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
+	assert_eq((title.get_node("%Best") as Label).text, "", "no overall best")
+	assert_eq(start.text, "Start in: Desert", "the last choice")
+
+
 func test_androids_back_button_in_each_state() -> void:
 	var main := _open()
 	watch_signals(main)

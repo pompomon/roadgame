@@ -8,8 +8,9 @@ extends Node
 ## --seed=<int> picks the road (D8); --autopilot drives by itself (the CI smoke run), and implies
 ## --play; --area=<id> starts every run in that area, for tests and manual checks (docs/M4.md K10).
 ## --hour=<h> starts every zone's clock at hour h instead of the morning (docs/DAYNIGHT.md §5.9).
-## A phone can't take them (docs/M4.md P4), so in debug builds the title's Start button chooses the
-## area that Play starts in instead, which --area presets (docs/ZONE_SELECT.md Z1, Z6). --tutorial
+## A phone can't take them (docs/M4.md P4), so the title's Start button chooses the area that Play
+## starts in instead, which --area presets: in debug builds any area (docs/ZONE_SELECT.md Z1, Z6),
+## and in others the first or one that the player has discovered (ENDGAME_PLAN.md §5.11). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
 ## that many turns, at most its own, with the areas before it, and --home drives the Road Home, for
@@ -187,7 +188,7 @@ func _start_run(run_seed: int) -> void:
 	# The disasters that the player has seen weigh less in each area's pick (docs/POOLS.md V2).
 	_collected = SaveService.data().seen_disasters()
 	_director.start_run(run_seed, _collected)
-	GameState.start_run(run_seed, tutorial)
+	GameState.start_run(run_seed, tutorial, _drives_whole_road())
 	# Every run starts in an area too: the HUD names it, and M5's music starts with it (M4.3).
 	_on_area_changed(_sim.area)
 	# A new run is a cut: it shows the morning, or --hour's light, at once (docs/DAYNIGHT.md §5.4).
@@ -216,15 +217,14 @@ func _to_title() -> void:
 	_show_title()
 
 
-## Play on the title screen: a run, as with --play. With the title's choice of area, it starts in
-## that area, as --area would start it, and so do its retries (docs/ZONE_SELECT.md Z6).
+## Play on the title screen: a run, as with --play, that starts in the title's choice of area, as
+## --area would start it, and so do its retries (docs/ZONE_SELECT.md Z6, ENDGAME_PLAN.md §5.11).
 func _play() -> void:
 	if GameState.state != GameState.State.TITLE:
 		push_error("main: Play is only allowed on the title screen")
 		return
 	_title.close()
-	if _title.area_choice:
-		_schedule = _run_schedule(_title.start_area.id)
+	_schedule = _run_schedule(_title.start_area.id)
 	_start_run(_parse_seed(args))
 
 
@@ -283,7 +283,7 @@ func _on_crashed(cause: StringName) -> void:
 ## unlocks a legend that the player hasn't collected, at random (§5.5). Then the scene (§5.8).
 func _on_arrived() -> void:
 	_end_run(CarSim.ARRIVAL)
-	if _drove_whole_road():
+	if GameState.whole_road:
 		var data := SaveService.data()
 		var id := LegendUnlock.pick(_whole_schedule, data.seen_disasters(), GameState.run_seed)
 		SaveService.record_arrival(_schedule.finish, GameState.stats(), id)
@@ -303,9 +303,9 @@ func _welcome() -> void:
 		_camera.arrive(pier.welcome_bounds)
 
 
-## Whether the run started in the route's first area: not a run from another area (ZS, and
-## Departures, ENDGAME_PLAN.md Q4).
-func _drove_whole_road() -> bool:
+## Whether the run starts in the route's first area: not a run from a later area, chosen with
+## --area or on the title (ZS, and Departures, ENDGAME_PLAN.md Q4, W22).
+func _drives_whole_road() -> bool:
 	return _schedule.entries[0].area == _whole_schedule.entries[0].area
 
 

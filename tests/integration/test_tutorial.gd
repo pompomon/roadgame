@@ -220,7 +220,7 @@ func test_only_a_run_that_starts_in_the_city_has_the_tutorial() -> void:
 		if chosen:
 			main = MainScene.open(self, ["--seed=1"], false)
 			var title: TitleScreen = main.get_node("%Title")
-			title.area_choice = true
+			title.every_area = true
 			title.start_area = title.schedule.areas()[1]
 			MainScene.press_key(main, KEY_ENTER)
 		else:

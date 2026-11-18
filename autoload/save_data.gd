@@ -151,7 +151,9 @@ func to_json() -> String:
 
 
 ## Records a finished run's GameState.stats(): the areas it reached, the distance and turns it made
-## in each, and its distance and turns overall.
+## in each, and its distance and turns overall, if it drove the whole road. A departure from a later
+## area sets no overall best (ENDGAME_PLAN.md W22). Stats without "whole_road" count as a whole
+## road's.
 func record_run(stats: Dictionary) -> void:
 	var areas: Dictionary = stats.get("areas", {})
 	for id: StringName in areas:
@@ -161,6 +163,8 @@ func record_run(stats: Dictionary) -> void:
 		entry["best_distance"] = maxf(entry["best_distance"], made.get("distance", 0.0))
 		entry["best_turns"] = maxi(entry["best_turns"], made.get("turns", 0))
 		atlas[String(id)] = entry
+	if not stats.get("whole_road", true):
+		return
 	best["distance"] = maxf(best["distance"], stats.get("distance", 0.0))
 	best["turns"] = maxi(best["turns"], stats.get("turn_index", 0))
 

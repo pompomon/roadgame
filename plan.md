@@ -23,7 +23,7 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 ## 2. Game Rules
 
 ### 2.1 Run flow
-1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7).
+1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7). The title also offers a **departure** from each later area that a run has discovered, but the Coast's home stretch: it counts for its areas and its legends, but sets no overall best and counts no arrival (§2.6, `ENDGAME_PLAN.md` §5.11).
 2. The car controls its speed automatically (§2.3). The player only steers.
 3. The road has straights and **junctions**. At each junction the player must take the next turn in the global pattern `L, R, L, R, …`. The first turn is always **Left**. A **decoy** junction doesn't offer that turn, only straight on and the other turn: there straight on is correct, and the turn waits for a later junction.
 4. Taking the wrong exit, or continuing straight through a junction that offers the turn (a "missed turn"), triggers a **disaster** and ends the run.
@@ -63,7 +63,7 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 
 ### 2.6 Meta-progression
 None that makes a run easier or harder. Persisted between runs:
-- **Atlas:** areas discovered, plus best distance and best turn count overall and for each area.
+- **Atlas:** areas discovered, plus best distance and best turn count overall and for each area. Only a run that drove the whole road, from the City, sets the overall bests; a departure from a later area sets its areas' (`ENDGAME_PLAN.md` W22).
 - **Book of Legends:** the disaster collection, each legend witnessed, with its area and run stats, in a row for each area with a pool. A legend not found yet shows as a silhouette with its name's initials, and an area whose legends are all found has a seal in its colour (`ENDGAME_PLAN.md` §5.10). A legend in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner.
 - **Arrivals:** for each finish, the runs that drove the whole road from its first area and arrived, the best time, and whether one never left the road. Each unlocks a legend of the road's pools not yet collected, each as likely: it joins the Book, "Not seen yet" until a run meets it, and weighs as seen in the picks (`ENDGAME_PLAN.md` §5.4, §5.5).
 - Settings (volume, orientation lock, haptics).

@@ -11,8 +11,8 @@ Goal: start a run in any area on a phone. Only `--area=<id>` (`docs/M4.md K10`) 
 - **Z1.** A phone can't choose an area: neither the APK nor the Web build takes user arguments such as `--area` (`docs/M4.md P4`). In debug builds, a Start button on the title chooses it (§5.1).
 - **Z2.** The world was built once, from the run's schedule: after `--area=village`, a City run from the title would draw the City's road with the Village's sheet and ground, and no props, with no error. `_ready` builds it from the whole schedule (§5.2).
 - **Z3.** `PropScatter` gave the rows below path tile 0 its schedule's first area, so a Desert run from the title would show City props behind the car. `bind()` takes the area from the bound road, `RoadGenerator.first_area()` (§5.3).
-- **Z4.** Players mustn't see it: a run starts in the City (`plan.md`:26). `area_choice := OS.is_debug_build()`, like the game-over seed (`docs/M3.md J19`): CI's debug APK shows the button; the Pages build and every release hide it.
-- **Z5.** The save records chosen runs in the bests, the Atlas and the collection, as it does `--area`'s. Kept (Q3): a debug build's save is the tester's own.
+- **Z4.** Players mustn't see it: a run starts in the City (`plan.md`:26). `area_choice := OS.is_debug_build()`, like the game-over seed (`docs/M3.md J19`): CI's debug APK shows the button; the Pages build and every release hide it. Since EG, every build shows it once the player has discovered an area after the City: there it offers those areas, but the Coast's home stretch, Departures. `every_area`, as `area_choice` is now named, still offers every area in debug builds (`ENDGAME_PLAN.md` Q11, §5.11).
+- **Z5.** The save records chosen runs in the bests, the Atlas and the collection, as it does `--area`'s. Kept (Q3): a debug build's save is the tester's own. Since EG, a run from a later area sets its areas' bests, but not the overall ones (`ENDGAME_PLAN.md` W22).
 - **Z6.** The choice must fit every path that starts a run: Play applies it, Retry keeps it, the title shows the last one, `--area` presets it, and `--play` and `--autopilot` never see it (§5.2). A chosen run with seed n draws `--seed=n --area=<id>`'s road, so it replays on a desktop.
 - **Z7.** A dropdown would let Android's back button quit the game: in Godot 4.7.2 back's go-back request skips the popup's window, which closes only on Escape, so `main.go_back()` quits from the title (`docs/M5.md L13`). Its 21.6 px items are too small to tap too. So the choice is a button that steps (Q1).
 - **Z8.** The text must use the font's glyphs, as the Web has no fallback font. "Start in: %s" is `TitleScreen.START_TEXT`, which the glyph test fills with each area's name. No arrows.
@@ -23,7 +23,7 @@ Goal: start a run in any area on a phone. Only `--area=<id>` (`docs/M4.md K10`) 
 No answers came, so the defaults apply.
 
 - **Q1.** The form: one button under Play that steps through the areas and wraps after the Desert. No screen, no popup (Z7, Z9).
-- **Q2.** The builds: debug only (Z4). Not the Pages build, with `?area=` read through `JavaScriptBridge` (§9), nor every build.
+- **Q2.** The builds: debug only (Z4). Not the Pages build, with `?area=` read through `JavaScriptBridge` (§9), nor every build. Since EG, every build offers the areas discovered, and debug builds every area (`ENDGAME_PLAN.md` Q11).
 - **Q3.** Record chosen runs in the save: yes (Z5).
 - **Q4.** Start before a set piece: no. `starting_at()` leaves out the set piece that leads in (§9).
 - **Q5.** Keep the choice after the game closes: no. While it runs, Retry and the title keep it.
