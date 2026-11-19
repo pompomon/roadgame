@@ -1,6 +1,6 @@
 # The End of the Road and the Book of Legends — Detailed Plan
 
-Status: approved with Q1–Q19's defaults (§3), as the owner merged its PR, #84, and built: PRs 1–13 pass their checks (§6), and §4.1's **Built** lines say where each differs from this plan. Agents landed PRs 1–3 (#101–#103). PRs 4–12 are open (#104–#112): #104 and #106 wait for the owner (`needs-owner`), #104 for its two Δs to E7 and #106 for its rows' labels, and agents land the others in order (§4.2, §7). PR 13 (#113) carries this final sync, and the owner lands it after the Fold4's checks (§6.4), then PR 14 · 2026-11-18 · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL, which has landed, and comes before M7.
+Status: approved with Q1–Q19's defaults (§3), as the owner merged its PR, #84, and built: PRs 1–13 pass their checks (§6), and §4.1's **Built** lines say where each differs from this plan. PRs 1–12 have landed (#101–#112): the owner landed #104, which approves its two Δs (E7, §5.8), and agents the others in order, #106 once the owner had approved it as it is, its rows with no visible labels (§4.2, §7). PR 13 (#113) carries this final sync, and the owner lands it after the Fold4's checks (§6.4), then PR 14 · 2026-11-19 · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL, which has landed, and comes before M7.
 
 The owner asked for options first: "Help me brainstorm the endgame for the roadgame repo. Provide 3 options on what should be the goal for the player and how to better gamify it. Follow the best practices in the industry and game design recommendations from Mark Rosewater." The brainstorm offered A, The End of the Road: a finish line, a win and a second quest; B, Legend Hunter: the collection as a book to complete; and C, Road Master: medals, a driver's grade and a daily road. It recommended B as the heart, A as the finish line, and C's daily road for later. Then the owner asked: "Create a PR with the detailed implementation plan for A and B, with the following adjustments - player unlocks a legend not only by failing, but also for a full road completion - a random legend from the pool of locked. I approve starting west for the reverse road run".
 
@@ -271,7 +271,7 @@ Expect: PR 2's counts, with PR 3's new scripts and tests; `autopilot: tile 165, 
 
 Branch `eg/4-arrival-scene`, from `eg/3-coast`. §5.8 designs it.
 
-**Built** as #104, open and `needs-owner` for its two Δs (§5.8): the stills stand over the sea past the pier's end, in the Book's grid, as the shore, about 448 pixels across, can't show whole in a view 360 wide (E7); and the arrival zooms out to 1 where its welcome, 338 pixels high, doesn't fit zoom 2's 320, as in a landscape window or on the Fold4's inner screen. `Pier.welcome(schedule, collected)` and `welcome_bounds`, `CameraRig.arrive()`, `arrival_zoom_for()` and `end_arrival()`, `WorldRenderer.set_piece_at()` and `LegendStill.strength()` (§4.3) are new, with eight more constants in `tuning.gd` (IP D11). A frame under `STILL_MIN_SIDE`, 30 pixels, is scaled up by a whole number, the Fairy Ring's by 3, and an hour that isn't finite is an error to `hold()`.
+**Built** as #104, landed by the owner as 8b55cb2, which approves its two Δs (§5.8): the stills stand over the sea past the pier's end, in the Book's grid, as the shore, about 448 pixels across, can't show whole in a view 360 wide (E7); and the arrival zooms out to 1 where its welcome, 338 pixels high, doesn't fit zoom 2's 320, as in a landscape window or on the Fold4's inner screen. `Pier.welcome(schedule, collected)` and `welcome_bounds`, `CameraRig.arrive()`, `arrival_zoom_for()` and `end_arrival()`, `WorldRenderer.set_piece_at()` and `LegendStill.strength()` (§4.3) are new, with eight more constants in `tuning.gd` (IP D11). A frame under `STILL_MIN_SIDE`, 30 pixels, is scaled up by a whole number, the Fairy Ring's by 3, and an hour that isn't finite is an error to `hold()`.
 
 | Area | Files |
 |---|---|
@@ -289,7 +289,7 @@ Branch `eg/4-arrival-scene`, from `eg/3-coast`. §5.8 designs it.
 
 Branch `eg/5-new-legend`, from `eg/4-arrival-scene`. §5.9 designs it.
 
-**Built** as #105, open: as planned, with `GOAL_LAST_LEGEND`, "Next: find the last legend still missing", and the signal `EventBus.new_legend_shown`; three more tests cover a sighting, a legend collected before the run, and a retry.
+**Built** as #105, landed as d5db644: as planned, with `GOAL_LAST_LEGEND`, "Next: find the last legend still missing", and the signal `EventBus.new_legend_shown`; three more tests cover a sighting, a legend collected before the run, and a retry.
 
 | Area | Files |
 |---|---|
@@ -303,7 +303,7 @@ Branch `eg/5-new-legend`, from `eg/4-arrival-scene`. §5.9 designs it.
 
 Branch `eg/6-book`, from `eg/5-new-legend`. §5.10 designs it.
 
-**Built** as #106, open and `needs-owner` until the owner chooses whether its rows get visible labels ([the options](https://github.com/pompomon/roadgame/pull/106#issuecomment-6970573638)). A cell and a row are scenes of their own, `BookCell`, with `break_hyphens()`, and `BookRow`, and a silhouette is `ui/silhouette.gdshader`'s flat grey. **Δ** A legend's page replaces the grid, where the plan had the collection's card, and an unlocked legend's has "Unlocked by an arrival", "Not seen yet" and its lore, but no fate. A glow's still adds no more light than its ground leaves below white (docs/M6.md S10): in a cell, the lightest centre of its styles, `BookCell.ground()`, and on a page, `BookScreen.backdrop`. The title's button keeps its label, "Disasters", `SaveService.collect()` serves `--collected`, and `MenuScreen.close_page()`, `Tuning.BOOK_SCROLL_DEADZONE` and `BOOK_KEY_SCROLL` are new. W25–W28 and most of §4.3's rows are its reviews'.
+**Built** as #106, landed as 48f8990 once the owner had approved it as it is, its rows with no visible labels, (c) of [the options](https://github.com/pompomon/roadgame/pull/106#issuecomment-6970573638). A cell and a row are scenes of their own, `BookCell`, with `break_hyphens()`, and `BookRow`, and a silhouette is `ui/silhouette.gdshader`'s flat grey. **Δ** A legend's page replaces the grid, where the plan had the collection's card, and an unlocked legend's has "Unlocked by an arrival", "Not seen yet" and its lore, but no fate. A glow's still adds no more light than its ground leaves below white (docs/M6.md S10): in a cell, the lightest centre of its styles, `BookCell.ground()`, and on a page, `BookScreen.backdrop`. The title's button keeps its label, "Disasters", `SaveService.collect()` serves `--collected`, and `MenuScreen.close_page()`, `Tuning.BOOK_SCROLL_DEADZONE` and `BOOK_KEY_SCROLL` are new. W25–W28 and most of §4.3's rows are its reviews'.
 
 | Area | Files |
 |---|---|
@@ -317,7 +317,7 @@ Branch `eg/6-book`, from `eg/5-new-legend`. §5.10 designs it.
 
 Branch `eg/7-departures`, from `eg/6-book`. §5.11 designs it.
 
-**Built** as #107, open: as planned, with `TitleScreen.departures()`, but `area_choice` is `every_area`, `_drove_whole_road()` is `_drives_whole_road()`, as it's asked as the run starts, and in other builds than debug `--area` presets only a departure, though no phone can pass it (docs/M4.md P4). docs/ZONE_SELECT.md Z5 changes too, and so do `test_area_start.gd`, `test_arrival.gd` and `test_tutorial.gd`.
+**Built** as #107, landed as 5b608be: as planned, with `TitleScreen.departures()`, but `area_choice` is `every_area`, `_drove_whole_road()` is `_drives_whole_road()`, as it's asked as the run starts, and in other builds than debug `--area` presets only a departure, though no phone can pass it (docs/M4.md P4). docs/ZONE_SELECT.md Z5 changes too, and so do `test_area_start.gd`, `test_arrival.gd` and `test_tutorial.gd`.
 
 | Area | Files |
 |---|---|
@@ -332,7 +332,7 @@ Branch `eg/7-departures`, from `eg/6-book`. §5.11 designs it.
 
 Branch `eg/8-road-home`, from `eg/7-departures`. §5.12 designs it.
 
-**Built** as #108, open. `TitleScreen.offered_roads()`, with `roads`, `road` and `ROAD_NAMES`, reads the first road's finish. `--home` presets the Road choice, which `open()` turns back before the first arrival. A retry keeps the run's road, and a reload starts on the road to the sea. A run's turns are its `turn_index`, and stats with no `road` raise no road's `farthest`. plan.md §2.6's Atlas line changes too, and its tests are also in `test_title_screen.gd`, `test_game_over.gd`, `test_smoke.gd` and `test_arrival.gd`.
+**Built** as #108, landed as 62f6217. `TitleScreen.offered_roads()`, with `roads`, `road` and `ROAD_NAMES`, reads the first road's finish. `--home` presets the Road choice, which `open()` turns back before the first arrival. A retry keeps the run's road, and a reload starts on the road to the sea. A run's turns are its `turn_index`, and stats with no `road` raise no road's `farthest`. plan.md §2.6's Atlas line changes too, and its tests are also in `test_title_screen.gd`, `test_game_over.gd`, `test_smoke.gd` and `test_arrival.gd`.
 
 | Area | Files |
 |---|---|
@@ -347,7 +347,7 @@ Branch `eg/8-road-home`, from `eg/7-departures`. §5.12 designs it.
 
 Branch `eg/9-keep-driving`, from `eg/8-road-home`. §5.13 designs it.
 
-**Built** as #109, open: as planned; Retry drives the same road, as plan.md §2.1 now says, and `test_title_screen.gd` tests it too.
+**Built** as #109, landed as 761e0da: as planned; Retry drives the same road, as plan.md §2.1 now says, and `test_title_screen.gd` tests it too.
 
 | Area | Files |
 |---|---|
@@ -361,7 +361,7 @@ Branch `eg/9-keep-driving`, from `eg/8-road-home`. §5.13 designs it.
 
 Branch `eg/10-route-strip`, from `eg/9-keep-driving`. §5.14 designs it.
 
-**Built** as #110, open. The strip draws in `_draw()` (W29), and its length is rounded to whole pixels, as float32 makes the Fold4 cover's 368.79996; on a 640-pixel screen some turns climb no pixel (W30). `main.gd` gives it the road, and plan.md's scene tree has it.
+**Built** as #110, landed as 990fa66. The strip draws in `_draw()` (W29), and its length is rounded to whole pixels, as float32 makes the Fold4 cover's 368.79996; on a 640-pixel screen some turns climb no pixel (W30). `main.gd` gives it the road, and plan.md's scene tree has it.
 
 | Area | Files |
 |---|---|
@@ -374,7 +374,7 @@ Branch `eg/10-route-strip`, from `eg/9-keep-driving`. §5.14 designs it.
 
 Branch `eg/11-pit-stops`, from `eg/10-route-strip`. §5.15 designs it. If the owner declines Q10, it is dropped, and PR 12 targets PR 10's branch.
 
-**Built** as #111, open, as Q10's default is yes. **Δ** `validate()` checks the pit stops. A road's first area has no way in, so a Departure from the Desert has no Last Gas, nor one from the Village on the Road Home. The repair waits for the path tile after a pit stop's last, so turning back out of one repairs nothing (§4.3). `repair.wav` is its sound, and `make_audio.gd`'s WAV writer moved to `tools/audio/wav.gd` (W31). `world_renderer.gd`, `world.tscn` and `prop_layout.gd` place Last Gas, plan.md §3.6 and §3.7 change too, and its tests are also in `test_last_gas.gd`, `test_world_renderer.gd`, `test_prop_layout.gd`, `test_audio_director.gd` and `tests/integration/test_audio.gd`.
+**Built** as #111, landed as c3149bf, as Q10's default is yes. **Δ** `validate()` checks the pit stops. A road's first area has no way in, so a Departure from the Desert has no Last Gas, nor one from the Village on the Road Home. The repair waits for the path tile after a pit stop's last, so turning back out of one repairs nothing (§4.3). `repair.wav` is its sound, and `make_audio.gd`'s WAV writer moved to `tools/audio/wav.gd` (W31). `world_renderer.gd`, `world.tscn` and `prop_layout.gd` place Last Gas, plan.md §3.6 and §3.7 change too, and its tests are also in `test_last_gas.gd`, `test_world_renderer.gd`, `test_prop_layout.gd`, `test_audio_director.gd` and `tests/integration/test_audio.gd`.
 
 | Area | Files |
 |---|---|
@@ -392,7 +392,7 @@ Branch `eg/11-pit-stops`, from `eg/10-route-strip`. §5.15 designs it. If the ow
 
 Branch `eg/12-records`, from `eg/11-pit-stops`. §5.16 designs it.
 
-**Built** as #112, open. **Δ** `CarSim.area_crossed` tells `GameState` a crossing (W32), and `SaveData.beats_best_time()` the end screen's "New best time!". The postcards are `MenuCard`s, with `atlas_screen.tscn` and `title_screen.tscn`, and the keys and a drag scroll the Atlas (W33). Two tests' names changed (below, §4.3), the Atlas has 8 tests where the plan had 1, `test_car_sim_crossing.gd` and `tests/helpers/finger.gd` are new, and `test_game_over.gd`, `test_arrival.gd`, `test_area_start.gd` and `test_tutorial.gd` gain tests.
+**Built** as #112, landed as 9161046. **Δ** `CarSim.area_crossed` tells `GameState` a crossing (W32), and `SaveData.beats_best_time()` the end screen's "New best time!". The postcards are `MenuCard`s, with `atlas_screen.tscn` and `title_screen.tscn`, and the keys and a drag scroll the Atlas (W33). Two tests' names changed (below, §4.3), the Atlas has 8 tests where the plan had 1, `test_car_sim_crossing.gd` and `tests/helpers/finger.gd` are new, and `test_game_over.gd`, `test_arrival.gd`, `test_area_start.gd` and `test_tutorial.gd` gain tests.
 
 | Area | Files |
 |---|---|
@@ -467,7 +467,7 @@ Fixes from the prototype's build, the internal review (§4.4) and the PRs' revie
 | 4 | [Copilot](https://github.com/pompomon/roadgame/pull/104#discussion_r4607979789): a glow's still clipped over the sea, the wisp's green at 1.25. b0e2ed0: `LegendStill.strength()` | `test_a_glows_still_adds_no_more_light_than_its_ground_leaves_below_white`, `test_the_glows_on_the_shore_never_clip_as_the_sun_sets` | N121–N124 |
 | 6 | The warnings check: a local `flat` shadowed a base class's member at 5cc4f6b (`book_cell.gd`:64); 0bbfcde names it `box` | §6.3's check | None: §6.3 |
 | 6 | [Copilot's first review](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5950768396), 2866e43 and 7976703: a cell's and a row's names for a screen reader, a drag from a cell past `BOOK_SCROLL_DEADZONE`, and a band over the art | `test_a_cell_reads_its_words_to_a_screen_reader`, `test_a_drag_from_any_cell_scrolls_the_book_and_opens_no_page`, `test_a_tap_that_wobbles_opens_the_page`, `test_each_still_fits_its_cell_whole_with_square_pixels`, `test_a_row_names_its_area_and_how_many_of_its_legends_are_found` | N140–N145 |
-| 6 | [The second](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5951180691), 1e876fd: a silhouette's focus, a page that closes to its cell, and the silhouettes' and seals' contrast (W26). A visible row label waits for the owner | `test_a_legend_not_found_is_its_silhouette_and_its_initials_and_has_no_page`, `test_a_page_closes_to_its_cell_in_view_where_the_book_was_left`, `test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds` | N146–N151 |
+| 6 | [The second](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5951180691), 1e876fd: a silhouette's focus, a page that closes to its cell, and the silhouettes' and seals' contrast (W26). A visible row label was the owner's choice, and the rows stay as they are (§7) | `test_a_legend_not_found_is_its_silhouette_and_its_initials_and_has_no_page`, `test_a_page_closes_to_its_cell_in_view_where_the_book_was_left`, `test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds` | N146–N151 |
 | 6 | [The third](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5951619394) and [the fourth](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5951949512): a seal not earned is hollow (cfbbe64), a glow's silhouette a disc (4a17718), and an earned seal has no dark core (2b0dea7; W26) | `test_a_seal_not_earned_is_hollow_and_an_earned_one_whole`, and a frame of the Book | N152–N155; N154 fails the frame |
 | 6 | [The fifth](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5952204310)'s and [the sixth](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5952663374)'s overviews: a screen reader's focus on a page's lines (9f8322b, W27), and the keys that scroll the Book (0eeb84d, W28) | `test_a_screen_reader_reaches_the_count_and_each_line_of_a_page`, `test_a_page_scrolls_to_the_line_that_has_the_focus`, `test_the_keys_scroll_the_book_where_the_focus_has_nowhere_to_go`, `test_the_keys_scroll_a_page` | N156–N163 |
 | 11 | The internal review: a car that turned back out of a pit stop was repaired; the repair waits for the path tile after its last, once | `test_turning_back_out_of_a_pit_stop_repairs_nothing` | N229 |
@@ -665,7 +665,7 @@ The checks are `AGENTS.md` §3's five: the import, `check_scripts.sh`, `lint.sh`
 | 10, #110 (e1e42e7) | 211 | 98 | 837 | 453,833 | 127.7 s | 44295102528 | 3 min 14 s, 130.5 s |
 | 11, #111 (c0903b0) | 215 | 100 | 856 | 455,944 | 131.4 s | 44321462801 | 3 min 29 s, 130.5 s |
 | 12, #112 (1b4a0cd) | 217 | 101 | 877 | 456,190 | 132.5 s | 44347412000 | 4 min 7 s, 184.9 s |
-| 13, #113 (30d6f1a) | 221 | 103 | 903 | 456,538 | 134.0 s | 44367702653 | 3 min 6 s, 126.3 s |
+| 13, #113 (5b968d1; the commits after it change only this plan) | 221 | 103 | 903 | 456,541 | 134.4 s | 44385769101 | 3 min 10 s, 128.9 s |
 
 ### 6.2 Negative cases
 
@@ -745,11 +745,11 @@ As docs/agents/checks.md §1 says, a temporary `override.cfg` raised the warning
   - PR 8: the Road choice, and the Road Home's arrivals. PR 10: the strip, its diamond 128 pixels up the 256 at turn 140 of 280, and the car climbing it, with no flash.
   - PR 11: Last Gas's 19 `Polygon2D`s raised no WebGL error; PR 12 adds no `Polygon2D`.
   - PR 13: by day and by night, she stood by the road and faded as the car passed her; then NEW LEGEND!, the Book at 16/16 with her white seal, and her page. `--collected=all` alone gave 15/16, with her silhouette. Nothing flashed: no frame was brighter or darker than both its neighbours by more than 2.9 of 255. The consoles had only Chrome's known `CONTEXT_LOST_WEBGL` and ReadPixels notes, and Firefox's `'try'` warning and its timeouts as a page unloaded.
-- **Δ** **E16 on the Fold4, as built**, by the owner, all at once on PR 13's build, [run 44367702653](https://github.com/pompomon/roadgame/actions/runs/44367702653): its artifacts `web` and `android-Android APK`, whose package is `com.pompomon.roadgame`. On both screens, in the APK and in the Fold4's Chrome:
+- **Δ** **E16 on the Fold4, as built**, by the owner, all at once on PR 13's build, [run 44387506354](https://github.com/pompomon/roadgame/actions/runs/44387506354), of f8d44de: its artifacts `web` and `android-Android APK`, whose package is `com.pompomon.roadgame`. On both screens, in the APK and in the Fold4's Chrome:
   - PR 3: the pier and the arrival, from the Desert's Start choice.
   - PR 4: the sunset, the stills in view as the car stops, the jingle, and nothing flashing.
   - PR 5: in a new Incognito tab, `?arg=--play&arg=--finish=3` driven by hand: NEW LEGEND! stays still, the jingle plays once, and the goal line is whole.
-  - PR 6: the Book, with `--collected=city` and `=all` on the Web: flat grey silhouettes, a glow's a disc, and seals whole or hollow. A tap that rolls a little opens a page, a silhouette's does nothing, and Back closes the page, then the Book. The wisp's name breaks after "the-".
+  - PR 6: the Book, with `--collected=city` and `=all` on the Web: flat grey silhouettes, a glow's a disc, and seals whole or hollow. A tap that rolls a little opens a page, a silhouette's does nothing, and Back closes the page, then the Book. The wisp's name breaks after "the-". On #106, the owner wrote "Fold4 checks approved" ([the comment](https://github.com/pompomon/roadgame/pull/106#issuecomment-6994323923)).
   - PR 7: the debug APK offers every area; a release build, on Pages, shows Start only once an area past the City is discovered.
   - PR 8: in Chrome, through `adb reverse tcp:8000 tcp:8000`, `?arg=--play&arg=--finish=3` to the arrival, then a reload: "Road: To the sea" steps to "Road: Home", and Play drives home from the Desert, heading west, its first turn a right.
   - PR 10: the strip reads by day and by night, the car climbs it with no flash, and the diamond stands at the last farthest.
@@ -777,11 +777,11 @@ The probes ran headless with Godot 4.7.2: P2, P3 and P5 on 93a85f5, whose result
 | When | Action | How |
 |---|---|---|
 | Done | Merge this plan's PR | #84, merged as 4844183, approved the plan, and agents landed PRs 1–3 (#101–#103) |
-| Now | Land #104, PR 4, if its two Δs are right (E7, §5.8) | Squash it; agents then land #105 (§4.2) |
-| Now | Choose #106's row labels | (a), (b) or (c), in [the options](https://github.com/pompomon/roadgame/pull/106#issuecomment-6970573638); then land #106, after which agents land #107–#112 in order |
+| Done | Land #104, PR 4, if its two Δs are right (E7, §5.8) | The owner landed it as 8b55cb2, and agents then landed #105 (§4.2) |
+| Done | Choose #106's row labels | [The owner's comment](https://github.com/pompomon/roadgame/pull/106#issuecomment-6994323923) approved #106 as it is, (c) of [the options](https://github.com/pompomon/roadgame/pull/106#issuecomment-6970573638), and its merge by an agent. Agents landed it, then #107–#112 in order |
 | Now, if wanted | Play the prototype's arrival | `gh workflow run ci.yml -R pompomon/roadgame --ref eg/prototype -f upload-builds=true`, then docs/agents/checks.md §4's download and patch, and `?arg=--autopilot&arg=--finish=3`, or with `&arg=--home` |
-| Now | E16 on the Fold4, on both screens, for PRs 3–13 at once | §6.4's list, on PR 13's build, [run 44367702653](https://github.com/pompomon/roadgame/actions/runs/44367702653), whose artifacts are kept a day. A new build: `gh workflow run ci.yml -R pompomon/roadgame --ref eg/13-hitchhiker -f upload-builds=true` |
-| To land EG | Land PR 13 (#113) once PRs 1–12 have landed and the device checks pass; then PR 14, from `main` | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.2) |
+| Now | E16 on the Fold4, on both screens, for PRs 3–13 at once | §6.4's list, on PR 13's build, [run 44387506354](https://github.com/pompomon/roadgame/actions/runs/44387506354), whose artifacts are kept until 2026-11-19 20:06 UTC. A new build: `gh workflow run ci.yml -R pompomon/roadgame --ref eg/13-hitchhiker -f upload-builds=true` |
+| Now | Land PR 13 (#113) once the device checks pass, as PRs 1–12 have landed; then PR 14, from `main` | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.2) |
 | After PR 14 | Tag the prototype, which this plan cites, and delete EG's branches | `git fetch origin eg/prototype && git push origin FETCH_HEAD:refs/tags/archive/eg/prototype`, then `git push origin --delete eg/plan eg/prototype` and §4's 14 branches |
 
 ---
