@@ -52,7 +52,7 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 - **Off-road limit:** the car cannot stay off the road for longer than **2 tiles** of travel. Reaching the limit ends the run:
   - near a junction, it counts as a missed turn and triggers a **disaster**
   - anywhere else, the car **crashes**
-- There are **no pickups** in the MVP (no health, fuel or score pickups), and health does not regenerate.
+- There are **no pickups** in the MVP (no health, fuel or score pickups), and health regenerates only at the **pit stops**: as the car drives out of one on the road, it is repaired by 50, up to 100, once for each pit stop in a run, but never off the road or once the run has ended (§3.6, `ENDGAME_PLAN.md` §5.15, W24).
 
 ### 2.5 End conditions
 | Cause | Trigger | Result |
@@ -125,6 +125,7 @@ Fixed areas are keyed by **correct-turn count**. The areas between schedule entr
 | 280 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`ENDGAME_PLAN.md` §5.8) |
 
 - When `turnIndex` reaches a schedule entry, the next straight is replaced by the set piece (a fixed run of straight tiles with no junction), then the area switches.
+- **Pit stops** repair the car (§2.4, `ENDGAME_PLAN.md` §5.15): the tunnel, the bridge, and **Last Gas**, a filling station beside the Desert's first straight. On the Road Home they are Last Gas by the Village's first straight, the bridge and the tunnel. An entry's `pit_stop` makes its way in one: its set piece, or with none, its area's first straight. A departure from an area leaves its way in out, and with it its pit stop.
 - The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`ENDGAME_PLAN.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run.
 - The **endless road**, `endless()`, is the schedule without its finish and the Coast's home stretch, which has no junction, so the Desert goes on forever, as before the road had an end. The tests drive it, and after the first arrival at the sea the title offers it as **Keep Driving**. Its runs count as the road's did then: a run from the City sets the overall bests, and each run its areas' bests and its legends, but none can arrive, and it keeps no road's farthest turn (`ENDGAME_PLAN.md` §5.12, §5.13).
 
@@ -153,7 +154,7 @@ AreaDef
   day_seconds: float               # a day and night, 120 s by default; each zone's clock starts at 07:00
 ```
 
-`AreaSchedule` resource: an ordered list of `{ turn, area: AreaDef, set_piece: PackedScene? }`.
+`AreaSchedule` resource: an ordered list of `{ turn, area: AreaDef, set_piece: PackedScene?, pit_stop: bool }`.
 
 ---
 
@@ -428,7 +429,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Areas | Fixed schedule by turn count; after turn 280 the road ends at a pier on the Coast (`ENDGAME_PLAN.md` W1) |
 | Orientation | Portrait default, runtime orientation change supported |
 | Meta-progression | None that makes a run easier or harder: the Atlas, the disaster collection, and the arrivals, each of which unlocks a legend (`ENDGAME_PLAN.md` §5.4, §5.5) |
-| Pickups | None in the MVP |
+| Pickups | None in the MVP; the pit stops repair the car, once each in a run (`ENDGAME_PLAN.md` §5.15, W24) |
 | Speed | Rises on straights and with distance; automatic braking before every junction |
 | Off-road | Corner cutting within 2 tiles is damage only; the car cannot stay off-road longer than 2 tiles |
 | Target device | Modern Android phones; Samsung Galaxy Z Fold4 is the reference device |

@@ -94,6 +94,9 @@ func test_validate_reports_broken_schedules() -> void:
 	assert_string_contains(_problems([]), "no entries")
 	assert_string_contains(_problems([_entry(3, city)]), "not 0")
 	assert_string_contains(_problems([_entry(0, city, &"tunnel", 4)]), "has a set piece")
+	var stop := _entry(0, city)
+	stop.pit_stop = true
+	assert_string_contains(_problems([stop]), "has a pit stop")
 	assert_string_contains(_problems([_entry(0, city), _entry(0, city)]), "does not come after")
 	assert_string_contains(_problems([_entry(0, null)]), "no area")
 	assert_eq(_problems([null]), "entry 0 is missing")
@@ -214,6 +217,23 @@ func test_the_straight_after_a_switch_uses_the_new_area() -> void:
 	assert_eq(areas, "aaaaa" + "aaa" + "bbbbbbbbbb" + "bbbbbbbbbb" + "bbb" + "ccccc" + "ccccc")
 
 
+func test_a_pit_stop_is_its_areas_set_piece_or_else_its_first_straight() -> void:
+	# ENDGAME_PLAN.md §5.15: the way into the area. min_straight == max_straight, as above.
+	var schedule := AreaSchedule.new()
+	schedule.entries = [
+		_entry(0, _area(&"a", 2, 2)),
+		_entry(2, _area(&"b", 3, 3)),
+		_entry(4, _area(&"c", 4, 4), &"tunnel", 3),
+		_entry(6, _area(&"d", 2, 2)),
+	]
+	schedule.entries[1].pit_stop = true
+	schedule.entries[2].pit_stop = true
+	var stops := ""
+	for tile: RoadTile in Fixtures.path_until_turn(RoadGenerator.new(1, schedule), 8):
+		stops += "P" if tile.pit_stop else ("J" if tile.is_junction() else "-")
+	assert_eq(stops, "----J" + "--J" + "PPPJ" + "---J" + "PPP" + "----J" + "----J" + "--J" + "--J")
+
+
 func test_the_last_area_goes_on_forever() -> void:
 	var gen := RoadGenerator.new(4, Fixtures.endless())
 	var path := Fixtures.path_until_turn(gen, 1000)
@@ -323,6 +343,38 @@ func test_a_schedule_can_start_in_any_of_its_areas() -> void:
 		assert_eq(got, expected[id], id)
 	assert_eq(schedule.entries[1].turn, 34, "the schedule itself stays")
 	assert_eq(schedule.entries[1].set_piece, &"tunnel")
+
+
+## The turn, the area and the set piece of each of `schedule`'s pit stops.
+static func _pit_stops(schedule: AreaSchedule) -> Array:
+	var stops: Array = []
+	for entry: AreaScheduleEntry in schedule.entries:
+		if entry.pit_stop:
+			stops.append([entry.turn, entry.area.id, entry.set_piece])
+	return stops
+
+
+func test_the_games_pit_stops() -> void:
+	# ENDGAME_PLAN.md §5.15, E13: on the way out, the tunnel, the bridge, and Last Gas as the Desert
+	# starts; on the Road Home, Last Gas as the Village starts, the bridge and the tunnel. A road
+	# that starts in a later area, as a Departure does, keeps those after its first area.
+	var out := Fixtures.schedule()
+	var outs: Array = [
+		[34, &"rural", &"tunnel"], [100, &"meadows", &"bridge"], [220, &"desert", &""]
+	]
+	assert_eq(_pit_stops(out), outs)
+	var home := Fixtures.schedule_home()
+	var homes: Array = [
+		[60, &"village", &""], [180, &"rural", &"bridge"], [246, &"city", &"tunnel"]
+	]
+	assert_eq(_pit_stops(home), homes)
+	var later: Array = [[66, &"meadows", &"bridge"], [186, &"desert", &""]]
+	assert_eq(_pit_stops(out.starting_at(&"rural")), later)
+	assert_eq(_pit_stops(out.starting_at(&"desert")), [])
+	later = [[120, &"rural", &"bridge"], [186, &"city", &"tunnel"]]
+	assert_eq(_pit_stops(home.starting_at(&"village")), later)
+	assert_eq(_pit_stops(out.endless()), outs, "Keep Driving's road")
+	assert_eq(_pit_stops(out), outs, "the schedule itself stays")
 
 
 func test_a_schedule_cannot_start_in_an_area_it_lacks() -> void:

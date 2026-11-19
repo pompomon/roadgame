@@ -9,6 +9,7 @@ extends SceneTree
 ##   godot --headless -s tools/audio/make_audio.gd
 ## then tools/ci/import.sh, and commit the WAV files with their .import files.
 
+const Wav := preload("res://tools/audio/wav.gd")
 const RATE := 22050
 const OUT := "res://assets/audio/"
 const AREAS: Array[StringName] = [&"city", &"rural", &"meadows", &"village", &"desert"]
@@ -40,6 +41,7 @@ func _initialize() -> void:
 	_save("sfx/junction", _chime(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/arrival", _jingle(), Tuning.EFFECT_PEAK, false)
 	_save("sfx/new_legend", _new_legend(), Tuning.EFFECT_PEAK, false)
+	_save("sfx/repair", _repair(), Tuning.EFFECT_PEAK, false)
 	for area: StringName in LATER_AREAS:
 		_rng.seed = hash(String(area))
 		_save_area(area)
@@ -219,6 +221,19 @@ func _new_legend() -> PackedFloat32Array:
 	for midi: int in [55, 62]:
 		var freq := 440.0 * pow(2.0, (midi - 69) / 12.0)
 		_add(out, _fade_out(_tone(freq, 1.1, "triangle")), 0.3, 0.1)
+	return out
+
+
+## A pit stop's repair (ENDGAME_PLAN.md §5.15): a forecourt's bell rings twice, a fourth apart,
+## over a tone that swells up an octave as the tyres fill. It draws no noise, so no other sound
+## changes it.
+func _repair() -> PackedFloat32Array:
+	var out := _silence(roundi(0.9 * RATE))
+	_add(out, _swell(_glide(392.0, 784.0, 0.5)), 0.05, 0.2)
+	var dings: Array[int] = [86, 91]
+	for k: int in dings.size():
+		var freq := 440.0 * pow(2.0, (dings[k] - 69) / 12.0)
+		_add(out, _fade_out(_bell(freq, 0.6)), k * 0.14, 0.5)
 	return out
 
 
@@ -944,27 +959,12 @@ func _normalized(x: PackedFloat32Array, peak: float) -> PackedFloat32Array:
 	return x
 
 
-## Writes `samples`, scaled to `peak`, as a mono 16-bit WAV; a loop gets a "smpl" chunk over the
-## whole sound.
+## Writes `samples`, scaled to `peak`, as a mono 16-bit WAV (Wav.encode()).
 func _save(path_in_out: String, samples: PackedFloat32Array, peak: float, loop: bool) -> void:
-	var scaled := _normalized(samples, peak)
-	var data := PackedByteArray()
-	data.resize(scaled.size() * 2)
-	for i: int in scaled.size():
-		data.encode_s16(i * 2, clampi(roundi(scaled[i] * 32767.0), -32768, 32767))
-	var chunks := PackedByteArray()
-	chunks.append_array(_chunk("fmt ", _u16s([1, 1]) + _u32s([RATE, RATE * 2]) + _u16s([2, 16])))
-	chunks.append_array(_chunk("data", data))
-	if loop:
-		# Manufacturer to sampler data (9 words), then one loop: id, forward, start, end.
-		@warning_ignore("integer_division")
-		var smpl := _u32s([0, 0, 1000000000 / RATE, 60, 0, 0, 0, 1, 0])
-		smpl.append_array(_u32s([0, 0, 0, samples.size(), 0, 0]))
-		chunks.append_array(_chunk("smpl", smpl))
 	var path := OUT + path_in_out + ".wav"
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var file := FileAccess.open(path, FileAccess.WRITE)
-	file.store_buffer(_chunk("RIFF", "WAVE".to_ascii_buffer() + chunks))
+	file.store_buffer(Wav.encode(_normalized(samples, peak), RATE, loop))
 	file.close()
 	print("%s: %.2f s%s" % [path, float(samples.size()) / RATE, ", loop" if loop else ""])
 
@@ -974,23 +974,3 @@ func _save(path_in_out: String, samples: PackedFloat32Array, peak: float, loop: 
 func _save_legend(id: String, synth: Callable) -> void:
 	_rng.seed = hash(id)
 	_save("sfx/" + id, synth.call(), Tuning.EFFECT_PEAK, false)
-
-
-func _chunk(id: String, body: PackedByteArray) -> PackedByteArray:
-	return id.to_ascii_buffer() + _u32s([body.size()]) + body
-
-
-func _u32s(values: Array[int]) -> PackedByteArray:
-	var out := PackedByteArray()
-	out.resize(values.size() * 4)
-	for i: int in values.size():
-		out.encode_u32(i * 4, values[i])
-	return out
-
-
-func _u16s(values: Array[int]) -> PackedByteArray:
-	var out := PackedByteArray()
-	out.resize(values.size() * 2)
-	for i: int in values.size():
-		out.encode_u16(i * 2, values[i])
-	return out

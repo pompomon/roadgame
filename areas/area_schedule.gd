@@ -30,6 +30,8 @@ func validate() -> PackedStringArray:
 		problems.append("the first entry is turn %d, not 0" % entries[0].turn)
 	if entries[0].set_piece_length != 0:
 		problems.append("the first entry has a set piece")
+	if entries[0].pit_stop:
+		problems.append("the first entry has a pit stop")
 	var last_turn := -1
 	for entry: AreaScheduleEntry in entries:
 		if entry.turn <= last_turn:
@@ -112,10 +114,11 @@ static func gap(entry: AreaScheduleEntry) -> int:
 	return entry.set_piece_length + entry.area.max_straight + 1
 
 
-## A copy that starts in the area `id`, for tests and manual checks (main.gd's --area, and the
-## title's Start button in debug builds): the entries from that area's on, with their turns moved so
-## that it is turn 0, and without its set piece, and the finish as many turns before. The entries
-## share their areas with this schedule. For an id it lacks: an error, and this one.
+## A copy that starts in the area `id`, for tests and manual checks (main.gd's --area), and for the
+## title's Departures (ENDGAME_PLAN.md §5.11): the entries from that area's on, with their turns
+## moved so that it is turn 0, and without its set piece or pit stop, and the finish as many turns
+## before. The entries share their areas with this schedule. For an id it lacks: an error, and this
+## one.
 func starting_at(id: StringName) -> AreaSchedule:
 	var start := -1
 	for k: int in entries.size():
@@ -141,5 +144,6 @@ func starting_at(id: StringName) -> AreaSchedule:
 		if copy.turn > 0:
 			copy.set_piece = entry.set_piece
 			copy.set_piece_length = entry.set_piece_length
+			copy.pit_stop = entry.pit_stop
 		schedule.entries.append(copy)
 	return schedule

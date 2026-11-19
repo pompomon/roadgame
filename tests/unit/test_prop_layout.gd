@@ -514,6 +514,83 @@ static func _in_set_pieces(
 	return problems
 
 
+## Last Gas's straight after every other turn (ENDGAME_PLAN.md §5.15), on an area of T-junctions,
+## whose dead ends keep off the straights' far sides, where it stands.
+func _pit_stop_schedule(turns: int) -> AreaSchedule:
+	var area := AreaDef.new()
+	area.id = &"plain"
+	area.cross_junction_chance = 0.0
+	var built := AreaSchedule.new()
+	for turn: int in range(0, turns + 1, 2):
+		var entry := AreaScheduleEntry.new()
+		entry.turn = turn
+		entry.area = area
+		entry.pit_stop = turn > 0
+		built.entries.append(entry)
+	return built
+
+
+## The runs of pit-stop path tiles of `road`.
+func _pit_stop_runs(road: Road) -> Array[Array]:
+	var runs: Array[Array] = []
+	var run: Array[RoadTile] = []
+	for tile: RoadTile in road.path:
+		if tile.pit_stop:
+			run.append(tile)
+		elif not run.is_empty():
+			runs.append(run)
+			run = []
+	return runs
+
+
+## Where Last Gas may show by `run`, a pit stop's straight, in tile space: between the straight's
+## ends, on its far side, from the road's edge out to where the nearest props' frames may show
+## (test_last_gas.gd).
+static func _last_gas_region(run: Array) -> Rect2:
+	var first: RoadTile = run[0]
+	var last: RoadTile = run[-1]
+	var cells := Rect2(Vector2(first.cell), Vector2.ONE).merge(
+		Rect2(Vector2(last.cell), Vector2.ONE)
+	)
+	var reach := PropLayout.set_piece_margin() + 0.5 - Tuning.PROP_MAX_SIZE.x * 0.5 / Iso.TILE_W
+	reach -= float(Tuning.PROP_BELOW) / Iso.TILE_H
+	var width := reach - Tuning.ROAD_HALF_WIDTH
+	if Heading.VEC[first.heading].x != 0:
+		return Rect2(cells.position.x, cells.get_center().y - reach, cells.size.x, width)
+	return Rect2(cells.get_center().x - reach, cells.position.y, width, cells.size.y)
+
+
+func test_no_prop_shows_where_last_gas_may() -> void:
+	# See-through props too: set_piece_margin() of a pit stop's tiles alone keeps them clear.
+	var problems := PackedStringArray()
+	var near := 0
+	for see_through: bool in [false, true]:
+		var props := _largest()
+		for def: PropDef in props:
+			def.see_through = see_through
+		for run_seed: int in [4, 5]:
+			var road := _road(_pit_stop_schedule(80), run_seed, props)
+			var regions: Array[Rect2] = []
+			for run: Array in _pit_stop_runs(road):
+				regions.append(_last_gas_region(run))
+			assert_gt(regions.size(), 10, "pit stops to keep clear of")
+			for k: int in road.rows:
+				for placement: PropLayout.Placement in road.rows[k]:
+					var frame := _frame(placement)
+					var polygon := PackedVector2Array(
+						[frame.position, Vector2(frame.end.x, frame.position.y), frame.end]
+					)
+					polygon.append(Vector2(frame.position.x, frame.end.y))
+					var at := Iso.world_to_tile(placement.foot)
+					for region: Rect2 in regions:
+						var shown := SetPiece.corners(region)
+						if not Geometry2D.intersect_polygons(polygon, shown).is_empty():
+							problems.append("row %d: %s shows over %s" % [k, frame, region])
+						near += 1 if region.grow(1.0).has_point(at) else 0
+	assert_eq(problems.slice(0, 5), PackedStringArray(), "%d props by Last Gas" % problems.size())
+	assert_gt(near, 40, "props near enough to Last Gas to tell")
+
+
 ## A seed places the same props whenever its rows are placed, as the road is made or once it's all
 ## made, and another seed places others on the same road.
 func test_a_seed_places_the_same_props_and_another_seed_others() -> void:

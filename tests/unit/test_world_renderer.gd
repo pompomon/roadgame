@@ -391,7 +391,9 @@ func test_set_pieces_draw_above_the_ground_and_below_the_road() -> void:
 	assert_eq(layer.get_index(), _world.get_node("%Ground").get_index() + 1)
 	assert_false(layer.y_sort_enabled)
 	assert_eq(layer.z_index, 0)
-	assert_eq(_world.set_piece_scenes.keys(), [&"bridge", &"home", &"pier", &"tunnel"])
+	var ids: Array[StringName] = [&"bridge", &"home", &"last_gas", &"pier", &"tunnel"]
+	assert_eq(_world.set_piece_scenes.keys(), ids)
+	assert_eq(WorldRenderer.LAST_GAS, &"last_gas")
 
 
 func test_the_lamps_glow_over_the_veil_at_night() -> void:
@@ -454,6 +456,56 @@ func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -
 	assert_eq(pieces.get_child_count(), 0, "it goes with its last tile")
 
 
+func test_last_gas_comes_once_a_pit_stops_straight_is_made_and_goes_with_its_last_tile() -> void:
+	# ENDGAME_PLAN.md §5.15: with no set piece, the pit stop is its area's first straight, tiles 53
+	# to 55 after junction 12, which the buffer's first batch ends with. Its run ends with the tile
+	# after it, junction 13, which only the next batch makes.
+	var schedule := Fixtures.set_piece_schedule(13, &"", 0)
+	schedule.entries[1].pit_stop = true
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.build(schedule)
+	_world.bind(_buffer)
+	var car: Node2D = add_child_autofree(Node2D.new())
+	_world.car = car
+	_buffer.start()
+	var pieces: Node2D = _world.get_node("%SetPieces")
+	assert_eq(_buffer.last_index(), Tuning.BUFFER_AHEAD)
+	for index: int in range(53, 56):
+		assert_eq(_buffer.path_tile(index).type, RoadTile.Type.STRAIGHT, str(index))
+		assert_true(_buffer.path_tile(index).pit_stop, str(index))
+	assert_false(_buffer.path_tile(52).pit_stop, "junction 12")
+	assert_eq(pieces.get_child_count(), 0, "the run may go on")
+	_buffer.on_car_path_index(Tuning.BUFFER_AHEAD - Tuning.BUFFER_REFILL_AT + 1)
+	assert_false(_buffer.path_tile(56).pit_stop, "junction 13 ends it")
+	assert_eq(pieces.get_child_count(), 1, "now it has ended")
+	var station := pieces.get_child(0) as LastGas
+	assert_not_null(station)
+	assert_eq(station.car, car)
+	var cells := Rect2(_buffer.path_tile(53).cell, Vector2.ONE)
+	assert_eq(station.rect, cells.merge(Rect2(_buffer.path_tile(55).cell, Vector2.ONE)))
+	_buffer.on_car_path_index(55 + Tuning.BUFFER_BEHIND)
+	assert_eq(pieces.get_child_count(), 1, "not with its first tiles")
+	_buffer.on_car_path_index(56 + Tuning.BUFFER_BEHIND)
+	assert_eq(pieces.get_child_count(), 0, "it goes with its last tile")
+
+
+func test_a_pit_stop_on_a_set_piece_has_only_the_set_pieces_scene() -> void:
+	var schedule := Fixtures.set_piece_schedule(1, &"bridge", 5)
+	schedule.entries[1].pit_stop = true
+	var scenes: Dictionary[StringName, PackedScene] = {
+		&"bridge": _world.set_piece_scenes[&"bridge"]
+	}
+	_world.set_piece_scenes = scenes
+	_world.build(schedule)
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.bind(_buffer)
+	_buffer.start()
+	var pieces: Node2D = _world.get_node("%SetPieces")
+	assert_eq(pieces.get_child_count(), 1)
+	assert_is(pieces.get_child(0), Bridge)
+	assert_eq((pieces.get_child(0) as Bridge).run_length(), 5.0)
+
+
 func test_a_new_buffer_drops_the_last_runs_set_pieces_and_car() -> void:
 	var schedule := Fixtures.set_piece_schedule(1, &"bridge", 5)
 	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
@@ -497,6 +549,20 @@ func test_a_set_piece_without_a_scene_is_an_error() -> void:
 	_world.bind(_buffer)
 	_buffer.start()
 	assert_eq(_buffer.path_tile(5).set_piece, &"ferris_wheel")
+	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
+
+
+func test_a_pit_stop_without_last_gas_is_an_error() -> void:
+	var scenes: Dictionary[StringName, PackedScene] = {}
+	_world.set_piece_scenes = scenes
+	var schedule := Fixtures.set_piece_schedule(1, &"", 0)
+	schedule.entries[1].pit_stop = true
+	_world.build(schedule)
+	assert_push_error("no scene for set piece last_gas")
+	_buffer = RoadBuffer.new(RoadGenerator.new(3, schedule))
+	_world.bind(_buffer)
+	_buffer.start()
+	assert_true(_buffer.path_tile(5).pit_stop)
 	assert_eq(_world.get_node("%SetPieces").get_child_count(), 0, "it draws only the road")
 
 

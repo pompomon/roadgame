@@ -28,6 +28,9 @@ extends RefCounted
 ## mirrored schedule's road starts heading W, and its first turn is a right: the path is still the
 ## staircase of N and W runs, so all of the above holds, but the pattern starts the other way
 ## (ENDGAME_PLAN.md §5.6).
+##
+## The way into an area whose entry is a pit stop, its set piece or its first straight, carries
+## pit_stop on its tiles (ENDGAME_PLAN.md §5.15). It draws nothing from the road's stream.
 
 ## The exits a junction offers besides its entry. T: the turn and the opposite turn. CROSSROADS:
 ## straight on as well. SIDE_ROAD: the turn and straight on. DECOY: straight on, which is correct,
@@ -57,6 +60,8 @@ var _schedule_index := 1
 var _pending_area: AreaDef
 var _set_piece := &""
 var _set_piece_left := 0
+## Whether the set piece or the straight being laid is a pit stop's.
+var _pit_stop := false
 var _straight_left := Tuning.START_STRAIGHT_TILES
 var _cursor := Vector2i.ZERO
 var _heading: int = Heading.N
@@ -118,12 +123,17 @@ func next_tile() -> RoadTile:
 	if _set_piece_left > 0:
 		tile = _path_tile(RoadTile.Type.SET_PIECE)
 		tile.set_piece = _set_piece
+		tile.pit_stop = _pit_stop
 		_set_piece_left -= 1
 		if _set_piece_left == 0:
+			_pit_stop = false
 			_enter_area(_pending_area)
 	elif _straight_left > 0:
 		tile = _path_tile(RoadTile.Type.STRAIGHT)
+		tile.pit_stop = _pit_stop
 		_straight_left -= 1
+		if _straight_left == 0:
+			_pit_stop = false
 	elif _finishing:
 		tile = _finish_tile()
 	else:
@@ -213,8 +223,10 @@ func _junction() -> RoadTile:
 		_pending_area = entry.area
 		_set_piece = entry.set_piece
 		_set_piece_left = entry.set_piece_length
+		_pit_stop = entry.pit_stop
 	else:
 		_enter_area(entry.area)
+		_pit_stop = entry.pit_stop
 	_finishing = _finish_due()
 	return junction
 

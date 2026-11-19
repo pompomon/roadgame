@@ -359,6 +359,14 @@ func test_new_legend_plays_its_jingle_once() -> void:
 	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"new_legend"])
 
 
+## ENDGAME_PLAN.md §5.15: a pit stop's repair dings.
+func test_a_repair_dings() -> void:
+	watch_signals(_audio)
+	EventBus.car_repaired.emit()
+	assert_signal_emit_count(_audio, "effect_played", 1, "once")
+	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"repair"])
+
+
 func test_every_disaster_of_every_area_has_its_sound() -> void:
 	var ids := _disaster_ids()
 	assert_eq(ids.size(), Disasters.scenes().size(), "each disaster of the pools has its own id")

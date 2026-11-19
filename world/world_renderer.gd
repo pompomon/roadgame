@@ -7,14 +7,18 @@ extends Node2D
 ## band reaches from its first path tiles up to where the next area's begins. Its edge blends it
 ## into the last area's ground over its first TRANSITION_TILES path tiles (M4.3). Each run of
 ## set-piece tiles gets its scene once the buffer has made the whole run, which may take two
-## batches, and loses it with the run's last tile (M4.4). build() makes the tileset once; bind()
-## draws a run's buffer, and a retry binds the next run's (docs/M3.md J11).
+## batches, and loses it with the run's last tile (M4.4); so does a pit stop's straight, which
+## Last Gas stands by (ENDGAME_PLAN.md §5.15). build() makes the tileset once; bind() draws a run's
+## buffer, and a retry binds the next run's (docs/M3.md J11).
 
 ## How far the ground reaches past the buffered tiles, in world pixels: farther than any view can
 ## show past them. The camera follows the car, which stays between the buffer's oldest and newest
 ## path tiles, and shows about VISIBLE_TILES tiles across the screen's shorter side: some 1,000 px
 ## across, or 1,400 px above the car, on the longest screens.
 const GROUND_MARGIN := 2048.0
+## The id in set_piece_scenes of Last Gas, the filling station by a pit stop's straight
+## (ENDGAME_PLAN.md §5.15).
+const LAST_GAS := &"last_gas"
 
 
 ## The ground of one stretch of the path in one area: a sprite whose region repeats the area's
@@ -32,8 +36,8 @@ class Band:
 
 ## Tint dead ends. For debug views only: in a run they must look like real road.
 @export var show_dead_ends := false
-## The scene of each set piece, by its id in the schedule (RoadTile.set_piece). Its root is a
-## SetPiece.
+## The scene of each set piece, by its id in the schedule (RoadTile.set_piece), and Last Gas's, by
+## LAST_GAS. Its root is a SetPiece.
 @export var set_piece_scenes: Dictionary[StringName, PackedScene] = {}
 
 ## The run's car, which the set pieces follow, or null. bind() clears it.
@@ -84,8 +88,11 @@ func build(schedule: AreaSchedule) -> void:
 	_road.position = Iso.layer_offset(_road, 1)
 	_skids = SkidMarks.new(%Skids as Node2D)
 	for entry: AreaScheduleEntry in schedule.entries:
-		if entry.set_piece != &"" and set_piece_scenes.get(entry.set_piece) == null:
-			push_error("WorldRenderer: no scene for set piece %s" % entry.set_piece)
+		var id := entry.set_piece
+		if id == &"" and entry.pit_stop:
+			id = LAST_GAS
+		if id != &"" and set_piece_scenes.get(id) == null:
+			push_error("WorldRenderer: no scene for set piece %s" % id)
 	if schedule.has_finish() and set_piece_scenes.get(schedule.finish) == null:
 		push_error("WorldRenderer: no scene for the finish %s" % schedule.finish)
 	_scatter = PropScatter.new(%Props as Node2D, schedule)
@@ -164,23 +171,33 @@ func _on_tiles_freed(tiles: Array[RoadTile]) -> void:
 			_set_pieces_by_end.erase(tile.path_index)
 
 
-## Adds path tile `tile` to the open run of set-piece tiles, or ends that run with it: the next
-## path tile after a run is the first that isn't one of its set-piece tiles.
+## Adds path tile `tile` to the open run of a scene's tiles, or ends that run with it: the next
+## path tile after a run is the first that isn't one of its tiles.
 func _follow_set_pieces(tile: RoadTile) -> void:
-	if not _open_run.is_empty() and tile.set_piece != _open_run[0].set_piece:
+	var id := _piece_id(tile)
+	if not _open_run.is_empty() and id != _piece_id(_open_run[0]):
 		_add_set_piece(_open_run)
 		_open_run = []
-	if tile.type == RoadTile.Type.SET_PIECE:
+	if id != &"":
 		_open_run.append(tile)
 
 
+## The id in set_piece_scenes of the scene over or by path tile `tile`: its set piece's, Last Gas's
+## by a pit stop's straight, or &"" for none.
+static func _piece_id(tile: RoadTile) -> StringName:
+	if tile.type == RoadTile.Type.SET_PIECE:
+		return tile.set_piece
+	return LAST_GAS if tile.pit_stop else &""
+
+
 func _add_set_piece(run: Array[RoadTile]) -> void:
-	var scene: PackedScene = set_piece_scenes.get(run[0].set_piece)
+	var id := _piece_id(run[0])
+	var scene: PackedScene = set_piece_scenes.get(id)
 	if scene == null:
 		return
 	var node: Node = scene.instantiate() if scene.can_instantiate() else null
 	if node is not SetPiece:
-		push_error("WorldRenderer: the scene for set piece %s isn't a SetPiece" % run[0].set_piece)
+		push_error("WorldRenderer: the scene for set piece %s isn't a SetPiece" % id)
 		if node != null:
 			node.free()
 		return

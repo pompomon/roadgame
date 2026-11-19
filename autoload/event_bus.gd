@@ -11,6 +11,8 @@ signal area_changed(area: AreaDef)
 signal tiles_generated(tiles: Array[RoadTile])
 signal tiles_freed(tiles: Array[RoadTile])
 signal health_changed(value: float)
+## The car drove out of a pit stop on the road, which repaired it (ENDGAME_PLAN.md §5.15).
+signal car_repaired
 ## A wrong exit or a missed turn at `junction`.
 signal disaster_triggered(area: AreaDef, junction: RoadTile)
 ## The disaster `id` started to play in `area`, after the car stopped (docs/M5.md L7).
