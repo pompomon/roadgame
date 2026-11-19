@@ -18,6 +18,12 @@ func after_each() -> void:
 	get_tree().paused = false
 
 
+## What the stats say a run made in an area: its distance and turns there, and whether the car took
+## damage there and crossed it.
+static func _made(distance: float, turns: int, damaged := false, crossed := false) -> Dictionary:
+	return {"distance": distance, "turns": turns, "damaged": damaged, "crossed": crossed}
+
+
 func test_starts_in_title() -> void:
 	assert_eq(_state.state, GameStateScript.State.TITLE)
 
@@ -93,7 +99,7 @@ func test_end_run_emits_the_cause_and_stats() -> void:
 		"clean": true,
 		"area_id": &"rural",
 		"cause": CarSim.WRONG_TURN,
-		"areas": {&"rural": {"distance": 0.0, "turns": 0}},
+		"areas": {&"rural": _made(0.0, 0)},
 		"whole_road": false,
 		"road": &"",
 	}
@@ -258,9 +264,7 @@ func test_stats_have_the_distance_and_turns_made_in_each_area() -> void:
 	_state.distance = 52.5
 	_state.turn_index = 37
 	var areas: Dictionary = _state.stats()["areas"]
-	assert_eq(
-		areas, {&"city": {"distance": 40.0, "turns": 34}, &"rural": {"distance": 12.5, "turns": 3}}
-	)
+	assert_eq(areas, {&"city": _made(40.0, 34), &"rural": _made(12.5, 3)})
 	_state.end_run(CarSim.HEALTH)
 	_state.show_game_over()
 	_state.start_run(2)
@@ -277,13 +281,36 @@ func test_an_area_counts_from_its_first_tile_and_the_turns_after_it() -> void:
 	_state.enter_area(&"village", 40.5, 34)
 	assert_eq(
 		_state.stats()["areas"],
-		{&"meadows": {"distance": 39.9, "turns": 33}, &"village": {"distance": 0.0, "turns": 0}},
+		{&"meadows": _made(39.9, 33), &"village": _made(0.0, 0)},
 		"before the turn is judged"
 	)
 	_state.distance = 41.0
 	_state.turn_index = 34
 	assert_eq(
 		_state.stats()["areas"],
-		{&"meadows": {"distance": 40.5, "turns": 34}, &"village": {"distance": 0.5, "turns": 0}},
+		{&"meadows": _made(40.5, 34), &"village": _made(0.5, 0)},
 		"after it"
 	)
+
+
+## ENDGAME_PLAN.md §5.16: the stats say whether the car took damage in each area, and whether it
+## crossed it: onto the next area's first tile, as CarSim tells, or, in the road's last area, by
+## arriving. A run that ends otherwise crosses no more, and the next run starts afresh.
+func test_an_area_is_crossed_onto_the_next_or_by_an_arrival() -> void:
+	for cause: StringName in [CarSim.ARRIVAL, CarSim.HEALTH, CarSim.WRONG_TURN]:
+		_state.start_run(1)
+		_state.enter_area(&"city", 0.0, 0)
+		_state.damage_area(&"city")
+		_state.distance = 40.0
+		_state.turn_index = 34
+		_state.enter_area(&"rural", 40.0, 34)
+		_state.cross_area(&"city")
+		_state.end_run(cause)
+		var areas: Dictionary = get_signal_parameters(EventBus, "run_ended")[1]["areas"]
+		var arrived := cause == CarSim.ARRIVAL
+		var rural := _made(0.0, 0, false, arrived)
+		assert_eq(areas, {&"city": _made(40.0, 34, true, true), &"rural": rural}, cause)
+		_state.quit_to_title()
+	_state.start_run(2)
+	_state.enter_area(&"city", 0.0, 0)
+	assert_eq(_state.stats()["areas"], {&"city": _made(0.0, 0)}, "a new run starts afresh")

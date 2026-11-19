@@ -349,8 +349,8 @@ tests/         GUT tests
 `user://save.json`:
 ```json
 {
-  "version": 4,
-  "atlas": { "city": { "discovered": true, "best_distance": 0, "best_turns": 0 } },
+  "version": 5,
+  "atlas": { "city": { "discovered": true, "best_distance": 0, "best_turns": 0, "stamped": false } },
   "best": { "distance": 0, "turns": 0 },
   "disasters": { "phantom_bus": { "seen": 3, "first_area": "city", "first_distance": 0, "first_turns": 0, "unlocked": false } },
   "arrivals": { "pier": { "count": 1, "best_seconds": 581.0, "clean": false, "farthest": 280 } },
@@ -358,7 +358,7 @@ tests/         GUT tests
   "tutorial": { "done": false }
 }
 ```
-The file has a version number so it can be migrated when the format changes. Version 3 adds `arrivals` and each disaster's `unlocked` (`ENDGAME_PLAN.md` W3), and version 4 each arrival's `farthest` (§5.12). It is written on `run_ended`, when settings change, as the tutorial is done (§2.7), and on an arrival that counts.
+The file has a version number so it can be migrated when the format changes. Version 3 adds `arrivals` and each disaster's `unlocked` (`ENDGAME_PLAN.md` W3), version 4 each arrival's `farthest` (§5.12), and version 5 each atlas entry's `stamped`, set once a run crosses the area with no damage (§5.16). It is written on `run_ended`, when settings change, as the tutorial is done (§2.7), and on an arrival that counts.
 
 ---
 

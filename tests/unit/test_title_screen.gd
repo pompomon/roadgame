@@ -198,9 +198,9 @@ func test_the_start_button_steps_through_the_areas_and_open_keeps_the_last() -> 
 
 func test_the_title_page_fits_a_portrait_screen_with_each_road_and_start_area() -> void:
 	# The Road and Start buttons keep their widths as they step, so that each tap lands on them (Z9,
-	# ENDGAME_PLAN.md §5.12).
+	# ENDGAME_PLAN.md §5.12). The road to the sea's records have each of their lines (§5.16).
 	SaveService.data().record_run({"distance": 9999.9, "turn_index": 999})
-	SaveService.data().record_arrival(&"pier", {"seconds": 99999.9})
+	SaveService.data().record_arrival(&"pier", {"seconds": 99999.9, "clean": true})
 	var title := _title()
 	title.every_area = true
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
@@ -266,6 +266,33 @@ func test_the_road_button_offers_the_other_roads_after_an_arrival_at_the_sea() -
 	assert_eq([title.road, title.start_area], [title.schedule, title.schedule.areas()[0]])
 
 
+## ENDGAME_PLAN.md §5.16: once a run has arrived, the title shows the records of the road that Play
+## drives, under the bests: its arrivals, then its best time and whether one was clean, and none for
+## the endless road. The records keep the height of their three lines, so that the Road button
+## stays put as it steps (docs/ZONE_SELECT.md Z9).
+func test_the_title_shows_the_arrivals_and_the_best_time() -> void:
+	var title := _title()
+	var records: Label = title.get_node("%Records")
+	var road := _button(title, "Road")
+	title.open()
+	assert_false(records.visible, "no arrival")
+	var data := SaveService.data()
+	data.record_arrival(&"pier", {"seconds": 754.9})
+	data.record_arrival(&"pier", {"seconds": 600.5, "clean": true})
+	title.open()
+	var texts: Array[String] = []
+	var rects: Array[Rect2] = []
+	for _press: int in 3:
+		await wait_process_frames(2)
+		assert_true(records.visible, road.text)
+		assert_eq(records.size.y, records.custom_minimum_size.y, "%s: its height" % road.text)
+		texts.append(records.text)
+		rects.append(road.get_global_rect())
+		road.pressed.emit()
+	assert_eq(texts, ["Arrivals: 2\nBest time: 10:00\nClean arrival", "Arrivals: 0", ""])
+	assert_eq(rects.count(rects[0]), rects.size(), "the Road button stays put: %s" % [rects])
+
+
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings). Every
 	# legend of the pools is seen, so that each cell shows its name and its still, and each page its
@@ -283,9 +310,11 @@ func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 			)
 	title.open()
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
-	# The Book's rows may run below the screen, as its scroll scrolls to them (S16).
+	# The Book's rows and the Atlas's postcards may run below the screen, as their scrolls scroll to
+	# them (S16, ENDGAME_PLAN.md W33).
 	var grid: Control = title.get_node("%Book/%Grid")
 	var scroll: ScrollContainer = title.get_node("%Book/%Scroll")
+	var postcards: ScrollContainer = title.get_node("%Atlas/%Scroll")
 	for button: String in ["", "AtlasButton", "DisastersButton", "SettingsButton"]:
 		if button != "":
 			_button(title, button).pressed.emit()
@@ -294,10 +323,20 @@ func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 			if control.is_visible_in_tree():
 				var rect := control.get_global_rect()
 				var fits := bounds.encloses(rect)
-				if scroll.is_ancestor_of(control):
+				if scroll.is_ancestor_of(control) or postcards.is_ancestor_of(control):
 					fits = rect.position.x >= bounds.position.x and rect.end.x <= bounds.end.x
 				assert_true(fits, "%s: %s at %s" % [button, control.name, rect])
 		title.go_back()
+	_button(title, "AtlasButton").pressed.emit()
+	await wait_process_frames(2)
+	var last_postcard: Control = title.get_node("%Atlas/%Cards").get_child(-1)
+	postcards.ensure_control_visible(last_postcard)
+	await wait_process_frames(2)
+	assert_true(
+		postcards.get_global_rect().encloses(last_postcard.get_global_rect()),
+		"the last postcard scrolls in"
+	)
+	title.go_back()
 	_button(title, "DisastersButton").pressed.emit()
 	await wait_process_frames(2)
 	var cells: Array[BookCell] = []

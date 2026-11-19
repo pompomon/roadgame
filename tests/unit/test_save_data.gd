@@ -17,6 +17,11 @@ func _stats(distance: float, turns: int, areas: Dictionary) -> Dictionary:
 	return {"distance": distance, "turn_index": turns, "areas": areas}
 
 
+## An area of the atlas that a run reached, with its bests, and stamped or not.
+static func _entry(distance: float, turns: int, stamped := false) -> Dictionary:
+	return {"discovered": true, "best_distance": distance, "best_turns": turns, "stamped": stamped}
+
+
 func test_new_data_has_the_defaults() -> void:
 	var data := SaveData.new()
 	assert_eq(data.atlas, {} as Dictionary[String, Dictionary])
@@ -30,7 +35,8 @@ func test_new_data_has_the_defaults() -> void:
 func test_json_round_trip() -> void:
 	var data := SaveData.new()
 	data.tutorial["done"] = true
-	data.record_run(_stats(40.5, 9, {&"city": {"distance": 30.25, "turns": 7}}))
+	var city := {"distance": 30.25, "turns": 7, "damaged": false, "crossed": true}
+	data.record_run(_stats(40.5, 9, {&"city": city}))
 	data.record_disaster(&"tornado", &"city", _stats(40.5, 9, {}))
 	data.record_arrival(&"pier", {"seconds": 512.25, "clean": true, "turn_index": 9})
 	data.unlock_disaster(&"ufo")
@@ -40,6 +46,7 @@ func test_json_round_trip() -> void:
 	assert_eq(again.load_json(data.to_json()), SaveData.Status.LOADED)
 	assert_eq(again.problems, PackedStringArray())
 	assert_eq(again.atlas, data.atlas)
+	assert_eq(again.atlas["city"], _entry(30.25, 7, true), "with its stamp")
 	assert_eq(again.best, data.best)
 	assert_eq(again.disasters, data.disasters)
 	assert_eq(again.arrivals, data.arrivals)
@@ -49,14 +56,14 @@ func test_json_round_trip() -> void:
 	assert_typeof(again.atlas["city"]["best_turns"], TYPE_INT)
 	assert_typeof(again.arrivals["pier"]["count"], TYPE_INT)
 	assert_typeof(again.arrivals["pier"]["farthest"], TYPE_INT)
-	assert_true(data.to_json().contains('"version": 4'))
+	assert_true(data.to_json().contains('"version": 5'))
 
 
 func test_a_v0_file_is_migrated_and_keeps_its_values() -> void:
 	var data := SaveData.new()
 	assert_eq(data.load_json(V0), SaveData.Status.LOADED)
 	assert_eq(data.problems, PackedStringArray())
-	assert_eq(data.atlas["city"], {"discovered": true, "best_distance": 12.0, "best_turns": 0})
+	assert_eq(data.atlas["city"], _entry(12.0, 0))
 	assert_eq(data.best, {"distance": 12.0, "turns": 3})
 	assert_eq(data.disasters["sinkhole"]["seen"], 3)
 	assert_eq(data.disasters["sinkhole"]["first_area"], "city")
@@ -73,7 +80,7 @@ func test_each_load_starts_from_the_defaults() -> void:
 	var loads := {
 		"{}": SaveData.Status.LOADED,
 		"not json": SaveData.Status.CORRUPT,
-		'{"version": 5}': SaveData.Status.NEWER,
+		'{"version": 6}': SaveData.Status.NEWER,
 		'{"settings": {"music": 2}}': SaveData.Status.LOADED,
 	}
 	for text: String in loads:
@@ -209,7 +216,7 @@ func test_numbers_past_the_largest_exact_whole_number_get_their_defaults() -> vo
 
 func test_a_later_version_is_read_as_far_as_it_is_known() -> void:
 	var data := SaveData.new()
-	var text := JSON.stringify({"version": 5, "best": {"distance": 5, "turns": 1}, "new": 1})
+	var text := JSON.stringify({"version": 6, "best": {"distance": 5, "turns": 1}, "new": 1})
 	assert_eq(data.load_json(text), SaveData.Status.NEWER)
 	assert_eq(data.best, {"distance": 5.0, "turns": 1})
 
@@ -219,8 +226,8 @@ func test_record_run_keeps_the_best_of_each_area_and_overall() -> void:
 	var city := {"distance": 30.0, "turns": 7}
 	data.record_run(_stats(40.0, 9, {&"city": city, &"rural": {"distance": 10.0, "turns": 2}}))
 	data.record_run(_stats(35.0, 11, {&"city": {"distance": 35.0, "turns": 6}}))
-	assert_eq(data.atlas["city"], {"discovered": true, "best_distance": 35.0, "best_turns": 7})
-	assert_eq(data.atlas["rural"], {"discovered": true, "best_distance": 10.0, "best_turns": 2})
+	assert_eq(data.atlas["city"], _entry(35.0, 7))
+	assert_eq(data.atlas["rural"], _entry(10.0, 2))
 	assert_does_not_have(data.atlas, "meadows")
 	assert_eq(data.best, {"distance": 40.0, "turns": 11}, "the best of each, not of one run")
 
@@ -233,7 +240,7 @@ func test_a_departure_keeps_the_overall_best() -> void:
 	departure["whole_road"] = false
 	data.record_run(departure)
 	assert_eq(data.best, {"distance": 40.0, "turns": 9})
-	assert_eq(data.atlas["desert"], {"discovered": true, "best_distance": 90.0, "best_turns": 25})
+	assert_eq(data.atlas["desert"], _entry(90.0, 25))
 	departure["whole_road"] = true
 	data.record_run(departure)
 	assert_eq(data.best, {"distance": 90.0, "turns": 25}, "the same run, driven whole")
@@ -275,7 +282,7 @@ func test_a_v2_file_is_migrated_with_no_arrivals_and_nothing_unlocked() -> void:
 	assert_eq(data.arrivals, {} as Dictionary[String, Dictionary])
 	assert_eq(data.disasters["ufo"]["seen"], 2)
 	assert_false(data.disasters["ufo"]["unlocked"])
-	assert_true(data.to_json().contains('"version": 4'))
+	assert_true(data.to_json().contains('"version": 5'))
 
 
 func test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one() -> void:
@@ -328,7 +335,7 @@ func test_a_v3_file_is_migrated_with_each_roads_farthest() -> void:
 		kept.arrivals["pier"], {"count": 0, "best_seconds": 0.0, "clean": false, "farthest": 9}
 	)
 	assert_eq(kept.best["turns"], 9)
-	assert_true(kept.to_json().contains('"version": 4'))
+	assert_true(kept.to_json().contains('"version": 5'))
 
 
 ## ENDGAME_PLAN.md §5.12: a run raises the farthest turn of the road that it drove whole, from its
@@ -369,6 +376,75 @@ func test_a_road_home_run_that_never_arrives_keeps_its_farthest() -> void:
 	again.record_arrival(&"home", {"seconds": 600.0, "turn_index": 280})
 	assert_eq(again.arrivals["home"]["farthest"], 280)
 	assert_eq(again.arrival_count(&"home"), 1)
+
+
+## ENDGAME_PLAN.md §5.16: version 5 adds each area's stamp, which no run has earned yet, and keeps
+## all that version 4 had, each road's farthest turn among it. That is the road to the sea's too
+## where it never arrived and the best turns are more, as Keep Driving's road may have made them
+## (§5.13): unlike version 3's, they aren't its own.
+func test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest() -> void:
+	var arrived := {"count": 2, "best_seconds": 512.5, "clean": true, "farthest": 280}
+	var not_yet := {"count": 0, "best_seconds": 0.0, "clean": false, "farthest": 150}
+	var home := {"count": 0, "best_seconds": 0.0, "clean": false, "farthest": 120}
+	for pier: Dictionary in [arrived, not_yet]:
+		var root := {
+			"version": 4,
+			"atlas": {"city": {"discovered": true, "best_distance": 30.0, "best_turns": 7}},
+			"best": {"distance": 900.0, "turns": 200},
+			"arrivals": {"pier": pier, "home": home},
+		}
+		var data := SaveData.new()
+		assert_eq(data.load_json(JSON.stringify(root)), SaveData.Status.LOADED)
+		assert_eq(data.problems, PackedStringArray())
+		assert_eq(data.atlas["city"], _entry(30.0, 7))
+		assert_eq(data.best, {"distance": 900.0, "turns": 200})
+		assert_eq([data.arrivals["pier"], data.arrivals["home"]], [pier, home])
+		assert_true(data.to_json().contains('"version": 5'))
+
+
+## ENDGAME_PLAN.md §5.16: a run that crossed an area, onto the next area's first tile or by arriving
+## in it, with no damage there, stamps the area's postcard, and the stamp stays. An area that the
+## run reached but didn't cross isn't stamped.
+func test_a_crossing_with_no_damage_stamps_the_area() -> void:
+	var data := SaveData.new()
+	var city := {"distance": 34.0, "turns": 3, "damaged": false, "crossed": true}
+	var rural := {"distance": 5.0, "turns": 1, "damaged": false, "crossed": false}
+	data.record_run(_stats(39.0, 4, {&"city": city, &"rural": rural}))
+	assert_eq(data.atlas["city"], _entry(34.0, 3, true))
+	assert_eq(data.atlas["rural"], _entry(5.0, 1), "reached, not crossed")
+	city["damaged"] = true
+	data.record_run(_stats(34.0, 3, {&"city": city}))
+	assert_true(data.atlas["city"]["stamped"], "kept after a run with damage")
+
+
+## ENDGAME_PLAN.md §5.16: an area crossed with damage, or reached and not crossed, or of stats that
+## don't say, isn't stamped.
+func test_an_area_crossed_with_damage_or_not_crossed_is_not_stamped() -> void:
+	var runs: Array[Dictionary] = [
+		{"distance": 34.0, "turns": 3, "damaged": true, "crossed": true},
+		{"distance": 34.0, "turns": 3, "damaged": false, "crossed": false},
+		{"distance": 34.0, "turns": 3},
+	]
+	for city: Dictionary in runs:
+		var data := SaveData.new()
+		data.record_run(_stats(34.0, 3, {&"city": city}))
+		assert_eq(data.atlas["city"], _entry(34.0, 3), str(city))
+
+
+## ENDGAME_PLAN.md §5.16: the end screen says "New best time!" for an arrival faster than the best
+## time at its finish: not for the first, which has none to beat, nor for one as fast.
+func test_only_a_faster_arrival_beats_the_best_time() -> void:
+	var data := SaveData.new()
+	assert_false(data.beats_best_time(&"pier", 500.0), "the first arrival")
+	var run := _stats(40.0, 9, {})
+	run["road"] = &"pier"
+	data.record_run(run)
+	assert_false(data.beats_best_time(&"pier", 500.0), "the first, after a run that didn't arrive")
+	data.record_arrival(&"pier", {"seconds": 500.0})
+	assert_true(data.beats_best_time(&"pier", 499.5), "faster")
+	assert_false(data.beats_best_time(&"pier", 500.0), "as fast")
+	assert_false(data.beats_best_time(&"pier", 530.0), "slower")
+	assert_false(data.beats_best_time(&"home", 10.0), "the first at another finish")
 
 
 ## ENDGAME_PLAN.md W14: an unlocked legend shows as found in the Book of Legends, and weighs less

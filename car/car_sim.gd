@@ -15,9 +15,15 @@ extends RefCounted
 ## stop's tiles on the road, once in a run (ENDGAME_PLAN.md §5.15).
 
 signal health_changed(value: float)
+## Driving off the road took health, at the rates of `area` (ENDGAME_PLAN.md §5.16): in the step
+## that reaches a new area, the time before it counts at the old area's rates.
+signal damaged(area: AreaDef)
 signal offroad_changed(is_offroad: bool)
 ## The car reached the first tile of a new area.
 signal area_changed(area: AreaDef)
+## The car crossed on the road from the last path tile of `area` onto the next area's first, where
+## the trigger judged the crossing right (ENDGAME_PLAN.md §5.16, W32).
+signal area_crossed(area: AreaDef)
 ## The run ended in a crash: HEALTH or OFFROAD. Disasters come from trigger.disaster_triggered.
 signal crashed(cause: StringName)
 ## The tutorial put the car back on the path.
@@ -135,6 +141,7 @@ func step(delta: float, steer: float) -> void:
 			_offroad_since = at
 			if is_over():
 				return
+		_cross_border(cell, crossed[i])
 		cell = crossed[i]
 		done = at
 	if _follow_road(from, cell, done, 1.0, delta, area) and state == State.OFFROAD:
@@ -292,6 +299,20 @@ func _update_path(crossed: Array[Vector2i]) -> Array[AreaDef]:
 	return areas
 
 
+## The car crossed from `cell` into `next`. If it did on the road, from a path tile onto the next,
+## of another area, it crossed the area that it left. A junction's tile is its own area's, so the
+## trigger has judged the turn by then.
+func _cross_border(cell: Vector2i, next: Vector2i) -> void:
+	if state == State.OFFROAD:
+		return
+	var tile := buffer.tile_at(cell)
+	var after := buffer.tile_at(next)
+	if tile == null or after == null or tile.path_index < 0:
+		return
+	if after.path_index == tile.path_index + 1 and after.area_id != tile.area_id:
+		area_crossed.emit(buffer.generator.find_area(tile.area_id))
+
+
 ## Off-road rules (plan.md §2.4, D6) on the part of the step from `from` to `pos` between
 ## fractions `start` and `end`, which lies in `cell`: the car leaves the road and rejoins it where
 ## that part crosses the road's edge, however often. Only the time off the road counts, at the
@@ -351,8 +372,11 @@ func _rejoin_road(tile: RoadTile, t: float, delta: float, rates: AreaDef) -> boo
 ## tutorial, the limit costs the streak, wherever the car left the road, and nothing ends the run.
 func _drive_off_road(seconds: float, rates: AreaDef) -> void:
 	offroad_dist += speed * seconds
+	var before := health
 	health = maxf(0.0, health - rates.offroad_damage_per_sec * seconds)
 	health_changed.emit(health)
+	if health < before:
+		damaged.emit(rates)
 	if trigger.tutorial:
 		# Once the trigger has lost the car, only the road finds it again, so this repeats nothing.
 		if offroad_dist >= rates.offroad_limit_tiles:

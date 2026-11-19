@@ -11,7 +11,7 @@ extends RefCounted
 ## What load_json() made of the text.
 enum Status { LOADED, CORRUPT, NEWER }
 
-const VERSION := 4
+const VERSION := 5
 const ORIENTATIONS: Array[String] = ["sensor", "portrait", "landscape"]
 const DEFAULT_SETTINGS := {
 	"music": 0.8,
@@ -22,9 +22,10 @@ const DEFAULT_SETTINGS := {
 }
 ## The settings that are volumes, from 0 to 1.
 const VOLUMES: Array[String] = ["music", "sfx", "ambient"]
-## An area of the atlas: whether a run has reached it, and the most distance and turns a run made
-## in it (docs/M5.md L8).
-const ATLAS_ENTRY := {"discovered": false, "best_distance": 0.0, "best_turns": 0}
+## An area of the atlas: whether a run has reached it, the most distance and turns a run made in it
+## (docs/M5.md L8), and whether a run crossed it with no damage, which stamps its postcard
+## (ENDGAME_PLAN.md §5.16).
+const ATLAS_ENTRY := {"discovered": false, "best_distance": 0.0, "best_turns": 0, "stamped": false}
 ## A disaster of the collection: how often it was seen, where and in which run it was first seen
 ## (plan.md §2.6), and whether an arrival unlocked it (ENDGAME_PLAN.md §5.5).
 const DISASTER_ENTRY := {
@@ -65,7 +66,7 @@ var problems := PackedStringArray()
 ## How each older version of the file becomes the next: {from_version: Callable(Dictionary) ->
 ## Dictionary}. migrate() then sets the version.
 static func migrations() -> Dictionary[int, Callable]:
-	return {0: _v0_to_v1, 1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4}
+	return {0: _v0_to_v1, 1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5}
 
 
 ## Version 0 is a file with no "version" (docs/M5.md Q8). It has plan.md §9's keys, and the keys
@@ -119,6 +120,12 @@ static func _v3_to_v4(data: Dictionary) -> Dictionary:
 		elif id == V3_SEA and entry is Dictionary:
 			entry["farthest"] = mini(int(turns), V3_FINISH_TURN)
 	data["arrivals"] = old_arrivals
+	return data
+
+
+## Version 5 adds each atlas entry's "stamped" (ENDGAME_PLAN.md §5.16), from the defaults: no run
+## has stamped an area. Each road's "farthest" stays as version 4 left it.
+static func _v4_to_v5(data: Dictionary) -> Dictionary:
 	return data
 
 
@@ -182,10 +189,11 @@ func to_json() -> String:
 
 
 ## Records a finished run's GameState.stats(): the areas it reached, the distance and turns it made
-## in each; its turns as its road's farthest, if it drove a road with a finish whole, the "road" of
-## the stats (ENDGAME_PLAN.md §5.12); and its distance and turns overall, if it drove the whole
-## road. A departure from a later area sets neither (W22). Stats without "whole_road" count as a
-## whole road's, and without "road" as one without a finish.
+## in each, and a stamp for each it crossed with no damage (ENDGAME_PLAN.md §5.16); its turns as its
+## road's farthest, if it drove a road with a finish whole, the "road" of the stats (§5.12); and its
+## distance and turns overall, if it drove the whole road. A departure from a later area sets
+## neither (W22), but stamps what it crossed. Stats without "whole_road" count as a whole road's,
+## and without "road" as one without a finish.
 func record_run(stats: Dictionary) -> void:
 	var areas: Dictionary = stats.get("areas", {})
 	for id: StringName in areas:
@@ -194,6 +202,8 @@ func record_run(stats: Dictionary) -> void:
 		entry["discovered"] = true
 		entry["best_distance"] = maxf(entry["best_distance"], made.get("distance", 0.0))
 		entry["best_turns"] = maxi(entry["best_turns"], made.get("turns", 0))
+		var clean_crossing: bool = made.get("crossed", false) and not made.get("damaged", false)
+		entry["stamped"] = entry["stamped"] or clean_crossing
 		atlas[String(id)] = entry
 	var road: StringName = stats.get("road", &"")
 	if road != &"":
@@ -240,6 +250,14 @@ func record_arrival(finish: StringName, stats: Dictionary) -> void:
 	entry["clean"] = entry["clean"] or bool(stats.get("clean", false))
 	entry["farthest"] = maxi(entry["farthest"], int(stats.get("turn_index", 0)))
 	arrivals[String(finish)] = entry
+
+
+## Whether an arrival at the finish `finish` in `seconds` beats the best time there. The first
+## arrival has none to beat: a finish's best time is 0 until then, which no arrival beats
+## (ENDGAME_PLAN.md §5.16).
+func beats_best_time(finish: StringName, seconds: float) -> bool:
+	var best_seconds: float = arrivals.get(String(finish), ARRIVAL_ENTRY)["best_seconds"]
+	return seconds < best_seconds
 
 
 ## Unlocks the disaster `id`: the Book of Legends shows it, "Not seen yet" until a run meets it,

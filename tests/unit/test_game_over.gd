@@ -258,3 +258,26 @@ func test_the_next_goal_is_one_line_of_the_fonts_glyphs() -> void:
 		game_over.close()
 	game_over.open(_stats(CarSim.WRONG_TURN), _rural())
 	assert_false(goal.visible, "no goal, no line")
+
+
+## ENDGAME_PLAN.md §5.16: an arrival that beat the best time says so under its time, in the font's
+## glyphs, and the fullest end screen still fits the view: a new legend with a fate of two lines,
+## the next goal, the seed and the new best time. A run that didn't arrive has no time to beat.
+func test_a_new_best_time_shows_under_an_arrivals_time() -> void:
+	var game_over := _game_over()
+	game_over.show_seed = true
+	var fate := LegendUnlock.UNLOCKED % "Headless Horseman"
+	game_over.open(_stats(CarSim.ARRIVAL), _rural(), fate, true, GameOver.GOAL_CLEAN, true)
+	var stats := "Distance: 123 m\nTurns: 7\nArea reached: Rural"
+	assert_eq(_text(game_over, "Stats"), stats + "\nTime: 8:32\n" + GameOver.NEW_BEST_TIME)
+	var font := (game_over.get_node("%Stats") as Label).get_theme_font("font")
+	for c: String in GameOver.NEW_BEST_TIME:
+		assert_true(font.has_char(c.unicode_at(0)), "'%s'" % c)
+	await wait_process_frames(2)
+	for control: Control in game_over.find_children("*", "Control", true, false):
+		if control.is_visible_in_tree():
+			var rect := control.get_global_rect()
+			assert_true(VIEW.encloses(rect), "%s at %s, in the view" % [control.name, rect])
+	game_over.close()
+	game_over.open(_stats(CarSim.HEALTH), _rural(), "", false, "", true)
+	assert_eq(_text(game_over, "Stats"), stats, "no arrival")

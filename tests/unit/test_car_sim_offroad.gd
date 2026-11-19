@@ -575,3 +575,47 @@ func test_a_step_that_ends_the_run_measures_the_progress_first() -> void:
 		else:
 			assert_eq(sim.state, CarSim.State.CRASHED, why)
 			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])
+
+
+## ENDGAME_PLAN.md §5.16: off the road, the car takes damage in the areas whose rates it pays. In a
+## step that reaches a new area, that is the old one's before it and the new one's after. Off the
+## road, the car crosses no area.
+func test_damage_across_a_border_names_each_area() -> void:
+	# Off the road beside the first junction's exit, the car steps straight on into the exit tile,
+	# the first of the new area, halfway through the step.
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, _two_areas(DESERT, MEADOWS)))
+	buffer.start()
+	var sim := CarSim.new(buffer)
+	watch_signals(sim)
+	var junction := sim.trigger.next_junction
+	var out := Vector2(Heading.VEC[junction.expected_exit])
+	var side := Vector2(Heading.VEC[Heading.right(junction.expected_exit)])
+	var edge := Iso.cell_centre(junction.cell) + out * 0.5
+	sim.speed = DESERT.junction_speed * DESERT.offroad_speed_mult
+	_place(sim, edge - out * sim.speed * DELTA / 2.0 + side * 0.45)
+	sim.angle = junction.expected_exit * PI / 2.0
+	sim.state = CarSim.State.OFFROAD
+	sim.step(DELTA, 0.0)
+	assert_eq(sim.area, MEADOWS, "in the new area")
+	assert_eq(sim.state, CarSim.State.OFFROAD)
+	assert_signal_emit_count(sim, "damaged", 2)
+	assert_signal_emitted_with_parameters(sim, "damaged", [DESERT], 0)
+	assert_signal_emitted_with_parameters(sim, "damaged", [MEADOWS], 1)
+	assert_signal_not_emitted(sim, "area_crossed", "off the road")
+
+
+## ENDGAME_PLAN.md §5.16: off the road in an area that takes no health there, the car takes no
+## damage, so it keeps the area's stamp.
+func test_off_the_road_at_no_cost_is_no_damage() -> void:
+	var free: AreaDef = DESERT.duplicate()
+	free.offroad_damage_per_sec = 0.0
+	var buffer := RoadBuffer.new(RoadGenerator.new(1, _two_areas(free, free)))
+	buffer.start()
+	var sim := CarSim.new(buffer)
+	watch_signals(sim)
+	_put_off_road(sim, 0)
+	_drive(sim, 0.5)
+	assert_eq(sim.state, CarSim.State.OFFROAD)
+	assert_gt(sim.offroad_dist, 0.3, "the car drove off the road")
+	assert_eq(sim.health, Tuning.START_HEALTH)
+	assert_signal_not_emitted(sim, "damaged")

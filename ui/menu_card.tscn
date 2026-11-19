@@ -2,28 +2,114 @@
 
 [ext_resource type="Script" path="res://ui/menu_card.gd" id="1_menu_card"]
 
-[node name="MenuCard" type="HBoxContainer"]
-theme_override_constants/separation = 12
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hollow"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.5, 0.55, 1)
+
+[node name="MenuCard" type="PanelContainer"]
+focus_mode = 3
+mouse_filter = 2
 script = ExtResource("1_menu_card")
 
-[node name="Swatch" type="ColorRect" parent="."]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(48, 48)
+[node name="Box" type="VBoxContainer" parent="."]
 layout_mode = 2
-size_flags_vertical = 4
+theme_override_constants/separation = 8
 
-[node name="Text" type="VBoxContainer" parent="."]
+[node name="Swatch" type="ColorRect" parent="Box"]
+unique_name_in_owner = true
+clip_contents = true
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Ground" type="TextureRect" parent="Box/Swatch"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Prop" type="TextureRect" parent="Box/Swatch"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Head" type="HBoxContainer" parent="Box"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Box/Head"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 0
-
-[node name="Title" type="Label" parent="Text"]
-unique_name_in_owner = true
-layout_mode = 2
 theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 
-[node name="Details" type="Label" parent="Text"]
+[node name="Stamp" type="Control" parent="Box/Head"]
+custom_minimum_size = Vector2(24, 28)
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+
+[node name="Paper" type="ColorRect" parent="Box/Head/Stamp"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.9411765, 0.9411765, 0.9098039, 1)
+
+[node name="Ink" type="ColorRect" parent="Box/Head/Stamp/Paper"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Hollow" type="Panel" parent="Box/Head/Stamp"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hollow")
+
+[node name="Details" type="Label" parent="Box"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
