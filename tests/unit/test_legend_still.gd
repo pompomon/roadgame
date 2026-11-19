@@ -1,10 +1,11 @@
 extends GutTest
 ## LegendStill (ENDGAME_PLAN.md §5.8): the frame of its figure that each legend's scene names, whole
-## and in full view, whatever its rest pose hides, drawn as the figure draws, and centred; and a
-## glow's light, bounded by the ground under it.
+## and in full view, whatever its rest pose hides, drawn as the figure draws, and centred, and the
+## Vanishing Hitchhiker's (§5.17); and a glow's light, bounded by the ground under it.
 
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
 const PIER := preload("res://setpieces/pier.tscn")
+const HITCHHIKER := preload("res://world/hitchhiker.tscn")
 ## The least share of a still's frame that its pixels more opaque than half cover: a frame that
 ## shows the legend, not a blank one.
 const DRAWN_SHARE := 0.1
@@ -110,6 +111,21 @@ func test_a_glows_still_adds_no_more_light_than_its_ground_leaves_below_white() 
 		assert_between(still.strength(sea), 0.1, 0.9, "%s: a part over the sea" % still.id)
 		assert_eq(still.strength(Color.WHITE), 0.0, "%s: none over white" % still.id)
 	assert_eq(glows, [&"will_o_wisp", &"marfa_lights"] as Array[StringName])
+
+
+## ENDGAME_PLAN.md §5.17: her scene is her figure, which waits hidden until she stands.
+func test_the_hitchhikers_still_is_her_figure_in_full_view() -> void:
+	var hitchhiker: Hitchhiker = autofree(HITCHHIKER.instantiate())
+	var still: LegendStill = autofree(LegendStill.of(HITCHHIKER))
+	assert_eq(still.id, Hitchhiker.ID)
+	assert_eq(still.texture, hitchhiker.texture)
+	assert_eq([still.hframes, still.vframes, still.frame], [1, 1, 0])
+	assert_eq([still.flip_h, still.flip_v], [hitchhiker.flip_h, hitchhiker.flip_v])
+	assert_eq(still.scale, Vector2.ONE, "large enough")
+	var frame := Vector2(Hitchhiker.FRAME)
+	assert_eq(still.get_rect(), Rect2(-frame / 2.0, frame), "centred")
+	assert_eq([still.modulate, still.visible], [Color.WHITE, true], "in full view")
+	assert_gte(_drawn_share(still), DRAWN_SHARE, "shows her")
 
 
 func test_a_scene_that_isnt_a_legend_or_names_no_figure_has_no_still() -> void:

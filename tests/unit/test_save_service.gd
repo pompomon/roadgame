@@ -97,6 +97,23 @@ func test_a_disaster_is_written_when_it_starts() -> void:
 	assert_eq(_read().disasters["flood"]["first_area"], "meadows")
 
 
+## ENDGAME_PLAN.md §5.17: the Vanishing Hitchhiker, whom no disaster plays, is written at once, as a
+## disaster's sighting is, with how far into the run she was found.
+func test_a_legend_found_is_written_at_once_with_the_runs_stats() -> void:
+	var kept_distance := GameState.distance
+	var kept_turns := GameState.turn_index
+	GameState.distance = 12.5
+	GameState.turn_index = 3
+	_service.record_found(Hitchhiker.ID, &"desert")
+	GameState.distance = kept_distance
+	GameState.turn_index = kept_turns
+	var entry: Dictionary = _read().disasters[String(Hitchhiker.ID)]
+	assert_eq(entry["seen"], 1)
+	assert_eq(entry["first_area"], "desert")
+	assert_eq(entry["first_distance"], 12.5)
+	assert_eq(entry["first_turns"], 3)
+
+
 ## docs/TUTORIAL.md §5.6: at once, so that leaving the app after the tutorial doesn't bring it back.
 func test_the_end_of_the_tutorial_is_written_at_once() -> void:
 	assert_false(_service.data().tutorial["done"])

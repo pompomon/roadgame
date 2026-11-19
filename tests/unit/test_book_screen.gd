@@ -4,7 +4,8 @@ extends GutTest
 ## and its name's initials, a seal on each row whose legends are all found, and a found legend's
 ## page: how often, where and how far into a run it was first seen (docs/M6.md S12), its fate and
 ## its lore; how a finger's drag and tap reach the Book, what a screen reader reads, and that a
-## silhouette and a seal stand out from their grounds, a seal not earned yet hollow. The pools hold
+## silhouette and a seal stand out from their grounds, a seal not earned yet hollow; and the
+## Vanishing Hitchhiker's last row, once the pools are found (ENDGAME_PLAN.md §5.17). The pools hold
 ## test legends, so that a change to the game's leaves these tests alone (S15), except where a test
 ## reads the game's.
 
@@ -770,31 +771,37 @@ func test_a_word_too_wide_for_its_cell_breaks_after_a_hyphen() -> void:
 	# overflows (ENDGAME_PLAN.md W25). Tests run in the editor's build, which breaks after a hyphen
 	# itself, so this reads each cell's text: each part between its spaces and line breaks fits,
 	# whether the cell shows a name or initials. Of the game's legends, only the Will-o'-the-Wisp's
-	# name needs a break.
+	# name needs a break. Once the pools are found, the Vanishing Hitchhiker's row shows too, her
+	# initials until she is found (ENDGAME_PLAN.md §5.17).
 	var schedule := Fixtures.schedule()
 	var data := SaveData.new()
 	var book := _book()
 	var broken: Array[String] = []
-	for found: bool in [false, true]:
-		if found:
+	var passes: Dictionary[String, int] = {"none": 15, "the pools": 16, "her too": 16}
+	for found: String in passes:
+		if found == "the pools":
 			for disaster: Dictionary in BookScreen.disasters(schedule):
 				data.record_disaster(disaster["id"], &"city", _stats(1.0, 1))
+		elif found == "her too":
+			data.record_disaster(Hitchhiker.ID, &"desert", _stats(1.0, 1))
 		book.open(data, schedule)
 		await wait_process_frames(2)
-		assert_eq(_cells(book).size(), 15, "the five pools")
+		assert_eq(_cells(book).size(), passes[found], "the five pools, then her page: " + found)
 		for cell: BookCell in _cells(book):
 			var label: Label = cell.get_node("%Name")
 			var font := label.get_theme_font(&"font")
 			var font_size := label.get_theme_font_size(&"font_size")
 			var width := label.size.x - label.get_theme_stylebox(&"normal").get_minimum_size().x
 			var whole: String = cell.legend["name"]
-			assert_eq(label.text.replace("\n", ""), whole if found else BookScreen.initials(whole))
+			var shown := whole if cell.found else BookScreen.initials(whole)
+			assert_eq(label.text.replace("\n", ""), shown, found)
 			assert_gt(width, 0.0, "laid out")
 			for part: String in label.text.replace("\n", " ").split(" "):
 				var drawn := font.get_string_size(part, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 				assert_lte(drawn.x, width, "%s: %s" % [cell.legend["id"], part])
-			if "\n" in label.text:
+			if "\n" in label.text and not broken.has(label.text):
 				broken.append(label.text)
+	assert_eq(_cell(book, Hitchhiker.ID).legend["name"], "Vanishing Hitchhiker", "hers too")
 	assert_eq(broken, ["Will-o'-the-\nWisp"])
 
 
@@ -840,3 +847,83 @@ func test_a_save_that_recorded_a_retired_disaster_loads_and_shows_only_the_pools
 	for cell: BookCell in cells:
 		assert_eq(_text(cell), [BookScreen.initials(cell.legend["name"]), ""])
 		assert_true(_is_silhouette(cell.still()))
+
+
+## ENDGAME_PLAN.md §5.17: once every legend of the pools is collected, a last row has the Vanishing
+## Hitchhiker's page, who is in no pool: her silhouette and her initials, with no page, until a run
+## finds her, and a hollow seal.
+func test_her_row_shows_last_once_the_pools_are_found_as_her_silhouette() -> void:
+	var schedule := Fixtures.schedule()
+	var legends := BookScreen.disasters(schedule)
+	var data := SaveData.new()
+	for legend: Dictionary in legends.slice(0, legends.size() - 1):
+		data.unlock_disaster(legend["id"])
+	var book := _book()
+	book.open(data, schedule)
+	var heading: Label = book.get_node("%Heading")
+	assert_null(_cell(book, Hitchhiker.ID), "a legend of the pools missing")
+	assert_eq(heading.text, "Legends 14/15")
+	data.record_disaster(legends[-1]["id"], &"city", _stats(1.0, 1))
+	book.open(data, schedule)
+	assert_eq(heading.text, "Legends 15/16", "her page too")
+	var her := _rows(book)[-1]
+	assert_eq(her.cells().size(), 1, "her row, the last")
+	var cell := her.cells()[0]
+	assert_eq(cell.legend["id"], Hitchhiker.ID)
+	assert_eq(_text(cell), ["V________ H_________", ""])
+	assert_true(_is_silhouette(cell.still()), "as her silhouette")
+	assert_true(cell.disabled, "no page")
+	assert_false(her.sealed)
+	assert_true(her.hollow())
+	assert_eq(her.seal_color(), BookScreen.SILHOUETTE)
+	assert_eq(her.accessibility_name, "Road Home: 0 of 1 legend found")
+
+
+func test_found_she_has_her_still_her_name_her_white_seal_and_her_page() -> void:
+	var schedule := Fixtures.schedule()
+	var data := SaveData.new()
+	for legend: Dictionary in BookScreen.disasters(schedule):
+		data.unlock_disaster(legend["id"])
+	data.record_disaster(Hitchhiker.ID, &"desert", _stats(40.0, 4))
+	var book := _book()
+	book.open(data, schedule)
+	assert_eq((book.get_node("%Heading") as Label).text, "Legends 16/16")
+	var her := _rows(book)[-1]
+	var cell := her.cells()[0]
+	assert_eq(_text(cell), ["Vanishing Hitchhiker", ""])
+	assert_eq(cell.still().id, Hitchhiker.ID)
+	assert_false(_is_silhouette(cell.still()), "in her colours")
+	assert_false(cell.disabled)
+	assert_true(her.sealed)
+	assert_eq(_seal_colors(her), [BookScreen.HITCHHIKER_SEAL], "whole, in her dress's white")
+	assert_eq(her.accessibility_name, "Road Home: 1 of 1 legend found, sealed")
+	cell.pressed.emit()
+	assert_eq(book.open_cell(), cell)
+	var hitchhiker: Hitchhiker = autofree(BookScreen.HITCHHIKER_SCENE.instantiate())
+	assert_ne(hitchhiker.lore, "")
+	assert_eq(
+		_page(book),
+		["Vanishing Hitchhiker", "Seen once\nFirst: Desert, 400 m, 4 turns", "", hitchhiker.lore],
+		"she has no fate: she ends no run"
+	)
+
+
+func test_once_found_her_page_stays_whatever_the_pools_hold() -> void:
+	# A legend that a later version adds to a pool, say: the Book doesn't lose her page for it.
+	var data := SaveData.new()
+	data.record_disaster(Hitchhiker.ID, &"desert", _stats(1.0, 1))
+	var book := _book()
+	book.open(data, _schedule())
+	var ids: Array[Array] = [[&"ghost"], [&"ghoul", &"ghost", &"black_dog", &"wraith"]]
+	ids.append([Hitchhiker.ID])
+	assert_eq(_ids(book), ids)
+	assert_eq((book.get_node("%Heading") as Label).text, "Legends 1/5")
+	assert_eq(_text(_cell(book, Hitchhiker.ID)), ["Vanishing Hitchhiker", ""])
+
+
+## ENDGAME_PLAN.md W26: her seal, in her dress's white, stands out from the title's background,
+## which the Book draws over.
+func test_her_seal_stands_out_from_the_titles_background() -> void:
+	var title: Control = autofree(TITLE_SCENE.instantiate())
+	var backdrop := (title.get_node("%Background") as ColorRect).color
+	assert_gte(_contrast(BookScreen.HITCHHIKER_SEAL, backdrop), NON_TEXT_CONTRAST)

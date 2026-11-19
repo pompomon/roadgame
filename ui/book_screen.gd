@@ -1,32 +1,36 @@
 class_name BookScreen
 extends MenuScreen
-## The Book of Legends (ENDGAME_PLAN.md §5.10), which the disaster collection became (plan.md
-## §2.6). It reads the schedule's pools, whatever their size: a row for each area with a pool, in
-## the road's order, and a cell for each slot of it, the ★, wave A's and wave B's (docs/POOLS.md
-## §5.4). Over the grid, how many of the pools' legends are collected, seen or unlocked by an
-## arrival (ENDGAME_PLAN.md §5.5). A cell (BookCell) shows a legend collected as its still and its
-## name, and one not found as its still's silhouette and its name's initials. A row whose legends
-## are all collected has a seal in its area's colour (BookRow). Tapping a legend collected opens its
-## page: how often it was seen, and where and how far into a run first (docs/M6.md S12), its fate
-## and its lore; a legend unlocked and not seen yet has its lore, but not how it ends a run. The
-## page scrolls on its own, in place of the Book, which keeps its place: closing the page shows the
-## Book as it was left, its cell in view. Back, Esc and Android's back button close the page before
-## the Book. A drag scrolls the Book wherever it starts, on a cell too, once it goes further than
-## Tuning.BOOK_SCROLL_DEADZONE, so that a tap that wobbles less still opens a page. The keys that
-## move no focus scroll the Book or a page too, so that a keyboard reaches what takes no focus. A
-## screen reader reads each row as its area and how many of its legends are found (ROW_NAME), and
-## each cell's words, a silhouette's initials too. Like the HUD, its text uses only the font's
-## glyphs. A silhouette and a seal not earned yet stand out from their grounds, the cell's and the
-## backdrop's, and such a seal is hollow, so that an earned one differs by its shape too
-## (ENDGAME_PLAN.md W26). A glow's still adds no more light than its ground leaves below white: its
-## cell's, or on its page the backdrop's (docs/M6.md S10).
+## The Book of Legends (ENDGAME_PLAN.md §5.10), which the disaster collection became (plan.md §2.6).
+## It reads the schedule's pools, whatever their size: a row for each area with a pool, in the
+## road's order, and a cell for each slot of it, the ★, wave A's and wave B's (docs/POOLS.md §5.4).
+## Once every legend of the pools is collected, a last row has the Book's 16th page, the Vanishing
+## Hitchhiker's, who is no disaster and in no pool (ENDGAME_PLAN.md §5.17), and it stays once she is
+## found. Over the grid, how many of its pages' legends are collected, seen or unlocked by an
+## arrival (§5.5). A cell (BookCell) shows a legend collected as its still and its name, and one not
+## found as its still's silhouette and its name's initials. A row whose legends are all collected
+## has a seal in its area's colour, and her row in her dress's white (BookRow). Tapping a legend
+## collected opens its page: how often it was seen, and where and how far into a run first
+## (docs/M6.md S12), its fate and its lore; a legend unlocked and not seen yet has its lore, but not
+## how it ends a run, and she has no fate. The page scrolls on its own, in place of the Book, which
+## keeps its place: closing the page shows the Book as it was left, its cell in view. Back, Esc and
+## Android's back button close the page before the Book. A drag scrolls the Book wherever it starts,
+## on a cell too, once it goes further than Tuning.BOOK_SCROLL_DEADZONE, so that a tap that wobbles
+## less still opens a page. The keys that move no focus scroll the Book or a page too, so that a
+## keyboard reaches what takes no focus. A screen reader reads each row as its area and how many of
+## its legends are found (ROW_NAME, HITCHHIKER_ROW), and each cell's words, a silhouette's initials
+## too. Like the HUD, its text uses only the font's glyphs. A silhouette and a seal not earned yet
+## stand out from their grounds, the cell's and the backdrop's, and such a seal is hollow, so that
+## an earned one differs by its shape too (ENDGAME_PLAN.md W26). A glow's still adds no more light
+## than its ground leaves below white: its cell's, or on its page the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
 const CELL_SCENE := preload("res://ui/book_cell.tscn")
-## Over the grid: the legends collected, of the pools' legends.
+## Over the grid: the legends collected, of the Book's pages.
 const HEADING := "Legends %d/%d"
 ## A row's name for a screen reader: its area's, then how many of its legends are found, of all.
 const ROW_NAME := "%s: %d of %d legends found"
+## The Vanishing Hitchhiker's row's, with whether she is found.
+const HITCHHIKER_ROW := "Road Home: %d of 1 legend found"
 ## After ROW_NAME, once the row's seal is earned.
 const ROW_SEALED := ", sealed"
 ## Under the name of a legend that an arrival unlocked, before a run meets it.
@@ -42,6 +46,10 @@ const SILHOUETTE := Color(0.5, 0.5, 0.55)
 const SILHOUETTE_SHADER := preload("res://ui/silhouette.gdshader")
 ## How much larger than the world a page shows its legend's still.
 const PAGE_ZOOM := 2.0
+## The Vanishing Hitchhiker's scene, and the colour of her row's seal once she is found: her
+## dress's white (tools/art/legends/hitchhiker.gd).
+const HITCHHIKER_SCENE := preload("res://world/hitchhiker.tscn")
+const HITCHHIKER_SEAL := Color8(240, 240, 232)
 
 ## The colour that the Book draws over, which bounds a glow's light on a legend's page: TitleScreen
 ## gives it its background's.
@@ -80,7 +88,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Shows the Book of the legends in `data` of `schedule`'s pools.
+## Shows the Book of the legends in `data` of `schedule`'s pools, and the Vanishing Hitchhiker's.
 func open(data: SaveData, schedule: AreaSchedule) -> void:
 	_clear_page()
 	_scroll.scroll_horizontal = 0
@@ -93,7 +101,9 @@ func open(data: SaveData, schedule: AreaSchedule) -> void:
 	for scene: PackedScene in words:
 		if collected.has(words[scene]["id"]):
 			count += 1
-	_heading.text = HEADING % [count, words.size()]
+	var found_her := collected.has(Hitchhiker.ID)
+	var her_page := count == words.size() or found_her
+	_heading.text = HEADING % [count + int(found_her), words.size() + int(her_page)]
 	for area: AreaDef in schedule.areas():
 		var row: BookRow = null
 		var found_count := 0
@@ -115,6 +125,8 @@ func open(data: SaveData, schedule: AreaSchedule) -> void:
 			row.accessibility_name = (
 				ROW_NAME % [area.display_name, found_count, cells] + (ROW_SEALED if sealed else "")
 			)
+	if her_page:
+		_show_hitchhiker(data, schedule)
 	show()
 	_back.grab_focus()
 
@@ -200,6 +212,17 @@ static func _words_of(schedule: AreaSchedule) -> Dictionary[PackedScene, Diction
 	return words
 
 
+## The Vanishing Hitchhiker's words, as disasters() gives a legend's: she has no fate, as she ends
+## no run.
+static func _hitchhiker_words() -> Dictionary:
+	var hitchhiker: Hitchhiker = HITCHHIKER_SCENE.instantiate()
+	var words := {
+		"id": Hitchhiker.ID, "name": hitchhiker.display_name, "fate": "", "lore": hitchhiker.lore
+	}
+	hitchhiker.free()
+	return words
+
+
 ## The page of `legend`, with its entry of SaveData.disasters: [details, fate, lore]. A legend
 ## unlocked and not seen yet has no fate; one not found has no page.
 static func _page_text(
@@ -251,6 +274,17 @@ func _show_cell(
 	var text: String = words["name"] if found else initials(words["name"])
 	cell.show_legend(_still(scene, found), text, NOT_SEEN if found and not seen else "", found)
 	cell.pressed.connect(_open_page.bind(cell))
+
+
+## Adds the Vanishing Hitchhiker's row, the last: her seal, then her cell, as `data` has her.
+func _show_hitchhiker(data: SaveData, schedule: AreaSchedule) -> void:
+	var row: BookRow = ROW_SCENE.instantiate()
+	_grid.add_child(row)
+	var cell: BookCell = CELL_SCENE.instantiate()
+	row.add_child(cell)
+	_show_cell(cell, HITCHHIKER_SCENE, _hitchhiker_words(), data, schedule)
+	row.seal(HITCHHIKER_SEAL if cell.found else SILHOUETTE, cell.found)
+	row.accessibility_name = HITCHHIKER_ROW % int(cell.found) + (ROW_SEALED if cell.found else "")
 
 
 func _open_page(cell: BookCell) -> void:

@@ -382,13 +382,22 @@ func test_collected_city_fills_and_seals_the_citys_row() -> void:
 	assert_eq(GameState.state, TITLE, "with no run")
 
 
-func test_collected_all_fills_the_book() -> void:
+## --collected=all fills every pool's row, and the Vanishing Hitchhiker's page shows, last, for a
+## run to find her (ENDGAME_PLAN.md §5.17).
+func test_collected_all_fills_the_pools_and_her_page_waits() -> void:
 	var main := _open(["--seed=1", "--collected=all"])
 	var title := _title(main)
 	(title.get_node("%DisastersButton") as Button).pressed.emit()
-	assert_eq((title.get_node("%Book/%Heading") as Label).text, "Legends 15/15")
-	for row: BookRow in _rows(main):
-		assert_true(row.sealed, "every row is sealed")
+	assert_eq((title.get_node("%Book/%Heading") as Label).text, "Legends 15/16")
+	var rows := _rows(main)
+	var her: BookRow = rows.pop_back()
+	for row: BookRow in rows:
+		assert_true(row.sealed, "every pool's row is sealed")
+	assert_eq(her.cells().size(), 1)
+	var cell := her.cells()[0]
+	assert_eq(cell.legend["id"], Hitchhiker.ID, "her row, the last")
+	assert_false(cell.found, "her silhouette")
+	assert_true(her.hollow(), "her seal not earned yet")
 	var data := SaveService.data()
 	for area: AreaDef in title.schedule.areas():
 		for scene: PackedScene in area.disasters:

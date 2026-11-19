@@ -21,9 +21,10 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 	# The Web build has no system fonts to fall back on: a glyph missing from the default
 	# font shows as a box. The HUD, the game-over screen and the title's screens (M5.5) also show
 	# numbers, the areas' and the disasters' names, the disasters' fates and lore (docs/M6.md S8,
-	# S12), the Book's initials of the names (ENDGAME_PLAN.md §5.10), the title's start area in debug
-	# builds (docs/ZONE_SELECT.md Z8) and its road (ENDGAME_PLAN.md §5.12), and messages they keep in
-	# constants.
+	# S12), the Book's initials of the names (ENDGAME_PLAN.md §5.10), the Vanishing Hitchhiker's
+	# words (§5.17), the title's start area in debug builds (docs/ZONE_SELECT.md Z8) and its road
+	# (ENDGAME_PLAN.md §5.12), the arrival's line when the pools are full (§5.5), and messages they
+	# keep in constants.
 	var main := _main()
 	var shown: Array[Control] = []
 	shown.append_array(main.find_children("*", "Label", true, false))
@@ -51,9 +52,12 @@ func test_main_scene_text_has_every_glyph_in_the_default_font() -> void:
 			texts.append(BookScreen.seen_text(first, entry.area))
 	var legends := BookScreen.disasters(schedule)
 	texts.append(BookScreen.HEADING % [legends.size(), legends.size()])
+	var hitchhiker: Hitchhiker = autofree(BookScreen.HITCHHIKER_SCENE.instantiate())
+	legends.append({"name": hitchhiker.display_name, "fate": "", "lore": hitchhiker.lore})
 	for legend: Dictionary in legends:
 		var display: String = legend["name"]
 		texts.append_array([display, BookScreen.initials(display), legend["fate"], legend["lore"]])
+	texts.append(LegendUnlock.BOOK_FULL)
 	for scene: PackedScene in Disasters.scenes():
 		texts.append(Disasters.disaster(self, scene, null, null).fate)
 	var missing := ""

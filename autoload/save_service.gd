@@ -206,6 +206,15 @@ func collect(legends: Dictionary[StringName, StringName]) -> void:
 	flush()
 
 
+## A run found the legend `id`, which no disaster plays, in the area `area_id`, with the run's
+## GameState.stats() so far: the Vanishing Hitchhiker, as the car passed her (ENDGAME_PLAN.md
+## §5.17). It is written at once, as a disaster's sighting is.
+func record_found(id: StringName, area_id: StringName) -> void:
+	data().record_disaster(id, area_id, GameState.stats())
+	_dirty = true
+	flush()
+
+
 func _on_run_ended(_cause: StringName, stats: Dictionary) -> void:
 	data().record_run(stats)
 	_dirty = true

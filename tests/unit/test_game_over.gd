@@ -190,8 +190,8 @@ func test_a_first_sighting_or_an_unlock_shows_new_legend() -> void:
 
 
 ## ENDGAME_PLAN.md §5.9: the first goal that holds, from the player's progress alone: the sea, with
-## the best turn; the Road Home (§5.12); the legends still missing; a clean arrival at the sea; the
-## best time there.
+## the best turn; the Road Home (§5.12); the legends still missing; the Vanishing Hitchhiker
+## (§5.17); a clean arrival at the sea; the best time there.
 func test_the_next_goal_follows_the_players_progress() -> void:
 	var schedule := Fixtures.schedule()
 	assert_eq(schedule.finish, GameOver.SEA, "the game's road ends at the sea")
@@ -221,7 +221,9 @@ func test_the_next_goal_follows_the_players_progress() -> void:
 	data.unlock_disaster(legends[-2])
 	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_LAST_LEGEND)
 	data.record_disaster(legends[-1], &"desert", {})
-	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_CLEAN, "every legend found")
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_HITCHHIKER, "every legend found")
+	data.record_disaster(Hitchhiker.ID, &"desert", {})
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_CLEAN, "her too")
 	data.record_arrival(GameOver.SEA, {"seconds": 600.0, "clean": true})
 	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_TIME % "9:41", "the best time")
 	# A save from before the road had an end may hold a best past it.
@@ -243,6 +245,7 @@ func test_the_next_goal_is_one_line_of_the_fonts_glyphs() -> void:
 		GameOver.GOAL_HOME,
 		GameOver.GOAL_LEGENDS % LegendUnlock.locked(schedule, none).size(),
 		GameOver.GOAL_LAST_LEGEND,
+		GameOver.GOAL_HITCHHIKER,
 		GameOver.GOAL_CLEAN,
 		GameOver.GOAL_TIME % GameOver.time_text(5999.0),
 	]

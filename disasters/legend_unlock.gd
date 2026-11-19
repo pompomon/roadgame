@@ -4,11 +4,13 @@ extends RefCounted
 ## finish unlocks a legend that the player hasn't collected, neither seen nor unlocked, each as
 ## likely as the others, from the pools of all the road's areas. Its stream is the run's own, apart
 ## from the road's, the picks' and the disaster's, so that the same seed and the same collection
-## unlock the same legend. With every legend collected, it unlocks none.
+## unlock the same legend. With every legend of the pools collected, it unlocks none: the
+## Vanishing Hitchhiker, in no pool, is found only on the Road Home (ENDGAME_PLAN.md §5.17), so the
+## words with none left name the areas' legends, not all.
 
 ## The fate line of the arrival screen, for the unlocked legend's name, and with none left.
 const UNLOCKED := "A new legend for your book: %s"
-const BOOK_FULL := "Every legend is in your book."
+const BOOK_FULL := "Every area's legends are in your book."
 
 
 ## The arrival stream of the run with `run_seed`.

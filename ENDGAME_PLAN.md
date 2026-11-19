@@ -1,6 +1,6 @@
 # The End of the Road and the Book of Legends — Detailed Plan
 
-Status: plan, in review; the owner approved Q1–Q19's defaults (§3). PRs 1–2's prototype is built on `eg/prototype` and verified locally (§6), and PR 1's port onto `main` passes, with the prototype's 23 tests more (§6.1); PRs 3–14 are designed, not built (§5.8–§5.18) · 2026-11-17 · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL, which has landed, and comes before M7.
+Status: approved with Q1–Q19's defaults (§3), as the owner merged its PR, #84, and built: PRs 1–13 pass their checks (§6), and §4.1's **Built** lines say where each differs from this plan. PRs 1–12 have landed (#101–#112): the owner landed #104, which approves its two Δs (E7, §5.8), and agents the others in order, #106 once the owner had approved it as it is, its rows with no visible labels (§4.2, §7). PR 13 (#113) carries this final sync, and the owner lands it after the Fold4's checks (§6.4), then PR 14 · 2026-11-19 · Scope: the road ends. After 280 turns, past the Desert, it reaches the sea at the Coast's pier. A run that drives the whole road there arrives, the game's first win, and unlocks a legend that the player hasn't collected, at random. The collection becomes the Book of Legends, the long goal, and the Road Home, the road's mirror, the second quest. This plan calls the work EG. It builds on PL, which has landed, and comes before M7.
 
 The owner asked for options first: "Help me brainstorm the endgame for the roadgame repo. Provide 3 options on what should be the goal for the player and how to better gamify it. Follow the best practices in the industry and game design recommendations from Mark Rosewater." The brainstorm offered A, The End of the Road: a finish line, a win and a second quest; B, Legend Hunter: the collection as a book to complete; and C, Road Master: medals, a driver's grade and a daily road. It recommended B as the heart, A as the finish line, and C's daily road for later. Then the owner asked: "Create a PR with the detailed implementation plan for A and B, with the following adjustments - player unlocks a legend not only by failing, but also for a full road completion - a random legend from the pool of locked. I approve starting west for the reverse road run".
 
@@ -47,9 +47,9 @@ Goal: the player has a goal, and the game an end. Drive the whole road, from the
 | E2 | The arrival (W2, W5). The car arrives as it drives onto the finish's first tile, or comes back onto the road on a tile of it, with every junction behind it taken; never off the road, after a mistake or in the tutorial. It then rolls to a stop on the finish, steering onto its centreline, `ARRIVE_STOP_SHORT` before the centre of its last tile, from any speed up to the cap, or sooner, within `ARRIVE_ROLL_SECONDS`, if it came slowly. However it came onto the finish, at an angle or across it after a rejoin, it stops on it, within the road's edges and the finish's ends. The run ends in `GameState.State.ARRIVED`, not a crash, and then shows its end screen in `GAME_OVER`, as the others do | `test_junction_trigger.gd`: `test_the_car_arrives_as_it_enters_the_finish_after_the_last_turn`, `test_the_car_arrives_as_it_rejoins_the_road_on_the_finish`, `test_no_arrival_off_the_road_or_after_a_disaster`; `test_car_sim_arrival.gd`: `test_the_car_arrives_and_rolls_to_a_stop_on_the_finish`, `test_the_car_stops_on_the_finish_from_the_speed_cap`, `test_a_slow_car_stops_on_the_finish_within_arrive_roll_seconds`, `test_the_car_stops_on_the_finish_however_it_comes_onto_it`; `test_game_state.gd`: `test_an_arrival_ends_the_run_and_its_end_screen_follows` |
 | E3 | The arrival's sequence and end screen (W8, W11, W15, W20). The director plays no disaster: it waits `ARRIVAL_SECONDS`, 5.0, while the car rolls to a stop, and finishes before `DISASTER_TIMEOUT`. The end screen says "You reached the end of the road!", with the run's distance, turns and area, its time as m:ss, and the legend it unlocked. The run's clock counts from its start, or the tutorial's end, and stops while the run pauses. The autopilot's run may end in an arrival | `test_disaster_director.gd`: `test_an_arrival_ends_after_arrival_seconds_with_no_disaster`; `test_game_over.gd`: `test_the_time_is_in_minutes_and_seconds`; `tests/integration/test_arrival.gd`: `test_the_autopilot_reaches_the_finish_and_unlocks_a_legend`, `test_the_runs_clock_stops_while_it_pauses`, `test_an_area_without_a_junction_has_every_turn_behind_it` |
 | E4 | Records and the save's version 3 (W3, W7, W16, Q4). A run that drove the whole road, from the route's first area, records its arrival under the finish's id at once: one more arrival, the least time, and whether one never left the road outside the tutorial, a clean run. A run from a later area (W7) arrives, but records no arrival and unlocks nothing. A version 2 file loads with no arrivals and nothing unlocked | `test_save_data.gd`: `test_a_v2_file_is_migrated_with_no_arrivals_and_nothing_unlocked`, `test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one`, `test_json_round_trip`, `test_every_older_version_has_a_migration`; `test_arrival.gd`: `test_a_run_from_a_later_area_arrives_but_counts_nothing`, `test_leaving_the_road_spoils_a_clean_run` |
-| E5 | The unlock (the owner's answer; Q2, W14). An arrival that counts unlocks one legend of the road's pools that the player hasn't collected, neither seen nor unlocked, each as likely as the others, on the stream `hash("<seed>:unlock")`, so the same seed and collection unlock the same legend. The end screen names it: "A new legend for your book: <name>". With every legend collected, it unlocks none, and says "Every legend is in your book." The collection shows an unlocked legend's card, "Unlocked by an arrival", until a run meets it; PL's picks weigh it as seen | `test_legend_unlock.gd`: `test_the_locked_legends_are_those_not_collected_in_the_collections_order`, `test_each_locked_legend_is_as_likely_as_the_others`, `test_the_same_seed_and_collection_unlock_the_same_legend`, `test_with_every_legend_collected_none_is_unlocked`, `test_the_arrival_screen_names_the_unlocked_legend`, `test_every_legend_of_the_game_can_be_unlocked`; `test_save_data.gd`: `test_an_unlocked_disaster_is_collected_as_if_seen`; `test_collection_screen.gd`: `test_an_unlocked_legend_shows_until_it_is_seen`; `test_arrival.gd`: `test_the_autopilot_reaches_the_finish_and_unlocks_a_legend`, `test_with_every_legend_collected_the_book_is_full` |
+| E5 | The unlock (the owner's answer; Q2, W14). An arrival that counts unlocks one legend of the road's pools that the player hasn't collected, neither seen nor unlocked, each as likely as the others, on the stream `hash("<seed>:unlock")`, so the same seed and collection unlock the same legend. The end screen names it: "A new legend for your book: <name>". With every legend of the pools collected, it unlocks none, and says "Every area's legends are in your book." (**Δ** PR 13). The Book shows an unlocked legend's page, "Unlocked by an arrival", until a run meets it (PR 6); PL's picks weigh it as seen | `test_legend_unlock.gd`: `test_the_locked_legends_are_those_not_collected_in_the_collections_order`, `test_each_locked_legend_is_as_likely_as_the_others`, `test_the_same_seed_and_collection_unlock_the_same_legend`, `test_with_every_legend_collected_none_is_unlocked`, `test_the_arrival_screen_names_the_unlocked_legend`, `test_every_legend_of_the_game_can_be_unlocked`; `test_save_data.gd`: `test_an_unlocked_disaster_is_collected_as_if_seen`; `test_book_screen.gd`: `test_an_unlocked_legend_shows_until_it_is_seen`; `test_arrival.gd`: `test_the_autopilot_reaches_the_finish_and_unlocks_a_legend`, `test_with_every_legend_collected_the_book_is_full` |
 | E6 | Nothing changes without a finish (W6, W17). On a schedule without one, the generator lays `main`'s road and draws the same numbers, so the golden digests and the determinism tests pass unchanged. `endless()`, a copy without the finish and without a home stretch, is the road of Keep Driving and of every test that drives past turn 280. On PRs 1–2, `smoke.sh` prints `main`'s line, `autopilot: tile 165, turns 35, area rural`; PR 3 ends the game's road after turn 280, which the smoke run never reaches | `test_road_generator_finish.gd`: `test_a_road_without_a_finish_never_ends`; `test_area_schedule.gd`: `test_an_endless_road_leaves_out_the_home_stretch`; the golden and determinism tests of `main`, unchanged; §6.1 |
-| E7 | The Coast and the arrival's scene (PRs 3, 4; Q1, Q17, W18, W19). The game's road ends after its 280th turn. The Coast, an area of long straights with no junction and no legend, starts at that turn, and its straight leads to the pier. Its art, props, music and ambience come from scripts, as every area's do. The pier draws as a pier, and `BEYOND` as the sea; `WorldRenderer.build()` checks that the finish has a scene. On the arrival, the sun sets over the sea, a still of each legend collected waits along the shore, and a jingle plays, within `ARRIVAL_SECONDS` (PR 4) | PR 3: `test_area_schedule.gd`: `test_the_games_road_ends_at_the_pier_after_its_280th_turn`; `test_world_renderer.gd`: `test_the_finish_draws_its_set_piece_and_nothing_beyond_it`; `test_drive_to_the_end.gd` on the game's own road; `test_area_art.gd`, `test_audio_director.gd` and `test_prop_layout.gd`, which check every area of the game's road, with the Coast. PR 4: `test_arrival_scene.gd`, `test_legend_still.gd` |
+| E7 | The Coast and the arrival's scene (PRs 3, 4; Q1, Q17, W18, W19). The game's road ends after its 280th turn. The Coast, an area of long straights with no junction and no legend, starts at that turn, and its straight leads to the pier. Its art, props, music and ambience come from scripts, as every area's do. The pier draws as a pier, and `BEYOND` as the sea; `WorldRenderer.build()` checks that the finish has a scene. On the arrival, the sun sets over the sea, a still of each legend collected stands over the sea past the pier's end, in the Book's grid (**Δ** PR 4), the view holds them and the car, and a jingle plays, within `ARRIVAL_SECONDS` (PR 4) | PR 3: `test_area_schedule.gd`: `test_the_games_road_ends_at_the_pier_after_its_280th_turn`; `test_world_renderer.gd`: `test_the_finish_draws_its_set_piece_and_nothing_beyond_it`; `test_drive_to_the_end.gd` on the game's own road; `test_area_art.gd`, `test_audio_director.gd` and `test_prop_layout.gd`, which check every area of the game's road, with the Coast. PR 4: `test_arrival_scene.gd`, `test_legend_still.gd` |
 | E8 | NEW LEGEND! and the Book (PRs 5, 6; Q8, Q16). The end screen of a run that met a legend for the first time, or unlocked one, shows NEW LEGEND!, with a jingle, and gives the next goal in one line. The collection becomes the Book: a grid with an area a row and a pool's slot a column, "Legends n/N", a still of each legend found, its silhouette and its name's initials, such as "P______ B__", for each not found, and a seal on each area whose legends are all found. It reads the pools, whatever their size | PR 5: `test_game_over.gd`: `test_a_first_sighting_or_an_unlock_shows_new_legend`, `test_the_next_goal_is_one_line_of_the_fonts_glyphs`. PR 6: `test_book_screen.gd` |
 | E9 | The Road Home (the owner's answer; W9, W10, Q12). The Road Home is the road's mirror: it starts in the Desert heading W, its first turn is a right, its areas come in reverse with the same lengths and set pieces, and it ends at home after 280 turns. It has no tutorial. The first arrival unlocks it on the title (PR 8); its arrivals count under `home`, and unlock legends too. From PR 8, the save keeps each road's farthest turn, so a Road Home run that never arrives keeps its progress | `test_road_generator_finish.gd`: `test_a_mirrored_road_starts_west_and_turns_right_first`, `test_a_mirrored_road_has_no_tutorial`, `test_the_road_home_ends_at_home_after_280_turns`; `test_area_schedule.gd`: `test_the_road_home_is_valid_and_runs_the_other_way`; `test_arrival.gd`: `test_the_road_home_starts_west_and_ends_at_home`, `test_the_road_home_has_no_tutorial`; `test_drive_to_the_end.gd`: `test_the_autopilot_drives_the_road_home`. PR 8: `test_title.gd`: `test_the_road_home_is_offered_after_the_first_arrival`; `test_save_data.gd`: `test_a_v3_file_is_migrated_with_each_roads_farthest`, `test_a_road_home_run_that_never_arrives_keeps_its_farthest` |
 | E10 | Departures (PR 7; Q11, W22). In every build, the title offers a start from each area discovered. Such a run counts no arrival, no unlock and no overall best; the legends that it meets, its areas' bests and its discoveries count | PR 7: `test_title.gd`: `test_departures_offer_only_the_areas_discovered`; `test_save_data.gd`: `test_a_departure_keeps_the_overall_best` |
@@ -57,7 +57,7 @@ Goal: the player has a goal, and the game an end. Drive the whole road, from the
 | E12 | The route strip (PR 10, Q14). The HUD shows the road's areas as ticks on a strip, the car's place on it and the best run's mark, in shapes, not only colours, and nothing on it flashes | PR 10: `test_hud.gd`: `test_the_route_strip_marks_each_area_the_car_and_the_best` |
 | E13 | Pit stops (PR 11; Q10, W24). The tunnel, the bridge and Last Gas, a filling station where the Desert starts, each repair the car by `PIT_STOP_HEAL`, once per run each | PR 11: `test_car_sim_pit_stop.gd` |
 | E14 | Records and postcards (PR 12, Q15). The Atlas's cards become postcards, each stamped by a clean crossing of its area; the title and the end screen show the arrivals, the best time and a clean arrival; the save's version 5 | PR 12: `test_save_data.gd`, `test_atlas_screen.gd` |
-| E15 | The Hitchhiker (PR 13, Q9). With every legend of the pools collected, the Road Home shows her by the road at the player's best turn there; passing her finds her, the book's 16th page. An arrival never unlocks her | PR 13: `test_hitchhiker.gd` |
+| E15 | The Hitchhiker (PR 13, Q9). With every legend of the pools collected, the Road Home shows her on its far side, by the last plain straight before the junction of the player's farthest turn there, or before the finish once they have arrived home. Passing her, in a run that goes on, finds her, the Book's 16th page, and she fades away. An arrival never unlocks her | PR 13: `test_hitchhiker.gd`, `test_hitchhiker_run.gd`, `test_book_screen.gd` |
 | E16 | Manual, on the Web in Chrome and Firefox and on both of the Fold4's screens: the arrival reads as a win without words, the car stops on the pier on screen, NEW LEGEND!, the Book and the strip read at 360 × 640, and nothing flashes | §6.4, on PRs 3–6, 8, 10 and 13 |
 | E17 | Docs: each PR's Δs as it lands, then PR 14's `docs/ENDGAME.md` (Q18, §5.18) | Review |
 | E18 | All four required checks are green on each PR, with §4's counts, and `smoke.sh` prints no error line. Each negative case makes the tests it names fail (§6.2), and the warnings check finds no new warning (§6.3) | PR checks; §6.2 and §6.3, run locally with Godot 4.7.2 on each PR's head |
@@ -116,6 +116,12 @@ Line numbers are at 532908a, the head of PL's PR 1 (#81), from which the prototy
 | W25 | Exported builds break a label's lines only at spaces | The text server breaks lines by Unicode's rules (UAX #14), from ICU data that the editor has built in but that an export carries only with `internationalization/locale/include_text_server_data`, about 4 MB, which `project.godot` doesn't set. Without it, a label cuts a word too wide where it overflows: PR 6's Web build showed the Book's "Will-o'-the-Wisp", 102 px in a cell's 88, as "Will-o'-the-Wi" over "sp", in Chrome and Firefox, where the editor breaks it after "the-" | `BookCell.break_hyphens()` breaks such a word after its last hyphen that fits (§5.10), rather than every build carrying the 4 MB. PR 6 (N138, N139) |
 | W27 | A screen reader's focus reaches neither the Book's count nor a page's words | A label takes no focus in Godot 4.7.2: `Label.focus_mode` is `FOCUS_NONE`. Tab moves the focus to a control whose mode is `FOCUS_ALL`, or `FOCUS_ACCESSIBILITY` while a screen reader is on (`Control.find_next_valid_focus()`), so a page's only stop was Back. Raised by Copilot's review of PR 6; in the desktop build under Xvfb, with `--accessibility always`, Tab left the focus on Back | PR 6: the count and each line of a page take a screen reader's focus, `FOCUS_ACCESSIBILITY`, and the page's scroll follows the focus (§5.10). With a screen reader, Tab goes from Back to the count, the name, the sightings, the fate and the lore, and back; without one, it stays on Back, as it did (N156–N158) |
 | W28 | A keyboard can't scroll the Book, or a page, to what runs past the screen | Godot 4.7.2's ScrollContainer scrolls by no key, and its scroll bars take no focus (`scroll_container.cpp`:993, :1000), so their own keys never reach them. It scrolls to what has the focus, but without a screen reader neither a silhouette, which is disabled, nor a page's line takes it (W27), and an arrow that moves no focus goes on, unhandled (`viewport.cpp`:2421–2423). Nothing runs past the screen yet: the logical screen is 360 × 640 or more in any window (`window.cpp`:1339–1389), where the Book's 5 rows take 496 of the 520 pixels that its scroll has, and the longest page, the Death Worm's, 391 of as many. Run headed under Xvfb at nine window sizes, from 360 × 640 to 2316 × 904 and 904 × 2316, Down, Page Down, End and Tab moved neither the Book nor any of the 15 pages. A sixth row would run past it, and §5.10 reads the pools whatever their size. Raised by Copilot's review of PR 6 | PR 6: the keys that move no focus scroll the Book, or the page that is open: an arrow, where the focus has nowhere to go that way, by an eighth of what shows, `Tuning.BOOK_KEY_SCROLL`, as a mouse wheel's notch does (`scroll_bar.h`:116); Page Up and Page Down by all of it; Home and End to its top and its bottom. Where an arrow moves the focus, it still does, and a Book that is closed takes no key (§5.10; N159–N163) |
+| W29 | The route strip can't draw with `Polygon2D` | In Godot 4.7.2, each redraw of a `Polygon2D` after its first raises WebGL errors on the Web (godotengine/godot#124726, fixed in 4.8; docs/M2.md §5.7), and the HUD's children redraw each time it shows | PR 10: `RouteStrip` draws its marks in `_draw()`, with `draw_rect()` and `draw_colored_polygon()`, and its Web check found no WebGL error. It is in the HUD, on the `UI` canvas layer, above `Daylight`'s veil, so the night doesn't darken it |
+| W30 | On a 640-pixel screen, some turns climb no pixel | There the strip is 256 pixels for the road's 280 turns, where §5.14 says "a pixel or two a turn". On the phone's 800 pixels and the Fold4 cover's 922, it is 320 and 369, and each turn climbs 1 or 2 | PR 10: none. The test drives the 280 turns on each of the three, and checks that no turn climbs more than 2 pixels and that the car ends at the top |
+| W31 | `make_audio.gd` had no room for PR 11's ding | It had 996 lines, and gdlint allows 1,000 (`max-file-lines`, which `.gdlintrc` leaves at its default) | PR 11: its WAV writer moved, unchanged, to `tools/audio/wav.gd`, which it preloads as `Wav`, and it has 976 lines. All 36 sounds regenerate byte for byte |
+| W32 | `GameState` can't tell a crossing on its own | §5.16 has it set `crossed` "as the car crosses onto the next area's first tile on the road, where the trigger judges it". But `area_changed`, its only news of an area, comes before the move's road checks (§5.15), and fires off the road too, on any tile of the new area | PR 12: `CarSim.area_crossed`, after the trigger has judged the crossing, only on the road and only from the area's last path tile onto the next's first |
+| W33 | The Atlas runs past the screen | At 360 × 640 its scroll shows 472 pixels, and the six postcards take 1,130. PR 11's cards took 548 already, so the Coast's was all but 2 of its 78 pixels below: `test_every_screen_fits_a_portrait_screen_with_the_longest_texts` checked each card against the window, not the scroll that clips it. Without a screen reader no card takes the focus, so no key scrolled it (W28) | PR 12: the keys that move no focus scroll it, with `BookScreen`'s key scroll moved to `MenuScreen.scroll_by_key()`, and so does a drag that starts on a postcard. It follows the focus, and opens at the first. The fit test checks that the last postcard scrolls into view |
+| W34 | The Hitchhiker's place at the finish could be a dead end's | `RoadGenerator.finish_index` is -1 until the finish's first tile is laid, and so is each dead end's `path_index`, so a dead end's tile matched it | PR 13: she skips the tiles off the path, and waits until the buffer lays the finish (§5.17; N282) |
 
 ---
 
@@ -209,6 +215,8 @@ PRs 1 and 2 split the difference between 532908a and 4d3d981 by file: PR 1 takes
 
 Branch `eg/1-road-end`, from `main` (§4.1).
 
+**Built** as #101, landed as 0837412: as planned, with its expected counts (§6.1).
+
 | Area | Files |
 |---|---|
 | Areas | `areas/area_schedule.gd`: `finish`, `finish_turn` and `mirrored`; `has_finish()`, `endless()` and `ending_at()`; `starting_at()` moves the finish; `validate()`'s two new checks (§5.1). `areas/schedule_home.tres`, new: the Road Home (§5.6) |
@@ -226,6 +234,8 @@ Branch `eg/1-road-end`, from `main` (§4.1).
 
 Branch `eg/2-arrival`, from `eg/1-road-end` (§4.1).
 
+**Built** as #102, landed as 6193277: as planned, and `seen_disasters()`'s comment cites docs/POOLS.md too.
+
 | Area | Files |
 |---|---|
 | Autoload | `autoload/game_state.gd`: `State.ARRIVED`, `seconds` and `clean` (§5.3). `autoload/save_data.gd`: version 3, `arrivals`, each disaster's `unlocked`, `record_arrival()`, `unlock_disaster()` and `arrival_count(finish)`; `seen_disasters()` lists the unlocked (§5.4, W14). `autoload/save_service.gd`: `record_arrival()`, which saves at once |
@@ -241,6 +251,8 @@ Branch `eg/2-arrival`, from `eg/1-road-end` (§4.1).
 ### PR 3: Areas: the Coast and the pier, where the game's road ends **Δ W6, W18, W19**
 
 Branch `eg/3-coast`, from `eg/2-arrival`. §5.8 designs it.
+
+**Built** as #103, landed as 42abda5. **Δ** The Coast has seven props, not §5.8's three: dune grass, beach huts, a lighthouse, umbrellas, driftwood, shells and rocks. `Pier.at_sea()` is a half-plane. W19 missed six lists, which gain the Coast too: `test_area_schedule.gd`:37 and :48, `test_atlas_screen.gd`:51 and :82, `test_prop_art.gd`:162 and `test_title_screen.gd`:133; and `test_greybox_atlas.gd`'s `test_road_coords` checks the pier's and `BEYOND`'s. A `--finish` past the road's own end is an error (§4.3, §5.7). `AGENTS.md`'s "endless" waits for PR 14.
 
 | Area | Files |
 |---|---|
@@ -259,6 +271,8 @@ Expect: PR 2's counts, with PR 3's new scripts and tests; `autopilot: tile 165, 
 
 Branch `eg/4-arrival-scene`, from `eg/3-coast`. §5.8 designs it.
 
+**Built** as #104, landed by the owner as 8b55cb2, which approves its two Δs (§5.8): the stills stand over the sea past the pier's end, in the Book's grid, as the shore, about 448 pixels across, can't show whole in a view 360 wide (E7); and the arrival zooms out to 1 where its welcome, 338 pixels high, doesn't fit zoom 2's 320, as in a landscape window or on the Fold4's inner screen. `Pier.welcome(schedule, collected)` and `welcome_bounds`, `CameraRig.arrive()`, `arrival_zoom_for()` and `end_arrival()`, `WorldRenderer.set_piece_at()` and `LegendStill.strength()` (§4.3) are new, with eight more constants in `tuning.gd` (IP D11). A frame under `STILL_MIN_SIDE`, 30 pixels, is scaled up by a whole number, the Fairy Ring's by 3, and an hour that isn't finite is an error to `hold()`.
+
 | Area | Files |
 |---|---|
 | World | `world/day_cycle.gd`: `hold(hour)`: the clock stands at `hour`, and the light follows at `LIGHT_MAX_RATE`; `enter()` clears the hold, so the next run's clock runs. `setpieces/pier.gd`: `welcome(legends)`, the stills of the legends collected, which fade in along the shore. `world/camera_rig.gd`: the arrival's view (§5.8), the target easing at `ARRIVAL_PAN_RATE` |
@@ -275,6 +289,8 @@ Branch `eg/4-arrival-scene`, from `eg/3-coast`. §5.8 designs it.
 
 Branch `eg/5-new-legend`, from `eg/4-arrival-scene`. §5.9 designs it.
 
+**Built** as #105, landed as d5db644: as planned, with `GOAL_LAST_LEGEND`, "Next: find the last legend still missing", and the signal `EventBus.new_legend_shown`; three more tests cover a sighting, a legend collected before the run, and a retry.
+
 | Area | Files |
 |---|---|
 | UI | `ui/game_over.gd` and `.tscn`: NEW LEGEND!, still, above the fate, for a run that met a legend for the first time or unlocked one; `next_goal()` and its line. `ui/main.gd`: the run's new legends, those it met or unlocked that weren't in the collection at its start, which PL's picks already keep (docs/POOLS.md V2) |
@@ -287,6 +303,8 @@ Branch `eg/5-new-legend`, from `eg/4-arrival-scene`. §5.9 designs it.
 
 Branch `eg/6-book`, from `eg/5-new-legend`. §5.10 designs it.
 
+**Built** as #106, landed as 48f8990 once the owner had approved it as it is, its rows with no visible labels, (c) of [the options](https://github.com/pompomon/roadgame/pull/106#issuecomment-6970573638). A cell and a row are scenes of their own, `BookCell`, with `break_hyphens()`, and `BookRow`, and a silhouette is `ui/silhouette.gdshader`'s flat grey. **Δ** A legend's page replaces the grid, where the plan had the collection's card, and an unlocked legend's has "Unlocked by an arrival", "Not seen yet" and its lore, but no fate. A glow's still adds no more light than its ground leaves below white (docs/M6.md S10): in a cell, the lightest centre of its styles, `BookCell.ground()`, and on a page, `BookScreen.backdrop`. The title's button keeps its label, "Disasters", `SaveService.collect()` serves `--collected`, and `MenuScreen.close_page()`, `Tuning.BOOK_SCROLL_DEADZONE` and `BOOK_KEY_SCROLL` are new. W25–W28 and most of §4.3's rows are its reviews'.
+
 | Area | Files |
 |---|---|
 | UI | `ui/book_screen.gd` and `.tscn`, which replace `ui/collection_screen.gd` and `.tscn`: the grid, with PR 4's stills, and `disasters()`, as the collection's. `ui/title_screen.gd` and `.tscn`: the Disasters button opens the Book. `ui/main.gd`: `--collected` (§5.7) |
@@ -298,6 +316,8 @@ Branch `eg/6-book`, from `eg/5-new-legend`. §5.10 designs it.
 ### PR 7: Title: Departures, from any area discovered **Δ W22**
 
 Branch `eg/7-departures`, from `eg/6-book`. §5.11 designs it.
+
+**Built** as #107, landed as 5b608be: as planned, with `TitleScreen.departures()`, but `area_choice` is `every_area`, `_drove_whole_road()` is `_drives_whole_road()`, as it's asked as the run starts, and in other builds than debug `--area` presets only a departure, though no phone can pass it (docs/M4.md P4). docs/ZONE_SELECT.md Z5 changes too, and so do `test_area_start.gd`, `test_arrival.gd` and `test_tutorial.gd`.
 
 | Area | Files |
 |---|---|
@@ -312,6 +332,8 @@ Branch `eg/7-departures`, from `eg/6-book`. §5.11 designs it.
 
 Branch `eg/8-road-home`, from `eg/7-departures`. §5.12 designs it.
 
+**Built** as #108, landed as 62f6217. `TitleScreen.offered_roads()`, with `roads`, `road` and `ROAD_NAMES`, reads the first road's finish. `--home` presets the Road choice, which `open()` turns back before the first arrival. A retry keeps the run's road, and a reload starts on the road to the sea. A run's turns are its `turn_index`, and stats with no `road` raise no road's `farthest`. plan.md §2.6's Atlas line changes too, and its tests are also in `test_title_screen.gd`, `test_game_over.gd`, `test_smoke.gd` and `test_arrival.gd`.
+
 | Area | Files |
 |---|---|
 | UI | `ui/title_screen.gd` and `.tscn`: the Road choice, "Road: To the sea", then "Road: Home" once the pier has an arrival. `ui/main.gd`: the run's road from the title, or `--home`; Departures step through the chosen road's areas; `GameState.road` at the run's start. `ui/game_over.gd`: the next goal's Road Home line |
@@ -325,6 +347,8 @@ Branch `eg/8-road-home`, from `eg/7-departures`. §5.12 designs it.
 
 Branch `eg/9-keep-driving`, from `eg/8-road-home`. §5.13 designs it.
 
+**Built** as #109, landed as 761e0da: as planned; Retry drives the same road, as plan.md §2.1 now says, and `test_title_screen.gd` tests it too.
+
 | Area | Files |
 |---|---|
 | UI | `ui/title_screen.gd`: "Road: Endless", the game's road's `endless()`, after the first arrival. `ui/main.gd`: its run, which counts as on `main` |
@@ -337,6 +361,8 @@ Branch `eg/9-keep-driving`, from `eg/8-road-home`. §5.13 designs it.
 
 Branch `eg/10-route-strip`, from `eg/9-keep-driving`. §5.14 designs it.
 
+**Built** as #110, landed as 990fa66. The strip draws in `_draw()` (W29), and its length is rounded to whole pixels, as float32 makes the Fold4 cover's 368.79996; on a 640-pixel screen some turns climb no pixel (W30). `main.gd` gives it the road, and plan.md's scene tree has it.
+
 | Area | Files |
 |---|---|
 | UI | `ui/route_strip.gd`, new: a strip up the HUD's right edge, from the road's start at its foot to the finish at its top: a tick for each area, a flag for the finish, a triangle for the car and a hollow diamond for the best run, at the road's `farthest` (PR 8). `ui/hud.gd` and `.tscn`: the strip, on a road with a finish only |
@@ -347,6 +373,8 @@ Branch `eg/10-route-strip`, from `eg/9-keep-driving`. §5.14 designs it.
 ### PR 11: Pit stops: the tunnel, the bridge and Last Gas repair the car **Δ W24**
 
 Branch `eg/11-pit-stops`, from `eg/10-route-strip`. §5.15 designs it. If the owner declines Q10, it is dropped, and PR 12 targets PR 10's branch.
+
+**Built** as #111, landed as c3149bf, as Q10's default is yes. **Δ** `validate()` checks the pit stops. A road's first area has no way in, so a Departure from the Desert has no Last Gas, nor one from the Village on the Road Home. The repair waits for the path tile after a pit stop's last, so turning back out of one repairs nothing (§4.3). `repair.wav` is its sound, and `make_audio.gd`'s WAV writer moved to `tools/audio/wav.gd` (W31). `world_renderer.gd`, `world.tscn` and `prop_layout.gd` place Last Gas, plan.md §3.6 and §3.7 change too, and its tests are also in `test_last_gas.gd`, `test_world_renderer.gd`, `test_prop_layout.gd`, `test_audio_director.gd` and `tests/integration/test_audio.gd`.
 
 | Area | Files |
 |---|---|
@@ -364,12 +392,14 @@ Branch `eg/11-pit-stops`, from `eg/10-route-strip`. §5.15 designs it. If the ow
 
 Branch `eg/12-records`, from `eg/11-pit-stops`. §5.16 designs it.
 
+**Built** as #112, landed as 9161046. **Δ** `CarSim.area_crossed` tells `GameState` a crossing (W32), and `SaveData.beats_best_time()` the end screen's "New best time!". The postcards are `MenuCard`s, with `atlas_screen.tscn` and `title_screen.tscn`, and the keys and a drag scroll the Atlas (W33). Two tests' names changed (below, §4.3), the Atlas has 8 tests where the plan had 1, `test_car_sim_crossing.gd` and `tests/helpers/finger.gd` are new, and `test_game_over.gd`, `test_arrival.gd`, `test_area_start.gd` and `test_tutorial.gd` gain tests.
+
 | Area | Files |
 |---|---|
 | Car | `car/car_sim.gd`: the signal `damaged`, which names the area charged (§5.16) |
 | Autoload | `autoload/save_data.gd`: version 5, each atlas entry's `stamped`; `_v4_to_v5()`, which keeps each road's `farthest` (§5.16). `autoload/game_state.gd`: for each area, whether the car took damage there and whether it `crossed` it (§5.16) |
 | UI | `ui/main.gd`: each `damaged` but the tutorial's. `ui/atlas_screen.gd`: a postcard for each area, stamped. `ui/title_screen.gd`: the arrivals, the best time and a clean arrival. `ui/game_over.gd`: "New best time!" |
-| Tests | `tests/unit/test_save_data.gd`: `test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest`, with a Road Home that has a `farthest` and no arrival, `test_a_crossing_with_no_damage_stamps_the_area`, `test_an_area_not_crossed_is_not_stamped`; W16's two tests use 6. `tests/unit/test_game_state.gd`: `test_an_area_is_crossed_only_on_the_road_into_the_next_or_by_an_arrival`. `tests/unit/test_car_sim_offroad.gd`: `test_damage_across_a_border_names_each_area`. `tests/unit/test_atlas_screen.gd`: `test_a_stamped_area_shows_its_postcard`. `tests/unit/test_title_screen.gd`: `test_the_title_shows_the_arrivals_and_the_best_time` |
+| Tests | `tests/unit/test_save_data.gd`: `test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest`, with a Road Home that has a `farthest` and no arrival, `test_a_crossing_with_no_damage_stamps_the_area`, `test_an_area_crossed_with_damage_or_not_crossed_is_not_stamped`; W16's two tests use 6. `tests/unit/test_game_state.gd`: `test_an_area_is_crossed_onto_the_next_or_by_an_arrival`. `tests/unit/test_car_sim_offroad.gd`: `test_damage_across_a_border_names_each_area`. `tests/unit/test_atlas_screen.gd`: `test_a_postcards_stamp_is_whole_once_its_area_is_crossed_with_no_damage`. `tests/unit/test_title_screen.gd`: `test_the_title_shows_the_arrivals_and_the_best_time` |
 | Docs | `plan.md` §9: version 5 |
 
 **Acceptance:** E14, E18.
@@ -378,12 +408,15 @@ Branch `eg/12-records`, from `eg/11-pit-stops`. §5.16 designs it.
 
 Branch `eg/13-hitchhiker`, from `eg/12-records`. §5.17 designs it.
 
+**Built** as #113, `needs-owner`, as the owner lands it (§4.2). She stands on the road's far side, `HITCHHIKER_ASIDE` across, facing it, by the last plain straight, not a pit stop's, before her turn's junction, never a decoy's; with none, it is an error, and she stays hidden. A place that the buffer hasn't laid yet waits for it (W34). Found, she fades in `HITCHHIKER_FADE_SECONDS`. The Book's last row is hers once the pools are full, and the pier's welcome leaves her out.
+
 | Area | Files |
 |---|---|
-| World | `world/hitchhiker.gd` and `.tscn`, new: she stands beside the Road Home at the player's farthest turn on it, and is gone once passed. Her art from `tools/art/legends/hitchhiker.gd` |
-| UI | `ui/main.gd`: she shows on the Road Home once the book is full. `ui/book_screen.gd`: her page. `ui/game_over.gd`: NEW LEGEND!, and the next goal's line for her |
-| Autoload | `autoload/save_data.gd`: she is collected as a disaster entry, `hitchhiker`, which `_entry()` already reads |
-| Tests | `tests/unit/test_hitchhiker.gd`, new: she shows only on the Road Home with every legend of the pools collected; passing her finds her, and the run goes on; an arrival never unlocks her; she is the Book's last page |
+| World | `world/hitchhiker.gd` and `.tscn`, new: she stands on the Road Home's far side, by the last plain straight before the junction of the player's farthest turn on it, or before the finish once they have arrived home, and fades once passed. Her art from `tools/art/legends/hitchhiker.gd` |
+| UI | `ui/main.gd`: she shows on the Road Home once the book is full. `ui/book_screen.gd`: her row and page. `ui/game_over.gd`: NEW LEGEND!, and the next goal's line for her. `ui/legend_still.gd`: her still |
+| Autoload | **Δ** `autoload/save_service.gd`: `record_found()` writes her at once, as the disaster entry `hitchhiker`, which `_entry()` already reads; `save_data.gd` is unchanged |
+| Config, Disasters, Docs | `config/tuning.gd`: `HITCHHIKER_ASIDE`, `HITCHHIKER_FADE_SECONDS`. `disasters/legend_unlock.gd`: `BOOK_FULL` (§5.5). plan.md §2.6: the Book has her |
+| Tests | `tests/unit/test_hitchhiker.gd`, new: she shows only on the Road Home with every legend of the pools collected; where she stands; passing her finds her once, and she fades; an arrival never unlocks her. `tests/integration/test_hitchhiker_run.gd`, new, in the main scene: her place, a departure, NEW LEGEND! as the run goes on, and a retry. `tests/unit/test_book_screen.gd`: she is the Book's last row and page |
 
 **Acceptance:** E15, E16, E18.
 
@@ -419,15 +452,28 @@ Fixes from the prototype's build, the internal review (§4.4) and the PRs' revie
 | 2 | 6edcea6: the unlock's shares are tested with two locked legends in one area and one in another (§4.4 #3) | `test_each_locked_legend_is_as_likely_as_the_others` | N31, which passed the old test |
 | 2 | 4d3d981: `arrival_count(finish)`, which PR 8 asks for the pier's (§4.4 #5) | `test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one` | N32 |
 | All | Copilot's review of this plan: §4.2 had the stacks rebase on `main`; they merge it (stacks.md step 5) | None | None |
-| 4 | Copilot: a legend's first `standing` sprite can be blank, a remnant or a glow; PR 4's `LegendStill` draws each scene's `figure` (§5.8) | `test_legend_still.gd` | PR 4's, from N33 |
-| 11 | Copilot: §5.15 repaired on `area_changed`, before the move's road checks; the repair waits for the car to leave the set piece, or pass Last Gas, on the road | `test_car_sim_pit_stop.gd` | PR 11's, from N33 |
-| 6 | Copilot: §6.4's runs, whose save is in memory, reached no seal, full Book or Hitchhiker; PR 6's `--collected`, and a reload (§5.7, §6.4) | `test_title.gd`'s `--collected` | PR 6's, from N33 |
-| 6 | Copilot: PR 6 left five tests on `CollectionScreen`, a deleted class; they move to the Book | Theirs; `git grep` finds no use | PR 6's, from N33 |
-| 12 | Copilot: a stamp read `_area_stats()`, which has the area that a run ends in; `crossed`, set on the road into the next area or by an arrival (§5.16) | `test_an_area_not_crossed_is_not_stamped` | PR 12's, from N33 |
+| 4 | Copilot: a legend's first `standing` sprite can be blank, a remnant or a glow; PR 4's `LegendStill` draws each scene's `figure` (§5.8) | `test_legend_still.gd` | PR 4's N54, N59, N60, N70 and N122–N124 |
+| 11 | Copilot: §5.15 repaired on `area_changed`, before the move's road checks; the repair waits for the car to leave the set piece, or pass Last Gas, on the road | `test_car_sim_pit_stop.gd` | PR 11's N206 |
+| 6 | Copilot: §6.4's runs, whose save is in memory, reached no seal, full Book or Hitchhiker; PR 6's `--collected`, and a reload (§5.7, §6.4) | `test_title.gd`'s `--collected` | PR 6's N114–N117 and N119 |
+| 6 | Copilot: PR 6 left five tests on `CollectionScreen`, a deleted class; they move to the Book | Theirs; `git grep` finds no use | PR 6's N130, which is N20 on the Book |
+| 12 | Copilot: a stamp read `_area_stats()`, which has the area that a run ends in; `crossed`, set on the road into the next area or by an arrival (§5.16) | `test_an_area_crossed_with_damage_or_not_crossed_is_not_stamped` | PR 12's N236 and N242–N244 |
 | 14 | Copilot: §8 let PR 14 land before PR 13, which makes this plan's final sync; it waits (§4.2) | None | None |
-| 11 | Copilot's overview: no tile carried `pit_stop` to `CarSim`, and `starting_at()` dropped it; tiles get it (§5.15) | `test_car_sim_pit_stop.gd`'s Departure | PR 11's, from N33 |
-| 12 | Copilot's overview: damage by `area_id` goes to the next area in a step that crosses, and misses one entered off the road; `damaged` names the area charged (§5.16) | `test_damage_across_a_border_names_each_area` | PR 12's, from N33 |
-| 8, 12 | Copilot's review of 94b5007: PR 8 opens the Road Home, but only PR 12 kept a road's `farthest`, and its migration set Home's to 0, losing a run's progress there between them. PR 8's version 4 keeps each road's `farthest` from the Road Home's first run, and PR 12's version 5 keeps it (§5.12, §5.16) | `test_a_road_home_run_that_never_arrives_keeps_its_farthest`; `test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest` | PR 8's and PR 12's, from N33 |
+| 11 | Copilot's overview: no tile carried `pit_stop` to `CarSim`, and `starting_at()` dropped it; tiles get it (§5.15) | `test_car_sim_pit_stop.gd`'s Departure | PR 11's N207, N208 and N211 |
+| 12 | Copilot's overview: damage by `area_id` goes to the next area in a step that crosses, and misses one entered off the road; `damaged` names the area charged (§5.16) | `test_damage_across_a_border_names_each_area` | PR 12's N230 and N231 |
+| 8, 12 | Copilot's review of 94b5007: PR 8 opens the Road Home, but only PR 12 kept a road's `farthest`, and its migration set Home's to 0, losing a run's progress there between them. PR 8's version 4 keeps each road's `farthest` from the Road Home's first run, and PR 12's version 5 keeps it (§5.12, §5.16) | `test_a_road_home_run_that_never_arrives_keeps_its_farthest`; `test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest` | PR 8's N167 and N168; PR 12's N240 and N241 |
+| 3 | [Copilot](https://github.com/pompomon/roadgame/pull/103#discussion_r4605314853): `--finish=281` laid a junction on the Coast, which has no pool. 6dd4985: a `--finish` past the road's own end, 280, is an error (§5.7) | `test_a_finish_past_the_roads_own_end_is_an_error_and_the_road_is_the_games` | N45 |
+| 4 | PR 4's probes at real sizes: the welcome didn't fit at zoom 2. 7e9077e zooms the arrival out (§5.8's Δ) | `test_the_welcome_shows_at_zoom_1_on_every_screen`, `test_on_the_fold4s_inner_screen_the_arrival_zooms_out_to_show_them`, `test_an_arrival_eases_the_view_to_show_the_welcome_and_the_car` | N72–N74, N76–N84 |
+| 4 | The internal review of 7e9077e: a resize during an arrival hid the car, for 52 frames on a fold to the cover. bdb1471 moves the camera at once; a probe of 1,300 resizes found no frame without the car | `test_a_resize_during_an_arrival_keeps_the_car_in_view` | N85 |
+| 4 | [Copilot](https://github.com/pompomon/roadgame/pull/104#discussion_r4607979789): a glow's still clipped over the sea, the wisp's green at 1.25. b0e2ed0: `LegendStill.strength()` | `test_a_glows_still_adds_no_more_light_than_its_ground_leaves_below_white`, `test_the_glows_on_the_shore_never_clip_as_the_sun_sets` | N121–N124 |
+| 6 | The warnings check: a local `flat` shadowed a base class's member at 5cc4f6b (`book_cell.gd`:64); 0bbfcde names it `box` | §6.3's check | None: §6.3 |
+| 6 | [Copilot's first review](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5950768396), 2866e43 and 7976703: a cell's and a row's names for a screen reader, a drag from a cell past `BOOK_SCROLL_DEADZONE`, and a band over the art | `test_a_cell_reads_its_words_to_a_screen_reader`, `test_a_drag_from_any_cell_scrolls_the_book_and_opens_no_page`, `test_a_tap_that_wobbles_opens_the_page`, `test_each_still_fits_its_cell_whole_with_square_pixels`, `test_a_row_names_its_area_and_how_many_of_its_legends_are_found` | N140–N145 |
+| 6 | [The second](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5951180691), 1e876fd: a silhouette's focus, a page that closes to its cell, and the silhouettes' and seals' contrast (W26). A visible row label was the owner's choice, and the rows stay as they are (§7) | `test_a_legend_not_found_is_its_silhouette_and_its_initials_and_has_no_page`, `test_a_page_closes_to_its_cell_in_view_where_the_book_was_left`, `test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds` | N146–N151 |
+| 6 | [The third](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5951619394) and [the fourth](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5951949512): a seal not earned is hollow (cfbbe64), a glow's silhouette a disc (4a17718), and an earned seal has no dark core (2b0dea7; W26) | `test_a_seal_not_earned_is_hollow_and_an_earned_one_whole`, and a frame of the Book | N152–N155; N154 fails the frame |
+| 6 | [The fifth](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5952204310)'s and [the sixth](https://github.com/pompomon/roadgame/pull/106#pullrequestreview-5952663374)'s overviews: a screen reader's focus on a page's lines (9f8322b, W27), and the keys that scroll the Book (0eeb84d, W28) | `test_a_screen_reader_reaches_the_count_and_each_line_of_a_page`, `test_a_page_scrolls_to_the_line_that_has_the_focus`, `test_the_keys_scroll_the_book_where_the_focus_has_nowhere_to_go`, `test_the_keys_scroll_a_page` | N156–N163 |
+| 11 | The internal review: a car that turned back out of a pit stop was repaired; the repair waits for the path tile after its last, once | `test_turning_back_out_of_a_pit_stop_repairs_nothing` | N229 |
+| 12 | The internal review: the Atlas didn't follow a screen reader's focus; `%Scroll` does | `test_the_atlas_scrolls_to_the_postcard_that_has_the_focus` | N265 |
+| 13 | The warnings check: two integer divisions at 3c71ca7 (`test_hitchhiker.gd`:215 and :218); 30d6f1a divides as floats | §6.3's check | None: §6.3 |
+| 13 | [Copilot](https://github.com/pompomon/roadgame/pull/113#discussion_r4619812635): her entry kept the distance of the step before the one that passed her, as the car steps after `main` takes it. 5b968d1 takes it again as she is passed, as `_end_run()` does | `test_passing_her_finds_her_and_the_end_screen_shows_a_new_legend` | N298 |
 
 ### 4.4 Internal review
 
@@ -498,7 +544,7 @@ static func pick(schedule: AreaSchedule, collected: Array[StringName], run_seed:
 
 `stream()` is seeded with `hash("<seed>:unlock")`, so the same seed and collection unlock the same legend, and the road's streams and PL's picks draw what they drew before (W23). `main.gd` asks for one on an arrival that counts, with `seen_disasters()`, which lists the unlocked as collected (W14), and with the whole road's pools, also on `--finish`'s short road, after `_end_run(CarSim.ARRIVAL)`; `SaveService.record_arrival()` records both before the director plays the arrival.
 
-The end screen's fate line names it, "A new legend for your book: Phantom Bus", or says "Every legend is in your book." The collection shows its card, with its name, its area's colour, its lore and "Unlocked by an arrival / Not seen yet", until a run meets it. PL's picks weigh it as seen, 0.5 against 1 (Q3), so the runs show the legends still missing sooner: the unlock and the picks pull the same way, toward the full book. P3 drew each of five locked legends 0.196–0.206 of the time (§6.5). The owner asked for "a random legend from the pool of locked"; it is also Rosewater's surprise, as the player knows that an arrival pays, not what it pays.
+The end screen's fate line names it, "A new legend for your book: Phantom Bus", or says "Every area's legends are in your book." (**Δ** PR 13: the Hitchhiker is in no pool, so a full pool is not yet a full Book). The Book shows its page, with its name, "Unlocked by an arrival", "Not seen yet" and its lore, but no fate, until a run meets it (PR 6). PL's picks weigh it as seen, 0.5 against 1 (Q3), so the runs show the legends still missing sooner: the unlock and the picks pull the same way, toward the full book. P3 drew each of five locked legends 0.196–0.206 of the time (§6.5). The owner asked for "a random legend from the pool of locked"; it is also Rosewater's surprise, as the player knows that an arrival pays, not what it pays.
 
 ### 5.6 The Road Home (PRs 1, 2; the owner's answer; W9, W10; E9)
 
@@ -506,7 +552,7 @@ The end screen's fate line names it, "A new legend for your book: Phantom Bus", 
 
 ### 5.7 The debug flags (PRs 2, 6; W21)
 
-`--finish=<turns>` ends the run's road after that many turns, at its own finish, or at the pier on a road without one, with the areas before it; a bad number errors, and the road stays the game's. `--home` drives the Road Home. Both go with `--area`, `--seed` and `--autopilot`. A `--finish` run from the City counts (W21). PR 6 adds `--collected=<area>` and `--collected=all`, which mark that area's legends, or every pool's, seen in the save in use, for E16's seals and full Book and PR 13's Hitchhiker (§6.4).
+`--finish=<turns>` ends the run's road after that many turns, at its own finish, or at the pier on a road without one, with the areas before it; a bad number, or one past the road's own end, 280, errors (PR 3, §4.3), and the road stays the game's. `--home` drives the Road Home. Both go with `--area`, `--seed` and `--autopilot`. A `--finish` run from the City counts (W21). PR 6 adds `--collected=<area>` and `--collected=all`, which mark that area's legends, or every pool's, seen in the save in use, for E16's seals and full Book and PR 13's Hitchhiker (§6.4).
 
 ### 5.8 The Coast, the pier and the arrival's scene (PRs 3, 4; Q1, Q17, W6, W17–W19; E7)
 
@@ -516,8 +562,8 @@ The pier is a set piece like the bridge. `GreyboxAtlas.road_coords()` draws its 
 
 PR 4 makes the arrival a scene, within its 5.0 s (Q17):
 - **The sunset.** `DayCycle.hold(ARRIVAL_HOUR)` stands the clock at 18.5, `LIGHT_DUSK`'s hour, and the light follows at `LIGHT_MAX_RATE`, 0.25 a second for each channel, as it always does: 1.92 s from noon's white and 2.32 s from night, in time, and never a flash. As only `advance()` moves the light, `main.gd` advances the cycle in `ARRIVED` too, which today it does only while RUNNING (`main.gd`:97–103, docs/DAYNIGHT.md §5.4); the next run's `enter()` clears the hold.
-- **The legends on the shore.** `Pier.welcome()` stands each collected legend's still along the shore on both sides of the pier, in the Book's order, fading in one after another; a legend not yet found leaves its place empty. The Book becomes something the player sees, as they earn it. `LegendStill`, which the Book reuses, draws the frame that each legend's scene names as its figure (`figure`, `figure_frame`) whole, in its `self_modulate`, whatever the rest pose hides: the worm rests transparent and cropped to nothing (`death_worm.tscn`:53–59). A `standing` part can be a remnant, such as the Witch Hex's pumpkin, and PL's Marfa Lights and wisps are glows (docs/POOLS.md §5.4).
-- **The view.** The camera's target eases from the car to the pier's end, so the sea fills the screen ahead; the zoom keeps its whole step.
+- **The legends over the sea.** **Δ** `Pier.welcome(schedule, collected)` stands each collected legend's still over the sea past the pier's end, in the Book's grid, as the shore, about 448 pixels across, can't show whole in a view 360 wide (PR 4). They fade in one after another, a legend not yet found leaves its place empty, and a glow's still adds no more light than the sea leaves below white, by `LegendStill.strength()` (docs/M6.md S10). The Book becomes something the player sees, as they earn it. `LegendStill`, which the Book reuses, draws the frame that each legend's scene names as its figure (`figure`, `figure_frame`) whole, in its `self_modulate`, whatever the rest pose hides: the worm rests transparent and cropped to nothing (`death_worm.tscn`:53–59). A `standing` part can be a remnant, such as the Witch Hex's pumpkin, and PL's Marfa Lights and wisps are glows (docs/POOLS.md §5.4).
+- **The view.** **Δ** `CameraRig.arrive()` eases the view from the car to hold the welcome and the car (PR 4). Where the welcome, 338 pixels high, doesn't fit zoom 2's view, 320, as in a landscape window or on the Fold4's inner screen, the zoom eases out to 1 over the pan (`arrival_zoom_for()`), and a resize keeps the car in view (§4.3); otherwise the zoom keeps its whole step.
 - **The sound.** The engine winds down with the car, where today every loop stops as the run ends (`audio_director.gd`, `_on_run_ended()`); the area's music fades; and `arrival.wav`, a short rising jingle from `make_audio.gd`, plays as the car stops.
 
 ### 5.9 NEW LEGEND! and the next goal (PR 5; Q16; E8)
@@ -538,9 +584,11 @@ Each line uses only the font's glyphs, fits 360 pixels, and changes only as prog
 ### 5.10 The Book of Legends (PR 6; Q8; E8)
 
 The collection becomes the Book. `ui/book_screen.gd` reads the game's pools, whatever their size: a row for each area with a pool, in the road's order, and a column for each slot, the ★, wave A's and wave B's (docs/POOLS.md §5.4). Over the grid, "Legends 7/15". A cell shows:
-- a legend seen: its still and its name; tapped, its fate and lore, as the collection's card does today;
-- a legend unlocked and not yet seen: its still, its name and "Not seen yet";
+- a legend seen: its still and its name; tapped, its page, in place of the grid, with its name, its sightings, its fate and its lore (**Δ** PR 6, where this plan had the collection's card);
+- a legend unlocked and not yet seen: its still, its name and "Not seen yet"; its page has "Unlocked by an arrival", "Not seen yet" and its lore, but no fate;
 - a legend not found: its silhouette, the still's shape flat in `SILHOUETTE`, a grey that stands out from the cell, each texel that the still covers at all drawn whole, so that a glow's is a disc (W26), and its name's initials, "P______ B__";
+- a glow's still, in a cell or on a page, adds no more light than its ground leaves below white: the lightest centre of the cell's styles, `BookCell.ground()`, or `BookScreen.backdrop` (docs/M6.md S10);
+- the Hitchhiker's row, last, once the pools are full: her silhouette, then her still and a white seal, read as "Road Home: 0 of 1 legend found" until she is found (PR 13, §5.17);
 - an area whose legends are all found: a seal beside its row, an eight-pointed star whole in the area's colour, and until then hollow, its outline in `SILHOUETTE` (W26).
 
 At 360 × 640, five rows of three 96-pixel cells fit under the title, with the count. A word of a name too wide for its cell, as "Will-o'-the-Wisp" is, breaks after a hyphen, which an exported build's labels don't do themselves (W25). A band taller than the cell leaves room for, a name of two lines over "Not seen yet", raises the still's area to its top, so that the still stays whole. A row wider than the screen scrolls, and a drag that starts on a cell scrolls it too, once it goes 8 pixels, `Tuning.BOOK_SCROLL_DEADZONE`, so that a tap that wobbles less still opens the page. A page scrolls on its own, in place of the grid, which keeps its place: closing the page shows the Book as it was left, with the page's cell in view. A screen reader, which Godot 4.7.2 has on the desktop builds only, reads each cell's words, a silhouette's initials too, without opening its page, and a row's area with its legends found ("Meadows: 2 of 3 legends found"). Its focus, which Tab moves, reaches the count too, and on a page each line in turn, which the page scrolls to; without a screen reader, no line takes the focus, and Tab stays on Back (W27). Where the focus has nowhere to go, the keys scroll the Book, or the page: an arrow by an eighth of what shows, `Tuning.BOOK_KEY_SCROLL`, Page Up and Page Down by all of it, and Home and End to the top and the bottom, so that a keyboard reaches a row or a line past the screen, which takes no focus without a screen reader (W28). The silhouette and the initials hint without telling: an unfinished set pulls (the Zeigarnik effect), and Hades' Codex shows how a book that fills as the player plays brings them back for its last pages.
@@ -571,9 +619,11 @@ Rosewater's catch-up feature: a player behind can come back. `AreaScheduleEntry`
 
 Version 5 adds `stamped` to each atlas entry, true once a run crossed the area with no damage. `_area_stats()` also has the area that a run ends in (`game_state.gd`:123–136), and `area_changed` comes before the move's road checks (§5.15), so `GameState` keeps each area's `crossed` beside its damage: set as the car crosses onto the next area's first tile on the road, where the trigger judges it, or arrives in the last. A failure with no damage, or a Departure stopped before the area's end, stamps nothing. An area's damage is what `_drive_off_road()` charges at its rates (`car_sim.gd`:329–332), and a new `CarSim` signal, `damaged`, names that area: a step charges after `area_changed` (:99), so `area_id` may be the next area's, and an area entered off the road gets no `offroad_changed`. The tutorial's counts for nothing, as for `clean`. `_v4_to_v5()` changes nothing: `_entry()` gives each atlas entry `stamped`, false, and each road's `farthest`, PR 8's, stays as it was (§5.12). The Atlas's cards become postcards: the area's ground and a prop, its name and bests, and a stamp once crossed clean. The title shows the arrivals, the best time and a clean arrival, and the end screen says "New best time!" when an arrival beats it. Like Celeste's strawberries, these goals never gate the end: mastery for those who want it, once the Book is done.
 
+**Δ** As built (PR 12): `CarSim.area_crossed` tells `GameState` each crossing, only on the road and from an area's last path tile onto the next's first (W32), and `SaveData.beats_best_time()` the end screen's "New best time!". The postcards are `MenuCard`s, and the keys that move no focus and a drag from a postcard scroll the Atlas, which follows the focus (W33).
+
 ### 5.17 The Vanishing Hitchhiker (PR 13; Q9; E15)
 
-The Book's last page is the road's own urban legend. Once every legend of the pools is collected, she stands beside the Road Home at the player's farthest turn on it, or by its last straight once they have arrived home. Passing her finds her: she is gone as the car passes, the run goes on, and its end screen shows NEW LEGEND!. She is no disaster and in no pool, so an arrival never unlocks her and PL's picks never draw her; `SaveData` keeps her as the disaster entry `hitchhiker`, which `_entry()` already reads. Her art comes from `tools/art/legends/hitchhiker.gd`, as PL's legends' does. The full book's reward is a new mystery, not a number: Rosewater's surprise again, and a reason to drive the Road Home once more.
+The Book's last page is the road's own urban legend. Once every legend of the pools is collected, she stands on the Road Home's far side, `HITCHHIKER_ASIDE` across from the centre of the last plain straight, not a pit stop's, before the junction of the player's farthest turn there, never a decoy's, or before the finish once they have arrived home (`Hitchhiker.road_turn()`), and faces the road. A place that the buffer hasn't laid yet waits for it (W34), and one with no plain straight before it is an error, and she stays hidden. A Departure from an area before her turn shows her too. Passing her, in a run that isn't over, finds her: she fades in `HITCHHIKER_FADE_SECONDS`, the run goes on, and its end screen shows NEW LEGEND!. A run that ends before her doesn't, and a retry places her anew. She is no disaster and in no pool, so an arrival never unlocks her and PL's picks never draw her, and a full pool's line is "Every area's legends are in your book." (§5.5). **Δ** `SaveService.record_found()` writes her at once, as the disaster entry `hitchhiker`, which `_entry()` already reads, so `save_data.gd` is unchanged. The end screen's next goal is "Next: someone waits on the Road Home" until she is found. The Book counts 15 legends until her row shows, then 16 (§5.10), and the pier's welcome leaves her out. Her art comes from `tools/art/legends/hitchhiker.gd`, as PL's legends' does. The full book's reward is a new mystery, not a number: Rosewater's surprise again, and a reason to drive the Road Home once more.
 
 ### 5.18 The docs (PR 14; Q18; E17)
 
@@ -599,9 +649,27 @@ The checks are `AGENTS.md` §3's five: the import, `check_scripts.sh`, `lint.sh`
 
 `lint.sh` found no problem, and would leave every file as it is: 165 for PR 1, 168 at the head. `smoke.sh` printed no error line.
 
+**Δ** As built, at each PR's head, locally and in CI: every check passed, `git status --porcelain` printed nothing, and each smoke run printed `autopilot: tile 165, turns 35, area rural`.
+
+| PR (head) | Scripts loaded | Test scripts | Tests | Asserts | GUT time | CI run | CI's `test` job, its GUT |
+|---|---|---|---|---|---|---|---|
+| 1, #101 (c15604b) | 198 | 93 | 726 | 450,611 | 115.6 s | 44149774286 | 3 min 13 s, 114.3 s |
+| 2, #102 (1e16cdf) | 201 | 95 | 748 | 450,794 | 118.4 s | 44153183467 | 3 min 26 s, 145.9 s |
+| 3, #103 (6dd4985) | 204 | 96 | 763 | 451,675 | 145.4 s | 44171387868 | 3 min 1 s, 120.0 s |
+| 4, #104 (b0e2ed0) | 207 | 98 | 790 | 452,672 | 130.3 s | 44217507554 | 3 min 6 s, 127.5 s |
+| 5, #105 (323fd25) | 207 | 98 | 797 | 452,958 | 128.9 s | 44220731030 | 3 min 7 s, 127.7 s |
+| 6, #106 (0eeb84d; 88009d3 changes only this plan) | 210 | 98 | 823 | 453,503 | 129.5 s | 44268595188 | 3 min 40 s, 138.6 s |
+| 7, #107 (bde2d6a) | 210 | 98 | 826 | 453,524 | 130.3 s | 44271410279 | 4 min 2 s, 180.2 s |
+| 8, #108 (ebf7d37) | 210 | 98 | 833 | 453,704 | 131.4 s | 44282297765 | 3 min 57 s, 151.9 s |
+| 9, #109 (a5d8e20) | 210 | 98 | 834 | 453,789 | 130.5 s | 44286172584 | 3 min 13 s, 132.4 s |
+| 10, #110 (e1e42e7) | 211 | 98 | 837 | 453,833 | 127.7 s | 44295102528 | 3 min 14 s, 130.5 s |
+| 11, #111 (c0903b0) | 215 | 100 | 856 | 455,944 | 131.4 s | 44321462801 | 3 min 29 s, 130.5 s |
+| 12, #112 (1b4a0cd) | 217 | 101 | 877 | 456,190 | 132.5 s | 44347412000 | 4 min 7 s, 184.9 s |
+| 13, #113 (5b968d1; the commits after it change only this plan) | 221 | 103 | 903 | 456,541 | 134.4 s | 44385769101 | 3 min 10 s, 128.9 s |
+
 ### 6.2 Negative cases
 
-Each case makes one change to the prototype's code, runs the whole suite, and checks that the tests it names fail; then it undoes the change. All 32 ran on 4d3d981, of 642 tests; the first 27 ran on c153f03 and 93a85f5 too. PRs 1 and 2 run theirs on their own branches (§4.1); PRs 3–13 add theirs from N33, at least one for each of their E#s.
+Each case makes one change to the prototype's code, runs the whole suite, and checks that the tests it names fail; then it undoes the change. All 32 ran on 4d3d981, of 642 tests; the first 27 ran on c153f03 and 93a85f5 too. PRs 1 and 2 ran theirs on their own branches (§4.1); PRs 3–13 added theirs from N33, at least one for each of their E#s.
 
 PR 1's:
 
@@ -645,16 +713,49 @@ PR 2's:
 | N31 | `legend_unlock.gd`: the unlock picks an area, then one of its legends | `test_each_locked_legend_is_as_likely_as_the_others`: 1 |
 | N32 | `save_data.gd`: `arrival_count(finish)` counts every finish's arrivals | `test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one`: 1 |
 
+**Δ** PRs 3–13's, as built. Each PR's description gives each case's change and the tests that it fails: each exited 1 and failed them, and the files were restored.
+
+| PR | Cases | How they ran, with `run_tests.sh` |
+|---|---|---|
+| 3, #103 | N33–N45 | The whole suite: 762 tests, and 763 for N45 |
+| 4, #104 | N46–N74, N76–N85, N121–N124 | The whole suite: 788 tests, and 790 for N121–N124. N75, a probe, fails no test, as expected |
+| 5, #105 | N86–N101 | The whole suite: 797 tests |
+| 6, #106 | N102–N120, N125–N130, N138–N163 | The whole suite: 811–823 tests. N130 is N20 on the Book, and N154 fails a frame of the Book, as GUT draws nothing |
+| 7, #107 | N131–N137 | The whole suite, on 3ec3ae9: 815 tests |
+| 8–12, #108–#112 | N164–N182, N183–N188, N189–N200, N201–N229, N230–N267 | `-gtest=` on the test scripts of the tests that each names |
+| 13, #113 | N268–N298 | `-gselect=` on the scripts that each names; N295–N297, the whole suite of 903 tests |
+
 ### 6.3 Editor warnings
 
 As docs/agents/checks.md §1 says, a temporary `override.cfg` raised the warnings at level 1 to errors, and `check_scripts.sh` loaded every script. On `main` (81f22e3), 532908a and 4d3d981 it found only `main`'s five: `INTEGER_DIVISION` in `world/greybox_atlas.gd`:135, `ui/main.gd` (:62 on `main` and 532908a, :71 on 4d3d981), `test_greybox_atlas.gd`:15 and `test_iso.gd`:42, and `UNUSED_VARIABLE` `junctions` in `test_road_generator_occupancy.gd`:30. Godot reports only a script's first error, so it ran again without `integer_division`: only `junctions` was left, on each. c153f03 had a sixth, in `game_over.gd`:81, which 93a85f5 fixes (§4.3). So no script that PRs 1–2 add or change has a warning. On f491e55 and on PR 1's port it found the same five, and PL's `make_art.gd` and `art_checks.gd`, which load `greybox_atlas.gd`, fail with it.
+
+**Δ** As built, the check found only `main`'s five at each head of PRs 1–13, but for two warnings, each fixed (§4.3): PR 6's at 5cc4f6b and PR 13's at 3c71ca7. At PR 13's head, `ui/main.gd`'s `INTEGER_DIVISION` is at :101, and `greybox_atlas.gd`'s at :141, as PR 3 moved it.
 
 ### 6.4 Verified only in CI or on devices
 
 - **CI.** Each PR's four required checks, and its `test` job's time (§6.1). This plan's PR changes only this file.
 - **PRs 1–2** show a player nothing new: no road of the game ends before PR 3, and only `--finish` and `--home` reach an arrival. Their tests check the end screen's words (E3, E5), and E16 starts at PR 3.
 - **E16 on the Web, on PRs 3–6, 8, 10 and 13**, by an agent. Start a CI run of the PR's branch with `-f upload-builds=true`, download its Web build and patch its `index.html` (docs/agents/checks.md §4), then play it in Chrome and Firefox, headed under Xvfb, at 360 × 640 and 1280 × 720: `?arg=--autopilot&arg=--finish=3` for a quick arrival and its unlock; `?arg=--autopilot&arg=--area=desert`, which counts nothing, for the last 60 turns, the home stretch and the pier, each with `&arg=--hour=12` and `&arg=--hour=0`; and `?arg=--collected=city` and `=all` for a seal and a full Book, `=all` with `&arg=--home&arg=--autopilot` for the Hitchhiker. Post frames of the arrival, the end screen and the PR's screen on the PR.
-- **E16 on the Fold4**, by the owner, on both screens: the PR's debug APK, with the Start choice from the Desert, as a phone passes no arguments (docs/ZONE_SELECT.md Z1); and the same Web build in the Fold4's Chrome, through `adb reverse tcp:8000 tcp:8000` (docs/M4.md Q6). As `--autopilot` keeps its save in memory, drive `?arg=--play&arg=--finish=3` there by hand too, in a new Incognito tab, to the arrival, and reload with no argument: the collection has the unlocked legend, and from PR 8 the title offers the Road Home. Check the PRs in order (§8).
+- **E16 on the Fold4**, by the owner, on both screens: the PR's debug APK, with the Start choice from the Desert, as a phone passes no arguments (docs/ZONE_SELECT.md Z1); and the same Web build in the Fold4's Chrome, through `adb reverse tcp:8000 tcp:8000` (docs/M4.md Q6). As `--autopilot` keeps its save in memory, drive `?arg=--play&arg=--finish=3` there by hand too, in a new Incognito tab, to the arrival, and reload with no argument: the Book has the unlocked legend, and from PR 8 the title offers the Road Home. **Δ** As built, check every PR at once, on PR 13's build (below).
+- **Δ** **E16 on the Web, as built**, by an agent, in Chrome and Firefox at 360 × 640 and 1280 × 720, each PR's frames in its description:
+  - PR 3: the car on the pier, `--finish=3`'s unlock, and the Desert by day and by night, in 12 sessions.
+  - PR 4: the sunset, the stills, the pan and the zoom, and the jingle, once, as the car stopped: each recording matched `arrival.wav` once, at 0.90–0.93. Nothing flashed: no frame was brighter or darker than both its neighbours by more than 9.4 of 255.
+  - PR 5: NEW LEGEND! stayed still for the rest of each run, 15–22 s, and the jingle played once.
+  - PR 6: the Book, its seals, the wisp's name broken after "the-", and the unlock.
+  - PR 8: the Road choice, and the Road Home's arrivals. PR 10: the strip, its diamond 128 pixels up the 256 at turn 140 of 280, and the car climbing it, with no flash.
+  - PR 11: Last Gas's 19 `Polygon2D`s raised no WebGL error; PR 12 adds no `Polygon2D`.
+  - PR 13: by day and by night, she stood by the road and faded as the car passed her; then NEW LEGEND!, the Book at 16/16 with her white seal, and her page. `--collected=all` alone gave 15/16, with her silhouette. Nothing flashed: no frame was brighter or darker than both its neighbours by more than 2.9 of 255. The consoles had only Chrome's known `CONTEXT_LOST_WEBGL` and ReadPixels notes, and Firefox's `'try'` warning and its timeouts as a page unloaded.
+- **Δ** **E16 on the Fold4, as built**, by the owner, all at once on PR 13's build, [run 44387506354](https://github.com/pompomon/roadgame/actions/runs/44387506354), of f8d44de: its artifacts `web` and `android-Android APK`, whose package is `com.pompomon.roadgame`. On both screens, in the APK and in the Fold4's Chrome:
+  - PR 3: the pier and the arrival, from the Desert's Start choice.
+  - PR 4: the sunset, the stills in view as the car stops, the jingle, and nothing flashing.
+  - PR 5: in a new Incognito tab, `?arg=--play&arg=--finish=3` driven by hand: NEW LEGEND! stays still, the jingle plays once, and the goal line is whole.
+  - PR 6: the Book, with `--collected=city` and `=all` on the Web: flat grey silhouettes, a glow's a disc, and seals whole or hollow. A tap that rolls a little opens a page, a silhouette's does nothing, and Back closes the page, then the Book. The wisp's name breaks after "the-". On #106, the owner wrote "Fold4 checks approved" ([the comment](https://github.com/pompomon/roadgame/pull/106#issuecomment-6994323923)).
+  - PR 7: the debug APK offers every area; a release build, on Pages, shows Start only once an area past the City is discovered.
+  - PR 8: in Chrome, through `adb reverse tcp:8000 tcp:8000`, `?arg=--play&arg=--finish=3` to the arrival, then a reload: "Road: To the sea" steps to "Road: Home", and Play drives home from the Desert, heading west, its first turn a right.
+  - PR 10: the strip reads by day and by night, the car climbs it with no flash, and the diamond stands at the last farthest.
+  - PR 11: Last Gas by the Desert's first straight, by day and by night; a hurt car gets the repair and its ding.
+  - PR 12: the records under the bests, with the Road button in place; the postcards read whole; a drag from a postcard scrolls the Atlas.
+  - PR 13: she stands by the Road Home on both screens, by day and by night, and fades as the car passes; then NEW LEGEND!, her page and her seal. Time the boot (§9); `adb logcat -s godot` shows no error.
 
 ### 6.5 Measurements
 
@@ -675,10 +776,12 @@ The probes ran headless with Godot 4.7.2: P2, P3 and P5 on 93a85f5, whose result
 
 | When | Action | How |
 |---|---|---|
-| Now | Merge this plan's PR | It approves the plan; agents then land PRs 1–12 as each is ready (§4.2) |
+| Done | Merge this plan's PR | #84, merged as 4844183, approved the plan, and agents landed PRs 1–3 (#101–#103) |
+| Done | Land #104, PR 4, if its two Δs are right (E7, §5.8) | The owner landed it as 8b55cb2, and agents then landed #105 (§4.2) |
+| Done | Choose #106's row labels | [The owner's comment](https://github.com/pompomon/roadgame/pull/106#issuecomment-6994323923) approved #106 as it is, (c) of [the options](https://github.com/pompomon/roadgame/pull/106#issuecomment-6970573638), and its merge by an agent. Agents landed it, then #107–#112 in order |
 | Now, if wanted | Play the prototype's arrival | `gh workflow run ci.yml -R pompomon/roadgame --ref eg/prototype -f upload-builds=true`, then docs/agents/checks.md §4's download and patch, and `?arg=--autopilot&arg=--finish=3`, or with `&arg=--home` |
-| On PRs 3–6, 8, 10 and 13 | E16 on the Fold4, on both screens | §6.4 |
-| To land EG | Land PR 13 once agents have landed PRs 1–12 and the device checks pass; then PR 14, from `main` | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.2) |
+| Now | E16 on the Fold4, on both screens, for PRs 3–13 at once | §6.4's list, on PR 13's build, [run 44387506354](https://github.com/pompomon/roadgame/actions/runs/44387506354), whose artifacts are kept until 2026-11-19 20:06 UTC. A new build: `gh workflow run ci.yml -R pompomon/roadgame --ref eg/13-hitchhiker -f upload-builds=true` |
+| Now | Land PR 13 (#113) once the device checks pass, as PRs 1–12 have landed; then PR 14, from `main` | Squash each. Before deleting a merged PR's branch, retarget the next PR to `main` (§4.2) |
 | After PR 14 | Tag the prototype, which this plan cites, and delete EG's branches | `git fetch origin eg/prototype && git push origin FETCH_HEAD:refs/tags/archive/eg/prototype`, then `git push origin --delete eg/plan eg/prototype` and §4's 14 branches |
 
 ---
