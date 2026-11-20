@@ -339,8 +339,8 @@ func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 	assert_eq(wrong, 0, "frames set at rest")
 	# A night that falls within NEXT_FRAME_EARLY of a sail's next frame stops its clock there, where
 	# update() would look at it again. It must leave it all night too, and show the next frame once
-	# the clock moves on. Bisect for the time, to a nanosecond, at which the first sail turns after
-	# 0.5 s.
+	# the clock moves on, but not the one after, which the rest clock, now four seconds behind the
+	# scatter's, has yet to reach. Bisect for when the first sail turns after 0.5 s, to a nanosecond.
 	var lo := 0.5
 	var hi := lo + 1.0 / sails.fps
 	var first := _first_frame(again, buffer, sails.texture, lo, day)
@@ -352,11 +352,8 @@ func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 			hi = mid
 	var next := _first_frame(again, buffer, sails.texture, hi, day)
 	assert_eq(next, (first + 1) % 4, "the sail's next frame")
-	assert_eq(
-		_first_frame(again, buffer, sails.texture, hi - PropScatter.NEXT_FRAME_EARLY / 2.0, day),
-		first,
-		"the frame just before"
-	)
+	var brink := hi - PropScatter.NEXT_FRAME_EARLY / 2.0
+	assert_eq(_first_frame(again, buffer, sails.texture, brink, day), first, "just before it")
 	again.update(Tuning.PROP_REST_SECONDS, night)
 	var sail := _sprites(again, sails.texture)[0]
 	sail.frame = (first + 2) % 4
@@ -367,6 +364,9 @@ func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 	assert_eq(wrong, 0, "frames set at rest, just before a frame")
 	again.update(DELTA, day)
 	assert_eq(sail.frame, next, "the next frame, once the clock moves on")
+	sail.frame = (next + 2) % 4
+	again.update(DELTA, day)
+	assert_eq(sail.frame, (next + 2) % 4, "a frame set by hand, the rest clock short of the next")
 
 
 ## Of `sprites`, whose frames were `before` until set two on by hand: how many a step left before
