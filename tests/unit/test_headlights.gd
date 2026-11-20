@@ -1,7 +1,8 @@
 extends GutTest
 ## Headlights (HEADLIGHTS_PLAN.md §5.1–§5.3): from dusk until the sun rises, while the car drives,
 ## they light the road in a cone ahead of it, giving back a share of the light that the veil takes
-## away. By day, without a clock or a car, and once the run is over, they are off.
+## away. By day, without a clock or a car, and once the run is over, they are off; by night into a
+## zone's morning, they stay on until its light has come.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
@@ -63,6 +64,66 @@ func test_they_turn_on_and_off_in_the_switch_time() -> void:
 	_run(night, SWITCH - Tuning.HEADLIGHT_SWITCH_SECONDS / 2.0)
 	assert_eq(_headlights.level, 0.0, "off")
 	assert_eq(_headlights.shown(&"gain"), Vector3.ZERO, "the road drawn as by day")
+
+
+func test_into_a_zones_morning_they_stay_as_they_were_until_its_light_has_come() -> void:
+	# A zone starts its clock at DAY_START_HOUR (docs/DAYNIGHT.md §5.4), so a car that enters one by
+	# night is in its morning at once, while the light shown takes seconds to catch up (§5.3). The
+	# headlights stay on until it has: the road in the cone lightens with the rest and never dims,
+	# and they turn off only once they light nothing. Entered before dusk, they stay off.
+	var cycle := _cycle(22.0)
+	_run(cycle, SWITCH)
+	_enter_a_zone(cycle)
+	var road := _shown_road(cycle)
+	var dimmed := PackedStringArray()
+	var least := 1.0
+	var steps := 0
+	while cycle.light != cycle.target() and steps < 600:
+		cycle.advance(DELTA)
+		_headlights.update(cycle, _sim, Transform2D.IDENTITY, DELTA)
+		steps += 1
+		var shown := _shown_road(cycle)
+		for channel: int in 3:
+			if shown[channel] < road[channel] - 1e-6:
+				dimmed.append(
+					"%d: %d, %.4f to %.4f" % [steps, channel, road[channel], shown[channel]]
+				)
+		road = shown
+		if cycle.light != cycle.target():
+			least = minf(least, _headlights.level)
+	assert_gt(steps, 60, "the light takes seconds to come")
+	assert_eq(cycle.light, Color.WHITE, "the day's")
+	assert_eq(least, 1.0, "on while it comes")
+	assert_eq(dimmed, PackedStringArray(), "the road in the cone never dims")
+	_run(cycle, SWITCH)
+	assert_eq(_headlights.level, 0.0, "then off")
+	cycle = _cycle(Tuning.DUSK_HOUR - 0.5)
+	assert_ne(cycle.light, Color.WHITE, "the evening's light")
+	_run(cycle, SWITCH)
+	_enter_a_zone(cycle)
+	var most := 0.0
+	steps = 0
+	while cycle.light != cycle.target() and steps < 600:
+		cycle.advance(DELTA)
+		_headlights.update(cycle, _sim, Transform2D.IDENTITY, DELTA)
+		steps += 1
+		most = maxf(most, _headlights.level)
+	assert_gt(steps, 60, "the light takes seconds to come, before dusk too")
+	assert_eq(most, 0.0, "entered before dusk, off while the light comes")
+
+
+## Takes the car into a new zone, whose clock starts in the morning.
+static func _enter_a_zone(cycle: DayCycle) -> void:
+	cycle.start_hour = Tuning.DAY_START_HOUR
+	cycle.enter(120.0)
+
+
+## What the road shows of its day colour where the cone is brightest, by channel: 1 + the
+## material's gain, times the light that `cycle`'s veil shows.
+func _shown_road(cycle: DayCycle) -> Vector3:
+	var gain := _headlights.shown(&"gain") as Vector3
+	var light := Vector3(cycle.light.r, cycle.light.g, cycle.light.b)
+	return (Vector3.ONE + gain) * light
 
 
 func test_off_without_a_clock_or_a_car_and_once_the_run_is_over() -> void:

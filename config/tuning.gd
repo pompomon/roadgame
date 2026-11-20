@@ -69,7 +69,8 @@ const LAMP_POOL_SHARE := 0.4
 ## there, and HEADLIGHT_SPREAD tiles wider each tile on, out to HEADLIGHT_REACH tiles. The cone
 ## dims from HEADLIGHT_DIM_FROM of its reach on, and from HEADLIGHT_EDGE of its half width out. At
 ## its brightest it gives the road back HEADLIGHT_SHARE of the light that the veil takes away, in
-## HEADLIGHT_COLOR. They turn on or off in HEADLIGHT_SWITCH_SECONDS.
+## HEADLIGHT_COLOR. They turn on or off in HEADLIGHT_SWITCH_SECONDS, and stay on into a zone's
+## morning until its light has come.
 const DUSK_HOUR := 18.5
 const HEADLIGHT_FRONT := 0.16
 const HEADLIGHT_HALF_WIDTH := 0.07

@@ -6,9 +6,9 @@ extends RefCounted
 ## brighter, under all that is drawn on the road, so that the night's veil leaves it lighter. They
 ## give back at most HEADLIGHT_SHARE of the light that the veil takes away, so the road is never
 ## lighter than by day, and by day they draw it as before. They turn on and off in
-## HEADLIGHT_SWITCH_SECONDS, and are off once the run is over. WorldRenderer puts the material on
-## RoadLayer and updates them every frame. Only the material's parameters change, so nothing is
-## redrawn on the Web (docs/M2.md §5.7).
+## HEADLIGHT_SWITCH_SECONDS, stay on into a zone's morning until its light has come, and are off
+## once the run is over. WorldRenderer puts the material on RoadLayer and updates them every frame.
+## Only the material's parameters change, so nothing is redrawn on the Web (docs/M2.md §5.7).
 
 const SHADER := preload("res://world/headlights.gdshader")
 
@@ -31,12 +31,16 @@ func _init() -> void:
 
 
 ## Turns them on or off for `delta` seconds, by `cycle`'s hour and whether `sim`'s run is on, and
-## aims them along `sim`'s car, which `to_canvas` takes from World's pixels to the canvas's. Without
-## a clock or a car they turn off.
+## aims them along `sim`'s car, which `to_canvas` takes from World's pixels to the canvas's. Once
+## on, they stay on while the light shown catches up with the hour's: a zone starts its clock in
+## the morning, and entered by night its light comes over seconds (docs/DAYNIGHT.md §5.3, §5.4),
+## so the road in the cone lightens with the rest, and they turn off only once they light nothing.
+## Without a clock or a car they turn off.
 func update(cycle: DayCycle, sim: CarSim, to_canvas: Transform2D, delta: float) -> void:
-	var on := (
-		cycle != null and sim != null and not sim.is_over() and DayCycle.night_at(cycle.hour())
-	)
+	var on := cycle != null and sim != null and not sim.is_over()
+	if on:
+		var catching_up := level > 0.0 and cycle.light != cycle.target()
+		on = DayCycle.night_at(cycle.hour()) or catching_up
 	level = move_toward(level, 1.0 if on else 0.0, delta / Tuning.HEADLIGHT_SWITCH_SECONDS)
 	var light := Color.WHITE if cycle == null else cycle.light
 	_show(&"gain", gain(light, level))
