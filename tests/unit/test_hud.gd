@@ -271,7 +271,7 @@ func test_the_route_strip_marks_each_area_the_car_and_the_best() -> void:
 		var even := roundf(strip.size.y) / ROAD.finish_turn
 		assert_between(climbs.min(), floori(even), ceili(even), why)
 		assert_between(climbs.max(), floori(even), ceili(even), why)
-		assert_lte(climbs.max(), RouteStrip.CAR_HEIGHT / 2.0, why + ": half the car's mark")
+		assert_lte(climbs.max(), floori(RouteStrip.CAR_HEIGHT / 2.0), why + ": half the car's mark")
 		assert_eq(strip.car_height(), roundi(strip.size.y), why + ": at the top")
 	_strip(hud)
 	GameState.turn_index = 40
