@@ -3,7 +3,7 @@ extends GutTest
 ## the first area as it reports each later one, to GameState and on EventBus, and the HUD shows its
 ## name. --area=<id> starts every run in that area (K10), and so does the title's Start button,
 ## which --area presets: in debug builds over every area (docs/ZONE_SELECT.md Z1, Z6), and in others
-## over the areas discovered (ENDGAME_PLAN.md §5.11). SaveService keeps the save in memory.
+## over the areas discovered (docs/ENDGAME.md §5.11). SaveService keeps the save in memory.
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -166,7 +166,7 @@ func test_the_title_starts_the_runs_in_the_chosen_area_as_the_area_argument_does
 	(main.get_node("%GameOver/%Title") as Button).pressed.emit()
 	assert_eq(start.text, "Start in: Desert", "the title keeps the choice")
 	_tap(main, start)
-	assert_eq(start.text, "Start in: Coast", "after the Desert, the Coast (ENDGAME_PLAN.md §5.8)")
+	assert_eq(start.text, "Start in: Coast", "after the Desert, the Coast (docs/ENDGAME.md §5.8)")
 	_tap(main, start)
 	_tap(main, play)
 	assert_eq(MainScene.car(main).sim.area.id, &"city", "after the Coast, the City")
@@ -193,7 +193,7 @@ func test_the_area_argument_presets_the_choice_and_the_world_has_every_area() ->
 
 
 func test_in_other_builds_the_area_argument_presets_only_an_area_discovered() -> void:
-	# ENDGAME_PLAN.md §5.11: there the Start button offers the City and the areas discovered, and Play
+	# docs/ENDGAME.md §5.11: there the Start button offers the City and the areas discovered, and Play
 	# starts in its choice. Until a run discovers the Village, --area=village gives way to the City.
 	for discovered: bool in [false, true]:
 		if discovered:
@@ -215,7 +215,7 @@ func test_in_other_builds_the_area_argument_presets_only_an_area_discovered() ->
 ## before, and the step that reaches it reports the area before it judges the turn there: that turn
 ## still counts for the area before, and the distance from the junction's far edge on for the next
 ## (docs/M5.md L8). Seed 1's Village meets the Desert after turn 20. The car crosses the Village on
-## the road into the Desert, with no damage (ENDGAME_PLAN.md §5.16).
+## the road into the Desert, with no damage (docs/ENDGAME.md §5.16).
 func test_each_area_counts_from_its_first_tile() -> void:
 	var main := MainScene.open(self, ["--seed=1", "--area=village", "--autopilot"])
 	var buffer := MainScene.car(main).sim.buffer

@@ -1,5 +1,5 @@
 extends GutTest
-## The Vanishing Hitchhiker (ENDGAME_PLAN.md §5.17, E15) on her own: she shows only on the Road
+## The Vanishing Hitchhiker (docs/ENDGAME.md §5.17, E15) on her own: she shows only on the Road
 ## Home, with every legend of the pools collected, until a run finds her; she stands by the last
 ## plain straight before the junction of the player's farthest turn there, or before its finish once
 ## they have arrived home, on the road's far side, facing it; the car's passing finds her, while the
@@ -158,7 +158,7 @@ func test_she_stands_before_her_turns_junction_not_before_a_decoy_with_its_numbe
 
 
 func test_she_never_stands_by_a_pit_stop() -> void:
-	# The second area's way in, after junction 1, is a pit stop: straights 9 to 11 (ENDGAME_PLAN.md
+	# The second area's way in, after junction 1, is a pit stop: straights 9 to 11 (docs/ENDGAME.md
 	# §5.15). She stands by the straight before junction 1 instead.
 	var schedule := Fixtures.set_piece_schedule(2, &"", 0)
 	schedule.entries[1].pit_stop = true

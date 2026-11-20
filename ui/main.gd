@@ -10,11 +10,11 @@ extends Node
 ## --hour=<h> starts every zone's clock at hour h instead of the morning (docs/DAYNIGHT.md §5.9).
 ## A phone can't take them (docs/M4.md P4), so the title's Start button chooses the area that Play
 ## starts in instead, which --area presets: in debug builds any area (docs/ZONE_SELECT.md Z1, Z6),
-## and in others the first or one that the player has discovered (ENDGAME_PLAN.md §5.11). --tutorial
+## and in others the first or one that the player has discovered (docs/ENDGAME.md §5.11). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
 ## that many turns, at most its own, with the areas before it, for tests and manual checks of the
-## end of the road (ENDGAME_PLAN.md §5.7). --home drives the Road Home, and presets the title's Road
+## end of the road (docs/ENDGAME.md §5.7). --home drives the Road Home, and presets the title's Road
 ## choice, which offers it after the first arrival at the sea, and Keep Driving's endless road too
 ## (§5.12, §5.13). --collected=<id> marks each legend of that area's pool seen, in the save in use,
 ## and --collected=all every pool's, for checks of the Book's seals and of a full Book (§5.7), which
@@ -25,7 +25,7 @@ signal quit_requested
 
 const CAR_SCENE := preload("res://car/car.tscn")
 const HITCHHIKER_SCENE := preload("res://world/hitchhiker.tscn")
-## The game's road, to the sea, and the Road Home (ENDGAME_PLAN.md §5.12).
+## The game's road, to the sea, and the Road Home (docs/ENDGAME.md §5.12).
 const ROAD := "res://areas/schedule.tres"
 const HOME_ROAD := "res://areas/schedule_home.tres"
 ## The finish of --finish's road, on a schedule with none, such as Keep Driving's.
@@ -40,7 +40,7 @@ var _autopilot := false
 var _whole_schedule: AreaSchedule
 ## The Road Home's.
 var _home_schedule: AreaSchedule
-## Keep Driving's: the game's road with no end, where the Desert goes on (ENDGAME_PLAN.md §5.13).
+## Keep Driving's: the game's road with no end, where the Desert goes on (docs/ENDGAME.md §5.13).
 ## Its runs count as the game's did before the road had one, and none can arrive.
 var _endless_schedule: AreaSchedule
 ## The road that the runs drive: the game's, or with --home or the title's choice the Road Home, or
@@ -59,17 +59,17 @@ var _turn_base := 0
 var _buffer: RoadBuffer
 var _sim: CarSim
 var _car: CarController
-## The Vanishing Hitchhiker, on a run of the Road Home that shows her (ENDGAME_PLAN.md §5.17), or
+## The Vanishing Hitchhiker, on a run of the Road Home that shows her (docs/ENDGAME.md §5.17), or
 ## null.
 var _hitchhiker: Hitchhiker
 ## What the disaster that ended the run did to the car, for the game-over screen (docs/M6.md S8), or
-## the legend that an arrival unlocked (ENDGAME_PLAN.md §5.5).
+## the legend that an arrival unlocked (docs/ENDGAME.md §5.5).
 var _fate := ""
 ## The legends collected as the run started, which its picks were made with (docs/POOLS.md V2), and
-## those that it met or unlocked that weren't among them: its new legends (ENDGAME_PLAN.md §5.9).
+## those that it met or unlocked that weren't among them: its new legends (docs/ENDGAME.md §5.9).
 var _collected: Array[StringName] = []
 var _new_legends: Array[StringName] = []
-## Whether the run's arrival beat the best time at its finish (ENDGAME_PLAN.md §5.16).
+## Whether the run's arrival beat the best time at its finish (docs/ENDGAME.md §5.16).
 var _new_best := false
 
 @onready var _world: WorldRenderer = %World
@@ -139,11 +139,11 @@ func _physics_process(delta: float) -> void:
 	var running := GameState.state == GameState.State.RUNNING
 	if running and not GameState.in_tutorial:
 		GameState.distance = maxf(GameState.distance, _sim.progress - _origin)
-		# The run's clock, which stops while it pauses (ENDGAME_PLAN.md §5.3).
+		# The run's clock, which stops while it pauses (docs/ENDGAME.md §5.3).
 		GameState.seconds += delta
 	# The zone's clock runs with the run, the tutorial's too, and stops when it ends or pauses
 	# (docs/DAYNIGHT.md §5.4). On an arrival it stands at the sunset, and the light goes on toward
-	# it (ENDGAME_PLAN.md §5.8). Daylight shows the light after the camera has moved.
+	# it (docs/ENDGAME.md §5.8). Daylight shows the light after the camera has moved.
 	if running or GameState.state == GameState.State.ARRIVED:
 		_daylight.cycle.advance(delta)
 
@@ -201,7 +201,7 @@ func _start_run(run_seed: int) -> void:
 	_input.enabled = true
 	_hud.show()
 	# The route strip shows the road whole, from where the run starts on it: a run from a later area
-	# has its finish as many turns closer (ENDGAME_PLAN.md §5.14).
+	# has its finish as many turns closer (docs/ENDGAME.md §5.14).
 	var route := _run_schedule(&"")
 	_hud.road = route
 	_hud.start_turn = route.finish_turn - _schedule.finish_turn
@@ -251,7 +251,7 @@ func _to_title() -> void:
 
 ## Play on the title screen: a run, as with --play, on the title's choice of road, and from its
 ## choice of area, as --home and --area would start it, and so do its retries
-## (docs/ZONE_SELECT.md Z6, ENDGAME_PLAN.md §5.11, §5.12).
+## (docs/ZONE_SELECT.md Z6, docs/ENDGAME.md §5.11, §5.12).
 func _play() -> void:
 	if GameState.state != GameState.State.TITLE:
 		push_error("main: Play is only allowed on the title screen")
@@ -316,7 +316,7 @@ func _on_crashed(cause: StringName) -> void:
 	_director.play_crash(_car, _camera)
 
 
-## The car reached the finish (ENDGAME_PLAN.md §5.3): the run ends in an arrival, and the car rolls
+## The car reached the finish (docs/ENDGAME.md §5.3): the run ends in an arrival, and the car rolls
 ## to a stop. A run that drove the whole road, from the route's first area, counts the arrival,
 ## which may beat the best time (§5.16), and unlocks a legend that the player hasn't collected, at
 ## random (§5.5). Then the scene (§5.8).
@@ -333,7 +333,7 @@ func _on_arrived() -> void:
 	_director.play_arrival(_car, _camera)
 
 
-## The arrival's scene (ENDGAME_PLAN.md §5.8): the sun sets, and at the pier the legends collected,
+## The arrival's scene (docs/ENDGAME.md §5.8): the sun sets, and at the pier the legends collected,
 ## the one just unlocked too, welcome the car, as the camera eases to show them.
 func _welcome() -> void:
 	_daylight.cycle.hold(Tuning.ARRIVAL_HOUR)
@@ -343,7 +343,7 @@ func _welcome() -> void:
 		_camera.arrive(pier.welcome_bounds)
 
 
-## Places the Vanishing Hitchhiker on the run's road if she shows on it (ENDGAME_PLAN.md §5.17):
+## Places the Vanishing Hitchhiker on the run's road if she shows on it (docs/ENDGAME.md §5.17):
 ## before the junction of the player's farthest turn on the Road Home, or before its finish once
 ## they have arrived home, unless the run starts past it. `route` is the run's road whole, from its
 ## first area: a run from a later area numbers its turns from there, as many fewer.
@@ -363,7 +363,7 @@ func _place_hitchhiker(route: AreaSchedule) -> void:
 
 
 ## The car passed the Vanishing Hitchhiker, in a run that goes on: the run found her, a new legend
-## (ENDGAME_PLAN.md §5.17), which the save keeps at once, in the area that the car is in. The car
+## (docs/ENDGAME.md §5.17), which the save keeps at once, in the area that the car is in. The car
 ## has stepped since _physics_process took its distance, so her entry takes it again, as _end_run()
 ## does.
 func _on_hitchhiker_passed() -> void:
@@ -373,19 +373,19 @@ func _on_hitchhiker_passed() -> void:
 
 
 ## Whether the run starts in the road's first area: not a run from a later area, chosen with
-## --area or on the title (ZS, and Departures, ENDGAME_PLAN.md Q4, W22).
+## --area or on the title (ZS, and Departures, docs/ENDGAME.md Q4, W22).
 func _drives_whole_road() -> bool:
 	return _schedule.entries[0].area == _road.entries[0].area
 
 
-## A clean run never leaves the road (ENDGAME_PLAN.md §5.4). The tutorial's mistakes don't count.
+## A clean run never leaves the road (docs/ENDGAME.md §5.4). The tutorial's mistakes don't count.
 func _on_offroad_changed(is_offroad: bool) -> void:
 	if is_offroad and not GameState.in_tutorial:
 		GameState.clean = false
 
 
 ## Driving off the road took health at the rates of `area`, which then has no clean crossing
-## (ENDGAME_PLAN.md §5.16). As for a clean run, the tutorial's damage doesn't count.
+## (docs/ENDGAME.md §5.16). As for a clean run, the tutorial's damage doesn't count.
 func _on_damaged(area: AreaDef) -> void:
 	if not GameState.in_tutorial:
 		GameState.damage_area(area.id)
@@ -459,7 +459,7 @@ func _on_disaster_started(disaster: DisasterBase, area: AreaDef) -> void:
 
 
 ## The run met, found or unlocked the legend `id`, if it isn't &"": a new legend, unless it was
-## collected as the run started (ENDGAME_PLAN.md §5.9).
+## collected as the run started (docs/ENDGAME.md §5.9).
 func _found(id: StringName) -> void:
 	if id != &"" and id not in _collected and id not in _new_legends:
 		_new_legends.append(id)
@@ -491,7 +491,7 @@ func _on_sequence_finished() -> void:
 func _tutorial_wanted() -> bool:
 	if _schedule.entries[0].area != _whole_schedule.entries[0].area:
 		return false
-	# Its loops are laid for a road that starts heading N (ENDGAME_PLAN.md W10).
+	# Its loops are laid for a road that starts heading N (docs/ENDGAME.md W10).
 	if _schedule.mirrored:
 		return false
 	if args.has("--tutorial"):
@@ -520,7 +520,7 @@ static func _parse_area(p_args: PackedStringArray) -> StringName:
 
 ## The turns of --finish=<turns> in `p_args`, after which the road ends; -1 without it. The road can
 ## end sooner than `schedule`'s, not later: past its finish, a home stretch would get junctions,
-## with no pool to play a disaster from (ENDGAME_PLAN.md W17).
+## with no pool to play a disaster from (docs/ENDGAME.md W17).
 static func _parse_finish(p_args: PackedStringArray, schedule: AreaSchedule) -> int:
 	for arg: String in p_args:
 		if arg.begins_with("--finish="):
@@ -538,7 +538,7 @@ static func _parse_finish(p_args: PackedStringArray, schedule: AreaSchedule) -> 
 
 ## The legends of --collected=<id> in `p_args`, those of the pool of the area `id` of `schedule`, or
 ## with --collected=all, of every pool, each with the first area whose pool has it: {} without it.
-## An id that isn't an area of `schedule` with a pool is an error, and marks none (ENDGAME_PLAN.md
+## An id that isn't an area of `schedule` with a pool is an error, and marks none (docs/ENDGAME.md
 ## §5.7).
 static func _parse_collected(
 	p_args: PackedStringArray, schedule: AreaSchedule

@@ -8,7 +8,7 @@ extends RefCounted
 ## below the first path tile get the props of its area at the start, and lose them with it.
 ## WorldRenderer makes it, binds it with itself and updates it every frame. A see-through prop, such
 ## as the City's building, fades where it would hide the car or a legend's sprite on the layer
-## (docs/VISUALS.md §5.9). No prop stands on the sea past a pier (ENDGAME_PLAN.md §5.8).
+## (docs/VISUALS.md §5.9). No prop stands on the sea past a pier (docs/ENDGAME.md §5.8).
 
 ## The scale under which a sprite on the layer doesn't show: Node2D stores a zero scale as
 ## CMP_EPSILON (scene/2d/node_2d.cpp, set_scale), so a legend's part that waits at a scale of zero,

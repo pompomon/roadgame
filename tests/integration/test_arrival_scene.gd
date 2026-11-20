@@ -1,5 +1,5 @@
 extends GutTest
-## The arrival's scene in the game (ENDGAME_PLAN.md §5.8, E7), through the main scene's
+## The arrival's scene in the game (docs/ENDGAME.md §5.8, E7), through the main scene's
 ## _physics_process(): as the car rolls to a stop at the pier, the sun sets, never faster than the
 ## light's rate, and the legends collected, the one that the arrival unlocks too, wait in view, at
 ## zoom 1 on every screen, faded in by the time the end screen shows. A retry starts the zone's

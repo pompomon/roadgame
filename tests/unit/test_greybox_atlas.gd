@@ -47,7 +47,7 @@ func test_road_coords() -> void:
 	assert_eq(GreyboxAtlas.road_coords(tile, true), Vector2i(4, GreyboxAtlas.Row.TUNNEL))
 	tile.set_piece = &"bridge"
 	assert_eq(GreyboxAtlas.road_coords(tile, false), Vector2i(4, GreyboxAtlas.Row.BRIDGE))
-	# ENDGAME_PLAN.md §5.8: the pier is planks, home's drive is road, and past the end is nothing.
+	# docs/ENDGAME.md §5.8: the pier is planks, home's drive is road, and past the end is nothing.
 	tile.set_piece = &"pier"
 	assert_eq(GreyboxAtlas.road_coords(tile, false), Vector2i(4, GreyboxAtlas.Row.BRIDGE), "pier")
 	tile.set_piece = &"home"

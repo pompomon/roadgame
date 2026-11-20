@@ -1,6 +1,6 @@
 class_name RouteStrip
 extends Control
-## The route strip (ENDGAME_PLAN.md §5.14, E12): on a road with a finish, a bar up the HUD's right
+## The route strip (docs/ENDGAME.md §5.14, E12): on a road with a finish, a bar up the HUD's right
 ## edge, from the road's start at its foot to the finish at its top. A tick marks each area's first
 ## turn, a chequered flag the finish, a solid triangle the car, and a hollow diamond the best run,
 ## at the road's farthest turn: shapes, not only colours, tell them apart. The car's mark climbs a

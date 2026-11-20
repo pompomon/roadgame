@@ -11,7 +11,7 @@ signal area_changed(area: AreaDef)
 signal tiles_generated(tiles: Array[RoadTile])
 signal tiles_freed(tiles: Array[RoadTile])
 signal health_changed(value: float)
-## The car drove out of a pit stop on the road, which repaired it (ENDGAME_PLAN.md §5.15).
+## The car drove out of a pit stop on the road, which repaired it (docs/ENDGAME.md §5.15).
 signal car_repaired
 ## A wrong exit or a missed turn at `junction`.
 signal disaster_triggered(area: AreaDef, junction: RoadTile)
@@ -22,7 +22,7 @@ signal disaster_appeared(id: StringName, area: AreaDef)
 ## `cause` is one of CarSim's causes; `stats` comes from GameState.stats().
 signal run_ended(cause: StringName, stats: Dictionary)
 ## The end screen showed NEW LEGEND!, for a run that met or unlocked a legend that wasn't collected
-## as it started (ENDGAME_PLAN.md §5.9).
+## as it started (docs/ENDGAME.md §5.9).
 signal new_legend_shown
 signal car_offroad_changed(is_offroad: bool)
 signal paused_changed(paused: bool)

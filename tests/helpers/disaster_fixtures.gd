@@ -504,7 +504,7 @@ static func packed(id: StringName, display_name: String, fate := "", lore := "")
 
 ## A scene of a legend with only its words and a figure, a white sprite of `size` px, which plays
 ## nothing, for the screens that show legends apart from the game's pools, such as the Book
-## (ENDGAME_PLAN.md §5.10).
+## (docs/ENDGAME.md §5.10).
 static func packed_legend(
 	id: StringName, display_name: String, fate := "", lore := "", size := Vector2i(32, 32)
 ) -> PackedScene:

@@ -85,7 +85,7 @@ func test_health_and_offroad_are_crashes() -> void:
 
 
 func test_end_run_emits_the_cause_and_stats() -> void:
-	# A departure from a later area (ENDGAME_PLAN.md W22).
+	# A departure from a later area (docs/ENDGAME.md W22).
 	_state.start_run(7, false, false)
 	_state.turn_index = 2
 	_state.distance = 30.5
@@ -106,7 +106,7 @@ func test_end_run_emits_the_cause_and_stats() -> void:
 	assert_signal_emitted_with_parameters(EventBus, "run_ended", [CarSim.WRONG_TURN, stats])
 
 
-## ENDGAME_PLAN.md §5.12: the stats name the finish of the road that the run drives whole, whose
+## docs/ENDGAME.md §5.12: the stats name the finish of the road that the run drives whole, whose
 ## farthest turn the save keeps.
 func test_the_stats_name_the_road_driven_whole() -> void:
 	_state.start_run(3, false, true, &"home")
@@ -118,7 +118,7 @@ func test_the_stats_name_the_road_driven_whole() -> void:
 	assert_eq(_state.stats()["road"], &"", "the next run's own")
 
 
-## ENDGAME_PLAN.md §5.3: the end of the road ends the run, and its end screen follows, as after a
+## docs/ENDGAME.md §5.3: the end of the road ends the run, and its end screen follows, as after a
 ## disaster or a crash.
 func test_an_arrival_ends_the_run_and_its_end_screen_follows() -> void:
 	_state.start_run(5)
@@ -293,7 +293,7 @@ func test_an_area_counts_from_its_first_tile_and_the_turns_after_it() -> void:
 	)
 
 
-## ENDGAME_PLAN.md §5.16: the stats say whether the car took damage in each area, and whether it
+## docs/ENDGAME.md §5.16: the stats say whether the car took damage in each area, and whether it
 ## crossed it: onto the next area's first tile, as CarSim tells, or, in the road's last area, by
 ## arriving. A run that ends otherwise crosses no more, and the next run starts afresh.
 func test_an_area_is_crossed_onto_the_next_or_by_an_arrival() -> void:

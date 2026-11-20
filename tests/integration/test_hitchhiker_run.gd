@@ -1,5 +1,5 @@
 extends GutTest
-## The Vanishing Hitchhiker in the game (ENDGAME_PLAN.md §5.17, E15, E16): with every legend of the
+## The Vanishing Hitchhiker in the game (docs/ENDGAME.md §5.17, E15, E16): with every legend of the
 ## pools collected, she stands beside the Road Home before the junction of the player's farthest
 ## turn there, also on a departure from a later area that starts before it, or before its finish
 ## once they have arrived home. The car's passing finds her: the save keeps her at once, and the end

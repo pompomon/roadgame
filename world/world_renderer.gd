@@ -8,7 +8,7 @@ extends Node2D
 ## into the last area's ground over its first TRANSITION_TILES path tiles (M4.3). Each run of
 ## set-piece tiles gets its scene once the buffer has made the whole run, which may take two
 ## batches, and loses it with the run's last tile (M4.4); so does a pit stop's straight, which
-## Last Gas stands by (ENDGAME_PLAN.md §5.15). build() makes the tileset once; bind() draws a run's
+## Last Gas stands by (docs/ENDGAME.md §5.15). build() makes the tileset once; bind() draws a run's
 ## buffer, and a retry binds the next run's (docs/M3.md J11).
 
 ## How far the ground reaches past the buffered tiles, in world pixels: farther than any view can
@@ -17,7 +17,7 @@ extends Node2D
 ## across, or 1,400 px above the car, on the longest screens.
 const GROUND_MARGIN := 2048.0
 ## The id in set_piece_scenes of Last Gas, the filling station by a pit stop's straight
-## (ENDGAME_PLAN.md §5.15).
+## (docs/ENDGAME.md §5.15).
 const LAST_GAS := &"last_gas"
 
 

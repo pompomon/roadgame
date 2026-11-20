@@ -187,7 +187,7 @@ func _store(file: FileAccess, text: String) -> bool:
 
 ## A run that drove the whole road reached the finish `finish` with `stats`, from
 ## GameState.stats(), and unlocked the legend `unlocked`, or none if it's &"": both are written at
-## once (ENDGAME_PLAN.md §5.4, §5.5).
+## once (docs/ENDGAME.md §5.4, §5.5).
 func record_arrival(finish: StringName, stats: Dictionary, unlocked: StringName) -> void:
 	data().record_arrival(finish, stats)
 	if unlocked != &"":
@@ -197,7 +197,7 @@ func record_arrival(finish: StringName, stats: Dictionary, unlocked: StringName)
 
 
 ## Marks each legend of `legends` that wasn't seen yet as seen once, in the area that it maps to,
-## at the start of a run, and writes the save: main.gd's --collected (ENDGAME_PLAN.md §5.7).
+## at the start of a run, and writes the save: main.gd's --collected (docs/ENDGAME.md §5.7).
 func collect(legends: Dictionary[StringName, StringName]) -> void:
 	for id: StringName in legends:
 		if data().disasters.get(String(id), SaveData.DISASTER_ENTRY)["seen"] == 0:
@@ -207,7 +207,7 @@ func collect(legends: Dictionary[StringName, StringName]) -> void:
 
 
 ## A run found the legend `id`, which no disaster plays, in the area `area_id`, with the run's
-## GameState.stats() so far: the Vanishing Hitchhiker, as the car passed her (ENDGAME_PLAN.md
+## GameState.stats() so far: the Vanishing Hitchhiker, as the car passed her (docs/ENDGAME.md
 ## §5.17). It is written at once, as a disaster's sighting is.
 func record_found(id: StringName, area_id: StringName) -> void:
 	data().record_disaster(id, area_id, GameState.stats())

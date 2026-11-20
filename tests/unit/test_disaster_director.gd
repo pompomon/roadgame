@@ -238,7 +238,7 @@ func test_a_crash_shakes_the_camera_and_ends_after_crash_seconds() -> void:
 	assert_eq(_car.sim.speed, 0.0, "the car stopped")
 
 
-## ENDGAME_PLAN.md §5.3: after an arrival, ARRIVAL_SECONDS of the car on the finish, with no
+## docs/ENDGAME.md §5.3: after an arrival, ARRIVAL_SECONDS of the car on the finish, with no
 ## shake and no disaster.
 func test_an_arrival_ends_after_arrival_seconds_with_no_disaster() -> void:
 	_new_car(CarSim.State.ARRIVED)

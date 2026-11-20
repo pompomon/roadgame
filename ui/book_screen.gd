@@ -1,10 +1,10 @@
 class_name BookScreen
 extends MenuScreen
-## The Book of Legends (ENDGAME_PLAN.md §5.10), which the disaster collection became (plan.md §2.6).
+## The Book of Legends (docs/ENDGAME.md §5.10), which the disaster collection became (plan.md §2.6).
 ## It reads the schedule's pools, whatever their size: a row for each area with a pool, in the
 ## road's order, and a cell for each slot of it, the ★, wave A's and wave B's (docs/POOLS.md §5.4).
 ## Once every legend of the pools is collected, a last row has the Book's 16th page, the Vanishing
-## Hitchhiker's, who is no disaster and in no pool (ENDGAME_PLAN.md §5.17), and it stays once she is
+## Hitchhiker's, who is no disaster and in no pool (docs/ENDGAME.md §5.17), and it stays once she is
 ## found. Over the grid, how many of its pages' legends are collected, seen or unlocked by an
 ## arrival (§5.5). A cell (BookCell) shows a legend collected as its still and its name, and one not
 ## found as its still's silhouette and its name's initials. A row whose legends are all collected
@@ -20,7 +20,7 @@ extends MenuScreen
 ## its legends are found (ROW_NAME, HITCHHIKER_ROW), and each cell's words, a silhouette's initials
 ## too. Like the HUD, its text uses only the font's glyphs. A silhouette and a seal not earned yet
 ## stand out from their grounds, the cell's and the backdrop's, and such a seal is hollow, so that
-## an earned one differs by its shape too (ENDGAME_PLAN.md W26). A glow's still adds no more light
+## an earned one differs by its shape too (docs/ENDGAME.md W26). A glow's still adds no more light
 ## than its ground leaves below white: its cell's, or on its page the backdrop's (docs/M6.md S10).
 
 const ROW_SCENE := preload("res://ui/book_row.tscn")
@@ -38,7 +38,7 @@ const NOT_SEEN := "Not seen yet"
 ## Its page's words.
 const UNLOCKED := "Unlocked by an arrival\nNot seen yet"
 ## The colour of a legend's silhouette, and of the outline of a seal not earned yet: a grey with a
-## contrast of 3:1 or more with a silhouette's cell and with the title's background (ENDGAME_PLAN.md
+## contrast of 3:1 or more with a silhouette's cell and with the title's background (docs/ENDGAME.md
 ## W26).
 const SILHOUETTE := Color(0.5, 0.5, 0.55)
 ## What draws a silhouette: its still's shape, flat in its `fill`, each texel that the still covers
@@ -79,7 +79,7 @@ func _ready() -> void:
 ## Scrolls the Book, or the page that is open, with the keys that move no focus (scroll_by_key()).
 ## Without a screen reader, neither a silhouette nor a page's line takes the focus, which the scroll
 ## follows, so these keys are what brings them into view where they run past the screen
-## (ENDGAME_PLAN.md W28).
+## (docs/ENDGAME.md W28).
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_visible_in_tree():
 		return

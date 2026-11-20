@@ -1,6 +1,6 @@
 class_name Home
 extends SetPiece
-## Home (ENDGAME_PLAN.md §5.8), in grey box, where the Road Home ends: its tiles draw as road, a
+## Home (docs/ENDGAME.md §5.8), in grey box, where the Road Home ends: its tiles draw as road, a
 ## drive (GreyboxAtlas.road_coords()); a garden fence crosses its end, with a gate where the drive
 ## meets it, and a house stands past it, in the City's palette. The house's faces towards the viewer
 ## show, its +x and +y faces, as the tunnel's do, and its door is in the one that faces the drive.

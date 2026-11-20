@@ -80,7 +80,7 @@ func test_the_streak_ends_the_tutorial_and_the_city_run_counts_from_there() -> v
 	assert_eq(_label(main, "Turns").text, "turns 0/%d" % Tuning.TUTORIAL_STREAK)
 	assert_eq(_label(main, "AreaBanner").text, Hud.TUTORIAL_BANNER % Tuning.TUTORIAL_STREAK)
 	(main.get_node("%InputRouter") as InputRouter).autopilot = Autopilot.new(sim)
-	# The tutorial's damage and crossings count for nothing (ENDGAME_PLAN.md §5.16).
+	# The tutorial's damage and crossings count for nothing (docs/ENDGAME.md §5.16).
 	var city := sim.buffer.generator.find_area(&"city")
 	sim.damaged.emit(city)
 	sim.area_crossed.emit(city)

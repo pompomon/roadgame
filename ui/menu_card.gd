@@ -1,11 +1,11 @@
 class_name MenuCard
 extends PanelContainer
-## A postcard of the Atlas (IMPLEMENTATION_PLAN.md M5.5, ENDGAME_PLAN.md §5.16): a picture of its
+## A postcard of the Atlas (IMPLEMENTATION_PLAN.md M5.5, docs/ENDGAME.md §5.16): a picture of its
 ## area, framed in the area's colour, of its ground with its tallest prop standing on it, then the
 ## area's name with a stamp beside it, and its bests. The stamp is whole, paper inked in the area's
 ## colour, once a run has crossed the area with no damage, and hollow until then, an outline in a
 ## grey that stands out from the card, so that the two differ by their shapes too, as the Book's
-## seals do (ENDGAME_PLAN.md W26). An area not reached yet shows as a silhouette: a dark picture and
+## seals do (docs/ENDGAME.md W26). An area not reached yet shows as a silhouette: a dark picture and
 ## no name. Nothing of it stops a finger, so a drag that starts on it scrolls the Atlas. Only a
 ## screen reader's focus stops on the card, which AtlasScreen names.
 

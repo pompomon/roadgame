@@ -152,7 +152,7 @@ func _played(id: StringName) -> bool:
 	return false
 
 
-## ENDGAME_PLAN.md §5.9: a legend met for the first time is new to the run, and the end screen shows
+## docs/ENDGAME.md §5.9: a legend met for the first time is new to the run, and the end screen shows
 ## NEW LEGEND!, with its jingle.
 func test_a_first_sighting_shows_new_legend() -> void:
 	SaveService.use_memory()

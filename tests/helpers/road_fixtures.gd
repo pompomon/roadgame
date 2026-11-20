@@ -7,12 +7,12 @@ static func schedule() -> AreaSchedule:
 
 
 ## The game's road without its end, main's before the pier: the road of every test that drives past
-## its finish (ENDGAME_PLAN.md W6, E6).
+## its finish (docs/ENDGAME.md W6, E6).
 static func endless() -> AreaSchedule:
 	return schedule().endless()
 
 
-## The Road Home's (ENDGAME_PLAN.md §5.6).
+## The Road Home's (docs/ENDGAME.md §5.6).
 static func schedule_home() -> AreaSchedule:
 	return load("res://areas/schedule_home.tres")
 
@@ -106,7 +106,7 @@ static func signature(tile: RoadTile) -> Array:
 
 ## Path tiles from a fresh generator until it has emitted `turns` turns, so the last is a turn's
 ## junction. A decoy is no turn. A road that ends first never gets there: an error, and its path
-## up to its finish's first tile (ENDGAME_PLAN.md W6).
+## up to its finish's first tile (docs/ENDGAME.md W6).
 static func path_until_turn(gen: RoadGenerator, turns: int) -> Array[RoadTile]:
 	var path: Array[RoadTile] = []
 	while gen.turn_count < turns:

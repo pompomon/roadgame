@@ -296,7 +296,7 @@ func _assert_arrival(size: Vector2i, rect: Rect2) -> float:
 	return zoom
 
 
-## The arrival's view (ENDGAME_PLAN.md §5.8), on every reference screen, as _assert_arrival()
+## The arrival's view (docs/ENDGAME.md §5.8), on every reference screen, as _assert_arrival()
 ## checks it. It zooms out only where the view can't hold the rect and the car's body at the zoom
 ## for following the car: on the Fold4's inner screen in portrait, 266 px across at zoom 2, by a
 ## step.

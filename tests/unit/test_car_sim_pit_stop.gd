@@ -1,5 +1,5 @@
 extends GutTest
-## Pit stops (ENDGAME_PLAN.md §5.15, E13): as the car drives out of a pit stop's tiles on the road,
+## Pit stops (docs/ENDGAME.md §5.15, E13): as the car drives out of a pit stop's tiles on the road,
 ## onto the path tile after their last, PIT_STOP_HEAL repairs it, up to START_HEALTH, once for each
 ## pit stop in a run; never off the road, on entering the pit stop's area alone, or once the run has
 ## ended. A pit stop is the way into its area: its set piece, or with none its first straight, by

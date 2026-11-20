@@ -1,18 +1,18 @@
 class_name TitleScreen
 extends Control
 ## The title screen (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): Play, and the Atlas, the Book of
-## Legends (ENDGAME_PLAN.md §5.10) and the settings, each a screen of its own with a Back button.
+## Legends (docs/ENDGAME.md §5.10) and the settings, each a screen of its own with a Back button.
 ## The game starts on it, and the game-over screen's Title button comes back to it. Esc, and
 ## Android's back button through main.gd, leave a screen for the title (docs/M5.md L13), or first a
 ## page that it shows, such as a legend's in the Book. On the Web, the tap on Play is also the first
 ## gesture, which lets the game start its sound (M7.3). The Road button steps through the roads that
 ## Play can drive: the game's, to the sea, and after its first arrival the Road Home and Keep
-## Driving's endless road too (ENDGAME_PLAN.md §5.12, §5.13). The Start button steps through the
+## Driving's endless road too (docs/ENDGAME.md §5.12, §5.13). The Start button steps through the
 ## areas of the road that Play can start the run in: its first, and each later area discovered, but
 ## a home stretch, Departures (§5.11), or in debug builds every area, for checks on a phone
 ## (docs/ZONE_SELECT.md Z1). Each shows only when there is a choice, and is a button, as a
 ## dropdown's popup would let Android's back button quit the game (Z7). Once a run has arrived, the
-## records of the road that Play drives show under the bests (ENDGAME_PLAN.md §5.16).
+## records of the road that Play drives show under the bests (docs/ENDGAME.md §5.16).
 
 ## Play was pressed.
 signal play_requested
@@ -21,11 +21,11 @@ signal play_requested
 const START_TEXT := "Start in: %s"
 ## The Road button's text, with the road's name.
 const ROAD_TEXT := "Road: %s"
-## Each road's name, by its finish: &"" is Keep Driving's, the endless road (ENDGAME_PLAN.md §5.13).
+## Each road's name, by its finish: &"" is Keep Driving's, the endless road (docs/ENDGAME.md §5.13).
 const ROAD_NAMES: Dictionary[StringName, String] = {
 	&"pier": "To the sea", &"home": "Home", &"": "Endless"
 }
-## The records' lines (ENDGAME_PLAN.md §5.16): the arrivals at the road's finish, the best time
+## The records' lines (docs/ENDGAME.md §5.16): the arrivals at the road's finish, the best time
 ## there, and whether one never left the road. %Records keeps the height of the three, so that the
 ## Road button stays put as it steps through roads with fewer (docs/ZONE_SELECT.md Z9).
 const ARRIVALS_TEXT := "Arrivals: %d"
@@ -121,14 +121,14 @@ func go_back() -> bool:
 
 
 ## The roads of `p_roads`, the game's first, that Play can drive: the game's alone until `data` has
-## an arrival at its finish, and then each one (ENDGAME_PLAN.md §5.12).
+## an arrival at its finish, and then each one (docs/ENDGAME.md §5.12).
 static func offered_roads(p_roads: Array[AreaSchedule], data: SaveData) -> Array[AreaSchedule]:
 	if data.arrival_count(p_roads[0].finish) > 0:
 		return p_roads
 	return p_roads.slice(0, 1)
 
 
-## The records of the arrivals at `p_road`'s finish in `data`, a line each (ENDGAME_PLAN.md
+## The records of the arrivals at `p_road`'s finish in `data`, a line each (docs/ENDGAME.md
 ## §5.16): how many, and after the first the best time, and whether one was clean. Empty for a road
 ## without a finish.
 static func records_text(p_road: AreaSchedule, data: SaveData) -> String:
@@ -146,7 +146,7 @@ static func records_text(p_road: AreaSchedule, data: SaveData) -> String:
 ## The areas of `p_road` that Play can start a run in, in the order a run reaches them: with
 ## `every`, as in debug builds, each one (docs/ZONE_SELECT.md Z1). Otherwise the road's first area,
 ## and each later one that `data`'s atlas has discovered, but a home stretch, which has no junction
-## to play: Departures (ENDGAME_PLAN.md §5.11).
+## to play: Departures (docs/ENDGAME.md §5.11).
 static func departures(p_road: AreaSchedule, data: SaveData, every: bool) -> Array[AreaDef]:
 	if every:
 		return p_road.areas()

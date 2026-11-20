@@ -4,7 +4,7 @@ extends Camera2D
 ## on a portrait screen, with the car in the lower part. The zoom shows about VISIBLE_TILES tiles
 ## across the screen's shorter side, in the steps of CAMERA_ZOOMS, which keep pixels crisp. A shake
 ## (M3.2) moves the view by its offset, which leaves the position and the smoothing alone. On an
-## arrival, the target eases to the arrival's view (ENDGAME_PLAN.md §5.8), and where that view
+## arrival, the target eases to the arrival's view (docs/ENDGAME.md §5.8), and where that view
 ## needs a smaller step, the zoom eases out with it.
 
 var car: CarController
@@ -56,7 +56,7 @@ func stop_shake() -> void:
 
 
 ## Eases the target, over 1 / ARRIVAL_PAN_RATE seconds, from the car to the arrival's view, which
-## shows `rect`, in World pixels, as well as the car, until end_arrival() (ENDGAME_PLAN.md §5.8).
+## shows `rect`, in World pixels, as well as the car, until end_arrival() (docs/ENDGAME.md §5.8).
 ## The view must hold `rect` and, beside it, the car's body with ARRIVAL_MARGIN_PX round it: where
 ## the zoom's step is too large for that, as on a screen whose shorter side shows 320 px, the zoom
 ## eases out with the target to arrival_zoom_for()'s step.

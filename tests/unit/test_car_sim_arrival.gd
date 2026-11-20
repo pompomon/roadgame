@@ -1,5 +1,5 @@
 extends GutTest
-## The car at the end of the road (ENDGAME_PLAN.md §5.2): it arrives as it enters the finish, and
+## The car at the end of the road (docs/ENDGAME.md §5.2): it arrives as it enters the finish, and
 ## rolls to a stop on it, steering onto its centreline, ARRIVE_STOP_SHORT before the centre of its
 ## last tile, however fast it came.
 

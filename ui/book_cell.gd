@@ -1,6 +1,6 @@
 class_name BookCell
 extends Button
-## A cell of the Book of Legends (ENDGAME_PLAN.md §5.10): a legend's still, over a band with its
+## A cell of the Book of Legends (docs/ENDGAME.md §5.10): a legend's still, over a band with its
 ## name, or its initials, and a note. BookScreen fills it. Only a found legend's cell takes the
 ## focus and a tap, which opens its page; a silhouette's takes only a screen reader's focus, which
 ## reads its initials and opens nothing, and a drag that starts on any cell goes on to the Book's
@@ -88,7 +88,7 @@ func ground() -> Color:
 ## last hyphen up to which it fits, and so on in the rest of the word while one is too wide and has
 ## such a hyphen. Exported builds lack the text server's line-break rules: their labels break a line
 ## only at a space, and cut a word too wide where it overflows, as "Will-o'-the-Wi" over "sp"
-## (ENDGAME_PLAN.md W25).
+## (docs/ENDGAME.md W25).
 static func break_hyphens(p_text: String, font: Font, font_size: int, width: float) -> String:
 	var words := p_text.split(" ")
 	for i: int in words.size():

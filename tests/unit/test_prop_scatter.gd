@@ -600,7 +600,7 @@ static func _on_the_sea(scatter: PropScatter, pier: RoadTile) -> int:
 	return on_the_sea
 
 
-## ENDGAME_PLAN.md §5.8: no prop stands on the sea, past the shore where the pier begins. On a
+## docs/ENDGAME.md §5.8: no prop stands on the sea, past the shore where the pier begins. On a
 ## short road, a row that reaches the sea can show before the pier is made: it loses those props
 ## then, and their sprites go back to the pool. Roads that end heading N and W, and one whose rows
 ## all show after its pier is made.

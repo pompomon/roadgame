@@ -1,7 +1,7 @@
 extends GutTest
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3) on its own: why the run ended,
 ## the disaster's fate (docs/M6.md S8), its stats, the seed, Retry, and Title (M5.5); NEW LEGEND!
-## and the next goal (ENDGAME_PLAN.md §5.9). It runs in a SubViewport, so that Retry can take the
+## and the next goal (docs/ENDGAME.md §5.9). It runs in a SubViewport, so that Retry can take the
 ## focus.
 
 const GAME_OVER_SCENE := preload("res://ui/game_over.tscn")
@@ -71,7 +71,7 @@ func test_it_shows_why_the_run_ended_and_its_stats() -> void:
 		game_over.close()
 
 
-## ENDGAME_PLAN.md §5.3: an arrival's time, in whole minutes and seconds.
+## docs/ENDGAME.md §5.3: an arrival's time, in whole minutes and seconds.
 func test_the_time_is_in_minutes_and_seconds() -> void:
 	var times := {0.0: "0:00", 59.99: "0:59", 60.0: "1:00", 512.9: "8:32", 3725.0: "62:05"}
 	for seconds: float in times:
@@ -155,7 +155,7 @@ func test_it_shows_the_fate_of_the_disaster_that_ended_the_run_under_the_cause()
 	assert_eq(fate.text, "")
 
 
-## ENDGAME_PLAN.md §5.9 (Q16): NEW LEGEND!, above the fate, in large letters that stay still, as its
+## docs/ENDGAME.md §5.9 (Q16): NEW LEGEND!, above the fate, in large letters that stay still, as its
 ## jingle's signal goes out once. With every line the screen may show, it all fits the view. A run
 ## with no new legend shows neither.
 func test_a_first_sighting_or_an_unlock_shows_new_legend() -> void:
@@ -189,7 +189,7 @@ func test_a_first_sighting_or_an_unlock_shows_new_legend() -> void:
 	assert_signal_emit_count(EventBus, "new_legend_shown", 1, "and no jingle")
 
 
-## ENDGAME_PLAN.md §5.9: the first goal that holds, from the player's progress alone: the sea, with
+## docs/ENDGAME.md §5.9: the first goal that holds, from the player's progress alone: the sea, with
 ## the best turn; the Road Home (§5.12); the legends still missing; the Vanishing Hitchhiker
 ## (§5.17); a clean arrival at the sea; the best time there.
 func test_the_next_goal_follows_the_players_progress() -> void:
@@ -232,7 +232,7 @@ func test_the_next_goal_follows_the_players_progress() -> void:
 	assert_eq(GameOver.next_goal(endless, schedule), GameOver.GOAL_SEA % [turns, turns])
 
 
-## ENDGAME_PLAN.md §5.9: each goal, with the largest numbers it may show, is one line of the font's
+## docs/ENDGAME.md §5.9: each goal, with the largest numbers it may show, is one line of the font's
 ## glyphs that fits the view.
 func test_the_next_goal_is_one_line_of_the_fonts_glyphs() -> void:
 	var game_over := _game_over()
@@ -263,7 +263,7 @@ func test_the_next_goal_is_one_line_of_the_fonts_glyphs() -> void:
 	assert_false(goal.visible, "no goal, no line")
 
 
-## ENDGAME_PLAN.md §5.16: an arrival that beat the best time says so under its time, in the font's
+## docs/ENDGAME.md §5.16: an arrival that beat the best time says so under its time, in the font's
 ## glyphs, and the fullest end screen still fits the view: a new legend with a fate of two lines,
 ## the next goal, the seed and the new best time. A run that didn't arrive has no time to beat.
 func test_a_new_best_time_shows_under_an_arrivals_time() -> void:

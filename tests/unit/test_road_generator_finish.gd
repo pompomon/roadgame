@@ -1,5 +1,5 @@
 extends GutTest
-## The end of the road and the Road Home (ENDGAME_PLAN.md §5.1, §5.6): a schedule with a finish
+## The end of the road and the Road Home (docs/ENDGAME.md §5.1, §5.6): a schedule with a finish
 ## ends the road after its last turn, at the finish's set piece and the BEYOND tiles after it, and
 ## a mirrored one starts heading W and turns right first.
 
@@ -54,7 +54,7 @@ func test_the_road_ends_at_the_finish_after_its_last_turn() -> void:
 	assert_eq(gen.occupancy.size(), _cells(path), "every tile has a cell of its own")
 
 
-## The Coast's home stretch (ENDGAME_PLAN.md §5.1): the last area starts at the finish's turn, so
+## The Coast's home stretch (docs/ENDGAME.md §5.1): the last area starts at the finish's turn, so
 ## its set piece and a straight lead to the finish, with no junction in it.
 func test_a_last_area_at_the_finish_turn_is_a_home_stretch() -> void:
 	var gen := RoadGenerator.new(1, _finish_schedule(3, 3))
@@ -100,7 +100,7 @@ func test_a_finish_due_by_the_end_of_the_tutorial_comes_right_after_it() -> void
 		)
 
 
-## ENDGAME_PLAN.md E1: a finish changes nothing before it. Up to the finish's first tile, the road
+## docs/ENDGAME.md E1: a finish changes nothing before it. Up to the finish's first tile, the road
 ## is the endless road's, tile for tile, dead ends too, so a run is the seed's run until the end.
 ## The game's road is, up to its last junction: then comes the Coast's straight, its home stretch.
 func test_the_road_before_the_finish_is_the_endless_roads() -> void:

@@ -1,5 +1,5 @@
 extends GutTest
-## LegendUnlock (ENDGAME_PLAN.md §5.5): an arrival unlocks one legend that the player hasn't
+## LegendUnlock (docs/ENDGAME.md §5.5): an arrival unlocks one legend that the player hasn't
 ## collected, each as likely as the others, from the pools of all the road's areas, on a stream of
 ## the run's seed.
 

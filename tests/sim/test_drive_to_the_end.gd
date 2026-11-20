@@ -1,5 +1,5 @@
 extends GutTest
-## The autopilot drives the whole road to its end (ENDGAME_PLAN.md E1, E7, E9): the game's own road,
+## The autopilot drives the whole road to its end (docs/ENDGAME.md E1, E7, E9): the game's own road,
 ## ending at the pier past the Coast after 280 turns, and the Road Home, mirrored, ending at home
 ## after 280 turns, on SEEDS seeds each, with no disaster, crash or damage. Prints the game time
 ## each took (P1).

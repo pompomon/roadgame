@@ -1,7 +1,7 @@
 extends GutTest
 ## The main scene and AudioDirector (IMPLEMENTATION_PLAN.md M5.3): a run plays its area's music and
 ## ambient sound and the engine, whose pitch follows the run's car, and the car's sounds stop when
-## the scene leaves. A pit stop's repair dings (ENDGAME_PLAN.md §5.15).
+## the scene leaves. A pit stop's repair dings (docs/ENDGAME.md §5.15).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const AudioDirectorScript := preload("res://autoload/audio_director.gd")
@@ -38,7 +38,7 @@ func test_the_cars_sounds_stop_when_the_main_scene_leaves() -> void:
 
 
 ## A run from the Village meets the Desert after seed 1's turn 20 (test_area_start.gd), and the
-## Desert's first straight, by Last Gas, is a pit stop (ENDGAME_PLAN.md §5.15): the car, hurt,
+## Desert's first straight, by Last Gas, is a pit stop (docs/ENDGAME.md §5.15): the car, hurt,
 ## drives out of it repaired, with a ding, and the HUD's health bar rises.
 func test_a_pit_stop_in_a_run_repairs_the_car_with_a_ding() -> void:
 	watch_signals(AudioDirector)

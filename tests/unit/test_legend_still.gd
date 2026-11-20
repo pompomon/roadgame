@@ -1,5 +1,5 @@
 extends GutTest
-## LegendStill (ENDGAME_PLAN.md §5.8): the frame of its figure that each legend's scene names, whole
+## LegendStill (docs/ENDGAME.md §5.8): the frame of its figure that each legend's scene names, whole
 ## and in full view, whatever its rest pose hides, drawn as the figure draws, and centred, and the
 ## Vanishing Hitchhiker's (§5.17); and a glow's light, bounded by the ground under it.
 
@@ -113,7 +113,7 @@ func test_a_glows_still_adds_no_more_light_than_its_ground_leaves_below_white() 
 	assert_eq(glows, [&"will_o_wisp", &"marfa_lights"] as Array[StringName])
 
 
-## ENDGAME_PLAN.md §5.17: her scene is her figure, which waits hidden until she stands.
+## docs/ENDGAME.md §5.17: her scene is her figure, which waits hidden until she stands.
 func test_the_hitchhikers_still_is_her_figure_in_full_view() -> void:
 	var hitchhiker: Hitchhiker = autofree(HITCHHIKER.instantiate())
 	var still: LegendStill = autofree(LegendStill.of(HITCHHIKER))

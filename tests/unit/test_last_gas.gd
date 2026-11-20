@@ -1,5 +1,5 @@
 extends GutTest
-## Last Gas (ENDGAME_PLAN.md §5.15): the filling station by a pit stop's straight, which has no set
+## Last Gas (docs/ENDGAME.md §5.15): the filling station by a pit stop's straight, which has no set
 ## piece of its own. It stands on the straight's far side, between its ends, where no road paints
 ## over it and no prop shows over it, and draws under the car.
 

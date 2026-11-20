@@ -5,7 +5,7 @@ extends Node
 ## picks drew as the car reached the area (docs/POOLS.md §5.1), on World's DisasterLayer, with
 ## params from the run's disaster stream. After a crash it shakes the camera and
 ## waits CRASH_SECONDS while the car stops and smokes. After an arrival it waits ARRIVAL_SECONDS
-## while the car rolls to a stop on the finish (ENDGAME_PLAN.md §5.3). Either way it then emits
+## while the car rolls to a stop on the finish (docs/ENDGAME.md §5.3). Either way it then emits
 ## sequence_finished, once, and DISASTER_TIMEOUT after the end of the run at the latest. Its time
 ## comes from _physics_process, as a disaster's must (docs/M3.md J2).
 

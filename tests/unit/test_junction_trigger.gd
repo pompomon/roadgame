@@ -243,7 +243,7 @@ func test_finds_the_next_junction_for_300_turns() -> void:
 
 
 ## A road whose second area starts at turn 2, after a tunnel, and that ends at the pier after
-## `turns` turns (ENDGAME_PLAN.md §5.1).
+## `turns` turns (docs/ENDGAME.md §5.1).
 static func _finish_road(turns: int) -> AreaSchedule:
 	var road := Fixtures.set_piece_schedule(2, &"tunnel", 3)
 	road.finish = &"pier"

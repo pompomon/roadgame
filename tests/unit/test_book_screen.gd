@@ -1,11 +1,11 @@
 extends GutTest
-## The Book of Legends (ENDGAME_PLAN.md §5.10) on its own: a row for each area with a pool and a
+## The Book of Legends (docs/ENDGAME.md §5.10) on its own: a row for each area with a pool and a
 ## cell for each slot, "Legends n/N", a legend's still and name once it is found, or its silhouette
 ## and its name's initials, a seal on each row whose legends are all found, and a found legend's
 ## page: how often, where and how far into a run it was first seen (docs/M6.md S12), its fate and
 ## its lore; how a finger's drag and tap reach the Book, what a screen reader reads, and that a
 ## silhouette and a seal stand out from their grounds, a seal not earned yet hollow; and the
-## Vanishing Hitchhiker's last row, once the pools are found (ENDGAME_PLAN.md §5.17). The pools hold
+## Vanishing Hitchhiker's last row, once the pools are found (docs/ENDGAME.md §5.17). The pools hold
 ## test legends, so that a change to the game's leaves these tests alone (S15), except where a test
 ## reads the game's.
 
@@ -365,7 +365,7 @@ func test_a_page_scrolls_to_the_line_that_has_the_focus() -> void:
 	assert_true(_in_view(page, lore), "scrolled to it")
 
 
-## ENDGAME_PLAN.md W28: where the focus has nowhere to go, the keys scroll the Book, either way that
+## docs/ENDGAME.md W28: where the focus has nowhere to go, the keys scroll the Book, either way that
 ## it runs past the screen: an arrow by Tuning.BOOK_KEY_SCROLL of what shows, Page Up and Page Down
 ## by all of it, and Home and End to its top and its bottom. With nothing found, no cell takes the
 ## focus, which stays on Back. Where an arrow can move the focus, it does, as before.
@@ -417,7 +417,7 @@ func test_the_keys_scroll_the_book_where_the_focus_has_nowhere_to_go() -> void:
 	)
 
 
-## ENDGAME_PLAN.md W28: the keys scroll a page too, as no line of it takes the focus without a
+## docs/ENDGAME.md W28: the keys scroll a page too, as no line of it takes the focus without a
 ## screen reader: here to the ghoul's lore, below the fold. The Book's grid, behind the page, stays.
 func test_the_keys_scroll_a_page() -> void:
 	var data := SaveData.new()
@@ -452,7 +452,7 @@ func test_the_keys_scroll_a_page() -> void:
 	assert_true((book.get_node("%Back") as Button).has_focus(), "the focus stayed on Back")
 
 
-## ENDGAME_PLAN.md §5.5: a legend that an arrival unlocked shows its still and its name, and that
+## docs/ENDGAME.md §5.5: a legend that an arrival unlocked shows its still and its name, and that
 ## it hasn't been seen yet; its page has its lore, but not its fate. Once seen, it is a seen
 ## legend's.
 func test_an_unlocked_legend_shows_until_it_is_seen() -> void:
@@ -509,7 +509,7 @@ func test_a_row_whose_legends_are_all_found_has_a_seal_in_its_areas_colour() -> 
 	assert_eq(_rows(book)[1].seal_color(), Color.DARK_GREEN)
 
 
-## ENDGAME_PLAN.md W26: a silhouette shows its legend's shape, flat in a grey that stands out from
+## docs/ENDGAME.md W26: a silhouette shows its legend's shape, flat in a grey that stands out from
 ## its cell's ground, the cell's disabled style, and a seal not earned yet, in the same grey, stands
 ## out from the title's background, which the Book draws over.
 func test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds() -> void:
@@ -525,7 +525,7 @@ func test_a_silhouette_and_an_unearned_seal_stand_out_from_their_grounds() -> vo
 	assert_eq(_rows(book)[0].seal_color(), BookScreen.SILHOUETTE)
 
 
-## ENDGAME_PLAN.md W26: a seal not earned yet is hollow, its star's outline, and an earned one is
+## docs/ENDGAME.md W26: a seal not earned yet is hollow, its star's outline, and an earned one is
 ## whole, so that they differ by their shapes too: the City's colour, Color(0.55, 0.58, 0.63), has a
 ## contrast of 1.28:1 with SILHOUETTE, in much the same hue. A hollow seal's outline stands out from
 ## the dark inside it, and a whole one draws its area's colour alone.
@@ -768,11 +768,11 @@ func test_initials_keep_each_words_first_letter_and_whatever_is_no_letter() -> v
 
 func test_a_word_too_wide_for_its_cell_breaks_after_a_hyphen() -> void:
 	# An exported build's label breaks a line only at a space, and cuts a word too wide where it
-	# overflows (ENDGAME_PLAN.md W25). Tests run in the editor's build, which breaks after a hyphen
+	# overflows (docs/ENDGAME.md W25). Tests run in the editor's build, which breaks after a hyphen
 	# itself, so this reads each cell's text: each part between its spaces and line breaks fits,
 	# whether the cell shows a name or initials. Of the game's legends, only the Will-o'-the-Wisp's
 	# name needs a break. Once the pools are found, the Vanishing Hitchhiker's row shows too, her
-	# initials until she is found (ENDGAME_PLAN.md §5.17).
+	# initials until she is found (docs/ENDGAME.md §5.17).
 	var schedule := Fixtures.schedule()
 	var data := SaveData.new()
 	var book := _book()
@@ -849,7 +849,7 @@ func test_a_save_that_recorded_a_retired_disaster_loads_and_shows_only_the_pools
 		assert_true(_is_silhouette(cell.still()))
 
 
-## ENDGAME_PLAN.md §5.17: once every legend of the pools is collected, a last row has the Vanishing
+## docs/ENDGAME.md §5.17: once every legend of the pools is collected, a last row has the Vanishing
 ## Hitchhiker's page, who is in no pool: her silhouette and her initials, with no page, until a run
 ## finds her, and a hollow seal.
 func test_her_row_shows_last_once_the_pools_are_found_as_her_silhouette() -> void:
@@ -921,7 +921,7 @@ func test_once_found_her_page_stays_whatever_the_pools_hold() -> void:
 	assert_eq(_text(_cell(book, Hitchhiker.ID)), ["Vanishing Hitchhiker", ""])
 
 
-## ENDGAME_PLAN.md W26: her seal, in her dress's white, stands out from the title's background,
+## docs/ENDGAME.md W26: her seal, in her dress's white, stands out from the title's background,
 ## which the Book draws over.
 func test_her_seal_stands_out_from_the_titles_background() -> void:
 	var title: Control = autofree(TITLE_SCENE.instantiate())
