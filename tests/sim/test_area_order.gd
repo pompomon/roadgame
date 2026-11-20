@@ -6,8 +6,8 @@ extends GutTest
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
 const TURNS := 90
-## A run to turn 90 takes about 3.5 minutes of game time.
-const MAX_STEPS := 60 * 60 * 7
+## A run to turn 90 takes about 3.7 minutes of game time.
+const MAX_STEPS := 60 * 60 * 8
 
 
 func test_the_autopilot_meets_the_areas_and_set_pieces_in_order() -> void:

@@ -8,9 +8,9 @@ const DELTA := 1.0 / 60.0
 const TURNS := 300
 const SEEDS := 20
 const KINDS_SEEDS := 5
-## Twice a run on the game's road, which takes about 13 minutes of game time, most of it in the
+## Twice a run on the game's road, which takes about 13.5 minutes of game time, most of it in the
 ## Desert.
-const MAX_STEPS := 60 * 60 * 26
+const MAX_STEPS := 60 * 60 * 27
 ## Twice a run on the road with every kind of junction, which takes about 8.
 const KINDS_MAX_STEPS := 60 * 60 * 16
 

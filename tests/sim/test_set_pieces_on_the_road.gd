@@ -7,7 +7,7 @@ const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
 ## Seed 1 meets the bridge after turn 44 (test_area_order.gd), and has left it by turn 49.
 const TURNS := 49
-## A run to turn 63 takes about 2 minutes of game time.
+## A run to turn 49 takes under 2 minutes of game time.
 const MAX_STEPS := 60 * 60 * 4
 const SEEDS := 10
 ## The bridges of Fixtures.bridge_every_turn().
