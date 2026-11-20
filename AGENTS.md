@@ -49,7 +49,7 @@ Reviewers check these too.
   - The Web export has no system font fallback. UI text may use only glyphs of the game's font, Pixel Operator 8 (`ui/theme.tres:3`): no arrows such as ↑. `test_smoke.gd` checks the main scene's text (docs/M6.md §5.8).
   - In Godot 4.7.2, each redraw of a `Polygon2D` after its first raises WebGL errors on the Web (godotengine/godot#124726, fixed in 4.8). Tint through `self_modulate`, not `color` (docs/M2.md §5.7).
   - Losing focus reaches the game only as the canvas's blur. The Web never sends `NOTIFICATION_APPLICATION_FOCUS_OUT` (docs/M2.md H4).
-- **Light.** Draw the world as by day: `Daylight` darkens it by the zone's hour. The light is visual only, so no gameplay or audio code reads `DayCycle`.
+- **Light.** Draw the world as by day: `Daylight` darkens it by the zone's hour. The one exception is the car's headlights, whose material brightens the road in their cone while they are on, before the veil darkens it (HEADLIGHTS_PLAN.md §5.2). The light is visual only, so no gameplay or audio code reads `DayCycle`.
 - **Files.** Commit the `.uid` file that Godot makes for each new script. After the checks, `git status --porcelain` must print nothing. A file that the editor saves by itself, such as the bus layout, is committed just as the editor writes it, uid included: change the buses in the editor's Audio panel (docs/M5.md L28).
 - **`addons/gut/`** is GUT 9.7.1 as released. Don't patch it: upgrade by copying a newer release, and report bugs to bitwes/Gut.
 - **Versions.** Godot 4.7.2 is pinned in the workflows and in `project.godot`, and `check_versions.sh` checks that they agree (`ci` instructions).
