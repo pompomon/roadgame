@@ -795,11 +795,17 @@ func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
 		flag.frames: ceili(flag.fps * seconds) + 1, sails.frames: ceili(sails.fps * seconds) + 1
 	}
 	var scatter: PropScatter
+	# The game's areas are cached, and a resource's shallow copy shares its arrays: the City's copy
+	# gets an array of its own, so that the scripts after this one see the City's props
+	# (HEADLIGHTS_PLAN.md B15).
+	var city := Fixtures.schedule().entries[0].area
+	var city_props := city.props.duplicate()
 	for road: Array in [[11, 8], [12, 5]]:
 		var schedule := Fixtures.schedule().ending_at(road[0], &"pier")
 		var entry: AreaScheduleEntry = schedule.entries[0].duplicate()
 		entry.area = entry.area.duplicate()
-		entry.area.props.assign([flag, sails])
+		var props: Array[PropDef] = [flag, sails]
+		entry.area.props = props
 		schedule.entries[0] = entry
 		if scatter == null:
 			scatter = PropScatter.new(_layer, schedule)
@@ -837,6 +843,7 @@ func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
 		assert_gt(taken.get(flag.frames, 0), 0, "%s: flags that the pier takes away" % road_name)
 		assert_gt(taken.get(sails.frames, 0), 0, "%s: sails that the pier takes away" % road_name)
 		assert_eq(wrong, PackedStringArray(), "%s: sprites that change frame too often" % road_name)
+	assert_eq(city.props, city_props, "the City's own props")
 
 
 func _on_frame_changed(sprite: Sprite2D) -> void:
