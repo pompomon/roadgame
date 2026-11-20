@@ -30,11 +30,13 @@ class Shown:
 	var frame: Rect2
 
 
-## The props of a row, those of them that animate, and those that are see-through.
+## The props of a row; those of them that animate, by the scatter's clock or, those that rest at
+## night, by the rest clock; and those that are see-through.
 class Row:
 	extends RefCounted
 	var shown: Array[Shown] = []
 	var animated: Array[Shown] = []
+	var resting: Array[Shown] = []
 	var fading: Array[Shown] = []
 
 
@@ -120,7 +122,9 @@ func update(delta: float, cycle: DayCycle = null) -> void:
 	_rest_clock += delta * _rest_rate
 	for row: Row in _rows.values():
 		for shown: Shown in row.animated:
-			_set_frame(shown)
+			_set_frame(shown, _clock)
+		for shown: Shown in row.resting:
+			_set_frame(shown, _rest_clock)
 	_fade()
 
 
@@ -194,9 +198,12 @@ func _show_row(k: int) -> void:
 		row.shown.append(shown)
 		if lamps != null:
 			shown.lit = lamps.add(placement.def, shown.sprite)
-		if placement.def.frames > 1:
+		if placement.def.rests_at_night:
+			row.resting.append(shown)
+			_set_frame(shown, _rest_clock)
+		elif placement.def.frames > 1:
 			row.animated.append(shown)
-			_set_frame(shown)
+			_set_frame(shown, _clock)
 		if placement.def.see_through:
 			shown.frame = Rect2(
 				placement.foot - Vector2(placement.def.foot), Vector2(placement.def.region.size)
@@ -238,6 +245,7 @@ func _find_pier() -> void:
 				_release(shown)
 				row.shown.erase(shown)
 				row.animated.erase(shown)
+				row.resting.erase(shown)
 				row.fading.erase(shown)
 
 
@@ -306,8 +314,8 @@ static func _show_alpha(shown: Shown, alpha: float) -> void:
 		shown.lit.sprite.modulate.a = alpha
 
 
-func _set_frame(shown: Shown) -> void:
-	var clock := _rest_clock if shown.def.rests_at_night else _clock
+## Shows prop `shown` in its frame at `clock` seconds of its clock.
+func _set_frame(shown: Shown, clock: float) -> void:
 	var cycle := clock * shown.def.fps / shown.def.frames + shown.phase
 	var frame := int((cycle - floorf(cycle)) * shown.def.frames) % shown.def.frames
 	if shown.sprite.frame != frame:

@@ -9,6 +9,8 @@ const DELTA := 1.0 / 60.0
 const ROUNDING := 1e-5
 
 var _layer: Node2D
+## How many times each sprite changed frame, since the test began to count them.
+var _frame_changes: Dictionary[Sprite2D, int] = {}
 
 
 func before_each() -> void:
@@ -723,3 +725,66 @@ func test_no_prop_stands_on_the_sea() -> void:
 			scatter.pool.hidden() + _shown(scatter), scatter.pool.made, "%s: none lost" % road_name
 		)
 	assert_eq(_layer.get_child_count(true), scatter.pool.made)
+
+
+## The props that the pier takes away stop animating, both those that animate by the scatter's
+## clock and those that rest at night by theirs. Their sprites go back to the pool, and the rows
+## that show next take them: no sprite then changes frame but as its new prop's frames come, nor
+## while it waits in the pool. Two of the sea test's roads, which show props on the sea before the
+## pier is made, with props that animate in the City's stead. The car waits once the pier is made.
+func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
+	var flag := _prop(&"flag", 6, 7.5, 0.3)
+	var sails := _prop(&"sails", 4, 4.0, 0.3)
+	sails.rests_at_night = true
+	var seconds := 1.0
+	# The most times a sprite of each can change frame in `seconds`.
+	var most: Dictionary[int, int] = {
+		flag.frames: ceili(flag.fps * seconds) + 1, sails.frames: ceili(sails.fps * seconds) + 1
+	}
+	var scatter: PropScatter
+	for road: Array in [[11, 8], [12, 5]]:
+		var schedule := Fixtures.schedule().ending_at(road[0], &"pier")
+		var entry: AreaScheduleEntry = schedule.entries[0].duplicate()
+		entry.area = entry.area.duplicate()
+		entry.area.props.assign([flag, sails])
+		schedule.entries[0] = entry
+		if scatter == null:
+			scatter = PropScatter.new(_layer, schedule)
+		var ahead := RoadGenerator.new(road[1], schedule)
+		var pier := ahead.next_tile()
+		while not ahead.finished():
+			pier = ahead.next_tile()
+		var buffer := _buffer(road[1], schedule)
+		scatter.bind(buffer)
+		buffer.start()
+		var taken: Dictionary[int, int] = {}
+		var index := 1
+		while not buffer.generator.finished() and index <= pier.path_index:
+			taken = {}
+			for k: int in scatter.rows():
+				for sprite: Sprite2D in scatter.sprites(k):
+					if Pier.at_sea(Vector2i(Iso.world_to_tile(sprite.position).floor()), pier):
+						taken[sprite.hframes] = taken.get(sprite.hframes, 0) + 1
+			buffer.on_car_path_index(index)
+			scatter.update(DELTA)
+			index += 1
+		_frame_changes.clear()
+		for child: Node in _layer.get_children(true):
+			child.frame_changed.connect(_on_frame_changed.bind(child))
+		for step: int in roundi(seconds / DELTA):
+			scatter.update(DELTA)
+		var wrong := PackedStringArray()
+		for child: Node in _layer.get_children(true):
+			child.frame_changed.disconnect(_on_frame_changed)
+			var sprite := child as Sprite2D
+			var changes: int = _frame_changes.get(sprite, 0)
+			if changes > (most.get(sprite.hframes, 0) if sprite.visible else 0):
+				wrong.append("%d frames by %d changes" % [sprite.hframes, changes])
+		var road_name := "%d turns, seed %d" % road
+		assert_gt(taken.get(flag.frames, 0), 0, "%s: flags that the pier takes away" % road_name)
+		assert_gt(taken.get(sails.frames, 0), 0, "%s: sails that the pier takes away" % road_name)
+		assert_eq(wrong, PackedStringArray(), "%s: sprites that change frame too often" % road_name)
+
+
+func _on_frame_changed(sprite: Sprite2D) -> void:
+	_frame_changes[sprite] = _frame_changes.get(sprite, 0) + 1
