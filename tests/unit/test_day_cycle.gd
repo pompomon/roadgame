@@ -154,6 +154,18 @@ func test_snap_shows_the_light_of_the_hour_at_once() -> void:
 		assert_eq(cycle.light, DayCycle.light_at(start), "at %.1f" % start)
 
 
+func test_the_night_is_from_dusk_until_sunrise() -> void:
+	# The headlights' and the windmills' night (HEADLIGHTS_PLAN.md §5.1): from the dusk key, whose
+	# light is the dusk's, to the sunrise, round midnight, as hours past 24 or below 0 are.
+	assert_eq(DayCycle.light_at(Tuning.DUSK_HOUR), Tuning.LIGHT_DUSK, "the dusk key")
+	var night: Array[float] = [Tuning.DUSK_HOUR, 21.0, 0.0, 5.99, -1.0, 42.75]
+	var day: Array[float] = [Tuning.SUN_RISE_HOUR, 12.0, Tuning.DUSK_HOUR - 0.01, 30.0, -12.0]
+	for hour: float in night:
+		assert_true(DayCycle.night_at(hour), "%.2f h" % hour)
+	for hour: float in day:
+		assert_false(DayCycle.night_at(hour), "%.2f h" % hour)
+
+
 func test_least_day_seconds_is_the_shortest_day_the_rate_can_follow() -> void:
 	# At the least day, the light of the hour changes by no more than the rate allows in a frame;
 	# in a shorter day it changes by more.

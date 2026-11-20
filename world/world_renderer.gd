@@ -62,6 +62,8 @@ var _open_run: Array[RoadTile] = []
 var _set_pieces_by_end: Dictionary[int, SetPiece] = {}
 ## The props beside the road (docs/M5.md §5.6), on the Props layer. build() makes it.
 var _scatter: PropScatter
+## The car's headlights (HEADLIGHTS_PLAN.md §5.1), whose material is the road's.
+var _headlights := Headlights.new()
 
 @onready var _ground: Node2D = %Ground
 @onready var _shadows: Shadows = %Shadows
@@ -86,6 +88,7 @@ func build(schedule: AreaSchedule) -> void:
 			sheets.append(entry.area.road_sheet)
 	_road.tile_set = GreyboxAtlas.road_tileset(sheets)
 	_road.position = Iso.layer_offset(_road, 1)
+	_road.material = _headlights.material
 	_skids = SkidMarks.new(%Skids as Node2D)
 	for entry: AreaScheduleEntry in schedule.entries:
 		var id := entry.set_piece
@@ -131,10 +134,18 @@ func set_car(value: Node2D) -> void:
 
 
 func _process(delta: float) -> void:
-	_shadows.refresh(cycle, car as CarController)
+	var controller := car as CarController
+	_shadows.refresh(cycle, controller)
 	if _scatter != null:
 		_scatter.update(delta)
 	_lamps.refresh(cycle)
+	var sim := controller.sim if controller != null else null
+	_headlights.update(cycle, sim, get_global_transform(), delta)
+
+
+## The car's headlights (HEADLIGHTS_PLAN.md §5.1).
+func headlights() -> Headlights:
+	return _headlights
 
 
 ## The props beside the road, or null before build().

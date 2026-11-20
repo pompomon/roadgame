@@ -60,6 +60,23 @@ const PROP_FADE_PX := 48.0
 const LAMP_COLOR := Color(1.0, 0.8, 0.45)
 const LAMP_ALPHA := 0.55
 const LAMP_POOL_SHARE := 0.4
+## The car's headlights (HEADLIGHTS_PLAN.md §5.1–§5.3). From DUSK_HOUR, the light's dusk key, until
+## the sun rises, while the car drives, they light the road in a cone from the car's lamps,
+## HEADLIGHT_FRONT tiles before its centre: HEADLIGHT_HALF_WIDTH tiles either side of its axis
+## there, and HEADLIGHT_SPREAD tiles wider each tile on, out to HEADLIGHT_REACH tiles. The cone
+## dims from HEADLIGHT_DIM_FROM of its reach on, and from HEADLIGHT_EDGE of its half width out. At
+## its brightest it gives the road back HEADLIGHT_SHARE of the light that the veil takes away, in
+## HEADLIGHT_COLOR. They turn on or off in HEADLIGHT_SWITCH_SECONDS.
+const DUSK_HOUR := 18.5
+const HEADLIGHT_FRONT := 0.16
+const HEADLIGHT_HALF_WIDTH := 0.07
+const HEADLIGHT_SPREAD := 0.14
+const HEADLIGHT_REACH := 2.5
+const HEADLIGHT_DIM_FROM := 0.4
+const HEADLIGHT_EDGE := 0.6
+const HEADLIGHT_COLOR := Color(1.0, 0.92, 0.75)
+const HEADLIGHT_SHARE := 0.6
+const HEADLIGHT_SWITCH_SECONDS := 0.5
 
 ## Car (IMPLEMENTATION_PLAN.md M4.2). Speeds are in tiles/s, accelerations in tiles/s².
 const BASE_TOP_SPEED := 4.0
