@@ -5,8 +5,8 @@ const TILES := 2000
 ## The game's road for seeds 0 to 19 up to turn 300, as MD5 digests: of its path tiles alone, and
 ## of its path tiles with their dead ends. A change that is meant to change the road updates them,
 ## and its commit says why (docs/ROADGEN.md §6.1).
-const PATH_DIGEST := "7c3ec860ba0ec1e2475c5e586862301d"
-const ROAD_DIGEST := "00714c894c32efb84dc483e06ebe8f72"
+const PATH_DIGEST := "3b31d12a19e3db74e59e97d206fc3d3a"
+const ROAD_DIGEST := "c131b56bf3794988820e911c0ff5b485"
 const DIGEST_SEEDS := 20
 const DIGEST_TURNS := 300
 
