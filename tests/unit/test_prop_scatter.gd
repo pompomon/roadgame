@@ -279,6 +279,64 @@ func test_each_prop_shows_the_frame_of_its_clock_though_updates_look_only_at_fra
 	assert_eq(wrong, 0, "props a frame behind or ahead")
 
 
+func test_an_update_sets_no_frame_before_the_next_starts() -> void:
+	# update() looks at a prop again only once its next frame starts (HEADLIGHTS_PLAN.md B12). So
+	# a frame set by hand stays until then: through a short step, on each prop whose next frame it
+	# doesn't reach, and all night, on the props at rest. Once a frame's time has passed, each prop
+	# shows its clock's frame again.
+	var sails := _prop(&"sails", 4, 4.0, 0.05)
+	sails.rests_at_night = true
+	var grass := _prop(&"grass", 4, 3.0, 0.1)
+	var props: Array[PropDef] = [sails, grass]
+	var schedule := _schedule(props)
+	var buffer := _buffer(1, schedule)
+	var scatter := PropScatter.new(_layer, schedule)
+	scatter.bind(buffer)
+	buffer.start()
+	var again := PropScatter.new(_layer, schedule)
+	var day := _clock(12.0)
+	var tufts := _sprites(scatter, grass.texture)
+	# More than a frame of the grass, then a thousandth of a second.
+	scatter.update(0.4, day)
+	var before := _frames(tufts)
+	for sprite: Sprite2D in tufts:
+		sprite.frame = (sprite.frame + 2) % 4
+	scatter.update(0.001, day)
+	again.bind(buffer)
+	again.update(0.401, day)
+	var expected := _frames(_sprites(again, grass.texture))
+	assert_eq(expected.size(), tufts.size(), "the same props")
+	var left := 0
+	var wrong := 0
+	for i: int in mini(tufts.size(), expected.size()):
+		if expected[i] == before[i]:
+			left += 1
+			wrong += int(tufts[i].frame != (before[i] + 2) % 4)
+		else:
+			wrong += int(tufts[i].frame != expected[i])
+	assert_gt(left, 20, "props whose next frame the step doesn't reach")
+	assert_eq(wrong, 0, "frames set before their next starts, or not once it has")
+	scatter.update(0.34, day)
+	again.bind(buffer)
+	again.update(0.741, day)
+	assert_eq(_frames(tufts), _frames(_sprites(again, grass.texture)), "a frame's time later")
+	# The night falls, and an update of PROP_REST_SECONDS brings the sails to rest: their clock
+	# stops, so no next frame starts.
+	var night := _clock(22.0)
+	scatter.update(Tuning.PROP_REST_SECONDS, night)
+	var resting := _sprites(scatter, sails.texture)
+	assert_gt(resting.size(), 20, "props at rest")
+	before = _frames(resting)
+	for sprite: Sprite2D in resting:
+		sprite.frame = (sprite.frame + 2) % 4
+	wrong = 0
+	for step: int in 60:
+		scatter.update(DELTA, night)
+		for i: int in resting.size():
+			wrong += int(resting[i].frame != (before[i] + 2) % 4)
+	assert_eq(wrong, 0, "frames set at rest")
+
+
 func test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day() -> void:
 	# A windmill's sails (HEADLIGHTS_PLAN.md §5.5): as the night falls they slow to a stop in
 	# PROP_REST_SECONDS, never skipping a frame, and as it ends they start again as gently. The
