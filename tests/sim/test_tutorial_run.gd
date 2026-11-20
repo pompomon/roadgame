@@ -88,7 +88,7 @@ func test_the_autopilot_finishes_the_tutorial_and_drives_on_through_the_schedule
 	assert_eq(_streaks(), range(1, Tuning.TUTORIAL_STREAK + 1))
 	assert_eq(_sim.trigger.turn_index, TURNS)
 	assert_false(_sim.is_over())
-	var expected: Array = [[34, &"rural"], [58, &"meadows"], [76, &"village"], [84, &"desert"]]
+	var expected: Array = [[20, &"rural"], [44, &"meadows"], [68, &"village"], [78, &"desert"]]
 	assert_eq(changes, expected, "the City's turns count from the tutorial's end")
 	assert_eq(pieces, [&"tunnel", &"bridge"] as Array[StringName])
 	assert_signal_not_emitted(_sim, "rescued")

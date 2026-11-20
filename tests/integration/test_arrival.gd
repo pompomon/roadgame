@@ -87,7 +87,7 @@ func test_with_every_legend_collected_the_book_is_full() -> void:
 ## damage (§5.16). The sea is still the next goal (docs/ENDGAME.md §5.9).
 func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	watch_signals(EventBus)
-	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--area=rural", "--finish=36"])
+	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--area=rural", "--finish=22"])
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	assert_eq(GameState.state, ARRIVED)
 	assert_eq(GameState.turn_index, 2)
@@ -148,16 +148,16 @@ func test_the_runs_clock_stops_while_it_pauses() -> void:
 
 
 ## docs/ENDGAME.md W11: an area that starts at the finish's turn, as the Coast does, has no
-## junction, so every turn of the road is behind the car as it enters it. --finish=34 makes Rural
+## junction, so every turn of the road is behind the car as it enters it. --finish=20 makes Rural
 ## one.
 func test_an_area_without_a_junction_has_every_turn_behind_it() -> void:
-	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=34"])
+	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=20"])
 	MainScene.run_while(self, main, RUNNING, FRAMES)
 	assert_eq(GameState.state, ARRIVED)
-	assert_eq(GameState.turn_index, 34)
+	assert_eq(GameState.turn_index, 20)
 	assert_eq(GameState.area_id, &"rural")
 	var areas: Dictionary = GameState.stats()["areas"]
-	assert_eq(areas[&"city"]["turns"], 34)
+	assert_eq(areas[&"city"]["turns"], 20)
 	assert_eq(areas[&"rural"]["turns"], 0, "no turn in it")
 	assert_eq(SaveService.data().arrival_count(), 1)
 

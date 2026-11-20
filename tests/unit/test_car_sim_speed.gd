@@ -72,8 +72,8 @@ func test_the_top_speed_grows_with_the_run_up_to_the_cap() -> void:
 	var sim := _sim(1)
 	sim.dist_on_straight = 1e6
 	assert_eq(sim.target_speed(), Tuning.BASE_TOP_SPEED)
-	sim.dist_total = 1000.0
-	var grown := Tuning.BASE_TOP_SPEED + 1000.0 * Tuning.TOP_SPEED_GROWTH
+	sim.dist_total = 500.0
+	var grown := Tuning.BASE_TOP_SPEED + 500.0 * Tuning.TOP_SPEED_GROWTH
 	assert_lt(grown, Tuning.GLOBAL_SPEED_CAP)
 	assert_almost_eq(sim.target_speed(), grown, 1e-9)
 	sim.dist_total = 1e6

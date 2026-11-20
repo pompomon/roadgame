@@ -250,7 +250,7 @@ func test_the_tallest_or_the_widest_view_holds_every_reference_view() -> void:
 		assert_true(held[0].encloses(view) or held[1].encloses(view), "%s: %s" % [size, view])
 
 
-## Into the rural area at turn 34: past the tunnel, whose roof rises above its last tile, and the
+## Into the rural area at turn 20: past the tunnel, whose roof rises above its last tile, and the
 ## cross junctions' dead ends of the city, which reach above the junction they are freed with.
 func test_nothing_comes_or_goes_in_the_tallest_view() -> void:
 	var index := _drive(_open(TALLEST), 4800)

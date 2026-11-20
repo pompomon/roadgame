@@ -31,7 +31,7 @@ func test_the_autopilot_meets_the_areas_and_set_pieces_in_order() -> void:
 			break
 	assert_eq(sim.trigger.turn_index, TURNS)
 	assert_false(sim.is_over())
-	var expected: Array = [[34, &"rural"], [58, &"meadows"], [76, &"village"], [84, &"desert"]]
+	var expected: Array = [[20, &"rural"], [44, &"meadows"], [68, &"village"], [78, &"desert"]]
 	assert_eq(changes, expected)
 	assert_signal_emit_count(sim, "area_changed", expected.size())
 	for k: int in expected.size():

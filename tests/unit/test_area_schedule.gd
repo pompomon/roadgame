@@ -34,7 +34,7 @@ func test_the_game_schedule_is_valid() -> void:
 	var turns: Array[int] = []
 	for entry: AreaScheduleEntry in schedule.entries:
 		turns.append(entry.turn)
-	assert_eq(turns, [0, 34, 58, 76, 84, 100] as Array[int])
+	assert_eq(turns, [0, 20, 44, 68, 78, 100] as Array[int])
 
 
 ## The City, where a run learns the pattern, has no side roads or decoys. Every later area has
@@ -198,13 +198,13 @@ func _check_switch(path: Array[RoadTile], turn: int, old: StringName, new: Strin
 	return k - at - 1
 
 
-func test_areas_and_set_pieces_switch_at_34_58_76_and_84() -> void:
+func test_areas_and_set_pieces_switch_at_20_44_68_and_78() -> void:
 	for run_seed: int in [1, 2, 3]:
 		var path := Fixtures.path_until_turn(RoadGenerator.new(run_seed, Fixtures.schedule()), 90)
-		assert_eq(_check_switch(path, 34, &"city", &"rural"), 6, "6 tunnel tiles")
-		assert_eq(_check_switch(path, 58, &"rural", &"meadows"), 5, "5 bridge tiles")
-		assert_eq(_check_switch(path, 76, &"meadows", &"village"), 0)
-		assert_eq(_check_switch(path, 84, &"village", &"desert"), 0)
+		assert_eq(_check_switch(path, 20, &"city", &"rural"), 6, "6 tunnel tiles")
+		assert_eq(_check_switch(path, 44, &"rural", &"meadows"), 5, "5 bridge tiles")
+		assert_eq(_check_switch(path, 68, &"meadows", &"village"), 0)
+		assert_eq(_check_switch(path, 78, &"village", &"desert"), 0)
 		var at := 0
 		for tile: RoadTile in path:
 			if tile.type == RoadTile.Type.SET_PIECE:
@@ -321,29 +321,29 @@ func test_a_schedule_can_start_in_any_of_its_areas() -> void:
 		&"city":
 		[
 			[0, &"city", &"", 0],
-			[34, &"rural", &"tunnel", 6],
-			[58, &"meadows", &"bridge", 5],
-			[76, &"village", &"", 0],
-			[84, &"desert", &"", 0],
+			[20, &"rural", &"tunnel", 6],
+			[44, &"meadows", &"bridge", 5],
+			[68, &"village", &"", 0],
+			[78, &"desert", &"", 0],
 			[100, &"coast", &"", 0],
 		],
 		&"rural":
 		[
 			[0, &"rural", &"", 0],
 			[24, &"meadows", &"bridge", 5],
-			[42, &"village", &"", 0],
-			[50, &"desert", &"", 0],
-			[66, &"coast", &"", 0],
+			[48, &"village", &"", 0],
+			[58, &"desert", &"", 0],
+			[80, &"coast", &"", 0],
 		],
 		&"meadows":
 		[
 			[0, &"meadows", &"", 0],
-			[18, &"village", &"", 0],
-			[26, &"desert", &"", 0],
-			[42, &"coast", &"", 0],
+			[24, &"village", &"", 0],
+			[34, &"desert", &"", 0],
+			[56, &"coast", &"", 0],
 		],
-		&"village": [[0, &"village", &"", 0], [8, &"desert", &"", 0], [24, &"coast", &"", 0]],
-		&"desert": [[0, &"desert", &"", 0], [16, &"coast", &"", 0]],
+		&"village": [[0, &"village", &"", 0], [10, &"desert", &"", 0], [32, &"coast", &"", 0]],
+		&"desert": [[0, &"desert", &"", 0], [22, &"coast", &"", 0]],
 		&"coast": [[0, &"coast", &"", 0]],
 	}
 	for id: StringName in expected:
@@ -354,7 +354,7 @@ func test_a_schedule_can_start_in_any_of_its_areas() -> void:
 			got.append([entry.turn, entry.area.id, entry.set_piece, entry.set_piece_length])
 			assert_same(entry.area, areas[entry.area.id], "%s: the same %s" % [id, entry.area.id])
 		assert_eq(got, expected[id], id)
-	assert_eq(schedule.entries[1].turn, 34, "the schedule itself stays")
+	assert_eq(schedule.entries[1].turn, 20, "the schedule itself stays")
 	assert_eq(schedule.entries[1].set_piece, &"tunnel")
 
 
@@ -372,15 +372,15 @@ func test_the_games_pit_stops() -> void:
 	# starts; on the Road Home, Last Gas as the Village starts, the bridge and the tunnel. A road
 	# that starts in a later area, as a Departure does, keeps those after its first area.
 	var out := Fixtures.schedule()
-	var outs: Array = [[34, &"rural", &"tunnel"], [58, &"meadows", &"bridge"], [84, &"desert", &""]]
+	var outs: Array = [[20, &"rural", &"tunnel"], [44, &"meadows", &"bridge"], [78, &"desert", &""]]
 	assert_eq(_pit_stops(out), outs)
 	var home := Fixtures.schedule_home()
-	var homes: Array = [[16, &"village", &""], [42, &"rural", &"bridge"], [66, &"city", &"tunnel"]]
+	var homes: Array = [[22, &"village", &""], [56, &"rural", &"bridge"], [80, &"city", &"tunnel"]]
 	assert_eq(_pit_stops(home), homes)
-	var later: Array = [[24, &"meadows", &"bridge"], [50, &"desert", &""]]
+	var later: Array = [[24, &"meadows", &"bridge"], [58, &"desert", &""]]
 	assert_eq(_pit_stops(out.starting_at(&"rural")), later)
 	assert_eq(_pit_stops(out.starting_at(&"desert")), [])
-	later = [[26, &"rural", &"bridge"], [50, &"city", &"tunnel"]]
+	later = [[34, &"rural", &"bridge"], [58, &"city", &"tunnel"]]
 	assert_eq(_pit_stops(home.starting_at(&"village")), later)
 	assert_eq(_pit_stops(out.endless()), outs, "Keep Driving's road")
 	assert_eq(_pit_stops(out), outs, "the schedule itself stays")
@@ -400,19 +400,19 @@ func test_validate_reports_a_finish_that_cannot_be_reached() -> void:
 	assert_eq(" | ".join(schedule.validate()), "finish_turn is 300, but there is no finish")
 	schedule.finish = &"pier"
 	assert_eq(schedule.validate(), PackedStringArray())
-	schedule.finish_turn = 83
+	schedule.finish_turn = 77
 	assert_eq(
-		" | ".join(schedule.validate()), "the finish (turn 83) comes before the last area (turn 84)"
+		" | ".join(schedule.validate()), "the finish (turn 77) comes before the last area (turn 78)"
 	)
-	schedule.finish_turn = 84
+	schedule.finish_turn = 78
 	assert_eq(schedule.validate(), PackedStringArray(), "a finish as the last area starts")
 
 
 func test_a_road_can_end_early_or_never_and_keep_its_areas() -> void:
 	var schedule := Fixtures.endless()
-	var short := schedule.ending_at(70, &"pier")
+	var short := schedule.ending_at(60, &"pier")
 	assert_eq(short.validate(), PackedStringArray())
-	assert_eq([short.finish, short.finish_turn], [&"pier", 70])
+	assert_eq([short.finish, short.finish_turn], [&"pier", 60])
 	assert_eq(short.entries, schedule.entries.slice(0, 3), "the areas it reaches")
 	assert_false(schedule.has_finish(), "the schedule itself stays")
 	var endless := short.endless()
@@ -427,8 +427,8 @@ func test_a_road_can_end_early_or_never_and_keep_its_areas() -> void:
 func test_a_road_that_starts_in_a_later_area_ends_as_many_turns_sooner() -> void:
 	var schedule := Fixtures.schedule().ending_at(90, &"pier")
 	var rural := schedule.starting_at(&"rural")
-	assert_eq([rural.finish, rural.finish_turn], [&"pier", 56])
-	assert_eq(schedule.starting_at(&"desert").finish_turn, 6)
+	assert_eq([rural.finish, rural.finish_turn], [&"pier", 70])
+	assert_eq(schedule.starting_at(&"desert").finish_turn, 12)
 	assert_eq(rural.validate(), PackedStringArray())
 	assert_false(Fixtures.endless().starting_at(&"rural").has_finish())
 

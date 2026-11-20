@@ -14,18 +14,18 @@ area = ExtResource("2_ebk6g")
 
 [sub_resource type="Resource" id="Resource_h1vil"]
 script = ExtResource("1_d7bx6")
-turn = 16
+turn = 22
 area = ExtResource("3_h5fti")
 pit_stop = true
 
 [sub_resource type="Resource" id="Resource_h2mea"]
 script = ExtResource("1_d7bx6")
-turn = 24
+turn = 32
 area = ExtResource("4_4nhs0")
 
 [sub_resource type="Resource" id="Resource_h3rur"]
 script = ExtResource("1_d7bx6")
-turn = 42
+turn = 56
 area = ExtResource("5_5gob0")
 set_piece = &"bridge"
 set_piece_length = 5
@@ -33,7 +33,7 @@ pit_stop = true
 
 [sub_resource type="Resource" id="Resource_h4cit"]
 script = ExtResource("1_d7bx6")
-turn = 66
+turn = 80
 area = ExtResource("6_y0i0o")
 set_piece = &"tunnel"
 set_piece_length = 6

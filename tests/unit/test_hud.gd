@@ -255,10 +255,10 @@ func test_the_route_strip_marks_each_area_the_car_and_the_best() -> void:
 	assert_true(strip.visible)
 	var rect := strip.get_rect()
 	assert_true(rect.is_equal_approx(Rect2(342.0, 75.0, 6.0, 100.0)), str(rect))
-	assert_eq(strip.tick_heights(), [0, 34, 58, 76, 84, 100], "the City's to the Coast's")
+	assert_eq(strip.tick_heights(), [0, 20, 44, 68, 78, 100], "the City's to the Coast's")
 	assert_eq([strip.car_height(), strip.best_height()], [0, -1], "at the foot, and no best yet")
-	EventBus.turn_completed.emit(34)
-	assert_eq(strip.car_height(), 34, "at Rural's tick")
+	EventBus.turn_completed.emit(20)
+	assert_eq(strip.car_height(), 20, "at Rural's tick")
 	for screen_height: float in SCREEN_HEIGHTS:
 		_strip(hud, screen_height)
 		EventBus.turn_completed.emit(0)
@@ -282,12 +282,12 @@ func test_the_route_strip_marks_each_area_the_car_and_the_best() -> void:
 	watch_signals(strip)
 	await wait_process_frames(1)
 	assert_signal_emitted(strip, "draw", "each mark, with no error")
-	hud.start_turn = 84
+	hud.start_turn = 78
 	GameState.quit_to_title()
 	GameState.start_run(3, false, false)
-	assert_eq(strip.car_height(), 84, "a run from the Desert")
+	assert_eq(strip.car_height(), 78, "a run from the Desert")
 	EventBus.turn_completed.emit(10)
-	assert_eq(strip.car_height(), 94)
+	assert_eq(strip.car_height(), 88)
 	hud.start_turn = 0
 	GameState.quit_to_title()
 	GameState.start_run(4, true, true, &"pier")
@@ -314,7 +314,7 @@ func test_the_route_strip_shows_only_on_a_road_with_a_finish() -> void:
 	GameState.quit_to_title()
 	GameState.start_run(2, false, true, &"home")
 	assert_true(strip.visible, "the Road Home")
-	assert_eq(strip.tick_heights(), [0, 16, 24, 42, 66], "the Desert's to the City's")
+	assert_eq(strip.tick_heights(), [0, 22, 32, 56, 80], "the Desert's to the City's")
 	assert_eq(strip.best_height(), 30)
 	hud.road = ROAD.endless()
 	GameState.quit_to_title()

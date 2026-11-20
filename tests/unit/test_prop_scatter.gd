@@ -130,7 +130,7 @@ func test_rows_show_props_ahead_of_the_car_and_lose_them_with_their_path_tile() 
 		for k: int in scatter.rows():
 			largest_row = maxi(largest_row, scatter.sprites(k).size())
 	assert_eq(wrong.slice(0, 3), PackedStringArray(), "%d steps wrong" % wrong.size())
-	assert_gt(buffer.generator.turn_count, 58, "past the tunnel and the bridge")
+	assert_gt(buffer.generator.turn_count, 44, "past the tunnel and the bridge")
 	# A step shows a row before it hides one, so the pool needs one row more than ever shows.
 	assert_lte(scatter.pool.made, most_shown + largest_row, "the sprites are reused")
 	assert_eq(scatter.pool.hidden() + _shown(scatter), scatter.pool.made, "none lost")
