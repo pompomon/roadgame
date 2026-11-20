@@ -22,9 +22,9 @@ Summaries of the finished plans. Each keeps its plan's section numbers and every
 ## For agents
 
 [`AGENTS.md`](../AGENTS.md) is the short guide. Its how-tos are here:
-- [agents/planning.md](agents/planning.md): planning a milestone, negative cases, and summarising a plan once it lands.
+- [agents/planning.md](agents/planning.md): planning a milestone, negative cases, and summarising a plan once it lands and learning from it.
 - [agents/stacks.md](agents/stacks.md): stacked PRs and how they land, GitHub's native stacks included.
 - [agents/checks.md](agents/checks.md): the local checks, seeing the game, where to check what, and the builds.
 - [agents/review.md](agents/review.md): the internal review, Copilot code review, watching a PR, and CI.
 
-The rules in [`.github/instructions/`](../.github/instructions/) apply to the files that they name: the legends, the light, the tests and CI.
+The rules in [`.github/instructions/`](../.github/instructions/) apply to the files that they name: the legends, the light, the screens, the tests and CI.

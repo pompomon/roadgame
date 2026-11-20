@@ -25,11 +25,11 @@ IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings 
 
 | When you | Read |
 |---|---|
-| plan a milestone or a feature, or land its last PR | `docs/agents/planning.md` |
+| plan a milestone or a feature, land its last PR, or sum it up and learn from it | `docs/agents/planning.md` |
 | stack PRs, land one, or update one after its base is merged | `docs/agents/stacks.md` |
 | set up the checks, run the game, build it, or check it in a browser | `docs/agents/checks.md` |
 | ask for a review, answer one, watch a PR, or fix CI | `docs/agents/review.md` |
-| change legends, light, tests or CI | `.github/instructions/`: `legends`, `light`, `tests` and `ci` |
+| change legends, light, screens, tests or CI | `.github/instructions/`: `legends`, `light`, `ui`, `tests` and `ci` |
 
 ## 2. Rules for code
 
@@ -38,6 +38,7 @@ Reviewers check these too.
 - **Typed GDScript.** The `untyped_declaration` warning is an error (IP D12). Files are `snake_case.gd`, non-autoload scripts have a `class_name`, and signals are named in the past tense (IP §1.3).
 - **Determinism.** Gameplay code uses only seeded `RandomNumberGenerator` streams. `lint.sh` rejects the global `randf()`, `randi()`, `randfn()`, `randf_range()`, `randi_range()`, `randomize()`, `seed()` and `rand_from_seed()`, and `.shuffle()` and `.pick_random()`, in `autoload/`, `road/`, `world/`, `car/`, `disasters/`, `areas/` and `setpieces/` (IP §5.3). The simulation runs in `_physics_process` at 60 Hz, and tests step it with a fixed `delta`.
 - **Logic apart from nodes.** Game logic lives in pure `RefCounted` classes such as `CarSim`, with thin `Node` wrappers, so tests can run hundreds of turns headless (IP D2). Every gameplay `RefCounted` has its `tests/unit/test_<name>.gd`.
+- **State as of the event.** A handler that records or judges something reads the state that its event leaves. `CarSim.step()` emits `area_changed` before the move's road checks, and `main` takes `GameState.distance` before the car steps. So the signal carries the value, as `damaged(area)` does, or the handler reads it again, as `_end_run()` does, and the test checks the value recorded (docs/ENDGAME.md W32; #84, #113).
 - **No lambdas that use `self`** connected to a signal of an object that `self` holds. The cycle is never freed: GUT passes, but `run_tests.sh` fails on the leak (docs/M2.md H16). Connect a method instead.
 - **Errors.** Report a broken invariant with `push_error()` and go on with a safe fallback. Don't use `assert()`: release builds strip it, and a debug run abandons the calling function while Godot still exits 0 (docs/M1.md G3). The CI scripts fail on any `ERROR:` line, and GUT fails a test on any unexpected error.
 - **No shadowing.** Don't name a parameter or a variable after a built-in or a member: `seed` became `run_seed` (docs/M1.md G13, docs/M2.md H22). Only the editor warns about it, not CI (docs/agents/checks.md §1).
@@ -86,6 +87,8 @@ While you work, `tools/ci/run_tests.sh -gselect=test_hud` runs each test script 
 - `## Changes`: a table of area, files and differences from the plan, with the finding IDs;
 - `## Verification (local, Godot 4.7.2)`: the checks' counts (§3), the CI `test` time, and each negative case with the tests it fails;
 - `## Internal review`, `## Review fixes` (each with a link to the comment, its tests and its negative case), `## Manual checks (E#)`, and **Acceptance:** the E#s that it meets.
+
+Before each push, check each claim in the body against the new head: its SHAs, counts, checks, negative cases and E# results. Copilot reviews the body too, and one of #106's rounds went on a body that still reported an older head's checks. A results comment claims only what its frames or recordings measure: #104's overstated a gap by the recorder's lag, and #106's called seals whole that had a hole in the middle.
 
 **The loop** (`docs/agents/review.md`):
 1. Before you open a PR, and before you push non-trivial fixes, have a subagent of a **different model family** review the change: `code-review` for a diff, `rubber-duck` for a plan. Check each finding yourself, and fix the real ones.
