@@ -44,7 +44,7 @@ Goal: let a new player learn the pattern without dying; on `main` the first wron
 - **Q12.** A way out: none; the tutorial ends only with its streak. The autopilot takes 18 s (P1).
 - **Q13.** HB's off-road meter: as in the City. Moot.
 - **Q14.** A loop driven past the switch: back onto the path at or past the next junction is a missed turn.
-- **Q15.** The areas after it: the schedule counts from the switch, so Rural comes at the 34th turn after it.
+- **Q15.** The areas after it: the schedule counts from the switch, so Rural comes at the 34th turn after it. Since SP, at the 20th (`SPEEDUP_PLAN.md` Q1).
 - **Q16.** Leaving mid-tutorial: nothing is saved.
 - **Q17.** The road behind: the buffer frees it as on `main`, so a car that drives back far can find a loop cut (§5.2).
 - **Q18.** The day: the zone's clock runs in the tutorial and goes back to the morning at the switch, as the distance does (`docs/DAYNIGHT.md §5.4`). DN PR 3 (#72) added that line to `_on_tutorial_completed()`.

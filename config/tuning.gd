@@ -64,7 +64,7 @@ const LAMP_POOL_SHARE := 0.4
 ## Car (IMPLEMENTATION_PLAN.md M4.2). Speeds are in tiles/s, accelerations in tiles/s².
 const BASE_TOP_SPEED := 4.0
 ## Top-speed gain per tile driven in the run.
-const TOP_SPEED_GROWTH := 0.002
+const TOP_SPEED_GROWTH := 0.0035
 const GLOBAL_SPEED_CAP := 7.0
 const ACCEL := 2.0
 ## The least braking. Braking for a junction is harder when it must be, so that the car is down to

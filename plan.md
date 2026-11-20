@@ -10,7 +10,7 @@ Input: Touch and keyboard
 
 ## 1. Vision
 
-An isometric pixel-art driving roguelike. The player steers a car along a procedurally generated road through a series of hand-designed areas. At every junction the player must follow a hidden **Left → Right → Left → Right…** pattern. One wrong or missed turn ends the run with a procedural disaster. After its 280th turn the road ends at a pier on the Coast: the goal is to drive the whole road and arrive there, and to discover every area and disaster on the way (`docs/ENDGAME.md` W1).
+An isometric pixel-art driving roguelike. The player steers a car along a procedurally generated road through a series of hand-designed areas. At every junction the player must follow a hidden **Left → Right → Left → Right…** pattern. One wrong or missed turn ends the run with a procedural disaster. After its 100th turn the road ends at a pier on the Coast: the goal is to drive the whole road and arrive there, and to discover every area and disaster on the way (`docs/ENDGAME.md` W1).
 
 ### 1.1 Core pillars
 - **One rule, learned through failure.** The L/R pattern is never explained. Players discover it by failing: in the tutorial a wrong turn only ends a streak (§2.7), and after it, by dying.
@@ -118,12 +118,13 @@ Fixed areas are keyed by **correct-turn count**. The areas between schedule entr
 | Turn | Set piece | Area entered | Notes |
 |---|---|---|---|
 | 0 | — | City | City blocks, small houses |
-| 34 | Tunnel | Rural | Yellow-brown palette, tumbleweed, small bushes |
-| 100 | Bridge over a river | Meadows | Green meadows and pastures |
-| 200 | — | Village | Family houses |
-| 220 | — | Desert | The last area with junctions, and the climax |
-| 280 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`docs/ENDGAME.md` §5.8) |
+| 20 | Tunnel | Rural | Yellow-brown palette, tumbleweed, small bushes |
+| 44 | Bridge over a river | Meadows | Green meadows and pastures |
+| 68 | — | Village | Family houses |
+| 78 | — | Desert | The last area with junctions, and the climax |
+| 100 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`docs/ENDGAME.md` §5.8) |
 
+- From the Meadows on, the road turns less and runs straighter: each area's straights are longer than Rural's, the Meadows' 6–12 tiles, the Village's 4–8 and the Desert's 6–12, and the autopilot drives the whole road in about four minutes, and within five on all but one of the 10,000 seeds measured (`SPEEDUP_PLAN.md` E1, Q3, Q15).
 - When `turnIndex` reaches a schedule entry, the next straight is replaced by the set piece (a fixed run of straight tiles with no junction), then the area switches.
 - **Pit stops** repair the car (§2.4, `docs/ENDGAME.md` §5.15): the tunnel, the bridge, and **Last Gas**, a filling station beside the Desert's first straight. On the Road Home they are Last Gas by the Village's first straight, the bridge and the tunnel. An entry's `pit_stop` makes its way in one: its set piece, or with none, its area's first straight. A departure from an area leaves its way in out, and with it its pit stop.
 - The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`docs/ENDGAME.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run.
@@ -226,7 +227,7 @@ Shared assets:
 
 ### 5.5 Day and night
 Each zone has a clock of its own, and the picture follows its hour (`docs/DAYNIGHT.md`).
-- The clock starts at 07:00 as the car enters a zone, and turns a whole day and night in the area's `day_seconds`, 120 s by default: dusk comes 50 s into a zone, and the night at 65 s.
+- The clock starts at 07:00 as the car enters a zone, and turns a whole day and night in the area's `day_seconds`, 120 s by default, and 60 s in Rural, the Meadows and the Desert: dusk comes 10/24 of a day into a zone and the night 13/24, at 50 s and 65 s in a day of 120 s, and at 25 s and 32.5 s in one of 60 s (`SPEEDUP_PLAN.md` Q5).
 - The light eases from key to key round the clock: the night's blue, dawn's pink, the day's white from 07:00 to 17:00, and dusk's orange. No channel changes by more than a quarter of white a second, so nothing flashes, and after a reset at night the morning comes back in under 2.5 s.
 - The art is drawn as by day. `Daylight`, a square over the view, multiplies the world by the light, as the legends' veils do. The legends' glows and the UI draw above it and stay as bright.
 - The clock stops when the run ends or pauses, so a legend plays in the light that the run ended in.
@@ -353,7 +354,7 @@ tests/         GUT tests
   "atlas": { "city": { "discovered": true, "best_distance": 0, "best_turns": 0, "stamped": false } },
   "best": { "distance": 0, "turns": 0 },
   "disasters": { "phantom_bus": { "seen": 3, "first_area": "city", "first_distance": 0, "first_turns": 0, "unlocked": false } },
-  "arrivals": { "pier": { "count": 1, "best_seconds": 581.0, "clean": false, "farthest": 280 } },
+  "arrivals": { "pier": { "count": 1, "best_seconds": 252.0, "clean": false, "farthest": 100 } },
   "settings": { "music": 0.8, "sfx": 1.0, "ambient": 0.8, "haptics": true, "orientation": "sensor" },
   "tutorial": { "done": false }
 }
@@ -387,7 +388,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 - The correct path and dead ends never overlap (occupancy check).
 - Every junction has ≥ 1 wrong exit.
 - Lookahead stays within 37..55 tiles after any number of refills.
-- Area switches and set pieces happen at turns 34, 100, 200, 220 and 280, and the road ends at the pier after its 280th turn.
+- Area switches and set pieces happen at turns 20, 44, 68, 78 and 100, and the road ends at the pier after its 100th turn.
 - Up to its last junction, the game's road is the endless road's, tile for tile, which goes on in the Desert (`docs/ENDGAME.md` E1, W6).
 
 **Simulation**
@@ -426,7 +427,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Tutorial | Until the player has finished it, runs start with one in the City: no disasters or death, every road leads on, and 12 correct turns in a row lead into the City's run |
 | Road directions | All 4 headings rendered; the correct path is a staircase, so it never crosses itself |
 | Buffer | 55 tiles at start, refill below 37, keep 37–55 lookahead and 20 tiles behind |
-| Areas | Fixed schedule by turn count; after turn 280 the road ends at a pier on the Coast (`docs/ENDGAME.md` W1) |
+| Areas | Fixed schedule by turn count; after turn 100 the road ends at a pier on the Coast (`docs/ENDGAME.md` W1) |
 | Orientation | Portrait default, runtime orientation change supported |
 | Meta-progression | None that makes a run easier or harder: the Atlas, the disaster collection, and the arrivals, each of which unlocks a legend (`docs/ENDGAME.md` §5.4, §5.5) |
 | Pickups | None in the MVP; the pit stops repair the car, once each in a run (`docs/ENDGAME.md` §5.15, W24) |
