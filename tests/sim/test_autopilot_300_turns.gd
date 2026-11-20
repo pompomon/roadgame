@@ -8,8 +8,9 @@ const DELTA := 1.0 / 60.0
 const TURNS := 300
 const SEEDS := 20
 const KINDS_SEEDS := 5
-## A run takes about 9 minutes of game time.
-const MAX_STEPS := 60 * 60 * 20
+## A run on the game's road takes about 15 minutes of game time, most of it in the Desert, and one
+## on the road with every kind of junction about 8.
+const MAX_STEPS := 60 * 60 * 30
 
 
 func test_300_turns_on_20_seeds() -> void:
