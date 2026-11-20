@@ -42,10 +42,16 @@ const RIVER_REACH := 2.0
 const WAVE_SPEED := 0.6
 ## Props (docs/M5.md §5.6). The screen row of each path tile gets its props once the car is
 ## PROP_AHEAD path tiles before it, on the ground of PROP_SPREAD road tiles either side of the path
-## tile. A prop's frame reaches at most PROP_MAX_SIZE.y pixels above its foot, PROP_MAX_SIZE.x / 2
-## either side of it and PROP_BELOW below it.
+## tile, and of PROP_VIEW_SPREAD either side of each of the PROP_AHEAD path tiles below it
+## (PropLayout.span()). A prop's frame reaches at most PROP_MAX_SIZE.y pixels above its foot,
+## PROP_MAX_SIZE.x / 2 either side of it and PROP_BELOW below it.
 const PROP_AHEAD := 24
 const PROP_SPREAD := 9
+## The car is on one of those path tiles while the row may show ahead of it, and the tallest view
+## reaches about 300 px across from the car: half its 360 px, LOOKAHEAD_PX's 43 across, and the
+## camera's lag at GLOBAL_SPEED_CAP, 75. 3 tiles and a half reach 448 px. A long straight runs
+## farther than PROP_SPREAD across the screen (SPEEDUP_PLAN.md §4.3).
+const PROP_VIEW_SPREAD := 3
 const PROP_MAX_SIZE := Vector2i(64, 72)
 const PROP_BELOW := 8
 ## A see-through prop, such as the City's building (docs/VISUALS.md §5.9): its opacity where it

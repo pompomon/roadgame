@@ -5,16 +5,16 @@ extends RefCounted
 ## on every run, at every frame rate and on every screen.
 ##
 ## Path tile k lies on screen row -k: the tiles whose cells add up to -k, side by side across the
-## screen. Row k's props stand on the ground of the PROP_SPREAD tiles either side of path tile k, of
-## those that are neither road nor within set_piece_margin() tiles of a set piece's road, or of the
-## straight that Last Gas stands by (docs/ENDGAME.md §5.15). Each such tile's ground cells make lots
-## of each size that its props take (PropDef.lot), the largest first. Each lot that no larger prop
-## stands on shows one prop of its size or none: its hash with props_seed picks one by their
-## densities, or by a street by their street densities (§5.8). A lot of one cell has the cell's own
-## hash, so props that take one cell stand where they stood before lots (docs/VISUALS.md §5.4). A
-## prop whose frame would touch a road tile's diamond is left out, and its lot stays free, so that
-## no prop hides the road or the car on it; but for a see-through one, which may rise over the road
-## behind it, and fades where it would hide the car (§5.9).
+## screen. Row k's props stand on the ground of the tiles of its span(), PROP_SPREAD or more either
+## side of path tile k, of those that are neither road nor within set_piece_margin() tiles of a set
+## piece's road, or of the straight that Last Gas stands by (docs/ENDGAME.md §5.15). Each such
+## tile's ground cells make lots of each size that its props take (PropDef.lot), the largest first.
+## Each lot that no larger prop stands on shows one prop of its size or none: its hash with
+## props_seed picks one by their densities, or by a street by their street densities (§5.8). A lot
+## of one cell has the cell's own hash, so props that take one cell stand where they stood before
+## lots (docs/VISUALS.md §5.4). A prop whose frame would touch a road tile's diamond is left out,
+## and its lot stays free, so that no prop hides the road or the car on it; but for a see-through
+## one, which may rise over the road behind it, and fades where it would hide the car (§5.9).
 
 
 ## A prop of a row: which, where its foot stands, in world pixels, and where its animation starts,
@@ -38,7 +38,8 @@ const SIDES: Array[Vector2i] = [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1)
 
 
 ## The props of the row whose path tile is on `anchor`, from `props`, beside the road of `buffer`.
-## The buffer must have every tile that rows_needed() counts.
+## The buffer must have every tile that rows_needed() counts, and the PROP_AHEAD path tiles below
+## the row's that span() reads.
 static func row(
 	anchor: Vector2i, props: Array[PropDef], props_seed: int, buffer: RoadBuffer
 ) -> Array[Placement]:
@@ -51,7 +52,8 @@ static func row(
 	var streets := false
 	for def: PropDef in props:
 		streets = streets or def.street_density >= 0.0
-	for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
+	var tiles := span(anchor, buffer)
+	for j: int in range(tiles.x, tiles.y + 1):
 		var tile := anchor + Vector2i(j, -j)
 		if buffer.tile_at(tile) != null or near_set_piece(tile, buffer):
 			continue
@@ -88,6 +90,28 @@ static func row(
 				if def != null:
 					_place(def, cell, hashed, buffer, placed)
 	return placed
+
+
+## The tiles of the row whose path tile is on `anchor` that get props, as the first and the last j
+## of anchor + Vector2i(j, -j): PROP_SPREAD either side of the anchor, and PROP_VIEW_SPREAD either
+## side of each of the PROP_AHEAD path tiles below it that `buffer` has, as far as a long straight
+## takes them across the screen. A row with no path tile, below the start, has PROP_SPREAD either
+## side. The tiles across are on the row's screen row, so rows_needed() holds for them too.
+static func span(anchor: Vector2i, buffer: RoadBuffer) -> Vector2i:
+	var tiles := Vector2i(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD)
+	var tile := buffer.tile_at(anchor)
+	if tile == null or tile.path_index < 0:
+		return tiles
+	for _k: int in Tuning.PROP_AHEAD:
+		var below := buffer.tile_at(tile.cell - Heading.VEC[tile.heading])
+		if below == null or below.path_index != tile.path_index - 1:
+			break
+		tile = below
+		# Two half tiles across the screen for each j.
+		var j := (tile.cell.x - tile.cell.y - anchor.x + anchor.y) * 0.5
+		tiles.x = mini(tiles.x, floori(j) - Tuning.PROP_VIEW_SPREAD)
+		tiles.y = maxi(tiles.y, ceili(j) + Tuning.PROP_VIEW_SPREAD)
+	return tiles
 
 
 ## Adds to `placed` a placement of `def` with its foot on ground cell `cell`, which `hashed` picked,
