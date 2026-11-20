@@ -8,6 +8,18 @@ const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
 ## The time the headlights take to switch, and a frame: sums of 1/60 s steps can fall short.
 const SWITCH := Tuning.HEADLIGHT_SWITCH_SECONDS + DELTA
+## The parameters that the headlights give their material.
+const PARAMETERS: Array[StringName] = [
+	&"origin",
+	&"along",
+	&"across",
+	&"gain",
+	&"reach",
+	&"half_width",
+	&"spread",
+	&"dim_from",
+	&"edge"
+]
 
 var _headlights: Headlights
 var _sim: CarSim
@@ -51,16 +63,19 @@ func test_on_from_dusk_until_sunrise() -> void:
 
 
 func test_they_turn_on_and_off_in_the_switch_time() -> void:
+	# The material's gain, the light that the road shows, fades with them: half of it halfway.
 	var night := _cycle(22.0)
+	var whole := Headlights.gain(night.light, 1.0)
 	_run(night, Tuning.HEADLIGHT_SWITCH_SECONDS / 2.0)
 	assert_almost_eq(_headlights.level, 0.5, 0.02, "half on halfway")
+	assert_almost_eq(_headlights.shown(&"gain") as Vector3, whole / 2.0, whole * 0.02, "half lit")
 	_run(night, SWITCH - Tuning.HEADLIGHT_SWITCH_SECONDS / 2.0)
 	assert_eq(_headlights.level, 1.0, "on")
-	var gain := _headlights.shown(&"gain") as Vector3
-	assert_eq(gain, Headlights.gain(night.light, 1.0), "the material's gain")
+	assert_eq(_headlights.shown(&"gain") as Vector3, whole, "the material's gain")
 	_sim.state = CarSim.State.CRASHED
 	_run(night, Tuning.HEADLIGHT_SWITCH_SECONDS / 2.0)
 	assert_almost_eq(_headlights.level, 0.5, 0.02, "half off halfway, once the run is over")
+	assert_almost_eq(_headlights.shown(&"gain") as Vector3, whole / 2.0, whole * 0.02, "half out")
 	_run(night, SWITCH - Tuning.HEADLIGHT_SWITCH_SECONDS / 2.0)
 	assert_eq(_headlights.level, 0.0, "off")
 	assert_eq(_headlights.shown(&"gain"), Vector3.ZERO, "the road drawn as by day")
@@ -150,6 +165,17 @@ func test_off_without_a_clock_or_a_car_and_once_the_run_is_over() -> void:
 	for step: int in roundi(SWITCH / DELTA):
 		_headlights.update(night, null, Transform2D.IDENTITY, DELTA)
 	assert_eq(_headlights.level, 0.0, "no car")
+	# Into a zone's morning they stay on while its light comes, but not once the run is over.
+	var morning := _cycle(22.0)
+	_sim.state = CarSim.State.DRIVING
+	_run(morning, SWITCH)
+	_enter_a_zone(morning)
+	_run(morning, DELTA)
+	assert_eq(_headlights.level, 1.0, "on while the morning's light comes")
+	_sim.state = CarSim.State.CRASHED
+	_run(morning, SWITCH)
+	assert_ne(morning.light, morning.target(), "the morning's light still to come")
+	assert_eq(_headlights.level, 0.0, "off once the run is over, while the light comes")
 
 
 func test_the_road_in_the_cone_shows_a_share_of_its_day_light() -> void:
@@ -216,3 +242,14 @@ func test_the_material_shows_the_cone_as_lit_works_it_out() -> void:
 	assert_eq(material.get_shader_parameter(&"spread"), Tuning.HEADLIGHT_SPREAD)
 	assert_eq(material.get_shader_parameter(&"dim_from"), Tuning.HEADLIGHT_DIM_FROM)
 	assert_eq(material.get_shader_parameter(&"edge"), Tuning.HEADLIGHT_EDGE)
+	# get_shader_parameter() gives back what was set, whether the shader has it or not. Headless,
+	# Godot still compiles the shader, so its uniforms show which it has.
+	var uniforms := PackedStringArray()
+	for uniform: Dictionary in material.shader.get_shader_uniform_list():
+		uniforms.append("%s: %s" % [uniform["name"], type_string(uniform["type"])])
+	var given := PackedStringArray()
+	for parameter: StringName in PARAMETERS:
+		given.append("%s: %s" % [parameter, type_string(typeof(_headlights.shown(parameter)))])
+	uniforms.sort()
+	given.sort()
+	assert_eq(uniforms, given, "the shader's uniforms, each of the type given")
