@@ -123,15 +123,18 @@ func update(delta: float, cycle: DayCycle = null) -> void:
 	if _rest_rate < 0.0:
 		_rest_rate = rate
 	_rest_rate = move_toward(_rest_rate, rate, delta / Tuning.PROP_REST_SECONDS)
+	var rest_was := _rest_clock
 	_rest_clock += delta * _rest_rate
 	# Only the props whose next frame has come: the Meadows' grass animates hundreds
-	# (HEADLIGHTS_PLAN.md B12).
+	# (HEADLIGHTS_PLAN.md B12). None that rest while their clock stands: it may stand within
+	# NEXT_FRAME_EARLY of a prop's next frame, which would then come on every update all night.
+	var rest_moved := _rest_clock != rest_was
 	for row: Row in _rows.values():
 		for shown: Shown in row.animated:
 			if _clock >= shown.next_frame_at:
 				_set_frame(shown, _clock)
 		for shown: Shown in row.resting:
-			if _rest_clock >= shown.next_frame_at:
+			if rest_moved and _rest_clock >= shown.next_frame_at:
 				_set_frame(shown, _rest_clock)
 	_fade()
 

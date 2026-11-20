@@ -282,8 +282,8 @@ func test_each_prop_shows_the_frame_of_its_clock_though_updates_look_only_at_fra
 func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 	# update() looks at a prop again only once its next frame starts (HEADLIGHTS_PLAN.md B12). So
 	# a frame set by hand stays until then: through a short step, on each prop whose next frame it
-	# doesn't reach, and all night, on the props at rest. Once a frame's time has passed, each prop
-	# shows its clock's frame again.
+	# doesn't reach, and all night, on the props at rest, even where their clock stops just before
+	# a frame. Once a frame's time has passed, each prop shows its clock's frame again.
 	var sails := _prop(&"sails", 4, 4.0, 0.05)
 	sails.rests_at_night = true
 	var grass := _prop(&"grass", 4, 3.0, 0.1)
@@ -335,6 +335,46 @@ func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 		for i: int in resting.size():
 			wrong += int(resting[i].frame != (before[i] + 2) % 4)
 	assert_eq(wrong, 0, "frames set at rest")
+	# A night that falls within NEXT_FRAME_EARLY of a sail's next frame stops its clock there, where
+	# update() would look at it again. It must leave it all night too, and show the next frame once
+	# the clock moves on. Bisect for the time, to a nanosecond, at which the first sail turns after
+	# 0.5 s.
+	var lo := 0.5
+	var hi := lo + 1.0 / sails.fps
+	var first := _first_frame(again, buffer, sails.texture, lo, day)
+	for step: int in 30:
+		var mid := (lo + hi) / 2.0
+		if _first_frame(again, buffer, sails.texture, mid, day) == first:
+			lo = mid
+		else:
+			hi = mid
+	var next := _first_frame(again, buffer, sails.texture, hi, day)
+	assert_eq(next, (first + 1) % 4, "the sail's next frame")
+	assert_eq(
+		_first_frame(again, buffer, sails.texture, hi - PropScatter.NEXT_FRAME_EARLY / 2.0, day),
+		first,
+		"the frame just before"
+	)
+	again.update(Tuning.PROP_REST_SECONDS, night)
+	var sail := _sprites(again, sails.texture)[0]
+	sail.frame = (first + 2) % 4
+	wrong = 0
+	for step: int in 60:
+		again.update(DELTA, night)
+		wrong += int(sail.frame != (first + 2) % 4)
+	assert_eq(wrong, 0, "frames set at rest, just before a frame")
+	again.update(DELTA, day)
+	assert_eq(sail.frame, next, "the next frame, once the clock moves on")
+
+
+## The frame of the first of `texture`'s props, once `scatter`, bound again to `buffer`, has
+## updated by `seconds` of `cycle`.
+static func _first_frame(
+	scatter: PropScatter, buffer: RoadBuffer, texture: Texture2D, seconds: float, cycle: DayCycle
+) -> int:
+	scatter.bind(buffer)
+	scatter.update(seconds, cycle)
+	return _sprites(scatter, texture)[0].frame
 
 
 func test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day() -> void:
