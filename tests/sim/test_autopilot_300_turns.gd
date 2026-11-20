@@ -8,24 +8,26 @@ const DELTA := 1.0 / 60.0
 const TURNS := 300
 const SEEDS := 20
 const KINDS_SEEDS := 5
-## A run on the game's road takes about 15 minutes of game time, most of it in the Desert, and one
-## on the road with every kind of junction about 8.
-const MAX_STEPS := 60 * 60 * 30
+## Twice a run on the game's road, which takes about 13 minutes of game time, most of it in the
+## Desert.
+const MAX_STEPS := 60 * 60 * 26
+## Twice a run on the road with every kind of junction, which takes about 8.
+const KINDS_MAX_STEPS := 60 * 60 * 16
 
 
 func test_300_turns_on_20_seeds() -> void:
 	for run_seed: int in SEEDS:
-		_drive(RoadGenerator.new(run_seed, Fixtures.endless()), "seed %d" % run_seed)
+		_drive(RoadGenerator.new(run_seed, Fixtures.endless()), "seed %d" % run_seed, MAX_STEPS)
 
 
 ## Straight on at each decoy, and the turn at each side road (docs/ROADGEN.md R1).
 func test_300_turns_through_every_kind_of_junction() -> void:
 	for run_seed: int in KINDS_SEEDS:
 		var gen := RoadGenerator.new(run_seed, Fixtures.kinds_schedule(0.25, 0.25, 0.25))
-		_drive(gen, "kinds seed %d" % run_seed)
+		_drive(gen, "kinds seed %d" % run_seed, KINDS_MAX_STEPS)
 
 
-func _drive(gen: RoadGenerator, where: String) -> void:
+func _drive(gen: RoadGenerator, where: String, max_steps: int) -> void:
 	var buffer := RoadBuffer.new(gen)
 	buffer.start()
 	var sim := CarSim.new(buffer)
@@ -33,7 +35,7 @@ func _drive(gen: RoadGenerator, where: String) -> void:
 	var junction := sim.trigger.next_junction
 	var entered := false
 	var worst_entry := -INF
-	for i: int in MAX_STEPS:
+	for i: int in max_steps:
 		sim.step(DELTA, pilot.steer())
 		if sim.is_over() or sim.trigger.turn_index >= TURNS:
 			break
