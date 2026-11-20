@@ -8,7 +8,7 @@ Nothing kept in the save makes a run easier or harder (`plan.md` §2.6), and the
 
 - **E1.** A schedule with a finish ends its road (§5.1).
 - **E5.** An arrival that counts unlocks a legend not collected (§5.5).
-- **E6.** A road without a finish is laid as before EG, so the golden digests pass unchanged. `endless()` is the road of Keep Driving and of the tests that drive past turn 280. Since SP, past turn 100 (`SPEEDUP_PLAN.md` Q1).
+- **E6.** A road without a finish is laid as before EG, so the golden digests pass unchanged. `endless()` is the road of Keep Driving and of the tests that drive past turn 280. Since SP, past turn 100, and SP's areas changed the digests (`SPEEDUP_PLAN.md` Q1, U7).
 - **E7.** The Coast, the pier and the arrival's scene (§5.8).
 - **E9.** The Road Home (§5.6, §5.12).
 - **E11.** Keep Driving (§5.13).
@@ -153,7 +153,7 @@ Version 5 adds each atlas entry's `stamped`, for a crossing with no damage, whic
 
 ### 5.17 The Vanishing Hitchhiker
 
-With the pools all collected, until found, she stands across the Road Home, `HITCHHIKER_ASIDE`, by the last plain straight before the junction of its farthest turn, or the finish once home (`Hitchhiker.road_turn()`), so a departure past that turn misses her; with no such straight, it's an error and she stays hidden. Passing her in a run that goes on finds her: she fades in `HITCHHIKER_FADE_SECONDS`, `SaveService.record_found()` saves her, and NEW LEGEND! shows. In no pool, she is never unlocked or picked; the Book counts 16 once her row shows.
+With the pools all collected, until found, she stands across the Road Home, `HITCHHIKER_ASIDE`, by the last plain straight before the junction of its farthest turn, or the finish once home (`Hitchhiker.road_turn()`), so a departure past that turn misses her; with no such straight, it's an error and she stays hidden. Since SP, a save from before it can hold a farthest turn there past the finish, up to 280, and she then stands by the finish too (`SPEEDUP_PLAN.md` Q7). Passing her in a run that goes on finds her: she fades in `HITCHHIKER_FADE_SECONDS`, `SaveService.record_found()` saves her, and NEW LEGEND! shows. In no pool, she is never unlocked or picked; the Book counts 16 once her row shows.
 
 ## 6. Verification
 
@@ -167,7 +167,7 @@ None left but landing PR 14 and deleting `eg/14-docs`. At the owner's word, an a
 
 ## 8. Risks
 
-- **The end is far:** about 10 minutes (P1). Since SP, about four minutes, and at most five on all but one of the 10,000 seeds measured (`SPEEDUP_PLAN.md` E1, Q15). A wrong turn meets a legend, and Departures, the strip and the pit stops help. The finish's turn is one number in `schedule.tres`.
+- **The end is far:** about 10 minutes (P1). Since SP, about four minutes, and at most five on all but one of the 10,000 runs measured, 5,000 seeds a road (`SPEEDUP_PLAN.md` E1, Q15). A wrong turn meets a legend, and Departures, the strip and the pit stops help. The finish's turn is one number in `schedule.tres`.
 - **An older build meets a newer save:** a build never writes a newer save, so an older APK over a newer one saves nothing. Check builds in order, or from a new save.
 - **A seed doesn't replay its unlock** on another collection: a report needs both (docs/POOLS.md §8).
 

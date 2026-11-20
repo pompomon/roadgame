@@ -14,6 +14,9 @@ const MAX_STEPS := 60 * 60 * 27
 ## Twice a run on the road with every kind of junction, which takes about 8.
 const KINDS_MAX_STEPS := 60 * 60 * 16
 
+## How many times the car of the drive under way was damaged.
+var _damage := 0
+
 
 func test_300_turns_on_20_seeds() -> void:
 	for run_seed: int in SEEDS:
@@ -31,6 +34,8 @@ func _drive(gen: RoadGenerator, where: String, max_steps: int) -> void:
 	var buffer := RoadBuffer.new(gen)
 	buffer.start()
 	var sim := CarSim.new(buffer)
+	_damage = 0
+	sim.damaged.connect(_on_damaged)
 	var pilot := Autopilot.new(sim)
 	var junction := sim.trigger.next_junction
 	var entered := false
@@ -48,5 +53,11 @@ func _drive(gen: RoadGenerator, where: String, max_steps: int) -> void:
 			worst_entry = maxf(worst_entry, sim.speed - junction_speed)
 	assert_eq(sim.trigger.turn_index, TURNS, where)
 	assert_false(sim.is_over(), where)
-	assert_eq(sim.health, Tuning.START_HEALTH, where)
+	# Not the health at the end: a pit stop repairs damage taken before it.
+	assert_eq(_damage, 0, where + ": damaged")
 	assert_lte(worst_entry, 1e-6, where + ": entered a junction above junction_speed")
+
+
+## Counts each time the car is damaged.
+func _on_damaged(_area: AreaDef) -> void:
+	_damage += 1

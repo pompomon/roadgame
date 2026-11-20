@@ -96,7 +96,7 @@ The smoke's luminance must differ by at least `SMOKE_CONTRAST`, 0.1, from what i
 
 ### 5.8 When the night shows
 
-Dusk starts 10/24 of a day into a zone and the night 13/24: at 120 s a day, 50 s and 65 s. The City and the Village are shorter, so a run's first night comes in Rural. Since SP, Rural, the Meadows and the Desert turn a day in 60 s, so each of their zones, 40 s long or more, reaches its night, 32.5 s in (`SPEEDUP_PLAN.md` Q5).
+Dusk starts 10/24 of a day into a zone and the night 13/24: at 120 s a day, 50 s and 65 s. The City and the Village are shorter, so a run's first night comes in Rural. Since SP, Rural, the Meadows and the Desert turn a day in 60 s, so that their zones reach their night, 32.5 s in: all of P1's 30,000 did, the shortest lasting 40.97 s (`SPEEDUP_PLAN.md` Q5, P3).
 
 ### 5.9 Any hour
 
