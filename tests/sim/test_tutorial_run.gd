@@ -7,9 +7,9 @@ extends GutTest
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const RoutePilot := preload("res://tests/helpers/route_pilot.gd")
 const DELTA := 1.0 / 60.0
-const TURNS := 230
-## The tutorial and a run to turn 230 take about 8 minutes of game time.
-const MAX_STEPS := 60 * 60 * 16
+const TURNS := 90
+## The tutorial and a run to turn 90 take about 4 minutes of game time.
+const MAX_STEPS := 60 * 60 * 8
 ## A tutorial with a few mistakes takes well under 2 minutes.
 const TUTORIAL_STEPS := 60 * 120
 
@@ -88,7 +88,7 @@ func test_the_autopilot_finishes_the_tutorial_and_drives_on_through_the_schedule
 	assert_eq(_streaks(), range(1, Tuning.TUTORIAL_STREAK + 1))
 	assert_eq(_sim.trigger.turn_index, TURNS)
 	assert_false(_sim.is_over())
-	var expected: Array = [[34, &"rural"], [100, &"meadows"], [200, &"village"], [220, &"desert"]]
+	var expected: Array = [[34, &"rural"], [58, &"meadows"], [76, &"village"], [84, &"desert"]]
 	assert_eq(changes, expected, "the City's turns count from the tutorial's end")
 	assert_eq(pieces, [&"tunnel", &"bridge"] as Array[StringName])
 	assert_signal_not_emitted(_sim, "rescued")

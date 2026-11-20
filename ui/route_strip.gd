@@ -4,7 +4,7 @@ extends Control
 ## edge, from the road's start at its foot to the finish at its top. A tick marks each area's first
 ## turn, a chequered flag the finish, a solid triangle the car, and a hollow diamond the best run,
 ## at the road's farthest turn: shapes, not only colours, tell them apart. The car's mark climbs a
-## pixel or so a turn, and nothing on the strip moves otherwise, or flashes. It draws in _draw(),
+## few pixels a turn, and nothing on the strip moves otherwise, or flashes. It draws in _draw(),
 ## not with Polygon2D nodes: on the Web, each redraw of a Polygon2D after its first raises WebGL
 ## errors in Godot 4.7.2 (godotengine/godot#124726), and the HUD redraws its children each time it
 ## shows.

@@ -120,7 +120,7 @@ func test_the_road_before_the_finish_is_the_endless_roads() -> void:
 		endless = RoadGenerator.new(run_seed, Fixtures.endless())
 		path = _path_to_finish(gen)
 		var game := "seed %d, the game's road" % run_seed
-		assert_eq(gen.turn_count, 280, game)
+		assert_eq(gen.turn_count, 100, game)
 		var coast := Fixtures.schedule().entries[-1].area
 		var stretch := gen.finish_index - coast.max_straight
 		assert_true(path[stretch - 1].is_junction(), "%s: its last junction" % game)
@@ -169,11 +169,11 @@ func test_a_mirrored_road_has_no_tutorial() -> void:
 	assert_false(gen.tutorial)
 
 
-func test_the_road_home_ends_at_home_after_280_turns() -> void:
+func test_the_road_home_ends_at_home_after_100_turns() -> void:
 	for run_seed: int in SEEDS:
 		var gen := RoadGenerator.new(run_seed, Fixtures.schedule_home())
 		var path := _path_to_finish(gen)
-		assert_eq(gen.turn_count, 280, "seed %d" % run_seed)
+		assert_eq(gen.turn_count, 100, "seed %d" % run_seed)
 		assert_eq(path[gen.finish_index].set_piece, &"home")
 		assert_eq(path[gen.finish_index].area_id, &"city", "home is in the City")
 		assert_eq(gen.occupancy.size(), _cells(path), "seed %d: every tile has a cell" % run_seed)
