@@ -53,6 +53,9 @@ const PROP_BELOW := 8
 ## PROP_FADE_PX screen pixels, or as the car comes that far in front of it.
 const PROP_SEE_THROUGH := 0.2
 const PROP_FADE_PX := 48.0
+## The props that rest at night, such as the windmill (HEADLIGHTS_PLAN.md §5.5), slow to a stop
+## in PROP_REST_SECONDS as the night falls, and come back up to speed as long once it ends.
+const PROP_REST_SECONDS := 3.0
 ## The props' lights (docs/DAYNIGHT.md §5.12): at night they glow LAMP_COLOR over the veil, which
 ## they light, LAMP_ALPHA at their centres, and the ground below a lamp LAMP_POOL_SHARE as brightly.
 ## They add to no channel more than the veil takes away from it, so they come on as the light

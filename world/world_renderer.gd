@@ -137,7 +137,7 @@ func _process(delta: float) -> void:
 	var controller := car as CarController
 	_shadows.refresh(cycle, controller)
 	if _scatter != null:
-		_scatter.update(delta)
+		_scatter.update(delta, cycle)
 	_lamps.refresh(cycle)
 	var sim := controller.sim if controller != null else null
 	_headlights.update(cycle, sim, get_global_transform(), delta)

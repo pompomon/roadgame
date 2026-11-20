@@ -58,6 +58,10 @@ var _next_row := 0
 var _lowest_row := 0
 ## Seconds of animation since bind().
 var _clock := 0.0
+## Seconds of animation since bind() of the props that rest at night (HEADLIGHTS_PLAN.md §5.5),
+## which run at _rest_rate: from 1 by day to 0 at night. -1 until the first update() after bind().
+var _rest_clock := 0.0
+var _rest_rate := -1.0
 ## The layer whose own children, the car and the legends' sprites, see-through props fade for.
 var _layer: Node2D
 ## The see-through props that show less than whole, and how much of themselves they show.
@@ -92,6 +96,8 @@ func bind(buffer: RoadBuffer) -> void:
 	_lowest_row = -Tuning.BUFFER_BEHIND if buffer.first_index() == 0 else buffer.first_index()
 	_next_row = _lowest_row
 	_clock = 0.0
+	_rest_clock = 0.0
+	_rest_rate = -1.0
 	buffer.tiles_generated.connect(_on_tiles_generated)
 	buffer.tiles_freed.connect(_on_tiles_freed)
 	_find_pier()
@@ -99,12 +105,19 @@ func bind(buffer: RoadBuffer) -> void:
 
 
 ## Shows the rows the car has come near, animates the props, and fades the see-through ones. Call
-## it every frame.
-func update(delta: float) -> void:
+## it every frame. The props that rest at night slow to a stop in PROP_REST_SECONDS as `cycle`'s
+## night falls, and start again as it ends (HEADLIGHTS_PLAN.md §5.5); without a clock they never
+## rest. A run that starts at night starts with them at rest.
+func update(delta: float, cycle: DayCycle = null) -> void:
 	if _buffer == null:
 		return
 	_show_rows()
 	_clock += delta
+	var rate := 0.0 if cycle != null and DayCycle.night_at(cycle.hour()) else 1.0
+	if _rest_rate < 0.0:
+		_rest_rate = rate
+	_rest_rate = move_toward(_rest_rate, rate, delta / Tuning.PROP_REST_SECONDS)
+	_rest_clock += delta * _rest_rate
 	for row: Row in _rows.values():
 		for shown: Shown in row.animated:
 			_set_frame(shown)
@@ -294,7 +307,8 @@ static func _show_alpha(shown: Shown, alpha: float) -> void:
 
 
 func _set_frame(shown: Shown) -> void:
-	var cycle := _clock * shown.def.fps / shown.def.frames + shown.phase
+	var clock := _rest_clock if shown.def.rests_at_night else _clock
+	var cycle := clock * shown.def.fps / shown.def.frames + shown.phase
 	var frame := int((cycle - floorf(cycle)) * shown.def.frames) % shown.def.frames
 	if shown.sprite.frame != frame:
 		if shown.lit != null:
