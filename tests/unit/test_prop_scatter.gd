@@ -296,30 +296,32 @@ func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 	var again := PropScatter.new(_layer, schedule)
 	var day := _clock(12.0)
 	var tufts := _sprites(scatter, grass.texture)
-	# More than a frame of the grass, then a thousandth of a second.
+	var turning := _sprites(scatter, sails.texture)
+	# More than a frame of each, then a thousandth of a second. The grass goes by the scatter's
+	# clock, and the sails by the rest clock, which by day runs as fast.
 	scatter.update(0.4, day)
 	var before := _frames(tufts)
-	for sprite: Sprite2D in tufts:
+	var sails_before := _frames(turning)
+	for sprite: Sprite2D in tufts + turning:
 		sprite.frame = (sprite.frame + 2) % 4
 	scatter.update(0.001, day)
 	again.bind(buffer)
 	again.update(0.401, day)
 	var expected := _frames(_sprites(again, grass.texture))
 	assert_eq(expected.size(), tufts.size(), "the same props")
-	var left := 0
-	var wrong := 0
-	for i: int in mini(tufts.size(), expected.size()):
-		if expected[i] == before[i]:
-			left += 1
-			wrong += int(tufts[i].frame != (before[i] + 2) % 4)
-		else:
-			wrong += int(tufts[i].frame != expected[i])
-	assert_gt(left, 20, "props whose next frame the step doesn't reach")
-	assert_eq(wrong, 0, "frames set before their next starts, or not once it has")
+	var counts := _tally(tufts, before, expected)
+	assert_gt(counts.x, 20, "props whose next frame the step doesn't reach")
+	assert_eq(counts.y, 0, "frames set before their next starts, or not once it has")
+	expected = _frames(_sprites(again, sails.texture))
+	assert_eq(expected.size(), turning.size(), "the same sails")
+	counts = _tally(turning, sails_before, expected)
+	assert_gt(counts.x, 20, "sails whose next frame the step doesn't reach")
+	assert_eq(counts.y, 0, "sails' frames set before their next starts, or not once it has")
 	scatter.update(0.34, day)
 	again.bind(buffer)
 	again.update(0.741, day)
 	assert_eq(_frames(tufts), _frames(_sprites(again, grass.texture)), "a frame's time later")
+	assert_eq(_frames(turning), _frames(_sprites(again, sails.texture)), "the sails, as late")
 	# The night falls, and an update of PROP_REST_SECONDS brings the sails to rest: their clock
 	# stops, so no next frame starts.
 	var night := _clock(22.0)
@@ -329,7 +331,7 @@ func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 	before = _frames(resting)
 	for sprite: Sprite2D in resting:
 		sprite.frame = (sprite.frame + 2) % 4
-	wrong = 0
+	var wrong := 0
 	for step: int in 60:
 		scatter.update(DELTA, night)
 		for i: int in resting.size():
@@ -365,6 +367,20 @@ func test_an_update_sets_no_frame_before_the_next_starts() -> void:
 	assert_eq(wrong, 0, "frames set at rest, just before a frame")
 	again.update(DELTA, day)
 	assert_eq(sail.frame, next, "the next frame, once the clock moves on")
+
+
+## Of `sprites`, whose frames were `before` until set two on by hand: how many a step left before
+## their next frame, by `expected` (x), and how many are wrong, set before it or not after (y).
+static func _tally(sprites: Array[Sprite2D], before: Array[int], expected: Array[int]) -> Vector2i:
+	var left := 0
+	var wrong := 0
+	for i: int in mini(sprites.size(), expected.size()):
+		if expected[i] == before[i]:
+			left += 1
+			wrong += int(sprites[i].frame != (before[i] + 2) % 4)
+		else:
+			wrong += int(sprites[i].frame != expected[i])
+	return Vector2i(left, wrong)
 
 
 ## The frame of the first of `texture`'s props, once `scatter`, bound again to `buffer`, has
