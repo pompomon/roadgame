@@ -3,8 +3,8 @@ extends GutTest
 ## each zone starts its clock again, runs it at its own pace, and the light catches up no faster
 ## than the rate; the clock runs only with the run; --hour= sets the hour that zones start at; a
 ## disaster plays in the light that the run ended in; the night's veil darkens the world but not
-## the glows or the UI; and the light changes nothing but the view. The lamps and the headlights
-## follow the zone's clock (docs/DAYNIGHT.md §5.12, HEADLIGHTS_PLAN.md §5.3).
+## the glows or the UI; and the light changes nothing but the view. The lamps, the headlights and
+## the windmills follow the zone's clock (docs/DAYNIGHT.md §5.12, HEADLIGHTS_PLAN.md §5.3, §5.5).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
@@ -448,3 +448,44 @@ func test_the_headlights_light_the_road_from_dusk_until_the_run_ends() -> void:
 	simulate(main, switch, MainScene.DELTA)
 	assert_eq(headlights.level, 0.0, "off once the run is over")
 	assert_eq(headlights.shown(&"gain"), Vector3.ZERO, "the road unlit in the night")
+
+
+## The frames of the windmills that `world` shows, by sprite.
+static func _sails(world: WorldRenderer) -> Dictionary[Sprite2D, int]:
+	var windmill: PropDef = load("res://areas/props/rural/windmill.tres")
+	var scatter := world.prop_scatter()
+	var sails: Dictionary[Sprite2D, int] = {}
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			var region := sprite.region_rect.position
+			if sprite.texture == windmill.texture and region == Vector2(windmill.region.position):
+				sails[sprite] = sprite.frame
+	return sails
+
+
+## How many times the windmills that `main` shows change frame in `frames` frames.
+func _sail_turns(main: Node, frames: int) -> int:
+	var world: WorldRenderer = main.get_node("%World")
+	var turns := 0
+	var before := _sails(world)
+	for frame: int in frames:
+		simulate(main, 1, MainScene.DELTA)
+		var after := _sails(world)
+		for sprite: Sprite2D in after:
+			if before.has(sprite) and before[sprite] != after[sprite]:
+				turns += 1
+		before = after
+	return turns
+
+
+func test_the_windmills_rest_by_the_zones_clock() -> void:
+	# World rests the windmills' sails by the clock that Daylight keeps for the zone
+	# (HEADLIGHTS_PLAN.md §5.5): in a run that starts in the Rural at night they stand still, and by
+	# day they turn again.
+	var main := MainScene.open(self, ["--seed=1", "--area=rural", "--hour=22"])
+	simulate(main, 2, MainScene.DELTA)
+	assert_gt(_sails(main.get_node("%World")).size(), 0, "windmills in the Rural")
+	assert_eq(_sail_turns(main, 60), 0, "at night")
+	_set_hour(main, 12.0)
+	var rest := ceili(Tuning.PROP_REST_SECONDS / MainScene.DELTA)
+	assert_gt(_sail_turns(main, rest + 60), 0, "by day")

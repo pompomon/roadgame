@@ -117,6 +117,9 @@ const STREETS := {&"building": 0.6}
 ## The props that may rise over the road behind them, and fade where they would hide the car
 ## (§5.9): boxes, whose bases lie in their lots.
 const SEE_THROUGH: Array[StringName] = [&"building"]
+## The props whose animation rests at night (HEADLIGHTS_PLAN.md §5.5): the windmill, whose miller
+## stops its sails for the night.
+const RESTS: Array[StringName] = [&"windmill"]
 
 ## The lights and the pools of light of the prop being painted, in pixels from its foot.
 var _lights: Array[Rect2] = []
@@ -168,6 +171,7 @@ func _make_area(area: StringName) -> void:
 		def.lot = LOTS.get(id, 1)
 		def.street_density = STREETS.get(id, -1.0)
 		def.see_through = id in SEE_THROUGH
+		def.rests_at_night = id in RESTS
 		def.shadow = SHADOWS.get(id, PropDef.Shadow.UPRIGHT)
 		def.shadow_rise = WALL_RISE if def.shadow == PropDef.Shadow.WALL else _box_half >> 1
 		def.region = Rect2i(Vector2i.ZERO, used.size)
@@ -251,6 +255,8 @@ static func _write_def(def: PropDef, sheet_path: String, path: String) -> void:
 	if def.frames > 1:
 		lines.append("frames = %d" % def.frames)
 		lines.append("fps = %s" % str(def.fps))
+	if def.rests_at_night:
+		lines.append("rests_at_night = true")
 	lines.append("foot = Vector2i(%d, %d)" % [def.foot.x, def.foot.y])
 	if not def.lights.is_empty():
 		lines.append("lights = %s" % var_to_str(def.lights))

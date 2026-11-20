@@ -9,6 +9,8 @@ const DELTA := 1.0 / 60.0
 const ROUNDING := 1e-5
 
 var _layer: Node2D
+## How many times each sprite changed frame, since the test began to count them.
+var _frame_changes: Dictionary[Sprite2D, int] = {}
 
 
 func before_each() -> void:
@@ -234,6 +236,90 @@ func test_animated_props_step_through_their_frames_at_their_fps() -> void:
 		assert_eq(wrong, 0, "frames after %d steps" % step)
 
 
+func test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day() -> void:
+	# A windmill's sails (HEADLIGHTS_PLAN.md §5.5): as the night falls they slow to a stop in
+	# PROP_REST_SECONDS, never skipping a frame, and as it ends they start again as gently. The
+	# other props that animate go on. A run that starts at night starts with them at rest, and
+	# without a clock they never rest.
+	var sails := _prop(&"sails", 4, 4.0, 0.05)
+	sails.rests_at_night = true
+	var props: Array[PropDef] = [sails, _prop(&"turning", 4, 4.0, 0.05)]
+	var schedule := _schedule(props)
+	var scatter := PropScatter.new(_layer, schedule)
+	var buffer := _buffer(1, schedule)
+	scatter.bind(buffer)
+	buffer.start()
+	var resting := _sprites(scatter, sails.texture)
+	var turning: Array[Sprite2D] = []
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			if sprite.texture != sails.texture:
+				turning.append(sprite)
+	assert_gt(mini(resting.size(), turning.size()), 20, "props of each")
+	var day := _clock(12.0)
+	var night := _clock(22.0)
+	assert_eq(_changes(scatter, resting, day, 1.0), resting.size() * 4, "a turn a second by day")
+	# The night falls: the sails' frames change less each second, a frame at a time, and then not.
+	var seconds: Array[int] = []
+	for second: int in ceili(Tuning.PROP_REST_SECONDS):
+		seconds.append(_changes(scatter, resting, night, 1.0))
+	assert_gt(seconds[0], seconds[-1] * 2, "slowing: %s" % [seconds])
+	assert_gt(seconds[-1], 0, "not stopped at once: %s" % [seconds])
+	assert_eq(_changes(scatter, resting, night, 2.0), 0, "at rest all night")
+	assert_eq(_changes(scatter, turning, night, 1.0), turning.size() * 4, "the others go on")
+	# The day comes: they start again, and once PROP_REST_SECONDS have passed turn as by day.
+	assert_gt(_changes(scatter, resting, day, Tuning.PROP_REST_SECONDS), 0, "starting again")
+	assert_eq(_changes(scatter, resting, day, 1.0), resting.size() * 4, "and as by day")
+	# A run that starts at night.
+	scatter.bind(buffer)
+	resting = _sprites(scatter, sails.texture)
+	assert_eq(_changes(scatter, resting, night, 1.0), 0, "at rest from a night's start")
+	assert_gt(_changes(scatter, resting, null, Tuning.PROP_REST_SECONDS), 0, "no clock, no night")
+
+
+## The sprites of `texture`'s props.
+static func _sprites(scatter: PropScatter, texture: Texture2D) -> Array[Sprite2D]:
+	var found: Array[Sprite2D] = []
+	for k: int in scatter.rows():
+		for sprite: Sprite2D in scatter.sprites(k):
+			if sprite.texture == texture:
+				found.append(sprite)
+	return found
+
+
+## The frames that `sprites` show.
+static func _frames(sprites: Array[Sprite2D]) -> Array[int]:
+	var frames: Array[int] = []
+	for sprite: Sprite2D in sprites:
+		frames.append(sprite.frame)
+	return frames
+
+
+## How many times `sprites` change frame while `scatter` updates for `seconds` by `cycle`, frame by
+## frame. A change by more than one frame is a failure.
+func _changes(
+	scatter: PropScatter, sprites: Array[Sprite2D], cycle: DayCycle, seconds: float
+) -> int:
+	var changes := 0
+	for step: int in roundi(seconds / DELTA):
+		var before := _frames(sprites)
+		scatter.update(DELTA, cycle)
+		for i: int in sprites.size():
+			var moved := posmod(sprites[i].frame - before[i], sprites[i].hframes)
+			if moved > 1:
+				fail_test("%s skipped a frame" % sprites[i])
+			changes += mini(moved, 1)
+	return changes
+
+
+## The clock of a zone at `p_hour`.
+static func _clock(p_hour: float) -> DayCycle:
+	var cycle := DayCycle.new()
+	cycle.start_hour = p_hour
+	cycle.enter(120.0)
+	return cycle
+
+
 static func _distinct(values: Array[int]) -> int:
 	var seen: Dictionary[int, bool] = {}
 	for value: int in values:
@@ -341,6 +427,9 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	var fitting := _prop(&"fitting", 1, 0.0, 0.1)
 	fitting.see_through = true
 	fitting.shadow_rise = 4
+	# A prop that rests at night, with no frames to rest from (HEADLIGHTS_PLAN.md §5.5).
+	var resting := _prop(&"resting", 1, 0.0, 0.1)
+	resting.rests_at_night = true
 	var props: Array[PropDef] = [
 		good,
 		null,
@@ -355,7 +444,8 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 		lining,
 		wall,
 		deep,
-		fitting
+		fitting,
+		resting
 	]
 	var schedule := _schedule(props)
 	var scatter := PropScatter.new(_layer, schedule)
@@ -370,6 +460,7 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	assert_push_error("PropScatter: dense: prop lining takes the densities past 1")
 	assert_push_error("PropScatter: dense: prop wall is see-through, but not a box on its lot")
 	assert_push_error("PropScatter: dense: prop deep is see-through, but not a box on its lot")
+	assert_push_error("PropScatter: dense: prop resting rests at night, but doesn't animate")
 	var buffer := _buffer(1, schedule)
 	scatter.bind(buffer)
 	buffer.start()
@@ -634,3 +725,73 @@ func test_no_prop_stands_on_the_sea() -> void:
 			scatter.pool.hidden() + _shown(scatter), scatter.pool.made, "%s: none lost" % road_name
 		)
 	assert_eq(_layer.get_child_count(true), scatter.pool.made)
+
+
+## The props that the pier takes away stop animating, both those that animate by the scatter's
+## clock and those that rest at night by theirs. Their sprites go back to the pool, and the rows
+## that show next take them: no sprite then changes frame but as its new prop's frames come, nor
+## while it waits in the pool. Two of the sea test's roads, which show props on the sea before the
+## pier is made, with props that animate in the City's stead. The car waits once the pier is made.
+func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
+	var flag := _prop(&"flag", 6, 7.5, 0.3)
+	var sails := _prop(&"sails", 4, 4.0, 0.3)
+	sails.rests_at_night = true
+	var seconds := 1.0
+	# The most times a sprite of each can change frame in `seconds`.
+	var most: Dictionary[int, int] = {
+		flag.frames: ceili(flag.fps * seconds) + 1, sails.frames: ceili(sails.fps * seconds) + 1
+	}
+	var scatter: PropScatter = null
+	# The game's areas are cached, and a resource's shallow copy shares its arrays: the City's copy
+	# gets an array of its own, so that the scripts after this one see the City's props
+	# (HEADLIGHTS_PLAN.md B15).
+	var city := Fixtures.schedule().entries[0].area
+	var city_props := city.props.duplicate()
+	for road: Array in [[11, 8], [12, 5]]:
+		var schedule := Fixtures.schedule().ending_at(road[0], &"pier")
+		var entry: AreaScheduleEntry = schedule.entries[0].duplicate()
+		entry.area = entry.area.duplicate()
+		var props: Array[PropDef] = [flag, sails]
+		entry.area.props = props
+		schedule.entries[0] = entry
+		if scatter == null:
+			scatter = PropScatter.new(_layer, schedule)
+		var ahead := RoadGenerator.new(road[1], schedule)
+		var pier := ahead.next_tile()
+		while not ahead.finished():
+			pier = ahead.next_tile()
+		var buffer := _buffer(road[1], schedule)
+		scatter.bind(buffer)
+		buffer.start()
+		var taken: Dictionary[int, int] = {}
+		var index := 1
+		while not buffer.generator.finished() and index <= pier.path_index:
+			taken = {}
+			for k: int in scatter.rows():
+				for sprite: Sprite2D in scatter.sprites(k):
+					if Pier.at_sea(Vector2i(Iso.world_to_tile(sprite.position).floor()), pier):
+						taken[sprite.hframes] = taken.get(sprite.hframes, 0) + 1
+			buffer.on_car_path_index(index)
+			scatter.update(DELTA)
+			index += 1
+		_frame_changes.clear()
+		for child: Node in _layer.get_children(true):
+			child.frame_changed.connect(_on_frame_changed.bind(child))
+		for step: int in roundi(seconds / DELTA):
+			scatter.update(DELTA)
+		var wrong := PackedStringArray()
+		for child: Node in _layer.get_children(true):
+			child.frame_changed.disconnect(_on_frame_changed)
+			var sprite := child as Sprite2D
+			var changes: int = _frame_changes.get(sprite, 0)
+			if changes > (most.get(sprite.hframes, 0) if sprite.visible else 0):
+				wrong.append("%d frames by %d changes" % [sprite.hframes, changes])
+		var road_name := "%d turns, seed %d" % road
+		assert_gt(taken.get(flag.frames, 0), 0, "%s: flags that the pier takes away" % road_name)
+		assert_gt(taken.get(sails.frames, 0), 0, "%s: sails that the pier takes away" % road_name)
+		assert_eq(wrong, PackedStringArray(), "%s: sprites that change frame too often" % road_name)
+	assert_eq(city.props, city_props, "the City's own props")
+
+
+func _on_frame_changed(sprite: Sprite2D) -> void:
+	_frame_changes[sprite] = _frame_changes.get(sprite, 0) + 1

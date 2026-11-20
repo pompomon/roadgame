@@ -46,6 +46,10 @@ enum Shadow { UPRIGHT, WALL, NONE }
 ## How far above the foot, in pixels of the frame, the point that its shadow falls from is: the
 ## centre of a box's footprint, or where a wall's base line crosses the foot's column.
 @export var shadow_rise := 0
+## Whether its animation slows to a stop at night and starts again by day, as a windmill's sails
+## do, which the miller stops for the night (HEADLIGHTS_PLAN.md §5.5). Only a prop that animates
+## may rest.
+@export var rests_at_night := false
 
 
 ## Returns what breaks the props' contract (docs/M5.md §5.6), or nothing.
@@ -65,6 +69,8 @@ func validate() -> PackedStringArray:
 			problems.append("prop %s: its %d frames reach out of its texture" % [id, frames])
 	if (frames > 1) != (fps > 0.0):
 		problems.append("prop %s: %d frames at %.1f fps" % [id, frames, fps])
+	if rests_at_night and frames < 2:
+		problems.append("prop %s rests at night, but doesn't animate" % id)
 	if not Rect2i(Vector2i.ZERO, region.size + Vector2i.ONE).has_point(foot):
 		problems.append("prop %s: its foot is outside its frame" % id)
 	if 2 * maxi(foot.x, region.size.x - foot.x) > Tuning.PROP_MAX_SIZE.x:
