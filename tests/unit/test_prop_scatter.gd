@@ -794,7 +794,7 @@ func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
 	var most: Dictionary[int, int] = {
 		flag.frames: ceili(flag.fps * seconds) + 1, sails.frames: ceili(sails.fps * seconds) + 1
 	}
-	var scatter: PropScatter
+	var scatter: PropScatter = null
 	# The game's areas are cached, and a resource's shallow copy shares its arrays: the City's copy
 	# gets an array of its own, so that the scripts after this one see the City's props
 	# (HEADLIGHTS_PLAN.md B15).
