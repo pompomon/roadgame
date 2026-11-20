@@ -3,7 +3,7 @@ extends Control
 ## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6): distance, turns, health and the pause button,
 ## and a message while the game is paused. When the car enters an area, the area's name shows for
 ## AREA_BANNER_SECONDS (M4.3). On a road with a finish, the route strip shows the road's areas, the
-## car and the best run (ENDGAME_PLAN.md §5.14). It reads GameState and the save, listens to
+## car and the best run (docs/ENDGAME.md §5.14). It reads GameState and the save, listens to
 ## EventBus, starts afresh with each run, and processes while the game is paused. When the run ends
 ## it hides the pause button and the area's name, and the game-over screen shows why it ended
 ## (M3.3). Its text uses only characters in Godot's default font: the Web build has no system font
@@ -79,7 +79,7 @@ static func distance_text(tiles: float) -> String:
 
 
 ## What a run starts with. A retry starts the next run without reloading the HUD (docs/M3.md J10).
-## The strip's best run is the road's farthest turn as the run starts (ENDGAME_PLAN.md §5.12).
+## The strip's best run is the road's farthest turn as the run starts (docs/ENDGAME.md §5.12).
 func _reset() -> void:
 	var best := 0
 	if road != null and road.has_finish():

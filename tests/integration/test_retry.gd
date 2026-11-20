@@ -179,7 +179,7 @@ func test_a_retry_while_the_run_goes_on_is_an_error() -> void:
 
 func test_a_crash_after_a_disaster_shows_no_fate_and_no_new_legend() -> void:
 	# docs/M6.md S8: the fate is the disaster's, and a retry forgets it. It forgets the run's new
-	# legends too (ENDGAME_PLAN.md §5.9).
+	# legends too (docs/ENDGAME.md §5.9).
 	SaveService.use_memory()
 	var main := MainScene.open(self, ["--seed=1"])
 	_to_game_over(main, false)

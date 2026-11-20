@@ -1,5 +1,5 @@
 extends GutTest
-## The end of the road (ENDGAME_PLAN.md §5.3, §5.5, E1, E5): the autopilot drives a short road,
+## The end of the road (docs/ENDGAME.md §5.3, §5.5, E1, E5): the autopilot drives a short road,
 ## --finish's, to its finish. The run ends in an arrival, the car rolls to a stop, and the end
 ## screen shows ARRIVAL_SECONDS later, with the run's time. A run that drove the whole road counts
 ## the arrival and unlocks a legend that the player hasn't collected; one from a later area doesn't.
@@ -77,14 +77,14 @@ func test_with_every_legend_collected_the_book_is_full() -> void:
 	assert_eq(save.disasters, before, "nothing new")
 	assert_eq(save.arrival_count(), 1)
 	assert_true(game_over.visible)
-	assert_false(game_over.get_node("%NewLegend").visible, "no new legend (ENDGAME_PLAN.md §5.9)")
+	assert_false(game_over.get_node("%NewLegend").visible, "no new legend (docs/ENDGAME.md §5.9)")
 	assert_signal_not_emitted(EventBus, "new_legend_shown")
 
 
 ## A run that starts in a later area (--area, the title's Start, Departures) reaches the finish,
 ## but it hasn't driven the whole road: no arrival is counted, no legend unlocked (Q4), and no
 ## overall best set, only its area's (W22), and the stamp of the area that it crossed with no
-## damage (§5.16). The sea is still the next goal (ENDGAME_PLAN.md §5.9).
+## damage (§5.16). The sea is still the next goal (docs/ENDGAME.md §5.9).
 func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	watch_signals(EventBus)
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--area=rural", "--finish=36"])
@@ -106,7 +106,7 @@ func test_a_run_from_a_later_area_arrives_but_counts_nothing() -> void:
 	assert_eq(game_over.get_node("%Goal").text, GameOver.GOAL_SEA % [0, turns], "no best yet")
 
 
-## ENDGAME_PLAN.md §5.9: an arrival that unlocks a legend shows NEW LEGEND!, and its jingle plays
+## docs/ENDGAME.md §5.9: an arrival that unlocks a legend shows NEW LEGEND!, and its jingle plays
 ## once. The next goal is then to find the legends still missing, one fewer, once the Road Home has
 ## an arrival too (§5.12).
 func test_an_arrival_that_unlocks_shows_new_legend() -> void:
@@ -131,7 +131,7 @@ func test_an_arrival_that_unlocks_shows_new_legend() -> void:
 	assert_eq(game_over.get_node("%Goal").text, GameOver.GOAL_LEGENDS % missing)
 
 
-## ENDGAME_PLAN.md §5.3: the run's clock stops while the run pauses. simulate() steps a paused tree
+## docs/ENDGAME.md §5.3: the run's clock stops while the run pauses. simulate() steps a paused tree
 ## too, so only the state can stop it.
 func test_the_runs_clock_stops_while_it_pauses() -> void:
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=3"])
@@ -147,7 +147,7 @@ func test_the_runs_clock_stops_while_it_pauses() -> void:
 	assert_almost_eq(GameState.seconds, seconds + frames * MainScene.DELTA, MainScene.DELTA * 2.01)
 
 
-## ENDGAME_PLAN.md W11: an area that starts at the finish's turn, as the Coast does, has no
+## docs/ENDGAME.md W11: an area that starts at the finish's turn, as the Coast does, has no
 ## junction, so every turn of the road is behind the car as it enters it. --finish=34 makes Rural
 ## one.
 func test_an_area_without_a_junction_has_every_turn_behind_it() -> void:
@@ -162,7 +162,7 @@ func test_an_area_without_a_junction_has_every_turn_behind_it() -> void:
 	assert_eq(SaveService.data().arrival_count(), 1)
 
 
-## ENDGAME_PLAN.md §5.7: --finish= takes a number of turns. Anything else is an error, and the run
+## docs/ENDGAME.md §5.7: --finish= takes a number of turns. Anything else is an error, and the run
 ## drives the game's road.
 func test_a_bad_finish_argument_is_an_error_and_the_road_is_the_games() -> void:
 	for arg: String in ["--finish=", "--finish=pier", "--finish=-3"]:
@@ -196,7 +196,7 @@ func test_a_finish_past_the_roads_own_end_is_an_error_and_the_road_is_the_games(
 	assert_eq(schedule.entries.size(), Fixtures.schedule().entries.size(), "with every area")
 
 
-## ENDGAME_PLAN.md §5.6: the Road Home starts in the Desert, heading west, with no tutorial, and
+## docs/ENDGAME.md §5.6: the Road Home starts in the Desert, heading west, with no tutorial, and
 ## ends at home.
 func test_the_road_home_starts_west_and_ends_at_home() -> void:
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--home", "--finish=2"])
@@ -211,7 +211,7 @@ func test_the_road_home_starts_west_and_ends_at_home() -> void:
 	assert_eq(_unlocked(SaveService.data()).size(), 1)
 
 
-## ENDGAME_PLAN.md W10: the tutorial's loops are laid for a road that starts heading N, so the Road
+## docs/ENDGAME.md W10: the tutorial's loops are laid for a road that starts heading N, so the Road
 ## Home has none, even when --tutorial asks for it.
 func test_the_road_home_has_no_tutorial() -> void:
 	var main := MainScene.open(self, ["--seed=1", "--home", "--tutorial"])
@@ -221,7 +221,7 @@ func test_the_road_home_has_no_tutorial() -> void:
 	assert_eq(buffer.path_tile(buffer.first_index()).heading, Heading.W)
 
 
-## ENDGAME_PLAN.md §5.4: a clean arrival never left the road.
+## docs/ENDGAME.md §5.4: a clean arrival never left the road.
 func test_leaving_the_road_spoils_a_clean_run() -> void:
 	var main := MainScene.open(self, ["--autopilot", "--seed=12345", "--finish=1"])
 	var sim := MainScene.car(main).sim
@@ -234,7 +234,7 @@ func test_leaving_the_road_spoils_a_clean_run() -> void:
 	assert_false(SaveService.data().arrivals["pier"]["clean"])
 
 
-## ENDGAME_PLAN.md §5.16: an arrival crosses the road's last area, which it stamps if the car took
+## docs/ENDGAME.md §5.16: an arrival crosses the road's last area, which it stamps if the car took
 ## no damage there. --finish=1 keeps the whole road in the City.
 func test_an_arrival_with_no_damage_stamps_the_last_area() -> void:
 	for damaged: bool in [true, false]:
@@ -253,7 +253,7 @@ func test_an_arrival_with_no_damage_stamps_the_last_area() -> void:
 		GameState.quit_to_title()
 
 
-## ENDGAME_PLAN.md §5.16: the end screen says "New best time!" under an arrival's time when it beat
+## docs/ENDGAME.md §5.16: the end screen says "New best time!" under an arrival's time when it beat
 ## the best time at its finish: not on the first arrival, which has none to beat, nor on a slower
 ## one.
 func test_an_arrival_that_beats_the_best_time_says_so() -> void:
@@ -274,7 +274,7 @@ func test_an_arrival_that_beats_the_best_time_says_so() -> void:
 		GameState.quit_to_title()
 
 
-## ENDGAME_PLAN.md §5.16: a retry forgets that the last arrival beat the best time. An arrival that
+## docs/ENDGAME.md §5.16: a retry forgets that the last arrival beat the best time. An arrival that
 ## didn't drive the whole road, as a departure's, counts nothing (W22), so it beats no best time:
 ## here the retry is made one by hand, as the title's Start would.
 func test_a_retry_forgets_the_new_best_time() -> void:

@@ -289,7 +289,7 @@ func _arrive(sim: CarSim) -> void:
 	_audio._physics_process(DELTA)
 
 
-## On an arrival (ENDGAME_PLAN.md §5.8), the engine winds down with the car and stops with it, as
+## On an arrival (docs/ENDGAME.md §5.8), the engine winds down with the car and stops with it, as
 ## the arrival's jingle plays, once. The rumble stops at once, and the area's music fades out under
 ## its ambient sound.
 func test_an_arrival_winds_the_engine_down_and_plays_its_jingle() -> void:
@@ -351,7 +351,7 @@ func test_the_jingle_plays_only_as_an_arrivals_car_stops() -> void:
 	assert_signal_not_emitted(_audio, "effect_played", "every sound stopped")
 
 
-## ENDGAME_PLAN.md §5.9 (Q16): as the end screen shows NEW LEGEND!, its jingle plays, once.
+## docs/ENDGAME.md §5.9 (Q16): as the end screen shows NEW LEGEND!, its jingle plays, once.
 func test_new_legend_plays_its_jingle_once() -> void:
 	watch_signals(_audio)
 	EventBus.new_legend_shown.emit()
@@ -359,7 +359,7 @@ func test_new_legend_plays_its_jingle_once() -> void:
 	assert_signal_emitted_with_parameters(_audio, "effect_played", [&"new_legend"])
 
 
-## ENDGAME_PLAN.md §5.15: a pit stop's repair dings.
+## docs/ENDGAME.md §5.15: a pit stop's repair dings.
 func test_a_repair_dings() -> void:
 	watch_signals(_audio)
 	EventBus.car_repaired.emit()

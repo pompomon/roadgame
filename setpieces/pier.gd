@@ -1,6 +1,6 @@
 class_name Pier
 extends SetPiece
-## The pier (ENDGAME_PLAN.md §5.8), in grey box, where the game's road ends: its tiles are planks,
+## The pier (docs/ENDGAME.md §5.8), in grey box, where the game's road ends: its tiles are planks,
 ## as the bridge's are (GreyboxAtlas.road_coords()), on a deck that stands out to sea between two
 ## railings and up to a third across its end. The sea covers every cell at or past the pier's first
 ## tile along its heading (at_sea()), from the shore, where the road comes onto the pier, out past
@@ -46,7 +46,7 @@ const LANE_SHIFT := 0.618034
 
 ## The sea, in tile space.
 var water := Rect2()
-## The welcome's grid (ENDGAME_PLAN.md §5.8), in World pixels, with a place for each legend of the
+## The welcome's grid (docs/ENDGAME.md §5.8), in World pixels, with a place for each legend of the
 ## pools: empty before welcome().
 var welcome_rect := Rect2()
 ## What the welcome draws on, in World pixels: its grid, and each still that stands out of its
@@ -113,7 +113,7 @@ func _physics_process(delta: float) -> void:
 		_fade_stills()
 
 
-## Welcomes the car to the end of the road (ENDGAME_PLAN.md §5.8): a still of each legend in
+## Welcomes the car to the end of the road (docs/ENDGAME.md §5.8): a still of each legend in
 ## `collected` stands over the sea past the pier's end, in a grid as the Book has them, an area of
 ## `schedule` with a pool a row, from the first down, and a slot of its pool a column. A legend not
 ## collected leaves its place empty. They fade in one after another, in the Book's order. A glow's

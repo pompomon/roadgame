@@ -184,7 +184,7 @@ func test_a_day_of_no_seconds_is_an_error_and_stops_the_clock() -> void:
 
 
 func test_a_hold_stands_the_clock_and_the_light_goes_to_its_hour_at_the_rate() -> void:
-	# The arrival's sunset (ENDGAME_PLAN.md §5.8): the clock stands at ARRIVAL_HOUR, dusk's key, and
+	# The arrival's sunset (docs/ENDGAME.md §5.8): the clock stands at ARRIVAL_HOUR, dusk's key, and
 	# the light shown goes to dusk's from the day's and from the night's at the rate, as the
 	# shadows go to the hour's without a jump that shows. The next zone's clock runs again.
 	assert_eq(DayCycle.light_at(Tuning.ARRIVAL_HOUR), Tuning.LIGHT_DUSK, "the arrival's hour")

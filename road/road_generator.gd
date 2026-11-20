@@ -21,16 +21,16 @@ extends RefCounted
 ## tutorial's straights come from their own stream, so the road after it is the seed's road.
 ## end_tutorial() ends it after the group it is in.
 ##
-## A schedule with a finish ends the road (ENDGAME_PLAN.md §5.1): the straight after its last turn
+## A schedule with a finish ends the road (docs/ENDGAME.md §5.1): the straight after its last turn
 ## leads to the finish's FINISH_TILES set-piece tiles, and then to BEYOND tiles that go on forever,
 ## so that the buffer always has tiles ahead, but which no car reaches. Nothing is drawn from the
 ## road's stream for the finish, so the road before it is the seed's endless road, tile for tile. A
 ## mirrored schedule's road starts heading W, and its first turn is a right: the path is still the
 ## staircase of N and W runs, so all of the above holds, but the pattern starts the other way
-## (ENDGAME_PLAN.md §5.6).
+## (docs/ENDGAME.md §5.6).
 ##
 ## The way into an area whose entry is a pit stop, its set piece or its first straight, carries
-## pit_stop on its tiles (ENDGAME_PLAN.md §5.15). It draws nothing from the road's stream.
+## pit_stop on its tiles (docs/ENDGAME.md §5.15). It draws nothing from the road's stream.
 
 ## The exits a junction offers besides its entry. T: the turn and the opposite turn. CROSSROADS:
 ## straight on as well. SIDE_ROAD: the turn and straight on. DECOY: straight on, which is correct,
@@ -96,7 +96,7 @@ func _init(run_seed: int, schedule: AreaSchedule, p_tutorial := false) -> void:
 	_rng_tutorial.seed = hash("%d:tutorial" % run_seed)
 	tutorial = p_tutorial
 	if _schedule.mirrored:
-		# The tutorial's loops are laid for a road that starts N (ENDGAME_PLAN.md W10).
+		# The tutorial's loops are laid for a road that starts N (docs/ENDGAME.md W10).
 		if p_tutorial:
 			push_error("RoadGenerator: a mirrored road has no tutorial")
 		tutorial = false
@@ -186,7 +186,7 @@ func _path_tile(type: RoadTile.Type) -> RoadTile:
 func _junction() -> RoadTile:
 	if tutorial and _ending and turn_count % 4 == 0:
 		tutorial = false
-		# A finish due by the tutorial's last junction comes now (ENDGAME_PLAN.md §5.1).
+		# A finish due by the tutorial's last junction comes now (docs/ENDGAME.md §5.1).
 		_finishing = _finish_due()
 		if _finishing:
 			return _finish_tile()

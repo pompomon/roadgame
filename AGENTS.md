@@ -4,7 +4,7 @@ How to work on Road Roguelike, for coding agents (the Copilot cloud agent, Copil
 
 ## 1. Start here
 
-**The game.** An isometric endless driving roguelike for Android (reference device: Samsung Galaxy Z Fold4) and the Web. At each junction the player must follow a hidden left-right pattern (`plan.md` §1–§2). It uses Godot 4.7.2 with the Compatibility renderer, typed GDScript, and GUT 9.7.1 for tests.
+**The game.** An isometric driving roguelike for Android (reference device: Samsung Galaxy Z Fold4) and the Web. At each junction the player must follow a hidden left-right pattern, to reach the pier where the road ends after its 280th turn (`plan.md` §1–§2). It uses Godot 4.7.2 with the Compatibility renderer, typed GDScript, and GUT 9.7.1 for tests.
 
 **Documents.** The most specific one wins.
 
@@ -15,9 +15,9 @@ How to work on Road Roguelike, for coding agents (the Copilot cloud agent, Copil
 | `IMPLEMENTATION_PLAN.md` (IP) | Milestones M0–M7 (§3, §4), decisions D1–D12 (§1.2), conventions (§1.3), determinism (§5.3), CI (§7), definition of done (§9) |
 | `plan.md` | The game design |
 
-IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings F# (M0), G# (M1), H# (M2), J# (M3), K# (M4), L# (M5), S# (M6), R# (ROADGEN), Z# (ZONE_SELECT), T# (TUTORIAL), C# (DAYNIGHT), A# (VISUALS) and V# (POOLS). Cite them with their file, such as `docs/M2.md H16`; "M2 H16" is short for that.
+IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings F# (M0), G# (M1), H# (M2), J# (M3), K# (M4), L# (M5), S# (M6), R# (ROADGEN), Z# (ZONE_SELECT), T# (TUTORIAL), C# (DAYNIGHT), A# (VISUALS), V# (POOLS) and W# (ENDGAME). Cite them with their file, such as `docs/M2.md H16`; "M2 H16" is short for that.
 
-**State.** M0–M6 are merged, and so are six plans of their own: the road generator, the zone select, the tutorial, the day and the night, the visuals, and the legends' pools (#1–#76, #80–#83, #85–#91, #93, #94 and #96–#98). M7 is next: Ship, with orientation and foldables, haptics, the Web's audio, the signed release and device QA. IP §4 M7 gathers the notes for it.
+**State.** M0–M6 are merged, and so are seven plans of their own: the road generator, the zone select, the tutorial, the day and the night, the visuals, the legends' pools, and the road's end with the Book of Legends (#1–#76, #80–#91, #93, #94, #96–#98 and #101–#113). M7 is next: Ship, with orientation and foldables, haptics, the Web's audio, the signed release and device QA. IP §4 M7 gathers the notes for it.
 
 **Layout.** `autoload/`: the `EventBus`, `GameState`, `SaveService` and `AudioDirector` singletons. `road/`: the generator and the junctions. `car/`: `CarSim` (the pure simulation), `Autopilot`, `CarController` and `InputRouter`. `world/`: the projection, the renderer, props, shadows, lamps, the camera, and the day and the night. `disasters/`: the director and the legends. `setpieces/`: the tunnel and the bridge. `ui/`: `main.tscn` (the main scene), the HUD, game over and the title. `audio/`: the music and the ambience. `areas/`: `AreaDef` and one `.tres` per area. `config/tuning.gd`: the tuning constants. `assets/`: the art, the font and the sounds, made by `tools/art/` and `tools/audio/`. `tests/`: `unit/`, `sim/`, `integration/` and `helpers/`. `tools/ci/`: the CI scripts (§3). `tools/agent/`: `watch_pr.sh` and `land_pr.sh` (§5), and their tests in `test/`. `addons/gut/`: GUT 9.7.1, unmodified.
 

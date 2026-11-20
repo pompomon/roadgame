@@ -2,7 +2,7 @@ extends Node
 ## The run's state and stats (plan.md §7.3, IMPLEMENTATION_PLAN.md M2.7). The main scene starts and
 ## ends runs. Every state change is checked against TRANSITIONS, and EventBus is told. A run that
 ## reaches the finish ends in ARRIVED, and then shows its end screen as GAME_OVER, as the others do
-## (ENDGAME_PLAN.md §5.3).
+## (docs/ENDGAME.md §5.3).
 
 enum State { TITLE, RUNNING, PAUSED, DISASTER, CRASH, GAME_OVER, ARRIVED }
 
@@ -24,10 +24,10 @@ var turn_index := 0
 ## The farthest the car got along the correct path, in tiles.
 var distance := 0.0
 ## The run's time, in seconds: from its start, or the tutorial's end, to its end, without the
-## pauses. The main scene counts it (ENDGAME_PLAN.md §5.3).
+## pauses. The main scene counts it (docs/ENDGAME.md §5.3).
 var seconds := 0.0
 ## Whether the car has stayed on the road since the run's start, or the tutorial's end: a clean
-## run (ENDGAME_PLAN.md §5.4).
+## run (docs/ENDGAME.md §5.4).
 var clean := true
 ## The area of the farthest correct-path tile the car reached.
 var area_id := &""
@@ -37,17 +37,17 @@ var end_cause := &""
 ## when it ends (docs/TUTORIAL.md §5.5).
 var in_tutorial := false
 ## Whether the run drives the whole road, from its first area: not a departure from a later one.
-## Only such a run counts an arrival and the overall bests (ENDGAME_PLAN.md Q4, W22).
+## Only such a run counts an arrival and the overall bests (docs/ENDGAME.md Q4, W22).
 var whole_road := true
 ## The finish of the road that the run drives whole, whose farthest turn the save keeps
-## (ENDGAME_PLAN.md §5.12): &"" for a run from a later area, and on a road without a finish.
+## (docs/ENDGAME.md §5.12): &"" for a run from a later area, and on a road without a finish.
 var road := &""
 
 ## Where each area the run entered begins, in order: [area id, distance, turns], the path distance
 ## to the area's first tile and the turns at the junctions before it (docs/M5.md L8).
 var _entries: Array[Array] = []
 ## The areas where the car took damage, and those it crossed: onto the next area's first tile on
-## the road, or by arriving in the last (ENDGAME_PLAN.md §5.16). The tutorial's count for neither.
+## the road, or by arriving in the last (docs/ENDGAME.md §5.16). The tutorial's count for neither.
 var _damaged: Dictionary[StringName, bool] = {}
 var _crossed: Dictionary[StringName, bool] = {}
 
@@ -92,7 +92,7 @@ func enter_area(id: StringName, start_distance: float, start_turns: int) -> void
 	_entries.append([id, start_distance, start_turns])
 
 
-## The car took damage in the area `id`, at its rates (ENDGAME_PLAN.md §5.16).
+## The car took damage in the area `id`, at its rates (docs/ENDGAME.md §5.16).
 func damage_area(id: StringName) -> void:
 	_damaged[id] = true
 
@@ -152,7 +152,7 @@ func quit_to_title() -> void:
 
 
 ## The run's stats. "areas" has, for each area it entered, the distance and the turns the run made
-## there, and whether the car took damage there and crossed it (ENDGAME_PLAN.md §5.16):
+## there, and whether the car took damage there and crossed it (docs/ENDGAME.md §5.16):
 ## {id: {"distance": float, "turns": int, "damaged": bool, "crossed": bool}}.
 func stats() -> Dictionary:
 	return {

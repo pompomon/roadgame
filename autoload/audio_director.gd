@@ -6,7 +6,7 @@ extends Node
 ## apply when a run starts and when they change, never in _ready(), which mustn't read the save
 ## (docs/M5.md L1). Music and ambient sound go on while the game is paused; the car's sounds pause.
 ## On an arrival, the engine winds down with the car and stops with it, as a jingle plays, and the
-## area's music fades out under its ambient sound (ENDGAME_PLAN.md §5.8). The end screen's NEW
+## area's music fades out under its ambient sound (docs/ENDGAME.md §5.8). The end screen's NEW
 ## LEGEND! has a jingle of its own (§5.9), and a pit stop's repair a ding (§5.15).
 
 ## A one-shot sound started, or would have if can_play were on.

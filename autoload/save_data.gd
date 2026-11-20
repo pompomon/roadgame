@@ -1,7 +1,7 @@
 class_name SaveData
 extends RefCounted
 ## What the save file holds (plan.md §9, IMPLEMENTATION_PLAN.md M5.4): the atlas of areas, the best
-## run, the disaster collection, the arrivals at each road's finish (ENDGAME_PLAN.md §5.4), the
+## run, the disaster collection, the arrivals at each road's finish (docs/ENDGAME.md §5.4), the
 ## settings and whether the tutorial is done. SaveService reads and writes the file; this class
 ## only turns text into data and back, and records runs.
 ## load_json() takes any text and keeps what it can: it migrates an older version, and a value of
@@ -24,14 +24,14 @@ const DEFAULT_SETTINGS := {
 const VOLUMES: Array[String] = ["music", "sfx", "ambient"]
 ## An area of the atlas: whether a run has reached it, the most distance and turns a run made in it
 ## (docs/M5.md L8), and whether a run crossed it with no damage, which stamps its postcard
-## (ENDGAME_PLAN.md §5.16).
+## (docs/ENDGAME.md §5.16).
 const ATLAS_ENTRY := {"discovered": false, "best_distance": 0.0, "best_turns": 0, "stamped": false}
 ## A disaster of the collection: how often it was seen, where and in which run it was first seen
-## (plan.md §2.6), and whether an arrival unlocked it (ENDGAME_PLAN.md §5.5).
+## (plan.md §2.6), and whether an arrival unlocked it (docs/ENDGAME.md §5.5).
 const DISASTER_ENTRY := {
 	"seen": 0, "first_area": "", "first_distance": 0.0, "first_turns": 0, "unlocked": false
 }
-## The arrivals at a road's finish, by the finish's id (ENDGAME_PLAN.md §5.4): how many runs that
+## The arrivals at a road's finish, by the finish's id (docs/ENDGAME.md §5.4): how many runs that
 ## drove the whole road arrived, the least seconds one took, 0 before the first, and whether one
 ## never left the road; and the farthest turn that such a run reached on the road, arrived or not
 ## (§5.12).
@@ -45,7 +45,7 @@ const TUTORIAL := {"done": false}
 ## int: Godot reads the float literal 9007199254740991.0 as 9007199254740990.0.
 const MAX_NUMBER := 9007199254740991
 ## The finish of the road to the sea, the only road whose runs counted in "best" in version 3, the
-## debug flags aside (ENDGAME_PLAN.md §5.12).
+## debug flags aside (docs/ENDGAME.md §5.12).
 const V3_SEA := "pier"
 ## The turns of both roads in version 3, to the sea and home.
 const V3_FINISH_TURN := 280
@@ -92,13 +92,13 @@ static func _v1_to_v2(data: Dictionary) -> Dictionary:
 	return data
 
 
-## Version 3 adds the arrivals and the disasters' "unlocked" (ENDGAME_PLAN.md §5.4, §5.5). Both
+## Version 3 adds the arrivals and the disasters' "unlocked" (docs/ENDGAME.md §5.4, §5.5). Both
 ## come from the defaults: no run has arrived, and no disaster was unlocked.
 static func _v2_to_v3(data: Dictionary) -> Dictionary:
 	return data
 
 
-## Version 4 adds each road's farthest turn to its arrival entry (ENDGAME_PLAN.md §5.12). A road
+## Version 4 adds each road's farthest turn to its arrival entry (docs/ENDGAME.md §5.12). A road
 ## with an arrival was driven to its finish, V3_FINISH_TURN. Otherwise the road to the sea's is the
 ## best turns, at most that, as no other road counted in "best", and the others' 0. A value of the
 ## wrong type counts as none: _read() then reports it, and an "arrivals" that isn't an object stays.
@@ -123,7 +123,7 @@ static func _v3_to_v4(data: Dictionary) -> Dictionary:
 	return data
 
 
-## Version 5 adds each atlas entry's "stamped" (ENDGAME_PLAN.md §5.16), from the defaults: no run
+## Version 5 adds each atlas entry's "stamped" (docs/ENDGAME.md §5.16), from the defaults: no run
 ## has stamped an area. Each road's "farthest" stays as version 4 left it.
 static func _v4_to_v5(data: Dictionary) -> Dictionary:
 	return data
@@ -189,7 +189,7 @@ func to_json() -> String:
 
 
 ## Records a finished run's GameState.stats(): the areas it reached, the distance and turns it made
-## in each, and a stamp for each it crossed with no damage (ENDGAME_PLAN.md §5.16); its turns as its
+## in each, and a stamp for each it crossed with no damage (docs/ENDGAME.md §5.16); its turns as its
 ## road's farthest, if it drove a road with a finish whole, the "road" of the stats (§5.12); and its
 ## distance and turns overall, if it drove the whole road. A departure from a later area sets
 ## neither (W22), but stamps what it crossed. Stats without "whole_road" count as a whole road's,
@@ -228,7 +228,7 @@ func record_disaster(id: StringName, area_id: StringName, stats: Dictionary) -> 
 
 
 ## The ids of the disasters seen at least once, or unlocked: those that the Book of Legends
-## shows as found (plan.md §2.6, ENDGAME_PLAN.md W14), and that weigh less in a run's picks
+## shows as found (plan.md §2.6, docs/ENDGAME.md W14), and that weigh less in a run's picks
 ## (docs/POOLS.md Q2, Q3).
 func seen_disasters() -> Array[StringName]:
 	var ids: Array[StringName] = []
@@ -240,7 +240,7 @@ func seen_disasters() -> Array[StringName]:
 
 ## Records that a run that drove the whole road reached the finish `finish` with `stats`, from
 ## GameState.stats(): one more arrival, the best time and the clean run, and its turns, the
-## finish's, as the road's farthest (ENDGAME_PLAN.md §5.12).
+## finish's, as the road's farthest (docs/ENDGAME.md §5.12).
 func record_arrival(finish: StringName, stats: Dictionary) -> void:
 	var entry: Dictionary = arrivals.get(String(finish), ARRIVAL_ENTRY.duplicate())
 	var seconds: float = stats.get("seconds", 0.0)
@@ -254,14 +254,14 @@ func record_arrival(finish: StringName, stats: Dictionary) -> void:
 
 ## Whether an arrival at the finish `finish` in `seconds` beats the best time there. The first
 ## arrival has none to beat: a finish's best time is 0 until then, which no arrival beats
-## (ENDGAME_PLAN.md §5.16).
+## (docs/ENDGAME.md §5.16).
 func beats_best_time(finish: StringName, seconds: float) -> bool:
 	var best_seconds: float = arrivals.get(String(finish), ARRIVAL_ENTRY)["best_seconds"]
 	return seconds < best_seconds
 
 
 ## Unlocks the disaster `id`: the Book of Legends shows it, "Not seen yet" until a run meets it,
-## and the picks weigh it as seen (ENDGAME_PLAN.md §5.5, §5.10).
+## and the picks weigh it as seen (docs/ENDGAME.md §5.5, §5.10).
 func unlock_disaster(id: StringName) -> void:
 	var entry: Dictionary = disasters.get(String(id), DISASTER_ENTRY.duplicate())
 	entry["unlocked"] = true

@@ -1,6 +1,6 @@
 extends GutTest
 ## The grey-box HUD (IMPLEMENTATION_PLAN.md M2.6, M3.3) on its own: what it shows, the pause input,
-## the route strip (ENDGAME_PLAN.md §5.14), and the fresh start of each run. The integration test
+## the route strip (docs/ENDGAME.md §5.14), and the fresh start of each run. The integration test
 ## checks the Pause button inside the main scene, and the game-over screen has its own test.
 ## SaveService keeps the save in memory.
 
@@ -241,7 +241,7 @@ func test_the_tutorial_shows_its_streak_and_goal_until_it_is_done() -> void:
 	assert_true(distance.visible)
 
 
-## ENDGAME_PLAN.md §5.14, E12: on a road with a finish, a strip up the HUD's right edge, 6 pixels
+## docs/ENDGAME.md §5.14, E12: on a road with a finish, a strip up the HUD's right edge, 6 pixels
 ## wide and 40% of its height, with a tick at each area's first turn, the Coast's at the finish; the
 ## car, which climbs a pixel or so a turn on each reference screen, and never more than two; and the
 ## best run, the road's farthest turn as the run starts. A run from a later area starts at its
@@ -297,7 +297,7 @@ func test_the_route_strip_marks_each_area_the_car_and_the_best() -> void:
 	assert_eq(strip.car_height(), 1)
 
 
-## ENDGAME_PLAN.md §5.13, §5.14: the strip shows each road with a finish, with its own areas and
+## docs/ENDGAME.md §5.13, §5.14: the strip shows each road with a finish, with its own areas and
 ## best run: the Road Home's from the Desert, and --finish's short road, where the road's best run
 ## is past its finish, at the top. Keep Driving's endless road has none, nor has a HUD with no road.
 func test_the_route_strip_shows_only_on_a_road_with_a_finish() -> void:

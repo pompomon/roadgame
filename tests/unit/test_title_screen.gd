@@ -133,7 +133,7 @@ func test_a_glow_on_a_legends_page_adds_no_more_light_than_the_background_leaves
 
 func test_the_start_button_offers_every_area_in_debug_builds_only() -> void:
 	# docs/ZONE_SELECT.md Z4: GUT runs a debug build, so the release default is a device check.
-	# Other builds offer the City alone until a run discovers a later area (ENDGAME_PLAN.md §5.11).
+	# Other builds offer the City alone until a run discovers a later area (docs/ENDGAME.md §5.11).
 	var title := _title()
 	assert_eq(title.every_area, OS.is_debug_build())
 	var start := _button(title, "StartArea")
@@ -146,7 +146,7 @@ func test_the_start_button_offers_every_area_in_debug_builds_only() -> void:
 
 
 func test_other_builds_offer_the_areas_discovered_but_a_home_stretch() -> void:
-	# ENDGAME_PLAN.md §5.11: the City, then each later area that a run discovered, in the road's
+	# docs/ENDGAME.md §5.11: the City, then each later area that a run discovered, in the road's
 	# order, but the Coast, a home stretch with no junction to play. A choice that isn't one of
 	# them gives way to the City.
 	var title := _title()
@@ -198,7 +198,7 @@ func test_the_start_button_steps_through_the_areas_and_open_keeps_the_last() -> 
 
 func test_the_title_page_fits_a_portrait_screen_with_each_road_and_start_area() -> void:
 	# The Road and Start buttons keep their widths as they step, so that each tap lands on them (Z9,
-	# ENDGAME_PLAN.md §5.12). The road to the sea's records have each of their lines (§5.16).
+	# docs/ENDGAME.md §5.12). The road to the sea's records have each of their lines (§5.16).
 	SaveService.data().record_run({"distance": 9999.9, "turn_index": 999})
 	SaveService.data().record_arrival(&"pier", {"seconds": 99999.9, "clean": true})
 	var title := _title()
@@ -225,7 +225,7 @@ func test_the_title_page_fits_a_portrait_screen_with_each_road_and_start_area() 
 
 
 func test_the_road_button_offers_the_other_roads_after_an_arrival_at_the_sea() -> void:
-	# ENDGAME_PLAN.md §5.12: the road to the sea alone, until it has an arrival. The Road Home then
+	# docs/ENDGAME.md §5.12: the road to the sea alone, until it has an arrival. The Road Home then
 	# starts from its first area, the Desert, and the Start button steps through its own areas, and
 	# Keep Driving's endless road from the City (§5.13). A choice that isn't offered gives way to
 	# the road to the sea, from its first area.
@@ -266,7 +266,7 @@ func test_the_road_button_offers_the_other_roads_after_an_arrival_at_the_sea() -
 	assert_eq([title.road, title.start_area], [title.schedule, title.schedule.areas()[0]])
 
 
-## ENDGAME_PLAN.md §5.16: once a run has arrived, the title shows the records of the road that Play
+## docs/ENDGAME.md §5.16: once a run has arrived, the title shows the records of the road that Play
 ## drives, under the bests: its arrivals, then its best time and whether one was clean, and none for
 ## the endless road. The records keep the height of their three lines, so that the Road button
 ## stays put as it steps (docs/ZONE_SELECT.md Z9).
@@ -296,7 +296,7 @@ func test_the_title_shows_the_arrivals_and_the_best_time() -> void:
 func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	# 360 x 640 is the smallest the game's window shows (project.godot's stretch settings). Every
 	# legend of the pools is seen, and the Vanishing Hitchhiker, so that each cell shows its name and
-	# its still, and each page its fate and lore (docs/M6.md S15, ENDGAME_PLAN.md §5.10, §5.17).
+	# its still, and each page its fate and lore (docs/M6.md S15, docs/ENDGAME.md §5.10, §5.17).
 	var data := SaveService.data()
 	var areas := {}
 	for id: StringName in [&"city", &"rural", &"meadows", &"village", &"desert", &"coast"]:
@@ -312,7 +312,7 @@ func test_every_screen_fits_a_portrait_screen_with_the_longest_texts() -> void:
 	title.open()
 	var bounds := Rect2(Vector2.ZERO, Vector2(title.get_viewport().size))
 	# The Book's rows and the Atlas's postcards may run below the screen, as their scrolls scroll to
-	# them (S16, ENDGAME_PLAN.md W33).
+	# them (S16, docs/ENDGAME.md W33).
 	var grid: Control = title.get_node("%Book/%Grid")
 	var scroll: ScrollContainer = title.get_node("%Book/%Scroll")
 	var postcards: ScrollContainer = title.get_node("%Atlas/%Scroll")

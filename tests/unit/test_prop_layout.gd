@@ -514,7 +514,7 @@ static func _in_set_pieces(
 	return problems
 
 
-## Last Gas's straight after every other turn (ENDGAME_PLAN.md §5.15), on an area of T-junctions,
+## Last Gas's straight after every other turn (docs/ENDGAME.md §5.15), on an area of T-junctions,
 ## whose dead ends keep off the straights' far sides, where it stands.
 func _pit_stop_schedule(turns: int) -> AreaSchedule:
 	var area := AreaDef.new()

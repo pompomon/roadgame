@@ -75,7 +75,7 @@ const BRAKE := 4.0
 const STEER_RATE := 3.0
 const STRAIGHTEN_RATE := 1.0
 const START_HEALTH := 100.0
-## What a pit stop repairs (ENDGAME_PLAN.md §5.15): half the car's health, what 1.4 to 2 seconds
+## What a pit stop repairs (docs/ENDGAME.md §5.15): half the car's health, what 1.4 to 2 seconds
 ## off the road cost, at the areas' 35 to 25 a second.
 const PIT_STOP_HEAL := 50.0
 ## Skid marks (docs/M5.md §5.7): while the car brakes for a junction, a pair every SKID_SPACING
@@ -126,13 +126,13 @@ const METRES_PER_TILE := 10
 ## How long the HUD shows the name of the area the car enters, in seconds of the run: the time
 ## while the game is paused doesn't count (IMPLEMENTATION_PLAN.md M4.3).
 const AREA_BANNER_SECONDS := 2.0
-## The Book of Legends (ENDGAME_PLAN.md §5.10): a drag scrolls it once the finger has gone further
+## The Book of Legends (docs/ENDGAME.md §5.10): a drag scrolls it once the finger has gone further
 ## than this many pixels of the view, so that a tap that wobbles less still opens a legend's page.
 ## Near Android's touch slop, 8 dp.
 const BOOK_SCROLL_DEADZONE := 8
 ## How far an arrow key scrolls the Book, a legend's page or the Atlas, where the focus has nowhere
 ## to go that way: this share of what shows of it (MenuScreen.scroll_by_key()). A mouse wheel's
-## notch scrolls an eighth too, in Godot 4.7.2's ScrollContainer (ENDGAME_PLAN.md W28).
+## notch scrolls an eighth too, in Godot 4.7.2's ScrollContainer (docs/ENDGAME.md W28).
 const BOOK_KEY_SCROLL := 0.125
 
 ## The tutorial (docs/TUTORIAL.md §5): a road in the City's look, where every wrong exit loops back
@@ -167,7 +167,7 @@ const PARTICLE_SCALE_MAX := 1.25
 ## in its area's pick, against 1 for one not seen yet (docs/POOLS.md Q2): half as likely as each
 ## unseen one.
 const SEEN_DISASTER_WEIGHT := 0.5
-## The end of the road (ENDGAME_PLAN.md §5.1, §5.2): the finish's set piece, such as the pier, is
+## The end of the road (docs/ENDGAME.md §5.1, §5.2): the finish's set piece, such as the pier, is
 ## FINISH_TILES path tiles long. A car that reaches it rolls to a stop ARRIVE_STOP_SHORT tiles
 ## before the centre of its last tile, or sooner, within ARRIVE_ROLL_SECONDS, if it came slowly.
 ## The arrival screen shows ARRIVAL_SECONDS after it reached the finish: after the car has stopped,
@@ -176,7 +176,7 @@ const FINISH_TILES := 8
 const ARRIVE_STOP_SHORT := 0.5
 const ARRIVE_ROLL_SECONDS := 4.0
 const ARRIVAL_SECONDS := 5.0
-## The arrival's scene (ENDGAME_PLAN.md §5.8). The sun sets: the clock stands at ARRIVAL_HOUR,
+## The arrival's scene (docs/ENDGAME.md §5.8). The sun sets: the clock stands at ARRIVAL_HOUR,
 ## LIGHT_DUSK's key. The camera's target eases from the car to the welcome, in 1 / ARRIVAL_PAN_RATE
 ## seconds, and keeps the car's body in view with ARRIVAL_MARGIN_PX round it. The welcome is a grid
 ## of the legends' stills, an area a row and a slot of its pool a column, as the Book has them,
@@ -197,7 +197,7 @@ const WELCOME_DELAY := 1.0 / ARRIVAL_PAN_RATE
 const WELCOME_FADE := 0.5
 const WELCOME_STEP := 0.1
 const STILL_MIN_SIDE := 30.0
-## The Vanishing Hitchhiker (ENDGAME_PLAN.md §5.17) stands HITCHHIKER_ASIDE tiles across from the
+## The Vanishing Hitchhiker (docs/ENDGAME.md §5.17) stands HITCHHIKER_ASIDE tiles across from the
 ## centre of the straight that she stands by, as SetPiece.point() measures: below 0, toward its far
 ## side, just off the road, whose half width is ROAD_HALF_WIDTH. Once the car has passed her, she
 ## fades away in HITCHHIKER_FADE_SECONDS.

@@ -10,7 +10,7 @@ Input: Touch and keyboard
 
 ## 1. Vision
 
-An isometric pixel-art driving roguelike. The player steers a car along a procedurally generated road through a series of hand-designed areas. At every junction the player must follow a hidden **Left → Right → Left → Right…** pattern. One wrong or missed turn ends the run with a procedural disaster. After its 280th turn the road ends at a pier on the Coast: the goal is to drive the whole road and arrive there, and to discover every area and disaster on the way (`ENDGAME_PLAN.md` W1).
+An isometric pixel-art driving roguelike. The player steers a car along a procedurally generated road through a series of hand-designed areas. At every junction the player must follow a hidden **Left → Right → Left → Right…** pattern. One wrong or missed turn ends the run with a procedural disaster. After its 280th turn the road ends at a pier on the Coast: the goal is to drive the whole road and arrive there, and to discover every area and disaster on the way (`docs/ENDGAME.md` W1).
 
 ### 1.1 Core pillars
 - **One rule, learned through failure.** The L/R pattern is never explained. Players discover it by failing: in the tutorial a wrong turn only ends a streak (§2.7), and after it, by dying.
@@ -23,13 +23,13 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 ## 2. Game Rules
 
 ### 2.1 Run flow
-1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7). The title also offers a **departure** from each later area that a run has discovered, but the Coast's home stretch: it counts for its areas and its legends, but sets no overall best and counts no arrival (§2.6, `ENDGAME_PLAN.md` §5.11). After the first arrival at the sea, it also offers the **Road Home**: the Desert to the City, heading west, the turns mirrored, to the end of the road at home (`ENDGAME_PLAN.md` §5.12). And it offers **Keep Driving**, the endless road, where the Desert goes on forever (§3.6, `ENDGAME_PLAN.md` §5.13).
+1. The run starts in the **City**, heading north. Until the player has finished it, it starts with the **tutorial**, where no turn ends the run (§2.7). The title also offers a **departure** from each later area that a run has discovered, but the Coast's home stretch: it counts for its areas and its legends, but sets no overall best and counts no arrival (§2.6, `docs/ENDGAME.md` §5.11). After the first arrival at the sea, it also offers the **Road Home**: the Desert to the City, heading west, the turns mirrored, to the end of the road at home (`docs/ENDGAME.md` §5.12). And it offers **Keep Driving**, the endless road, where the Desert goes on forever (§3.6, `docs/ENDGAME.md` §5.13).
 2. The car controls its speed automatically (§2.3). The player only steers.
 3. The road has straights and **junctions**. At each junction the player must take the next turn in the global pattern `L, R, L, R, …`. The first turn is always **Left**. A **decoy** junction doesn't offer that turn, only straight on and the other turn: there straight on is correct, and the turn waits for a later junction.
 4. Taking the wrong exit, or continuing straight through a junction that offers the turn (a "missed turn"), triggers a **disaster** and ends the run.
 5. Driving off the road drains **health** and is limited to short excursions (§2.4). At 0 health the car crashes and the run ends.
 6. Correct turns increment `turnIndex`; straight on at a decoy doesn't. Fixed areas and set pieces start at predefined turn numbers.
-7. The game-over screen shows distance, turns, the area reached, the run's time and the cause of the run's end. A road with a finish ends there: a run that reaches it with every turn taken arrives, and the screen says "You reached the end of the road!" (`ENDGAME_PLAN.md` §5.3, W15).
+7. The game-over screen shows distance, turns, the area reached, the run's time and the cause of the run's end. A road with a finish ends there: a run that reaches it with every turn taken arrives, and the screen says "You reached the end of the road!" (`docs/ENDGAME.md` §5.3, W15).
 
 ### 2.2 Controls: free steering with automatic speed
 | Action | Touch (portrait or landscape) | Keyboard |
@@ -52,20 +52,20 @@ An isometric pixel-art driving roguelike. The player steers a car along a proced
 - **Off-road limit:** the car cannot stay off the road for longer than **2 tiles** of travel. Reaching the limit ends the run:
   - near a junction, it counts as a missed turn and triggers a **disaster**
   - anywhere else, the car **crashes**
-- There are **no pickups** in the MVP (no health, fuel or score pickups), and health regenerates only at the **pit stops**: as the car drives out of one on the road, it is repaired by 50, up to 100, once for each pit stop in a run, but never off the road or once the run has ended (§3.6, `ENDGAME_PLAN.md` §5.15, W24).
+- There are **no pickups** in the MVP (no health, fuel or score pickups), and health regenerates only at the **pit stops**: as the car drives out of one on the road, it is repaired by 50, up to 100, once for each pit stop in a run, but never off the road or once the run has ended (§3.6, `docs/ENDGAME.md` §5.15, W24).
 
 ### 2.5 End conditions
 | Cause | Trigger | Result |
 |---|---|---|
 | Disaster | Wrong exit, missed turn, or exceeding the off-road limit near a junction | Area-specific disaster sequence, then game over |
 | Crash | Health reaches 0, or exceeding the off-road limit on a straight | Crash animation, then game over |
-| Arrival | Reaching the road's finish with every junction taken (`ENDGAME_PLAN.md` W1) | The car rolls to a stop on the finish, then game over, with the run's time; a run that drove the whole road unlocks a legend (§2.6) |
+| Arrival | Reaching the road's finish with every junction taken (`docs/ENDGAME.md` W1) | The car rolls to a stop on the finish, then game over, with the run's time; a run that drove the whole road unlocks a legend (§2.6) |
 
 ### 2.6 Meta-progression
 None that makes a run easier or harder. Persisted between runs:
-- **Atlas:** areas discovered, plus best distance and best turn count overall and for each area. Only a run that drove a whole road, from its first area, sets the overall bests; a departure from a later area sets its areas' (`ENDGAME_PLAN.md` W22).
-- **Book of Legends:** the disaster collection, each legend witnessed, with its area and run stats, in a row for each area with a pool. A legend not found yet shows as a silhouette with its name's initials, and an area whose legends are all found has a seal in its colour (`ENDGAME_PLAN.md` §5.10). A legend in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner. Once every legend of the pools is found, the Vanishing Hitchhiker, in no pool, stands beside the Road Home at the player's farthest turn on it, or by its last straight once they have arrived home; passing her finds her, the Book's 16th page (`ENDGAME_PLAN.md` §5.17).
-- **Arrivals:** for each finish, the sea's and home's, the runs that drove the whole road from its first area and arrived, the best time, whether one never left the road, and the farthest turn that such a run reached, arrived or not (`ENDGAME_PLAN.md` §5.12). Each arrival unlocks a legend of the road's pools not yet collected, each as likely: it joins the Book, "Not seen yet" until a run meets it, and weighs as seen in the picks (§5.4, §5.5).
+- **Atlas:** areas discovered, plus best distance and best turn count overall and for each area. Only a run that drove a whole road, from its first area, sets the overall bests; a departure from a later area sets its areas' (`docs/ENDGAME.md` W22).
+- **Book of Legends:** the disaster collection, each legend witnessed, with its area and run stats, in a row for each area with a pool. A legend not found yet shows as a silhouette with its name's initials, and an area whose legends are all found has a seal in its colour (`docs/ENDGAME.md` §5.10). A legend in it comes up half as often as each one not seen yet (§4.2), so that runs show the ones still missing sooner. Once every legend of the pools is found, the Vanishing Hitchhiker, in no pool, stands beside the Road Home at the player's farthest turn on it, or by its last straight once they have arrived home; passing her finds her, the Book's 16th page (`docs/ENDGAME.md` §5.17).
+- **Arrivals:** for each finish, the sea's and home's, the runs that drove the whole road from its first area and arrived, the best time, whether one never left the road, and the farthest turn that such a run reached, arrived or not (`docs/ENDGAME.md` §5.12). Each arrival unlocks a legend of the road's pools not yet collected, each as likely: it joins the Book, "Not seen yet" until a run meets it, and weighs as seen in the picks (§5.4, §5.5).
 - Settings (volume, orientation lock, haptics).
 
 ### 2.7 Tutorial
@@ -86,7 +86,7 @@ Until the player has finished it, Play starts the run with a tutorial: the City'
 
 ### 3.2 Correct path shape
 - The correct path alternates L and R, so it forms a staircase. Starting north, it alternates between two headings (N → W → N → W…). Because it always moves in the same overall direction, it **can never cross itself**.
-- A mirrored road, the Road Home, starts heading W instead, so its first turn is a right, to N, and its staircase is N and W too: it climbs the portrait screen as the way out does, where a road flipped from N would turn E and run across it (`ENDGAME_PLAN.md` W9).
+- A mirrored road, the Road Home, starts heading W instead, so its first turn is a right, to N, and its staircase is N and W too: it climbs the portrait screen as the way out does, where a road flipped from N would turn E and run across it (`docs/ENDGAME.md` W9).
 - Randomness comes from:
   - straight lengths between junctions (`minStraight`..`maxStraight` per area)
   - junction kind (T-junction, crossroads, side road or decoy, so which of the turn, the opposite turn and "straight on" are offered)
@@ -122,12 +122,12 @@ Fixed areas are keyed by **correct-turn count**. The areas between schedule entr
 | 100 | Bridge over a river | Meadows | Green meadows and pastures |
 | 200 | — | Village | Family houses |
 | 220 | — | Desert | The last area with junctions, and the climax |
-| 280 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`ENDGAME_PLAN.md` §5.8) |
+| 280 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`docs/ENDGAME.md` §5.8) |
 
 - When `turnIndex` reaches a schedule entry, the next straight is replaced by the set piece (a fixed run of straight tiles with no junction), then the area switches.
-- **Pit stops** repair the car (§2.4, `ENDGAME_PLAN.md` §5.15): the tunnel, the bridge, and **Last Gas**, a filling station beside the Desert's first straight. On the Road Home they are Last Gas by the Village's first straight, the bridge and the tunnel. An entry's `pit_stop` makes its way in one: its set piece, or with none, its area's first straight. A departure from an area leaves its way in out, and with it its pit stop.
-- The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`ENDGAME_PLAN.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run.
-- The **endless road**, `endless()`, is the schedule without its finish and the Coast's home stretch, which has no junction, so the Desert goes on forever, as before the road had an end. The tests drive it, and after the first arrival at the sea the title offers it as **Keep Driving**. Its runs count as the road's did then: a run from the City sets the overall bests, and each run its areas' bests and its legends, but none can arrive, and it keeps no road's farthest turn (`ENDGAME_PLAN.md` §5.12, §5.13).
+- **Pit stops** repair the car (§2.4, `docs/ENDGAME.md` §5.15): the tunnel, the bridge, and **Last Gas**, a filling station beside the Desert's first straight. On the Road Home they are Last Gas by the Village's first straight, the bridge and the tunnel. An entry's `pit_stop` makes its way in one: its set piece, or with none, its area's first straight. A departure from an area leaves its way in out, and with it its pit stop.
+- The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`docs/ENDGAME.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run.
+- The **endless road**, `endless()`, is the schedule without its finish and the Coast's home stretch, which has no junction, so the Desert goes on forever, as before the road had an end. The tests drive it, and after the first arrival at the sea the title offers it as **Keep Driving**. Its runs count as the road's did then: a run from the City sets the overall bests, and each run its areas' bests and its legends, but none can arrive, and it keeps no road's farthest turn (`docs/ENDGAME.md` §5.12, §5.13).
 
 ### 3.7 AreaDef (Godot `Resource`, `.tres`)
 ```
@@ -300,7 +300,7 @@ World's last child, `Lamps`, is a `CanvasGroup` above `Daylight` that lights the
 ### 7.3 Game state machine
 `TITLE → RUNNING ⇄ PAUSED → (DISASTER | CRASH | ARRIVED) → GAME_OVER → RUNNING (retry) / TITLE`
 
-ARRIVED is a run that reached the road's finish (`ENDGAME_PLAN.md` W2).
+ARRIVED is a run that reached the road's finish (`docs/ENDGAME.md` W2).
 
 ### 7.4 Signals (EventBus)
 - `run_started(seed)`
@@ -358,7 +358,7 @@ tests/         GUT tests
   "tutorial": { "done": false }
 }
 ```
-The file has a version number so it can be migrated when the format changes. Version 3 adds `arrivals` and each disaster's `unlocked` (`ENDGAME_PLAN.md` W3), version 4 each arrival's `farthest` (§5.12), and version 5 each atlas entry's `stamped`, set once a run crosses the area with no damage (§5.16). It is written on `run_ended`, when settings change, as the tutorial is done (§2.7), and on an arrival that counts.
+The file has a version number so it can be migrated when the format changes. Version 3 adds `arrivals` and each disaster's `unlocked` (`docs/ENDGAME.md` W3), version 4 each arrival's `farthest` (§5.12), and version 5 each atlas entry's `stamped`, set once a run crosses the area with no damage (§5.16). It is written on `run_ended`, when settings change, as the tutorial is done (§2.7), and on an arrival that counts.
 
 ---
 
@@ -388,7 +388,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 - Every junction has ≥ 1 wrong exit.
 - Lookahead stays within 37..55 tiles after any number of refills.
 - Area switches and set pieces happen at turns 34, 100, 200, 220 and 280, and the road ends at the pier after its 280th turn.
-- Up to its last junction, the game's road is the endless road's, tile for tile, which goes on in the Desert (`ENDGAME_PLAN.md` E1, W6).
+- Up to its last junction, the game's road is the endless road's, tile for tile, which goes on in the Desert (`docs/ENDGAME.md` E1, W6).
 
 **Simulation**
 - A scripted driver follows `expectedExit` for 300+ turns of the endless road with no disaster, and drives the game's road and the Road Home to their ends.
@@ -426,10 +426,10 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 | Tutorial | Until the player has finished it, runs start with one in the City: no disasters or death, every road leads on, and 12 correct turns in a row lead into the City's run |
 | Road directions | All 4 headings rendered; the correct path is a staircase, so it never crosses itself |
 | Buffer | 55 tiles at start, refill below 37, keep 37–55 lookahead and 20 tiles behind |
-| Areas | Fixed schedule by turn count; after turn 280 the road ends at a pier on the Coast (`ENDGAME_PLAN.md` W1) |
+| Areas | Fixed schedule by turn count; after turn 280 the road ends at a pier on the Coast (`docs/ENDGAME.md` W1) |
 | Orientation | Portrait default, runtime orientation change supported |
-| Meta-progression | None that makes a run easier or harder: the Atlas, the disaster collection, and the arrivals, each of which unlocks a legend (`ENDGAME_PLAN.md` §5.4, §5.5) |
-| Pickups | None in the MVP; the pit stops repair the car, once each in a run (`ENDGAME_PLAN.md` §5.15, W24) |
+| Meta-progression | None that makes a run easier or harder: the Atlas, the disaster collection, and the arrivals, each of which unlocks a legend (`docs/ENDGAME.md` §5.4, §5.5) |
+| Pickups | None in the MVP; the pit stops repair the car, once each in a run (`docs/ENDGAME.md` §5.15, W24) |
 | Speed | Rises on straights and with distance; automatic braking before every junction |
 | Off-road | Corner cutting within 2 tiles is damage only; the car cannot stay off-road longer than 2 tiles |
 | Target device | Modern Android phones; Samsung Galaxy Z Fold4 is the reference device |
@@ -441,5 +441,5 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 
 ## 14. Out of Scope / Follow-up Documents
 
-- **Future areas** will be planned in a separate document (`AREAS.md`), before the Coast, whose pier ends the road (`ENDGAME_PLAN.md` §5.8).
+- **Future areas** will be planned in a separate document (`AREAS.md`), before the Coast, whose pier ends the road (`docs/ENDGAME.md` §5.8).
 - Detailed tuning values (speeds, braking distances, damage rates) will be set during prototyping.

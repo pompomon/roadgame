@@ -457,7 +457,7 @@ func test_a_set_piece_comes_once_its_run_is_made_and_goes_with_its_last_tile() -
 
 
 func test_last_gas_comes_once_a_pit_stops_straight_is_made_and_goes_with_its_last_tile() -> void:
-	# ENDGAME_PLAN.md §5.15: with no set piece, the pit stop is its area's first straight, tiles 53
+	# docs/ENDGAME.md §5.15: with no set piece, the pit stop is its area's first straight, tiles 53
 	# to 55 after junction 12, which the buffer's first batch ends with. Its run ends with the tile
 	# after it, junction 13, which only the next batch makes.
 	var schedule := Fixtures.set_piece_schedule(13, &"", 0)
@@ -609,7 +609,7 @@ func test_an_empty_set_piece_scene_is_an_error() -> void:
 
 
 func test_the_finish_draws_its_set_piece_and_nothing_beyond_it() -> void:
-	# ENDGAME_PLAN.md §5.8, W18: the pier's tiles are planks, a Pier stands on them, and the road
+	# docs/ENDGAME.md §5.8, W18: the pier's tiles are planks, a Pier stands on them, and the road
 	# beyond it draws nothing, where the sea covers the ground.
 	var schedule := Fixtures.schedule().ending_at(2, &"pier")
 	var gen := RoadGenerator.new(11, schedule)
@@ -641,7 +641,7 @@ func test_the_finish_draws_its_set_piece_and_nothing_beyond_it() -> void:
 
 
 func test_set_piece_at_is_the_set_piece_over_a_path_index() -> void:
-	# main.gd finds the pier at the finish's index, to welcome the car (ENDGAME_PLAN.md §5.8).
+	# main.gd finds the pier at the finish's index, to welcome the car (docs/ENDGAME.md §5.8).
 	var schedule := Fixtures.schedule().ending_at(2, &"pier")
 	var gen := RoadGenerator.new(11, schedule)
 	_buffer = RoadBuffer.new(gen)
@@ -659,7 +659,7 @@ func test_set_piece_at_is_the_set_piece_over_a_path_index() -> void:
 
 func test_every_finish_has_its_scene() -> void:
 	# main's roads, the game's and the Road Home, and its --finish on a road without a finish each
-	# end in their set piece, which build() checks for, as it checks the areas' (ENDGAME_PLAN.md
+	# end in their set piece, which build() checks for, as it checks the areas' (docs/ENDGAME.md
 	# §5.7, §5.8). main builds the world from the game's road alone, whose areas the Road Home
 	# shares (§5.12), so each road is built here.
 	var finishes: Array[StringName] = []

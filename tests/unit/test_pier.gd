@@ -1,5 +1,5 @@
 extends GutTest
-## The ends of the road (ENDGAME_PLAN.md §5.8, E7). The pier: a deck on the finish's tiles, on piles
+## The ends of the road (docs/ENDGAME.md §5.8, E7). The pier: a deck on the finish's tiles, on piles
 ## and between railings, and the sea over every cell at or past its first tile, out past the view's
 ## edge, with waves that roll in to the shore; on an arrival, the legends collected welcome the car
 ## over the sea past its end. Home, the Road Home's end: a fence across the drive's end, with a

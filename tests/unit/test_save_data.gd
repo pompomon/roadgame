@@ -233,7 +233,7 @@ func test_record_run_keeps_the_best_of_each_area_and_overall() -> void:
 
 
 func test_a_departure_keeps_the_overall_best() -> void:
-	# ENDGAME_PLAN.md W22: a run from a later area counts for its areas, not overall.
+	# docs/ENDGAME.md W22: a run from a later area counts for its areas, not overall.
 	var data := SaveData.new()
 	data.record_run(_stats(40.0, 9, {&"city": {"distance": 40.0, "turns": 9}}))
 	var departure := _stats(90.0, 25, {&"desert": {"distance": 90.0, "turns": 25}})
@@ -270,7 +270,7 @@ func test_the_disasters_seen_are_those_the_book_shows() -> void:
 	assert_eq(data.seen_disasters(), [&"sinkhole"] as Array[StringName])
 
 
-## ENDGAME_PLAN.md §5.4, §5.5: a version 2 save has no arrivals, and nothing it collected was
+## docs/ENDGAME.md §5.4, §5.5: a version 2 save has no arrivals, and nothing it collected was
 ## unlocked.
 func test_a_v2_file_is_migrated_with_no_arrivals_and_nothing_unlocked() -> void:
 	var data := SaveData.new()
@@ -299,7 +299,7 @@ func test_record_arrival_counts_and_keeps_the_best_time_and_a_clean_one() -> voi
 	assert_eq(data.arrival_count(&"nowhere"), 0)
 
 
-## ENDGAME_PLAN.md §5.12: version 4 keeps each road's farthest turn. In version 3 both roads had 280
+## docs/ENDGAME.md §5.12: version 4 keeps each road's farthest turn. In version 3 both roads had 280
 ## turns: one with an arrival was driven to its end. Otherwise the pier's is the best turns, at most
 ## 280, as only the road to the sea counted in the best run, and home's 0, as only --home drove it.
 ## The arrivals keep their other values.
@@ -338,7 +338,7 @@ func test_a_v3_file_is_migrated_with_each_roads_farthest() -> void:
 	assert_true(kept.to_json().contains('"version": 5'))
 
 
-## ENDGAME_PLAN.md §5.12: a run raises the farthest turn of the road that it drove whole, from its
+## docs/ENDGAME.md §5.12: a run raises the farthest turn of the road that it drove whole, from its
 ## first area, and no other road's. A run from a later area, or on a road without a finish, raises
 ## none.
 func test_a_run_raises_only_its_roads_farthest() -> void:
@@ -362,7 +362,7 @@ func test_a_run_raises_only_its_roads_farthest() -> void:
 	assert_eq(data.best["turns"], 70, "the overall best counts every whole road")
 
 
-## ENDGAME_PLAN.md E9: the save keeps a Road Home run's progress, though it never arrives. Its
+## docs/ENDGAME.md E9: the save keeps a Road Home run's progress, though it never arrives. Its
 ## arrival is at the finish's turn.
 func test_a_road_home_run_that_never_arrives_keeps_its_farthest() -> void:
 	var data := SaveData.new()
@@ -378,7 +378,7 @@ func test_a_road_home_run_that_never_arrives_keeps_its_farthest() -> void:
 	assert_eq(again.arrival_count(&"home"), 1)
 
 
-## ENDGAME_PLAN.md §5.16: version 5 adds each area's stamp, which no run has earned yet, and keeps
+## docs/ENDGAME.md §5.16: version 5 adds each area's stamp, which no run has earned yet, and keeps
 ## all that version 4 had, each road's farthest turn among it. That is the road to the sea's too
 ## where it never arrived and the best turns are more, as Keep Driving's road may have made them
 ## (§5.13): unlike version 3's, they aren't its own.
@@ -402,7 +402,7 @@ func test_a_v4_file_is_migrated_with_no_stamps_and_keeps_each_roads_farthest() -
 		assert_true(data.to_json().contains('"version": 5'))
 
 
-## ENDGAME_PLAN.md §5.16: a run that crossed an area, onto the next area's first tile or by arriving
+## docs/ENDGAME.md §5.16: a run that crossed an area, onto the next area's first tile or by arriving
 ## in it, with no damage there, stamps the area's postcard, and the stamp stays. An area that the
 ## run reached but didn't cross isn't stamped.
 func test_a_crossing_with_no_damage_stamps_the_area() -> void:
@@ -417,7 +417,7 @@ func test_a_crossing_with_no_damage_stamps_the_area() -> void:
 	assert_true(data.atlas["city"]["stamped"], "kept after a run with damage")
 
 
-## ENDGAME_PLAN.md §5.16: an area crossed with damage, or reached and not crossed, or of stats that
+## docs/ENDGAME.md §5.16: an area crossed with damage, or reached and not crossed, or of stats that
 ## don't say, isn't stamped.
 func test_an_area_crossed_with_damage_or_not_crossed_is_not_stamped() -> void:
 	var runs: Array[Dictionary] = [
@@ -431,7 +431,7 @@ func test_an_area_crossed_with_damage_or_not_crossed_is_not_stamped() -> void:
 		assert_eq(data.atlas["city"], _entry(34.0, 3), str(city))
 
 
-## ENDGAME_PLAN.md §5.16: the end screen says "New best time!" for an arrival faster than the best
+## docs/ENDGAME.md §5.16: the end screen says "New best time!" for an arrival faster than the best
 ## time at its finish: not for the first, which has none to beat, nor for one as fast.
 func test_only_a_faster_arrival_beats_the_best_time() -> void:
 	var data := SaveData.new()
@@ -447,7 +447,7 @@ func test_only_a_faster_arrival_beats_the_best_time() -> void:
 	assert_false(data.beats_best_time(&"home", 10.0), "the first at another finish")
 
 
-## ENDGAME_PLAN.md W14: an unlocked legend shows as found in the Book of Legends, and weighs less
+## docs/ENDGAME.md W14: an unlocked legend shows as found in the Book of Legends, and weighs less
 ## in the picks, as one seen does.
 func test_an_unlocked_disaster_is_collected_as_if_seen() -> void:
 	var data := SaveData.new()

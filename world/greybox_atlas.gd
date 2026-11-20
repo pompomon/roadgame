@@ -30,7 +30,7 @@ static var _edges: Dictionary[Color, Texture2D] = {}
 ## Atlas coordinates of `tile`. Dead ends get their own tint only when `show_dead_ends` is set;
 ## in a run they must look like real road (plan.md §3.3). The pier's tiles are planks, as the
 ## bridge's are, and the tiles beyond a finish are NO_TILE, as the sea or the ground covers them
-## (ENDGAME_PLAN.md §5.8). Home's tiles are road, a drive.
+## (docs/ENDGAME.md §5.8). Home's tiles are road, a drive.
 static func road_coords(tile: RoadTile, show_dead_ends: bool) -> Vector2i:
 	if tile.set_piece == RoadGenerator.BEYOND:
 		return NO_TILE

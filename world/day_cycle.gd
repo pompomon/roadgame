@@ -36,7 +36,7 @@ func enter(p_day_seconds: float) -> void:
 		day_seconds = 0.0
 
 
-## Stands the clock at `p_hour` until the next enter(), as at an arrival (ENDGAME_PLAN.md §5.8):
+## Stands the clock at `p_hour` until the next enter(), as at an arrival (docs/ENDGAME.md §5.8):
 ## advance() moves the light shown toward the hour's at the rate, as it does when a zone sets the
 ## clock back, and the shadows as they always do.
 func hold(p_hour: float) -> void:

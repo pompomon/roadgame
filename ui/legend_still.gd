@@ -1,6 +1,6 @@
 class_name LegendStill
 extends Sprite2D
-## A legend's still (ENDGAME_PLAN.md §5.8), as the arrival's welcome shows it, and the Book: the
+## A legend's still (docs/ENDGAME.md §5.8), as the arrival's welcome shows it, and the Book: the
 ## frame of its figure that its scene names (Legend.figure, figure_frame), whole and in full view,
 ## whatever its rest pose hides, centred on the still's position; or the Vanishing Hitchhiker's
 ## (§5.17), whose scene is her figure. It draws as the figure does, in its texture and frames, its

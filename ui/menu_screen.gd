@@ -1,7 +1,7 @@
 class_name MenuScreen
 extends Control
 ## A screen that the title screen opens (IMPLEMENTATION_PLAN.md M5.5): the Atlas, the Book of
-## Legends (ENDGAME_PLAN.md §5.10) or the settings. Its Back button asks the title to close it, and
+## Legends (docs/ENDGAME.md §5.10) or the settings. Its Back button asks the title to close it, and
 ## the keys that move no focus may scroll it (scroll_by_key()).
 
 ## Back was pressed.
@@ -26,7 +26,7 @@ func close_page() -> bool:
 ## Tuning.BOOK_KEY_SCROLL of what shows, Page Up and Page Down by all of it, and Home and End to the
 ## top and the bottom. Without a screen reader, what a screen shows may take no focus, which a
 ## scroll follows, so these keys are what brings it into view where it runs past the screen
-## (ENDGAME_PLAN.md W28).
+## (docs/ENDGAME.md W28).
 static func scroll_by_key(scroll: ScrollContainer, event: InputEvent) -> bool:
 	var across := scroll.get_h_scroll_bar()
 	var down := scroll.get_v_scroll_bar()

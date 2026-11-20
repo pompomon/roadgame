@@ -10,7 +10,7 @@ extends RefCounted
 ## mistakes. Once the streak reaches TUTORIAL_STREAK, the City's rules hold.
 ##
 ## On a road with a finish, no junction comes after the last: the car arrives when it enters the
-## finish's first tile on the road, or comes back onto the road on a tile of it (ENDGAME_PLAN.md
+## finish's first tile on the road, or comes back onto the road on a tile of it (docs/ENDGAME.md
 ## §5.2).
 
 ## A correct exit: the pattern's turn, or straight on at a decoy, which leaves `turn_index`, the

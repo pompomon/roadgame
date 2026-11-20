@@ -2,11 +2,11 @@ class_name GameOver
 extends Control
 ## The game-over screen (plan.md §2.1, IMPLEMENTATION_PLAN.md M3.3): why the run ended, what the
 ## disaster did to the car (docs/M6.md S8), the run's distance, its turns and the area it reached,
-## after an arrival its time, and whether it beat the best (ENDGAME_PLAN.md §5.16), and the Retry
+## after an arrival its time, and whether it beat the best (docs/ENDGAME.md §5.16), and the Retry
 ## and Title buttons. The main scene opens it once the end of the run has played.
 ## Over them, NEW LEGEND! for a run that met, found or unlocked a legend that wasn't collected as
 ## it started, in large letters that stay still, and under the stats the player's next goal, in a
-## line (ENDGAME_PLAN.md §5.9). Retry starts the next run in place; Title goes back to the title
+## line (docs/ENDGAME.md §5.9). Retry starts the next run in place; Title goes back to the title
 ## screen (M5.5). Retry takes the focus, so Enter and Space press it too. The run's seed shows in
 ## small text in debug builds. Like the HUD, its text uses only characters in the game's font.
 
@@ -25,7 +25,7 @@ const END_MESSAGES: Dictionary[StringName, String] = {
 }
 ## For a cause without a message, which is an error.
 const FALLBACK_MESSAGE := "Game over"
-## The next goal's lines (ENDGAME_PLAN.md §5.9), in next_goal()'s order: the first that holds shows.
+## The next goal's lines (docs/ENDGAME.md §5.9), in next_goal()'s order: the first that holds shows.
 ## Each is a line of the font's glyphs that fits the screen.
 const GOAL_SEA := "Next: reach the sea. Your best: turn %d of %d"
 const GOAL_HOME := "Next: drive the Road Home"
@@ -34,11 +34,11 @@ const GOAL_LAST_LEGEND := "Next: find the last legend still missing"
 const GOAL_HITCHHIKER := "Next: someone waits on the Road Home"
 const GOAL_CLEAN := "Next: reach the sea without leaving the road"
 const GOAL_TIME := "Next: beat your best time, %s"
-## Under an arrival's time, when it beat the best time at its finish (ENDGAME_PLAN.md §5.16).
+## Under an arrival's time, when it beat the best time at its finish (docs/ENDGAME.md §5.16).
 const NEW_BEST_TIME := "New best time!"
 ## The finish of the road to the sea (areas/schedule.tres).
 const SEA := &"pier"
-## The Road Home's (areas/schedule_home.tres, ENDGAME_PLAN.md §5.12).
+## The Road Home's (areas/schedule_home.tres, docs/ENDGAME.md §5.12).
 const HOME := &"home"
 
 ## Whether open() shows the seed. Tests change it.
@@ -91,7 +91,7 @@ func close() -> void:
 
 
 ## The run's distance in metres, its turns and the name of `area`, a line each, and after an
-## arrival its time (ENDGAME_PLAN.md §5.3), and NEW_BEST_TIME under it if it is a `new_best`.
+## arrival its time (docs/ENDGAME.md §5.3), and NEW_BEST_TIME under it if it is a `new_best`.
 static func stats_text(stats: Dictionary, area: AreaDef, new_best := false) -> String:
 	var distance: float = stats["distance"]
 	var turns: int = stats["turn_index"]
@@ -113,7 +113,7 @@ static func time_text(seconds: float) -> String:
 	return "%d:%02d" % [whole / 60, whole % 60]
 
 
-## The player's next goal in `data`, the first that holds (ENDGAME_PLAN.md §5.9): to reach the sea,
+## The player's next goal in `data`, the first that holds (docs/ENDGAME.md §5.9): to reach the sea,
 ## with their best turn of `schedule`'s, the game's road; then to drive the Road Home to its end
 ## (§5.12); then to find the legends of its pools still missing; then to find the Vanishing
 ## Hitchhiker, who waits on the Road Home once they are all found (§5.17); then to reach the sea

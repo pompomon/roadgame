@@ -8,29 +8,29 @@ extends RefCounted
 ## drives on at 0 health, heals on the road, and is put back on the path once it has driven
 ## TUTORIAL_RESCUE_TILES off the road.
 ##
-## On a road with a finish, the run ends when the car reaches it (ENDGAME_PLAN.md §5.2): it then
+## On a road with a finish, the run ends when the car reaches it (docs/ENDGAME.md §5.2): it then
 ## rolls to a stop on the finish's set piece, straightening up as it goes.
 ##
 ## A pit stop repairs the car by PIT_STOP_HEAL, up to START_HEALTH, as it drives out of the pit
-## stop's tiles on the road, once in a run (ENDGAME_PLAN.md §5.15).
+## stop's tiles on the road, once in a run (docs/ENDGAME.md §5.15).
 
 signal health_changed(value: float)
-## Driving off the road took health, at the rates of `area` (ENDGAME_PLAN.md §5.16): in the step
+## Driving off the road took health, at the rates of `area` (docs/ENDGAME.md §5.16): in the step
 ## that reaches a new area, the time before it counts at the old area's rates.
 signal damaged(area: AreaDef)
 signal offroad_changed(is_offroad: bool)
 ## The car reached the first tile of a new area.
 signal area_changed(area: AreaDef)
 ## The car crossed on the road from the last path tile of `area` onto the next area's first, where
-## the trigger judged the crossing right (ENDGAME_PLAN.md §5.16, W32).
+## the trigger judged the crossing right (docs/ENDGAME.md §5.16, W32).
 signal area_crossed(area: AreaDef)
 ## The run ended in a crash: HEALTH or OFFROAD. Disasters come from trigger.disaster_triggered.
 signal crashed(cause: StringName)
 ## The tutorial put the car back on the path.
 signal rescued
-## The car reached the finish: the run is won (ENDGAME_PLAN.md §5.2).
+## The car reached the finish: the run is won (docs/ENDGAME.md §5.2).
 signal arrived
-## The car drove out of a pit stop on the road, which repaired it (ENDGAME_PLAN.md §5.15).
+## The car drove out of a pit stop on the road, which repaired it (docs/ENDGAME.md §5.15).
 signal repaired
 
 enum State { DRIVING, BRAKING, OFFROAD, DISASTER, CRASHED, ARRIVED }

@@ -24,7 +24,7 @@ const PHYSICS_PRIORITY := ViewVeil.PHYSICS_PRIORITY
 ## car by their feet (S2).
 @export var standing: Array[Sprite2D] = []
 ## The sprite that is the legend, and the frame of it that shows the legend whole, which LegendStill
-## draws, whatever its rest pose hides (ENDGAME_PLAN.md §5.8).
+## draws, whatever its rest pose hides (docs/ENDGAME.md §5.8).
 @export var figure: Sprite2D
 @export var figure_frame := 0
 

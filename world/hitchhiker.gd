@@ -1,6 +1,6 @@
 class_name Hitchhiker
 extends Sprite2D
-## The Vanishing Hitchhiker (ENDGAME_PLAN.md §5.17), the Book of Legends' last page: the road's own
+## The Vanishing Hitchhiker (docs/ENDGAME.md §5.17), the Book of Legends' last page: the road's own
 ## urban legend. Once every legend of the pools is collected, she stands beside the Road Home, on
 ## its far side, by the last plain straight before the player's farthest turn there, the first
 ## junction that no run of theirs has passed, or before its finish once they have arrived home: not

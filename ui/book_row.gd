@@ -1,9 +1,9 @@
 class_name BookRow
 extends HBoxContainer
-## A row of the Book of Legends (ENDGAME_PLAN.md §5.10): an area's seal, then a cell for each slot
+## A row of the Book of Legends (docs/ENDGAME.md §5.10): an area's seal, then a cell for each slot
 ## of its pool. The seal, an eight-pointed star of two squares, is whole in the area's colour once
 ## every legend of the row is found, and hollow until then, the star's outline in a grey, so that
-## the two differ by their shapes too (ENDGAME_PLAN.md W26). Only a screen reader's focus stops on
+## the two differ by their shapes too (docs/ENDGAME.md W26). Only a screen reader's focus stops on
 ## the row, which BookScreen names.
 
 ## Whether every legend of the row is found.

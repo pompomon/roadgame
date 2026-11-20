@@ -32,7 +32,7 @@ var branch_exit := -1
 var branches: Array[RoadTile] = []
 ## &"tunnel", &"bridge" or &"".
 var set_piece := &""
-## Whether the tile is a pit stop's (ENDGAME_PLAN.md §5.15): its set piece's, or the straight by
+## Whether the tile is a pit stop's (docs/ENDGAME.md §5.15): its set piece's, or the straight by
 ## which Last Gas stands. CarSim repairs the car as it drives out of them on the road.
 var pit_stop := false
 

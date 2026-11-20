@@ -1,6 +1,6 @@
 class_name LastGas
 extends SetPiece
-## Last Gas (ENDGAME_PLAN.md §5.15), in grey box: the filling station by a pit stop's straight,
+## Last Gas (docs/ENDGAME.md §5.15), in grey box: the filling station by a pit stop's straight,
 ## which has no set piece of its own, as the Desert starts on the way out and the Village on the
 ## Road Home. It stands beside the road, not on it, on its far side, up the screen: a forecourt, a
 ## shack with its door and window towards the road, and a canopy over two pumps, with a sign before

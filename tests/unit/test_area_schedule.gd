@@ -39,7 +39,7 @@ func test_the_game_schedule_is_valid() -> void:
 
 ## The City, where a run learns the pattern, has no side roads or decoys. Every later area has
 ## both, and keeps at least LEAST_T_SHARE of its junctions as T's (docs/ROADGEN.md E8, §5.5). The
-## Coast, the home stretch, has no junction (ENDGAME_PLAN.md §5.8), and the endless road leaves it
+## Coast, the home stretch, has no junction (docs/ENDGAME.md §5.8), and the endless road leaves it
 ## out.
 func test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions() -> void:
 	for area: AreaDef in Fixtures.endless().areas():
@@ -57,7 +57,7 @@ func test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions
 
 
 func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
-	# The Atlas's cards and the Book of Legends' rows (M5.5, ENDGAME_PLAN.md §5.10).
+	# The Atlas's cards and the Book of Legends' rows (M5.5, docs/ENDGAME.md §5.10).
 	var ids: Array[StringName] = []
 	for area: AreaDef in Fixtures.schedule().areas():
 		ids.append(area.id)
@@ -73,7 +73,7 @@ func test_areas_lists_each_area_once_in_the_order_a_run_reaches_them() -> void:
 
 func test_every_area_of_the_game_has_a_pool_of_disasters() -> void:
 	# A wrong turn in any area ends in a disaster (docs/M3.md J6). The Coast, a home stretch, has no
-	# junction and no pool (ENDGAME_PLAN.md Q1, W19).
+	# junction and no pool (docs/ENDGAME.md Q1, W19).
 	var areas := 0
 	for entry: AreaScheduleEntry in Fixtures.endless().entries:
 		var area := entry.area
@@ -218,7 +218,7 @@ func test_the_straight_after_a_switch_uses_the_new_area() -> void:
 
 
 func test_a_pit_stop_is_its_areas_set_piece_or_else_its_first_straight() -> void:
-	# ENDGAME_PLAN.md §5.15: the way into the area. min_straight == max_straight, as above.
+	# docs/ENDGAME.md §5.15: the way into the area. min_straight == max_straight, as above.
 	var schedule := AreaSchedule.new()
 	schedule.entries = [
 		_entry(0, _area(&"a", 2, 2)),
@@ -355,7 +355,7 @@ static func _pit_stops(schedule: AreaSchedule) -> Array:
 
 
 func test_the_games_pit_stops() -> void:
-	# ENDGAME_PLAN.md §5.15, E13: on the way out, the tunnel, the bridge, and Last Gas as the Desert
+	# docs/ENDGAME.md §5.15, E13: on the way out, the tunnel, the bridge, and Last Gas as the Desert
 	# starts; on the Road Home, Last Gas as the Village starts, the bridge and the tunnel. A road
 	# that starts in a later area, as a Departure does, keeps those after its first area.
 	var out := Fixtures.schedule()
@@ -383,7 +383,7 @@ func test_a_schedule_cannot_start_in_an_area_it_lacks() -> void:
 	assert_push_error("no area moon")
 
 
-## ENDGAME_PLAN.md §5.1: a road with a finish ends in its last area, at a turn the last area has
+## docs/ENDGAME.md §5.1: a road with a finish ends in its last area, at a turn the last area has
 ## reached.
 func test_validate_reports_a_finish_that_cannot_be_reached() -> void:
 	var schedule := Fixtures.endless()
@@ -425,7 +425,7 @@ func test_a_road_that_starts_in_a_later_area_ends_as_many_turns_sooner() -> void
 	assert_false(Fixtures.endless().starting_at(&"rural").has_finish())
 
 
-## ENDGAME_PLAN.md W17: a home stretch, a last area that starts at the finish's turn, has no
+## docs/ENDGAME.md W17: a home stretch, a last area that starts at the finish's turn, has no
 ## junction and no legend, so an endless road leaves it out, and the area before it goes on.
 func test_an_endless_road_leaves_out_the_home_stretch() -> void:
 	var road := Fixtures.set_piece_schedule(3, &"tunnel", 3)
@@ -442,7 +442,7 @@ func test_an_endless_road_leaves_out_the_home_stretch() -> void:
 	assert_eq(road.endless().entries, road.entries.slice(0, 1), "never without an area")
 
 
-## ENDGAME_PLAN.md §5.6: the Road Home is the road back, from the Desert to the City, mirrored.
+## docs/ENDGAME.md §5.6: the Road Home is the road back, from the Desert to the City, mirrored.
 func test_the_road_home_is_valid_and_runs_the_other_way() -> void:
 	var home := Fixtures.schedule_home()
 	assert_eq(home.validate(), PackedStringArray())
@@ -458,7 +458,7 @@ func test_the_road_home_is_valid_and_runs_the_other_way() -> void:
 	assert_eq(areas, forward)
 
 
-## ENDGAME_PLAN.md §5.8, E7: the game's road ends at the pier after its 280th turn. The Coast starts
+## docs/ENDGAME.md §5.8, E7: the game's road ends at the pier after its 280th turn. The Coast starts
 ## at that turn, a home stretch: one straight, as long as the Inspector allows (AreaDef), and no set
 ## piece before it or junction in it, so no pool. The endless road leaves it out (W17).
 func test_the_games_road_ends_at_the_pier_after_its_280th_turn() -> void:

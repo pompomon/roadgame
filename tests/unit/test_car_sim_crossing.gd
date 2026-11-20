@@ -1,5 +1,5 @@
 extends GutTest
-## Crossing an area (ENDGAME_PLAN.md §5.16, W32): as the car drives on the road from the last path
+## Crossing an area (docs/ENDGAME.md §5.16, W32): as the car drives on the road from the last path
 ## tile of an area onto the next area's first, CarSim says that it crossed the area that it left,
 ## once. Through a set piece, whose tiles are the area before's, that is at the set piece's end;
 ## with none, at the exit of the area's last junction, where the trigger judged the turn right.

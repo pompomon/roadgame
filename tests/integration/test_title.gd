@@ -1,6 +1,6 @@
 extends GutTest
 ## The title screen in the game (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): the game starts on it,
-## Play starts a run, on the road chosen (ENDGAME_PLAN.md §5.12), and the game-over screen's Title
+## Play starts a run, on the road chosen (docs/ENDGAME.md §5.12), and the game-over screen's Title
 ## goes back to it, where the Atlas and the Book of Legends show what the run found. --collected
 ## fills the Book (§5.7, §5.10).
 ## Android's back button leaves a legend's page, then each screen, and quits only from the title
@@ -193,7 +193,7 @@ func test_the_atlas_and_the_book_show_a_wrong_turn() -> void:
 
 
 func test_departures_offer_only_the_areas_discovered() -> void:
-	# ENDGAME_PLAN.md §5.11, W22: other builds than debug offer the City alone, until a run discovers
+	# docs/ENDGAME.md §5.11, W22: other builds than debug offer the City alone, until a run discovers
 	# a later area; the Coast is a home stretch, with no junction. A run from the Desert then records
 	# the Desert's best and its legend, but no overall best.
 	var main := _open()
@@ -226,7 +226,7 @@ func test_departures_offer_only_the_areas_discovered() -> void:
 	assert_eq(start.text, "Start in: Desert", "the last choice")
 
 
-## ENDGAME_PLAN.md §5.12, E9: once the road to the sea has an arrival, the title offers the Road
+## docs/ENDGAME.md §5.12, E9: once the road to the sea has an arrival, the title offers the Road
 ## Home too, and Play drives it whole, from the Desert, heading west. An arrival home alone, which
 ## only --home makes, offers nothing.
 func test_the_road_home_is_offered_after_the_first_arrival() -> void:
@@ -252,7 +252,7 @@ func test_the_road_home_is_offered_after_the_first_arrival() -> void:
 	assert_eq([GameState.whole_road, GameState.road], [true, &"home"])
 
 
-## ENDGAME_PLAN.md §5.12, E9: a run on the Road Home, from the title, counts its arrival under home,
+## docs/ENDGAME.md §5.12, E9: a run on the Road Home, from the title, counts its arrival under home,
 ## not the sea's, and unlocks a legend. Its farthest turn is the finish's. The title keeps the road
 ## chosen until the game closes.
 func test_the_road_home_counts_under_home() -> void:
@@ -278,7 +278,7 @@ func test_the_road_home_counts_under_home() -> void:
 	assert_eq(road.text, "Road: Home", "the last choice")
 
 
-## ENDGAME_PLAN.md §5.13, E11: after the first arrival, the title also offers Keep Driving, the
+## docs/ENDGAME.md §5.13, E11: after the first arrival, the title also offers Keep Driving, the
 ## game's road with no end, endless(), where the Desert goes on as on main. Play drives it whole,
 ## from the City, and its runs count as main's did, for the overall bests, the areas and the
 ## legends, but for no road's farthest turn, as none can arrive.
@@ -383,7 +383,7 @@ func test_collected_city_fills_and_seals_the_citys_row() -> void:
 
 
 ## --collected=all fills every pool's row, and the Vanishing Hitchhiker's page shows, last, for a
-## run to find her (ENDGAME_PLAN.md §5.17).
+## run to find her (docs/ENDGAME.md §5.17).
 func test_collected_all_fills_the_pools_and_her_page_waits() -> void:
 	var main := _open(["--seed=1", "--collected=all"])
 	var title := _title(main)
@@ -457,7 +457,7 @@ func test_play_and_title_are_errors_in_other_states() -> void:
 	assert_eq(_cars(main), 1, "the same run")
 
 
-## ENDGAME_PLAN.md §5.14, E12: the route strip shows the road chosen on the title whole, with the
+## docs/ENDGAME.md §5.14, E12: the route strip shows the road chosen on the title whole, with the
 ## car where the run starts on it and that road's best run: a run from the Desert on the road to the
 ## sea, at the Desert's tick, under the arrival's best at the finish; the Road Home from its foot,
 ## with its own best. Keep Driving's road has no strip.

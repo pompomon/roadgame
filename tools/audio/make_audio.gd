@@ -194,7 +194,7 @@ func _chime() -> PackedFloat32Array:
 	return out
 
 
-## The arrival's jingle (ENDGAME_PLAN.md §5.8): the junction's chime grown into a rising arpeggio
+## The arrival's jingle (docs/ENDGAME.md §5.8): the junction's chime grown into a rising arpeggio
 ## of D major, which rings on as its chord.
 func _jingle() -> PackedFloat32Array:
 	var out := _silence(roundi(1.5 * RATE))
@@ -207,7 +207,7 @@ func _jingle() -> PackedFloat32Array:
 	return out
 
 
-## NEW LEGEND!'s jingle (ENDGAME_PLAN.md §5.9): a whole-tone run that sparkles up to a bell chord of
+## NEW LEGEND!'s jingle (docs/ENDGAME.md §5.9): a whole-tone run that sparkles up to a bell chord of
 ## G major, over a low fifth. It draws no noise, so no other sound changes it.
 func _new_legend() -> PackedFloat32Array:
 	var out := _silence(roundi(1.4 * RATE))
@@ -224,7 +224,7 @@ func _new_legend() -> PackedFloat32Array:
 	return out
 
 
-## A pit stop's repair (ENDGAME_PLAN.md §5.15): a forecourt's bell rings twice, a fourth apart,
+## A pit stop's repair (docs/ENDGAME.md §5.15): a forecourt's bell rings twice, a fourth apart,
 ## over a tone that swells up an octave as the tyres fill. It draws no noise, so no other sound
 ## changes it.
 func _repair() -> PackedFloat32Array:

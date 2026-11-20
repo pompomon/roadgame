@@ -577,7 +577,7 @@ func test_a_step_that_ends_the_run_measures_the_progress_first() -> void:
 			assert_signal_emitted_with_parameters(sim, "crashed", [CarSim.HEALTH])
 
 
-## ENDGAME_PLAN.md §5.16: off the road, the car takes damage in the areas whose rates it pays. In a
+## docs/ENDGAME.md §5.16: off the road, the car takes damage in the areas whose rates it pays. In a
 ## step that reaches a new area, that is the old one's before it and the new one's after. Off the
 ## road, the car crosses no area.
 func test_damage_across_a_border_names_each_area() -> void:
@@ -604,7 +604,7 @@ func test_damage_across_a_border_names_each_area() -> void:
 	assert_signal_not_emitted(sim, "area_crossed", "off the road")
 
 
-## ENDGAME_PLAN.md §5.16: off the road in an area that takes no health there, the car takes no
+## docs/ENDGAME.md §5.16: off the road in an area that takes no health there, the car takes no
 ## damage, so it keeps the area's stamp.
 func test_off_the_road_at_no_cost_is_no_damage() -> void:
 	var free: AreaDef = DESERT.duplicate()

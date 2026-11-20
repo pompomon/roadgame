@@ -1,7 +1,7 @@
 class_name AtlasScreen
 extends MenuScreen
 ## The Atlas (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): the bests, and a postcard for each area
-## of the schedule, in the order a run reaches them (MenuCard, ENDGAME_PLAN.md §5.16). An area that
+## of the schedule, in the order a run reaches them (MenuCard, docs/ENDGAME.md §5.16). An area that
 ## no run has reached is a silhouette. A postcard's bests are the most distance and the most turns
 ## a run made in that area (docs/M5.md L8), and its stamp is earned by a run that crossed the area
 ## with no damage. The postcards run past the screen: a drag scrolls them, and so do the keys that

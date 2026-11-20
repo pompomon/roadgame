@@ -2,7 +2,7 @@ class_name AreaSchedule
 extends Resource
 ## Areas keyed by correct-turn count (plan.md §3.6). Without a finish, the last area continues
 ## forever. With one, the road ends in the last area: after finish_turn turns, the straight leads to
-## the finish's set piece, and no junction comes after it (ENDGAME_PLAN.md §5.1).
+## the finish's set piece, and no junction comes after it (docs/ENDGAME.md §5.1).
 
 @export var entries: Array[AreaScheduleEntry] = []
 ## The set piece that ends the road, such as &"pier", or &"" for a road with no end.
@@ -11,7 +11,7 @@ extends Resource
 ## area is a home stretch, with no junction.
 @export var finish_turn := 0
 ## Whether the road is the mirror image of the first: it starts heading W, and its first turn is a
-## right, so that it still heads only N and W (ENDGAME_PLAN.md §5.6, W9).
+## right, so that it still heads only N and W (docs/ENDGAME.md §5.6, W9).
 @export var mirrored := false
 
 
@@ -67,7 +67,7 @@ func has_finish() -> bool:
 
 
 ## A copy with no end, whose last area goes on forever: the road of Keep Driving and of the tests
-## that drive past the finish (ENDGAME_PLAN.md W6). It leaves out a home stretch, a last area that
+## that drive past the finish (docs/ENDGAME.md W6). It leaves out a home stretch, a last area that
 ## starts at the finish's turn, as such an area has no junction and no legend (W17): the area
 ## before it goes on instead, as the Desert does on main. It shares this one's entries.
 func endless() -> AreaSchedule:
@@ -81,7 +81,7 @@ func endless() -> AreaSchedule:
 
 
 ## A copy whose road ends at `p_finish` after `turns` turns, with the entries up to there: a short
-## road for tests and manual checks (main.gd's --finish, ENDGAME_PLAN.md §5.7). It shares this
+## road for tests and manual checks (main.gd's --finish, docs/ENDGAME.md §5.7). It shares this
 ## one's entries.
 func ending_at(turns: int, p_finish: StringName) -> AreaSchedule:
 	var schedule := AreaSchedule.new()
@@ -95,7 +95,7 @@ func ending_at(turns: int, p_finish: StringName) -> AreaSchedule:
 
 
 ## Each area of the schedule once, in the order a run reaches them: the Atlas's cards and the
-## Book of Legends' rows (IMPLEMENTATION_PLAN.md M5.5, ENDGAME_PLAN.md §5.10).
+## Book of Legends' rows (IMPLEMENTATION_PLAN.md M5.5, docs/ENDGAME.md §5.10).
 func areas() -> Array[AreaDef]:
 	var found: Array[AreaDef] = []
 	for entry: AreaScheduleEntry in entries:
@@ -115,7 +115,7 @@ static func gap(entry: AreaScheduleEntry) -> int:
 
 
 ## A copy that starts in the area `id`, for tests and manual checks (main.gd's --area), and for the
-## title's Departures (ENDGAME_PLAN.md §5.11): the entries from that area's on, with their turns
+## title's Departures (docs/ENDGAME.md §5.11): the entries from that area's on, with their turns
 ## moved so that it is turn 0, and without its set piece or pit stop, and the finish as many turns
 ## before. The entries share their areas with this schedule. For an id it lacks: an error, and this
 ## one.

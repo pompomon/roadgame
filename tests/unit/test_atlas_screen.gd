@@ -2,7 +2,7 @@ extends GutTest
 ## The Atlas (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5) on its own: a postcard for each area of
 ## the schedule, in its order, a silhouette until a run reaches the area, and the best run. A
 ## postcard shows its area's ground and tallest prop, and a stamp once a run crossed the area with
-## no damage (ENDGAME_PLAN.md §5.16). The postcards scroll by drag and by keys (W33).
+## no damage (docs/ENDGAME.md §5.16). The postcards scroll by drag and by keys (W33).
 
 const ATLAS_SCENE := preload("res://ui/atlas_screen.tscn")
 const TITLE_SCENE := preload("res://ui/title_screen.tscn")
@@ -152,7 +152,7 @@ func test_best_text_is_empty_until_a_run_goes_somewhere() -> void:
 	assert_eq(AtlasScreen.best_text({"distance": 0.0, "turns": 2}), "Best: 0 m, 2 turns")
 
 
-## ENDGAME_PLAN.md §5.16: a postcard's stamp is whole once a run crossed its area with no damage,
+## docs/ENDGAME.md §5.16: a postcard's stamp is whole once a run crossed its area with no damage,
 ## paper inked in the area's colour, and hollow until then, as is a silhouette's.
 func test_a_postcards_stamp_is_whole_once_its_area_is_crossed_with_no_damage() -> void:
 	var data := SaveData.new()
@@ -170,7 +170,7 @@ func test_a_postcards_stamp_is_whole_once_its_area_is_crossed_with_no_damage() -
 		assert_eq(_stamp(card), "hollow", "a silhouette")
 
 
-## ENDGAME_PLAN.md §5.16: a postcard's picture is its area's ground, with the area's tallest prop
+## docs/ENDGAME.md §5.16: a postcard's picture is its area's ground, with the area's tallest prop
 ## standing whole on it inside the picture's frame, at its own size. A silhouette's has neither.
 func test_a_postcards_picture_is_its_areas_ground_and_tallest_prop() -> void:
 	var schedule := _schedule()
@@ -246,7 +246,7 @@ func test_the_atlas_scrolls_to_the_postcard_that_has_the_focus() -> void:
 	assert_true(_in_view(scroll, last), "scrolled to it")
 
 
-## ENDGAME_PLAN.md §5.16, W26: a stamp stands out from its postcard, which the Atlas draws over the
+## docs/ENDGAME.md §5.16, W26: a stamp stands out from its postcard, which the Atlas draws over the
 ## title's background: a hollow one's outline and a whole one's paper.
 func test_a_stamp_whole_or_hollow_stands_out_from_its_postcard() -> void:
 	var atlas := _atlas()
@@ -262,7 +262,7 @@ func test_a_stamp_whole_or_hollow_stands_out_from_its_postcard() -> void:
 	assert_gte(_contrast(paper, ground), NON_TEXT_CONTRAST, "a whole one")
 
 
-## ENDGAME_PLAN.md W33: the postcards run past the screen, and as none takes the focus without a
+## docs/ENDGAME.md W33: the postcards run past the screen, and as none takes the focus without a
 ## screen reader, the keys scroll them: an arrow by Tuning.BOOK_KEY_SCROLL of what shows, and Home
 ## and End to the top and the bottom. The Atlas opens again at its first postcard, and once closed
 ## it leaves the keys alone.
@@ -295,7 +295,7 @@ func test_the_keys_scroll_the_postcards_and_the_atlas_opens_at_the_first() -> vo
 	assert_eq(scroll.scroll_vertical, 0, "closed")
 
 
-## ENDGAME_PLAN.md W33: a drag that starts on a postcard scrolls the Atlas: no part of a postcard
+## docs/ENDGAME.md W33: a drag that starts on a postcard scrolls the Atlas: no part of a postcard
 ## stops a finger.
 func test_a_drag_from_a_postcard_scrolls_the_atlas() -> void:
 	var data := SaveData.new()

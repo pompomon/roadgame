@@ -97,7 +97,7 @@ func test_a_disaster_is_written_when_it_starts() -> void:
 	assert_eq(_read().disasters["flood"]["first_area"], "meadows")
 
 
-## ENDGAME_PLAN.md §5.17: the Vanishing Hitchhiker, whom no disaster plays, is written at once, as a
+## docs/ENDGAME.md §5.17: the Vanishing Hitchhiker, whom no disaster plays, is written at once, as a
 ## disaster's sighting is, with how far into the run she was found.
 func test_a_legend_found_is_written_at_once_with_the_runs_stats() -> void:
 	var kept_distance := GameState.distance

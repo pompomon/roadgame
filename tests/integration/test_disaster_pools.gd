@@ -62,7 +62,7 @@ func _wrong_turn_in(area: AreaDef, run_seed: int) -> StringName:
 
 func test_a_wrong_turn_in_each_area_plays_a_disaster_from_its_pool() -> void:
 	var played: Array[StringName] = []
-	# Not the Coast's, which has no junction (ENDGAME_PLAN.md W19).
+	# Not the Coast's, which has no junction (docs/ENDGAME.md W19).
 	for entry: AreaScheduleEntry in Fixtures.endless().entries:
 		played.append(_wrong_turn_in(entry.area, 1))
 	assert_eq(played.size(), 5, "the five areas")

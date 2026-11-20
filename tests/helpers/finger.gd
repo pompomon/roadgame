@@ -1,5 +1,5 @@
 extends RefCounted
-## A finger on a touch screen, for the tests of a screen that a drag scrolls (ENDGAME_PLAN.md W28,
+## A finger on a touch screen, for the tests of a screen that a drag scrolls (docs/ENDGAME.md W28,
 ## W33). No class_name: tests/ is not exported.
 
 

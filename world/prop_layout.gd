@@ -7,7 +7,7 @@ extends RefCounted
 ## Path tile k lies on screen row -k: the tiles whose cells add up to -k, side by side across the
 ## screen. Row k's props stand on the ground of the PROP_SPREAD tiles either side of path tile k, of
 ## those that are neither road nor within set_piece_margin() tiles of a set piece's road, or of the
-## straight that Last Gas stands by (ENDGAME_PLAN.md §5.15). Each such tile's ground cells make lots
+## straight that Last Gas stands by (docs/ENDGAME.md §5.15). Each such tile's ground cells make lots
 ## of each size that its props take (PropDef.lot), the largest first. Each lot that no larger prop
 ## stands on shows one prop of its size or none: its hash with props_seed picks one by their
 ## densities, or by a street by their street densities (§5.8). A lot of one cell has the cell's own

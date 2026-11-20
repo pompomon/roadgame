@@ -1,5 +1,5 @@
 extends RefCounted
-## The Vanishing Hitchhiker's sheet (ENDGAME_PLAN.md §5.17), drawn into assets/legends/hitchhiker/
+## The Vanishing Hitchhiker's sheet (docs/ENDGAME.md §5.17), drawn into assets/legends/hitchhiker/
 ## by tools/art/make_legends.gd. `hitchhiker.png`: a girl in a white dress, her long hair in shadow,
 ## her left arm down and her right held out to the screen's right, its thumb up, as a hitchhiker
 ## asks for a ride. She is outlined in ink, and her hair, her eyes and her shoes are dark, so that
