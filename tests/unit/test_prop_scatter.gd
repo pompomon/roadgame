@@ -267,8 +267,13 @@ func test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day() -> vo
 	assert_gt(seconds[-1], 0, "not stopped at once: %s" % [seconds])
 	assert_eq(_changes(scatter, resting, night, 2.0), 0, "at rest all night")
 	assert_eq(_changes(scatter, turning, night, 1.0), turning.size() * 4, "the others go on")
-	# The day comes: they start again, and once PROP_REST_SECONDS have passed turn as by day.
-	assert_gt(_changes(scatter, resting, day, Tuning.PROP_REST_SECONDS), 0, "starting again")
+	# The day comes: they start again from the sunrise, their frames changing more each second,
+	# and once PROP_REST_SECONDS have passed turn as by day.
+	seconds.clear()
+	for second: int in ceili(Tuning.PROP_REST_SECONDS):
+		seconds.append(_changes(scatter, resting, day, 1.0))
+	assert_gt(seconds[-1], seconds[0] * 2, "starting again: %s" % [seconds])
+	assert_gt(seconds[0], 0, "from the sunrise: %s" % [seconds])
 	assert_eq(_changes(scatter, resting, day, 1.0), resting.size() * 4, "and as by day")
 	# A run that starts at night.
 	scatter.bind(buffer)
@@ -728,16 +733,20 @@ func test_no_prop_stands_on_the_sea() -> void:
 
 
 ## The props that the pier takes away stop animating, both those that animate by the scatter's
-## clock and those that rest at night by theirs. Their sprites go back to the pool, and the rows
-## that show next take them: no sprite then changes frame but as its new prop's frames come, nor
-## while it waits in the pool. Two of the sea test's roads, which show props on the sea before the
-## pier is made, with props that animate in the City's stead. The car waits once the pier is made.
+## clock and those that rest at night by theirs, and those that it leaves in its rows go on. Their
+## sprites go back to the pool, and the rows that show next take them: no sprite then changes frame
+## but as its new prop's frames come, nor while it waits in the pool. Two of the sea test's roads,
+## which show props on the sea before the pier is made, with props that animate in the City's
+## stead. The car waits once the pier is made.
 func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
 	var flag := _prop(&"flag", 6, 7.5, 0.3)
 	var sails := _prop(&"sails", 4, 4.0, 0.3)
 	sails.rests_at_night = true
 	var seconds := 1.0
-	# The most times a sprite of each can change frame in `seconds`.
+	# The fewest and the most times a sprite of each changes frame in `seconds`.
+	var least: Dictionary[int, int] = {
+		flag.frames: ceili(flag.fps * seconds) - 1, sails.frames: ceili(sails.fps * seconds) - 1
+	}
 	var most: Dictionary[int, int] = {
 		flag.frames: ceili(flag.fps * seconds) + 1, sails.frames: ceili(sails.fps * seconds) + 1
 	}
@@ -764,16 +773,24 @@ func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
 		scatter.bind(buffer)
 		buffer.start()
 		var taken: Dictionary[int, int] = {}
+		var taken_from: Dictionary[int, bool] = {}
 		var index := 1
 		while not buffer.generator.finished() and index <= pier.path_index:
 			taken = {}
+			taken_from = {}
 			for k: int in scatter.rows():
 				for sprite: Sprite2D in scatter.sprites(k):
 					if Pier.at_sea(Vector2i(Iso.world_to_tile(sprite.position).floor()), pier):
 						taken[sprite.hframes] = taken.get(sprite.hframes, 0) + 1
+						taken_from[k] = true
 			buffer.on_car_path_index(index)
 			scatter.update(DELTA)
 			index += 1
+		# The props that the pier leaves in the rows that it takes props from.
+		var left: Dictionary[int, int] = {}
+		for k: int in taken_from:
+			for sprite: Sprite2D in scatter.sprites(k):
+				left[sprite.hframes] = left.get(sprite.hframes, 0) + 1
 		_frame_changes.clear()
 		for child: Node in _layer.get_children(true):
 			child.frame_changed.connect(_on_frame_changed.bind(child))
@@ -784,12 +801,18 @@ func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
 			child.frame_changed.disconnect(_on_frame_changed)
 			var sprite := child as Sprite2D
 			var changes: int = _frame_changes.get(sprite, 0)
-			if changes > (most.get(sprite.hframes, 0) if sprite.visible else 0):
+			var fewest: int = least.get(sprite.hframes, 0) if sprite.visible else 0
+			var at_most: int = most.get(sprite.hframes, 0) if sprite.visible else 0
+			if changes < fewest or changes > at_most:
 				wrong.append("%d frames by %d changes" % [sprite.hframes, changes])
 		var road_name := "%d turns, seed %d" % road
 		assert_gt(taken.get(flag.frames, 0), 0, "%s: flags that the pier takes away" % road_name)
 		assert_gt(taken.get(sails.frames, 0), 0, "%s: sails that the pier takes away" % road_name)
-		assert_eq(wrong, PackedStringArray(), "%s: sprites that change frame too often" % road_name)
+		assert_gt(left.get(flag.frames, 0), 0, "%s: flags that it leaves in its rows" % road_name)
+		assert_gt(left.get(sails.frames, 0), 0, "%s: sails that it leaves in its rows" % road_name)
+		assert_eq(
+			wrong, PackedStringArray(), "%s: sprites that change frame out of time" % road_name
+		)
 	assert_eq(city.props, city_props, "the City's own props")
 
 
