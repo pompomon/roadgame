@@ -14,14 +14,15 @@ const SHADER := preload("res://world/headlights.gdshader")
 
 ## How far on they are, from 0, off, to 1.
 var level := 0.0
-## The road's material.
+## The road's material, which holds the parameters given to it.
 var material := ShaderMaterial.new()
-## The parameters last given to the material, by name.
-var _shown: Dictionary[StringName, Variant] = {}
 
 
 func _init() -> void:
 	material.shader = SHADER
+	_show(&"origin", Vector2.ZERO)
+	_show(&"along", Vector2.ZERO)
+	_show(&"across", Vector2.ZERO)
 	_show(&"reach", Tuning.HEADLIGHT_REACH)
 	_show(&"half_width", Tuning.HEADLIGHT_HALF_WIDTH)
 	_show(&"spread", Tuning.HEADLIGHT_SPREAD)
@@ -62,11 +63,12 @@ func aim(sim: CarSim, to_canvas: Transform2D) -> void:
 	_show(&"across", Vector2(to_tiles.x.dot(aside), to_tiles.y.dot(aside)))
 
 
-## How much they light canvas point `point`, from 0 to 1, as the shader works it out.
+## How much they light canvas point `point`, from 0 to 1, as the shader works it out from the
+## material's parameters.
 func lit(point: Vector2) -> float:
-	var offset := point - (_shown.get(&"origin", Vector2.ZERO) as Vector2)
-	var ahead := (_shown.get(&"along", Vector2.ZERO) as Vector2).dot(offset)
-	var aside := absf((_shown.get(&"across", Vector2.ZERO) as Vector2).dot(offset))
+	var offset := point - (shown(&"origin") as Vector2)
+	var ahead := (shown(&"along") as Vector2).dot(offset)
+	var aside := absf((shown(&"across") as Vector2).dot(offset))
 	var width := Tuning.HEADLIGHT_HALF_WIDTH + Tuning.HEADLIGHT_SPREAD * maxf(ahead, 0.0)
 	var reach := Tuning.HEADLIGHT_REACH
 	var shine := 0.0 if ahead < 0.0 else 1.0
@@ -88,13 +90,12 @@ static func gain(light: Color, p_level: float) -> Vector3:
 	return gains
 
 
-## The parameter `parameter_name` last given to the material.
+## The parameter `parameter_name` that the material holds, which the shader draws with.
 func shown(parameter_name: StringName) -> Variant:
-	return _shown.get(parameter_name)
+	return material.get_shader_parameter(parameter_name)
 
 
 func _show(parameter_name: StringName, value: Variant) -> void:
-	if _shown.get(parameter_name) == value:
+	if shown(parameter_name) == value:
 		return
-	_shown[parameter_name] = value
 	material.set_shader_parameter(parameter_name, value)

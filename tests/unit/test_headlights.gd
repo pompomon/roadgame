@@ -176,6 +176,7 @@ func test_off_without_a_clock_or_a_car_and_once_the_run_is_over() -> void:
 	_run(morning, SWITCH)
 	assert_ne(morning.light, morning.target(), "the morning's light still to come")
 	assert_eq(_headlights.level, 0.0, "off once the run is over, while the light comes")
+	assert_eq(_headlights.shown(&"gain"), Vector3.ZERO, "the road unlit")
 
 
 func test_the_road_in_the_cone_shows_a_share_of_its_day_light() -> void:
@@ -235,8 +236,6 @@ func test_the_material_shows_the_cone_as_lit_works_it_out() -> void:
 	_run(_cycle(22.0), DELTA)
 	var material := _headlights.material
 	assert_eq(material.shader, Headlights.SHADER)
-	for parameter: StringName in [&"origin", &"along", &"across", &"gain"]:
-		assert_eq(material.get_shader_parameter(parameter), _headlights.shown(parameter), parameter)
 	assert_eq(material.get_shader_parameter(&"reach"), Tuning.HEADLIGHT_REACH)
 	assert_eq(material.get_shader_parameter(&"half_width"), Tuning.HEADLIGHT_HALF_WIDTH)
 	assert_eq(material.get_shader_parameter(&"spread"), Tuning.HEADLIGHT_SPREAD)
