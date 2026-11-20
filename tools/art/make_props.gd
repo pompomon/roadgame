@@ -50,6 +50,7 @@ const PROPS := {
 		&"flowers": [1, 0.0, 0.016, ["meadows dark", "yellow", "white", "red"]],
 		&"rock": [1, 0.0, 0.006, GREY_ROCK],
 		&"pond": [3, 2.0, 0.003, ["meadows dark", "meadows water", "foam", "meadows light"]],
+		&"grass": [4, 3.0, 0.05, ["meadows dark", "meadows light"]],
 	},
 	&"village":
 	{
@@ -95,7 +96,7 @@ const LIGHTHOUSE_TOP := 5.0
 const LIGHTHOUSE_LAMP := Rect2i(-3, -51, 6, 5)
 ## Props drawn without an ink outline: flat ones, which it would make look like holes, and the dune
 ## grass, whose blades it would fill in.
-const FLAT: Array[StringName] = [&"flowers", &"pond", &"dune_grass"]
+const FLAT: Array[StringName] = [&"flowers", &"pond", &"dune_grass", &"grass"]
 ## How the props' shadows fall (docs/DAYNIGHT.md §5.11), where not as an upright prop's: the fence
 ## is a wall, whose base line rises WALL_RISE pixels above its foot where it crosses the foot's
 ## column, and the props that lie flat cast none. A box's shadow falls from the centre of its
@@ -104,6 +105,7 @@ const SHADOWS := {
 	&"fence": PropDef.Shadow.WALL,
 	&"flowers": PropDef.Shadow.NONE,
 	&"pond": PropDef.Shadow.NONE,
+	&"grass": PropDef.Shadow.NONE,
 	&"bones": PropDef.Shadow.NONE,
 	&"shell": PropDef.Shadow.NONE,
 }
@@ -578,6 +580,18 @@ func _paint_dune_grass(image: Image, c: Array[Color], frame: int) -> float:
 		if k % 3 == 1:
 			_rect(image, Rect2i(Vector2i(tip.floor()) + Vector2i(0, -2), Vector2i(1, 3)), c[2])
 	return 6.0
+
+
+## A tuft of meadow grass: blades that sway with the wind and back, their tips a pixel a frame, the
+## tallest most.
+func _paint_grass(image: Image, c: Array[Color], frame: int) -> float:
+	var sways: Array[float] = [0.0, 1.0, 2.0, 1.0]
+	var heights: Array[int] = [4, 7, 5, 8, 6, 4]
+	for k: int in heights.size():
+		var stem := Vector2(-5 + 2 * k, 0)
+		var lean := 0.4 * (k - 2.5) + sways[frame] * heights[k] / 8.0
+		_line(image, stem, stem + Vector2(lean, -heights[k]), c[k % 2])
+	return 0.0
 
 
 ## A beach hut: a little house whose walls are striped, two pixels in every four, lighter on the
