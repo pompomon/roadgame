@@ -14,6 +14,8 @@ extends RefCounted
 ## CMP_EPSILON (scene/2d/node_2d.cpp, set_scale), so a legend's part that waits at a scale of zero,
 ## such as the Witch's Hex's pumpkin, still has a rect with an area.
 const HIDDEN_SCALE := 1e-4
+## How long, in seconds of a prop's clock, before its next frame update() looks at its frame again.
+const NEXT_FRAME_EARLY := 1e-6
 
 
 ## A prop that shows.
@@ -28,6 +30,8 @@ class Shown:
 	var cast: Shadows.Cast
 	## Where its frame shows on the layer: a see-through prop's, which _fade() reads every frame.
 	var frame: Rect2
+	## When its next frame starts, in seconds of its clock: until then update() leaves its frame.
+	var next_frame_at := 0.0
 
 
 ## The props of a row; those of them that animate, by the scatter's clock or, those that rest at
@@ -120,11 +124,15 @@ func update(delta: float, cycle: DayCycle = null) -> void:
 		_rest_rate = rate
 	_rest_rate = move_toward(_rest_rate, rate, delta / Tuning.PROP_REST_SECONDS)
 	_rest_clock += delta * _rest_rate
+	# Only the props whose next frame has come: the Meadows' grass animates hundreds
+	# (HEADLIGHTS_PLAN.md B12).
 	for row: Row in _rows.values():
 		for shown: Shown in row.animated:
-			_set_frame(shown, _clock)
+			if _clock >= shown.next_frame_at:
+				_set_frame(shown, _clock)
 		for shown: Shown in row.resting:
-			_set_frame(shown, _rest_clock)
+			if _rest_clock >= shown.next_frame_at:
+				_set_frame(shown, _rest_clock)
 	_fade()
 
 
@@ -314,10 +322,14 @@ static func _show_alpha(shown: Shown, alpha: float) -> void:
 		shown.lit.sprite.modulate.a = alpha
 
 
-## Shows prop `shown` in its frame at `clock` seconds of its clock.
+## Shows prop `shown` in its frame at `clock` seconds of its clock, and notes when its next starts.
 func _set_frame(shown: Shown, clock: float) -> void:
-	var cycle := clock * shown.def.fps / shown.def.frames + shown.phase
-	var frame := int((cycle - floorf(cycle)) * shown.def.frames) % shown.def.frames
+	var frames := shown.def.frames
+	var cycle := clock * shown.def.fps / frames + shown.phase
+	var at := (cycle - floorf(cycle)) * frames
+	var frame := int(at) % frames
+	# A little early, so that rounding never makes it a frame late.
+	shown.next_frame_at = clock + (floorf(at) + 1.0 - at) / shown.def.fps - NEXT_FRAME_EARLY
 	if shown.sprite.frame != frame:
 		if shown.lit != null:
 			shown.lit.sprite.frame = frame
