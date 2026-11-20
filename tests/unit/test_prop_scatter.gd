@@ -237,11 +237,13 @@ func test_animated_props_step_through_their_frames_at_their_fps() -> void:
 
 
 func test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day() -> void:
-	# A windmill's sails (HEADLIGHTS_PLAN.md §5.5): as the night falls they slow to a stop in
-	# PROP_REST_SECONDS, never skipping a frame, and as it ends they start again as gently. The
-	# other props that animate go on. A run that starts at night starts with them at rest, and
-	# without a clock they never rest.
-	var sails := _prop(&"sails", 4, 4.0, 0.05)
+	# A windmill's sails (HEADLIGHTS_PLAN.md §5.5): as the night falls they slow evenly to a stop
+	# over PROP_REST_SECONDS, never skipping a frame, and as it ends they start again as gently.
+	# The other props that animate go on. A run that starts at night starts with them at rest,
+	# and without a clock they never rest. Sails of 30 frames at 30 a second show how far they
+	# turn to a 30th of a second.
+	var fps := 30
+	var sails := _prop(&"sails", fps, fps, 0.05)
 	sails.rests_at_night = true
 	var props: Array[PropDef] = [sails, _prop(&"turning", 4, 4.0, 0.05)]
 	var schedule := _schedule(props)
@@ -258,28 +260,37 @@ func test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day() -> vo
 	assert_gt(mini(resting.size(), turning.size()), 20, "props of each")
 	var day := _clock(12.0)
 	var night := _clock(22.0)
-	assert_eq(_changes(scatter, resting, day, 1.0), resting.size() * 4, "a turn a second by day")
-	# The night falls: the sails' frames change less each second, a frame at a time, and then not.
-	var seconds: Array[int] = []
+	var by_day := resting.size() * fps
+	assert_eq(_changes(scatter, resting, day, 1.0), by_day, "a turn a second by day")
+	# The night falls: each second they turn as far as their slowing takes them, each to a frame,
+	# and then not.
 	for second: int in ceili(Tuning.PROP_REST_SECONDS):
-		seconds.append(_changes(scatter, resting, night, 1.0))
-	assert_gt(seconds[0], seconds[-1] * 2, "slowing: %s" % [seconds])
-	assert_gt(seconds[-1], 0, "not stopped at once: %s" % [seconds])
+		var turned := 1.0 - (_since_sunrise(second + 1.0) - _since_sunrise(second))
+		var changes := _changes(scatter, resting, night, 1.0)
+		var label := "slowing, in second %d" % [second + 1]
+		assert_almost_eq(changes, roundi(by_day * turned), resting.size(), label)
 	assert_eq(_changes(scatter, resting, night, 2.0), 0, "at rest all night")
 	assert_eq(_changes(scatter, turning, night, 1.0), turning.size() * 4, "the others go on")
-	# The day comes: they start again from the sunrise, their frames changing more each second,
-	# and once PROP_REST_SECONDS have passed turn as by day.
-	seconds.clear()
+	# The day comes: from the sunrise they start again as evenly, and once PROP_REST_SECONDS have
+	# passed turn as by day.
 	for second: int in ceili(Tuning.PROP_REST_SECONDS):
-		seconds.append(_changes(scatter, resting, day, 1.0))
-	assert_gt(seconds[-1], seconds[0] * 2, "starting again: %s" % [seconds])
-	assert_gt(seconds[0], 0, "from the sunrise: %s" % [seconds])
-	assert_eq(_changes(scatter, resting, day, 1.0), resting.size() * 4, "and as by day")
+		var turned := _since_sunrise(second + 1.0) - _since_sunrise(second)
+		var changes := _changes(scatter, resting, day, 1.0)
+		var label := "starting again, in second %d" % [second + 1]
+		assert_almost_eq(changes, roundi(by_day * turned), resting.size(), label)
+	assert_eq(_changes(scatter, resting, day, 1.0), by_day, "and as by day")
 	# A run that starts at night.
 	scatter.bind(buffer)
 	resting = _sprites(scatter, sails.texture)
 	assert_eq(_changes(scatter, resting, night, 1.0), 0, "at rest from a night's start")
 	assert_gt(_changes(scatter, resting, null, Tuning.PROP_REST_SECONDS), 0, "no clock, no night")
+
+
+## How far a prop that rests turns in the `seconds` after a sunrise, in seconds of its turning by
+## day: its speed rises evenly from 0 to 1 over PROP_REST_SECONDS. By night it falls as evenly.
+static func _since_sunrise(seconds: float) -> float:
+	var ramp := Tuning.PROP_REST_SECONDS
+	return seconds * seconds / (2.0 * ramp) if seconds < ramp else seconds - ramp / 2.0
 
 
 ## The sprites of `texture`'s props.
