@@ -59,6 +59,32 @@ func test_each_frame_is_cropped_to_its_props_pixels_apart_from_the_others() -> v
 			strips.append(strip)
 
 
+func test_the_meadows_grass_sways() -> void:
+	# The Meadows' grass (HEADLIGHTS_PLAN.md §5.6) sways: each frame shows other pixels than the one
+	# before it, so the blades never stand still for a frame. Art.pixels() leaves out the colours
+	# that the import gives the clear pixels beside the frames' (fix_alpha_border), which differ
+	# where nothing shows.
+	var grass: PropDef = null
+	for def: PropDef in _props(&"meadows"):
+		if def.id == &"grass":
+			grass = def
+	assert_not_null(grass, "the Meadows' grass")
+	if grass == null:
+		return
+	assert_gt(grass.frames, 1, "it animates")
+	var image := grass.texture.get_image()
+	for frame: int in grass.frames:
+		var next := (frame + 1) % grass.frames
+		var shown := Art.pixels(_frame(image, grass, frame))
+		assert_ne(shown, Art.pixels(_frame(image, grass, next)), "frame %d to %d" % [frame, next])
+
+
+## Frame `frame` of `def`, from its sheet's `image`.
+static func _frame(image: Image, def: PropDef, frame: int) -> Image:
+	var at := def.region.position + Vector2i(def.region.size.x * frame, 0)
+	return image.get_region(Rect2i(at, def.region.size))
+
+
 func test_each_prop_lights_its_yellow_windows_and_lamps() -> void:
 	# make_props.gd records each box that it paints yellow, a lit window or a lamp's head, as a
 	# light grown by a halo, and a lamp's pool on the ground below its head (docs/DAYNIGHT.md

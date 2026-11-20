@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PropDef" format=3]
+
+[ext_resource type="Script" path="res://areas/prop_def.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/meadows/props.png" id="2_sheet"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"grass"
+texture = ExtResource("2_sheet")
+region = Rect2i(216, 0, 14, 9)
+frames = 4
+fps = 3.0
+foot = Vector2i(6, 8)
+density = 0.05
+shadow = 2
