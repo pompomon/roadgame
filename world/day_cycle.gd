@@ -86,6 +86,16 @@ func target() -> Color:
 	return light_at(hour())
 
 
+## Whether `p_hour` is in the night (HEADLIGHTS_PLAN.md §5.1): from dusk, the light's DUSK_HOUR key,
+## until the sun rises, round midnight. The car's headlights shine then, and the windmills rest.
+## fmod() leaves the hour's remainder exact. One below 0 is compared with the hours a day earlier,
+## since adding a day to it may round.
+static func night_at(p_hour: float) -> bool:
+	var h := fmod(p_hour, 24.0)
+	var shift := 24.0 if h < 0.0 else 0.0
+	return h >= Tuning.DUSK_HOUR - shift or h < Tuning.SUN_RISE_HOUR - shift
+
+
 ## The light at `p_hour`, eased between the keys before and after it.
 static func light_at(p_hour: float) -> Color:
 	var hours := Tuning.LIGHT_HOURS

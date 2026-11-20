@@ -3,7 +3,8 @@ extends GutTest
 ## each zone starts its clock again, runs it at its own pace, and the light catches up no faster
 ## than the rate; the clock runs only with the run; --hour= sets the hour that zones start at; a
 ## disaster plays in the light that the run ended in; the night's veil darkens the world but not
-## the glows or the UI; and the light changes nothing but the view.
+## the glows or the UI; and the light changes nothing but the view. The lamps and the headlights
+## follow the zone's clock (docs/DAYNIGHT.md §5.12, HEADLIGHTS_PLAN.md §5.3).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
@@ -408,3 +409,43 @@ func test_the_lamps_light_by_the_zones_clock() -> void:
 	_set_hour(main, 12.0)
 	simulate(main, 1, MainScene.DELTA)
 	assert_false(lamps.visible, "by day")
+
+
+func test_the_headlights_light_the_road_from_dusk_until_the_run_ends() -> void:
+	# World lights the road ahead of the car by the zone's clock (HEADLIGHTS_PLAN.md §5.3): at night
+	# the road's material gives back a share of the light in the cone ahead of the car's lamps, by
+	# day it draws the road as before, and once the run is over the lamps go out.
+	var main := MainScene.open(self, ["--seed=1", "--hour=22"])
+	var world: WorldRenderer = main.get_node("%World")
+	var headlights := world.headlights()
+	var road: TileMapLayer = world.get_node("%RoadLayer")
+	assert_same(road.material, headlights.material, "the road's material")
+	# The road's alone: the props, the car and the rest are drawn as before, and the veil darkens
+	# them as it did.
+	var lit: Array[String] = []
+	for item: CanvasItem in _items(world):
+		if item.material == headlights.material and item != road:
+			lit.append(item.name)
+	assert_eq(lit, [] as Array[String], "nothing else in World is lit")
+	var switch := ceili(Tuning.HEADLIGHT_SWITCH_SECONDS / MainScene.DELTA) + 1
+	simulate(main, switch, MainScene.DELTA)
+	assert_eq(headlights.level, 1.0, "on at night")
+	assert_eq(headlights.shown(&"gain"), Headlights.gain(_daylight(main).cycle.light, 1.0))
+	# The car may have stepped once since World aimed them: no more than 5 px at its top speed.
+	var sim := MainScene.car(main).sim
+	var lamps := sim.pos + sim.forward() * Tuning.HEADLIGHT_FRONT
+	var aimed := world.get_global_transform() * Iso.tile_to_world(lamps)
+	var origin: Vector2 = headlights.shown(&"origin")
+	assert_lt(origin.distance_to(aimed), Iso.TILE_H / 4.0, "at the car's lamps")
+	_set_hour(main, 12.0)
+	simulate(main, switch, MainScene.DELTA)
+	assert_eq(headlights.level, 0.0, "off by day")
+	assert_eq(headlights.shown(&"gain"), Vector3.ZERO, "the road as before")
+	_set_hour(main, 22.0)
+	simulate(main, switch, MainScene.DELTA)
+	assert_eq(headlights.level, 1.0, "on again")
+	MainScene.run_while(self, main, RUNNING, 3600)
+	assert_eq(GameState.state, DISASTER, "the run is over")
+	simulate(main, switch, MainScene.DELTA)
+	assert_eq(headlights.level, 0.0, "off once the run is over")
+	assert_eq(headlights.shown(&"gain"), Vector3.ZERO, "the road unlit in the night")
