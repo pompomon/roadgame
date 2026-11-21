@@ -180,4 +180,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   row('120 Hz, a page chain beside the game', { hz: 120, secs: 20, work: light, page: true }, 5, 20);
   row('120 Hz, the game cancels at 10 s', { hz: 120, secs: 20, work: light, cancelAt: 10 }, 5, 10);
   console.log(JSON.stringify(rows, null, 0).replace(/\},\{/g, '},\n{'));
+  // PERF_PLAN.md §5.4's table: at each rate, exact or with 0.3 ms of jitter, gate B draws the screen's rate over
+  // n = max(1, floor(1.05 * hz / 60)) within 1 fps, with at most 0.1 frames a second off the cadence (P17).
+  const table = rows.filter((r) => /^light [\d.]+ Hz(, jitter 0\.3 ms)?$/.test(r.name));
+  const bad = table.filter((r) => {
+    const hz = parseFloat(r.name.slice('light '.length));
+    return Math.abs(r.B - hz / Math.max(1, Math.floor((1.05 * hz) / 60))) > 1 || r.B_off > 0.1;
+  });
+  for (const r of bad) console.error(`gate B: ${r.name}: ${r.B} fps, ${r.B_off} frames a second off the cadence`);
+  process.exitCode = table.length === 14 && bad.length === 0 ? 0 : 1;
 }
