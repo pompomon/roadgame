@@ -1,8 +1,8 @@
 # Headlights, Resting Windmills and the Meadows' Grass — Detailed Plan
 
-Status: proposed. This plan's PR waits for the owner, who answers Q1–Q12 or takes their defaults, and approves the plan by merging it (§3, §7) · 2026-11-20 · Scope: from dusk until sunrise the car's headlights light the road ahead of it, and nothing else; the windmills' sails rest at night; grass sways in the Meadows. Nothing else that shows changes, but the Meadows' frames by day, by their grass (P2). This plan calls the work HL. It comes after EG (#84, #101–#115), beside SP's plan (#116), and before M7.
+Status: approved with Q1–Q12's defaults (§3), as the owner merged its PR, #117, and built: PRs 1–3 pass their checks (§6), and §4.2–§4.4's **Built** lines say where each differs from this plan. Agents landed PRs 1 and 2, #119 and #120, as 59c26a0 and 4ea42e5 (§4.5). PR 3 (#121) carries this final sync, and the owner lands it after the Fold4's checks (§6.4), then PR 4 · 2026-11-21 · Scope: from dusk until sunrise the car's headlights light the road ahead of it, and nothing else; the windmills' sails rest at night; grass sways in the Meadows. Nothing else that shows changes, but the Meadows' frames by day, by their grass (P2). This plan calls the work HL. It comes after EG (#84, #101–#115), beside SP's plan (#116), and before M7.
 
-The owner asked: "Explore the codebase and create a detailed implementation plan for visual improvements: 1. Add headlights to the car, which turn on from dusk till sunrise. They highlight the road, but not the objects around. 2. Stop windmills at night. 3. Add animated grass to the Meadows. Ask clarifying questions if needed". The plan was written while nobody could answer, so each question that it raised is a Q# in §3, with the default that the prototype follows. The owner answers them on this plan's PR.
+The owner asked: "Explore the codebase and create a detailed implementation plan for visual improvements: 1. Add headlights to the car, which turn on from dusk till sunrise. They highlight the road, but not the objects around. 2. Stop windmills at night. 3. Add animated grass to the Meadows. Ask clarifying questions if needed". The plan was written while nobody could answer, so each question that it raised is a Q# in §3, with the default that the prototype follows. The owner took the defaults, and merged this plan's PR.
 
 **The headlights.** The car has none, and at night `Daylight`'s veil darkens the road as it darkens the rest (B1; docs/DAYNIGHT.md Q5). PR 1 gives the road a material of its own, `Headlights`. From dusk, the light's 18:30 key, until the sun rises at 06:00 (`DayCycle.night_at()`, B2), while the car drives, it draws the road brighter in a cone ahead of the car's lamps, so that the veil leaves the road there lighter: at most `HEADLIGHT_SHARE`, 0.6, of the way back to its day colour, in a warm white (§5.3). All that is drawn on the road after it, the car, the props, the skid marks and the legends, hides the light under it where it is opaque, and the ground beside the road isn't the road: so only the road is lit (B3, B4). They turn on and off in half a second, stay on into a zone's morning until its light has come (B7), and go out once the run is over (B10). Only the material's parameters change, so nothing is redrawn on the Web (B17).
 
@@ -12,7 +12,7 @@ The owner asked: "Explore the codebase and create a detailed implementation plan
 
 **The cost.** The Meadows' rows hold about 650 animated props, where `main`'s hold about 33. `PropScatter.update()` worked out each one's frame every frame: 616 µs a frame, against `main`'s 94. PR 3 looks at a prop's frame only once its next frame has come: 184 µs (B12, P4). Movie Maker's render times, where each build ran more than once, differ from `main`'s by less than one build's runs differ from each other (P3), and GUT, run alone locally, takes 140.5 s on average against `main`'s 133.7 s, 5% more (P10).
 
-**Verified locally and in CI.** Every file of PRs 1–3 was built first on branch `hl/prototype`, from `main` at 4a50bb2, which never gets a PR: the headlights, 3d40104, the windmills' rest, 9b4d908, and the grass, c0ea19a, then §4.6's six fixes. It passed the five checks with Godot 4.7.2, locally and in CI, and so did each PR's tree, rebuilt as §4.1 says, locally (§6.1), with the warnings check (§6.3). Each negative case, with the whole suite, failed the tests it names and nothing else (§6.2). Probes measured the frames by day and at night, the lit pixels against the road's mask, the cost, the Web, and the merges with SP's prototype and after each squash (§6.5).
+**Verified locally and in CI.** Every file of PRs 1–3 was built first on branch `hl/prototype`, from `main` at 4a50bb2, which never gets a PR: the headlights, 3d40104, the windmills' rest, 9b4d908, and the grass, c0ea19a, then §4.6's six fixes. It passed the five checks with Godot 4.7.2, locally and in CI, and so did each PR's tree, rebuilt as §4.1 says, locally, and each PR's head, locally and in CI (§6.1), with the warnings check (§6.3). Each negative case, with the whole suite, failed the tests it names and nothing else, on the prototype and on each PR's head (§6.2). Probes measured the frames by day and at night, the lit pixels against the road's mask, the cost, the Web, and the merges with SP's prototype and after each squash (§6.5).
 
 - Godot 4.7.2-stable (4.7.2.stable.official.ed1daf0bf), in CI's image and locally
 - GUT 9.7.1
@@ -178,6 +178,8 @@ Branch `hl/1-headlights`, from `hl/plan`: `world: the car's headlights light the
 
 11 files, 6 of them new, 3 of those `.uid`s; +448 −2. Expect, on `hl/plan`: `check_scripts: loaded 223 scripts`, 2 more than `main`'s 221; `GUT: 912 tests passed`, 9 more than `main`'s, in 104 test scripts, with 456,700 asserts, 159 more; `autopilot: tile 165, turns 35, area rural`, as on `main`. Negative cases N1–N10, N20 and N21.
 
+**Built** as #119, landed as 59c26a0: as planned, with four rounds of internal review (§4.6). **Δ** `night_at()` wraps the hour with `fmod()`, then compares it with dusk and sunrise, a day earlier for a negative remainder: §5.1's wraps a difference, which can round (N33, N34). The material holds the only copy of its parameters, which `shown()` and `lit()` read (N32). Its head, d2e440e, has 456,708 asserts, the review's 8 more than expected, and passed every check (§6.1), its negative cases (§6.2) and the Web's (E12, [#119's comment](https://github.com/pompomon/roadgame/pull/119#issuecomment-7051909165)).
+
 **Acceptance:** E1–E6, E14, and E12's part for PR 1.
 
 ### 4.3 PR 2: World: the windmills rest at night **Δ B5, B15, B16**
@@ -193,6 +195,8 @@ Branch `hl/2-windmills`, from `hl/1-headlights`: `world: the windmills' sails re
 | Tests | `test_prop_scatter.gd`: *rest* and *pier*, new (E7, E8); *contract* adds a prop that rests but doesn't animate. `test_daylight_run.gd`: *windmills*, new (E7) |
 
 8 files; +252 −12. Expect, on `hl/1-headlights`: `check_scripts: loaded 223 scripts`, as PR 1's; `GUT: 915 tests passed`, 3 more than PR 1's, in 104 test scripts, with 456,722 asserts, 22 more; `main`'s smoke line. Negative cases N11–N16 and N23–N27, and PR 1's on its head too.
+
+**Built** as #120, landed as 4ea42e5: as planned, with three rounds of internal review (§4.6). Its head, 081f59d, has 456,737 asserts, 15 more than expected: PR 1's review's 8 and its own 7. It passed every check (§6.1), its negative cases and PR 1's (§6.2) and the Web's (E12, [#120's comment](https://github.com/pompomon/roadgame/pull/120#issuecomment-7053497165)). The review declined one finding: a run that `--hour` starts within 8 physics steps of the sunrise or the dusk skips the ramp, as the scatter's first `update()`, before which it draws nothing, takes the hour's rate (§5.5).
 
 **Acceptance:** E6, E7, E8's part for PR 2 (*pier*), E14, and E12's part for PR 2.
 
@@ -210,6 +214,8 @@ Branch `hl/3-grass`, from `hl/2-windmills`: `props: grass sways in the Meadows (
 8 files, 1 of them new; +213 −7. Expect, on `hl/2-windmills`: `check_scripts: loaded 223 scripts`; `GUT: 919 tests passed`, 4 more than PR 2's, in 104 test scripts, with 456,809 asserts, 87 more; `main`'s smoke line. Negative cases N17–N19, N22 and N28, and PRs 1 and 2's on its head too.
 
 PR 3 is the stack's last code PR: it gathers the device checks of all three (§6.4) into one list, with a build of its branch, and mentions @pompomon; the owner lands it once they pass (docs/agents/planning.md §5). It carries the plan's final sync: its status, §4.6's rows, the counts and the device results.
+
+**Built** as #121, with six rounds of internal review (§4.6). **Δ** `update()` skips the props at rest while their clock stands (3aaf5d6, §5.6). 9d2384c, its head before this sync, has 456,841 asserts, 32 more than expected: PR 1's review's 8, PR 2's 7 and its own review's 17, in *guard*. It passed every check (§6.1), its negative cases and those of PRs 1 and 2 (§6.2) and the Web's (E12, [#121's comment](https://github.com/pompomon/roadgame/pull/121#issuecomment-7055067236)). The owner lands it after the Fold4's checks (§6.4).
 
 **Acceptance:** E6, E8's part for PR 3 (*frames*, *guard*), E9–E11, E14, and E12 for all three.
 
@@ -261,6 +267,18 @@ Fixes found while the prototype was built and by the internal reviews (§4.7), e
 | 2 | The editor's warnings (§6.3): 8e82633's test read a variable before it was given a value (`UNASSIGNED_VARIABLE`, `test_prop_scatter.gd`:810, :868 on 8c02110). b337183 gives it one | *pier* | Without the value, §6.3 reports the warning again |
 | 3 | B12: c0ea19a's grass took `update()` from 94 µs a frame to 616 µs in the Meadows. eac39f8 looks at an animated prop only once its next frame has come: 184 µs | *frames* | N22 |
 | 3 | The plan's review (F7, §4.7): no test checked eac39f8's guards, which change only when a frame is worked out, so *frames* passed without them. 8c02110 adds *guard* | *guard* | N28 |
+| 1 | #119's review of faae2c5: *switch* checked the gain only at its ends, *off* had no crash during a zone's morning hold, and *material* compared the material's parameters with themselves. e37accc checks the gain halfway on and halfway off, a crash while they're held on, and the shader's uniforms, by name and type, against the parameters that `update()` sets | *switch*, *off*, *material* | N29–N31 |
+| 1 | Of e37accc: a gain left on the material once they were off passed every test, as the tests read a copy that `_show()` kept beside it. In c95543f the material holds the only copy, which `shown()` and `lit()` read | *lights*, *off*, *switch* | N32 |
+| 1 | Of e37accc: §5.1's `night_at()` wrapped the hour less dusk, a difference that can round, so one ulp before sunrise was day, and 10^18 + 256 h, 08:00, night. c95543f wraps the hour first, then compares it | *night* | N33 |
+| 1 | Of c95543f: `fposmod()` adds 24 to a negative remainder, and that sum can round, so −5.5 h less 2^-50, before the dusk of the day before, was night. d2e440e compares a negative remainder with dusk and sunrise a day earlier, −5.5 and −18, which are exact | *night* | N34 |
+| 2 | #120's review of 954e670: *rest* let the sails start again at full speed at the sunrise, and *pier* let the pier stop every prop in its rows. b48090a counts the sails' frame changes in each second after the sunrise, and needs the flags and sails that the pier leaves in its rows to go on turning | *rest*, *pier* | N35–N37 |
+| 2 | Of b48090a: *rest* still let the sails start again in 2.1 s, where `PROP_REST_SECONDS` is 3 s: sails of 4 frames at 4 a second change frame too seldom to tell. 70ffca2 gives *rest*'s sails 30 frames at 30 a second, and checks each second of both ramps against §5.5's even ramp | *rest* | N38, N39 |
+| 3 | The internal review of 9b19e02: at night the rest clock stops, and where it stopped within `NEXT_FRAME_EARLY` of a resting prop's next frame, `update()` set that prop's frame on every update all night (E8). 3aaf5d6 skips the props at rest while their clock stands, and *guard* stops the night half of `NEXT_FRAME_EARLY` before a sail's next frame, which it bisects for | *guard* | N40 |
+| 3 | Of 3aaf5d6: *guard*'s checks at rest all ran with their clock stopped, so `if rest_moved:` alone passed them, and looked at every sail on every update by day. d8f9e43 sets the sails' frames by hand in *guard*'s short step by day, as the grass's | *guard* | N41 |
+| 3 | Of d8f9e43: after the night the rest clock is 4 s behind the scatter's, yet *guard* passed were the sails' next frames compared with `_clock`: its short step runs with both clocks equal, and the morning's first step reaches the next frame by either. 31f9b52 sets the sail's frame by hand after that step, and checks that the next leaves it | *guard* | N42 |
+| 3 | Of 31f9b52: *guard* took its short step only once a frame of each prop had passed, so it passed were `_set_frame()` to return before it noted the next frame for a prop already in its frame: a prop shown in frame 0 then noted none, and `update()` looked at it every frame until its first change. debb87a takes the step just after the props are shown too | *guard* | N43 |
+| 3 | Of 31f9b52: *guard* bisected half a second in, so it passed were `rest_moved` worked out with `is_equal_approx()`, whose tolerance is a hundred-thousandth of the clock: from about 1,667 s into a run a step of 1/60 s would pass for none, and the sails would stop by day. debb87a bisects an hour and half a second in. The review's third change that the tests passed, each prop shown a frame on, `(int(at) + 1) % frames` in `_set_frame()`, was declined: the frame's expression is `main`'s, from M5, and each prop's phase is random, so it shows as another phase would | *guard* | N44 |
+| 3 | Of debb87a: nothing checked the frame that `_show_row()` gives a prop at rest, by the rest clock, which it keeps all night. Shown by the scatter's clock instead, a windmill that comes into view at night shows another clock's frame, and stays still at dawn until the rest clock reaches its next frame: 3.5 s in the test. 1e1028d brings sails into view once the night has stopped their clock, and checks that they show their clock's frames, keep a frame set by hand all night, and turn by that clock at dawn | *guard* | N45, N46 |
 
 ### 4.7 Internal review
 
@@ -417,9 +435,9 @@ for shown: Shown in row.animated:
 		_set_frame(shown, _clock)
 ```
 
-`_set_frame()` works the frame out as before, from the clock, the prop's frames, its fps and its phase, and notes `next_frame_at = clock + (floorf(at) + 1.0 - at) / fps - NEXT_FRAME_EARLY`: when the frame after it starts, less 1e-6 s, so that rounding never makes a prop a frame late. A prop looked at early is framed again, as nothing changes until its frame does. The resting props do the same by the rest clock, which never runs faster than `_clock`. That took `update()` to 184 µs, about twice `main`'s, and a headless frame to 306–328 µs, against `main`'s 192–204 (P4). *frames* steps a scatter of sails, grass and flags by uneven deltas, 1/60 s, half that, 1.7 times it, 0 and 0.31 s, and checks each prop's frame against a new scatter's at the same clock: none a frame behind or ahead (N22). The guards change only when a frame is worked out, not which, so *frames* passes without them: *guard* sets each prop's frame by hand, and finds it as set until the prop's next frame is due, through a short step for each tuft not yet due and all night for the sails at rest, and each tuft at its clock's frame once due (N11, N22, N23, N28). Movie Maker's frames are the same with and without the fix, 600 of 600 (P5).
+`_set_frame()` works the frame out as before, from the clock, the prop's frames, its fps and its phase, and notes `next_frame_at = clock + (floorf(at) + 1.0 - at) / fps - NEXT_FRAME_EARLY`: when the frame after it starts, less 1e-6 s, so that rounding never makes a prop a frame late. A prop looked at early is framed again, as nothing changes until its frame does. The resting props do the same by the rest clock, which never runs faster than `_clock`. **Δ** But not while it stands: it may stand within `NEXT_FRAME_EARLY` of a prop's next frame, which would then come on every update all night, so `update()` skips them unless their clock has moved (3aaf5d6, §4.6). That took `update()` to 184 µs, about twice `main`'s, and a headless frame to 306–328 µs, against `main`'s 192–204 (P4). *frames* steps a scatter of sails, grass and flags by uneven deltas, 1/60 s, half that, 1.7 times it, 0 and 0.31 s, and checks each prop's frame against a new scatter's at the same clock: none a frame behind or ahead (N22). The guards change only when a frame is worked out, not which, so *frames* passes without them: *guard* sets each prop's frame by hand, and finds it as set until the prop's next frame is due: through a short step by day for each tuft and sail not yet due, just after the props are shown and 0.4 s later; all night for the sails at rest, even where their clock stops half of `NEXT_FRAME_EARLY` before a frame, an hour and half a second into the run, and for those that come into view at night, in their clock's frames; and through the morning's second step, by the rest clock, 4 s behind the scatter's; and each at its clock's frame once due (N11, N22–N24, N28, N40–N46). Movie Maker's frames are the same with and without the fix, 600 of 600 (P5).
 
-**What else it costs.** Render times in the Meadows by day are on average 0.7 ms a frame more than `main`'s on the CPU and 0.6 on the GPU, less than the head's three runs differ from each other, 1.1 and 1.4 ms (P3); World has about 900 more nodes there (P4). On the Web, P9 read the Meadows' frames a second against `main`'s, in Chrome and Firefox, by day and at night. The Fold4's frame rate in the Meadows is read on the device (§6.4, §8).
+**What else it costs.** Render times in the Meadows by day are on average 0.7 ms a frame more than `main`'s on the CPU and 0.6 on the GPU, less than the head's three runs differ from each other, 1.1 and 1.4 ms (P3); World has about 900 more nodes there (P4). On the Web, P9 read the Meadows' frames a second against `main`'s, in Chrome and Firefox, by day and at night, and PR 3's check read them again (§6.4). The Fold4's frame rate in the Meadows is read on the device (§6.4, §8).
 
 ### 5.7 The rules and the docs (B9; Q11; E13)
 
@@ -436,7 +454,7 @@ The Lamps bullet's "never clips" is about the ADD glows, and stays. PR 4 notes t
 
 ### 6.1 Checks and counts
 
-The checks are `AGENTS.md` §3's five. `ci.yml` runs on pull requests, on pushes to `main` and by hand, so a push to an `hl/` branch starts none: each of the prototype's runs was started by hand, with `upload-builds`, to keep its Web build and APK, but for b337183's and 8c02110's, which change only tests. Each of HL's states marked Local ran all five with Godot 4.7.2, and every check passed: `lint.sh` printed `Success: no problems found`; `smoke.sh` printed `main`'s smoke line, `autopilot: tile 165, turns 35, area rural`, and no error line; and `git status --porcelain` printed nothing after. Shellcheck isn't installed locally; HL changes no shell script. `main`'s Local runs are GUT's alone; its CI runs passed all five. On PR 2's and PR 3's trees `make_props.gd` drew the bytes committed (§4.1 step 2). HL's states have 104 test scripts, where `main` has 103: `test_headlights.gd` is new.
+The checks are `AGENTS.md` §3's five. `ci.yml` runs on pull requests, on pushes to `main` and by hand, so a push to an `hl/` branch starts none: each of the prototype's runs was started by hand, with `upload-builds`, to keep its Web build and APK, but for b337183's and 8c02110's, which change only tests. Each of HL's states marked Local ran all five with Godot 4.7.2, and every check passed: `lint.sh` printed `Success: no problems found`; `smoke.sh` printed `main`'s smoke line, `autopilot: tile 165, turns 35, area rural`, and no error line; and `git status --porcelain` printed nothing after. Shellcheck isn't installed locally; HL changes no shell script. `main`'s Local runs are GUT's alone; its CI runs passed all five. On PR 2's and PR 3's trees and heads `make_props.gd` drew the bytes committed (§4.1 step 2). HL's states have 104 test scripts, where `main` has 103: `test_headlights.gd` is new.
 
 | State | Where | Scripts | Tests | Asserts | GUT time | `test` job |
 |---|---|---|---|---|---|---|
@@ -449,12 +467,16 @@ The checks are `AGENTS.md` §3's five. `ci.yml` runs on pull requests, on pushes
 | *guard*'s test (8c02110), PR 3's code tree (7f2fd4c) | Run 44801072534; Local | 223 | 919 | 456,809 | 139.9 s; 141.6 s | 3 min 24 s |
 | PR 1's tree (90be123) | Local | 223 | 912 | 456,700 | 161.4 s | |
 | PR 2's tree (003c32b) | Local | 223 | 915 | 456,722 | 140.3 s | |
+| PR 1's head (d2e440e), #119 | Runs 44820722993, the PR's, and 44820735387, by hand; Local | 223 | 912 | 456,708 | 135.6 s, 133.1 s; 135.7 s | 3 min 21 s, 3 min 15 s |
+| `main` with PR 1 (59c26a0) | Run 44827648235, on its push | 223 | 912 | 456,708 | 132.6 s | 3 min 11 s |
+| PR 2's head (081f59d), #120 | Runs 44829531417, the PR's, and 44829534995, by hand; Local | 223 | 915 | 456,737 | 133.8 s, 132.3 s; 139.5 s | 3 min 8 s, 3 min 9 s |
+| PR 3's head before the sync (9d2384c), #121 | Runs 44840960185, by hand, and 44842056282, the PR's; Local, on 1e1028d, whose tree it has | 223 | 919 | 456,841 | 142.9 s, 133.3 s; 143.0 s | 3 min 20 s, 3 min 11 s |
 
-PR 1's and PR 2's trees were built as §4.1 says, as the commits ab44e26 and 778fa7e, which aren't pushed. GUT's time varies from run to run: in CI over HL's runs from 125.3 s to 235.3 s, and locally with what else runs. Run alone, one tree after another, it took 136.2 s and 134.5 s on `main`, 135.6 s on PR 1's tree, 140.3 s on PR 2's and 142.0 s and 140.1 s on b337183's; then, `main`'s and PR 3's in turn, 133.7 s, 140.2 s, 133.7 s and 140.9 s: 5.1% more than `main`'s (P10).
+PR 1's and PR 2's trees were built as §4.1 says, as the commits ab44e26 and 778fa7e, which aren't pushed. The PRs' heads have more asserts than their trees by the internal reviews' checks: PR 1's 8, PR 2's 7 more and PR 3's 17 more (§4.6). GUT's time varies from run to run: in CI over HL's runs from 125.3 s to 235.3 s, and locally with what else runs. Run alone, one tree after another, it took 136.2 s and 134.5 s on `main`, 135.6 s on PR 1's tree, 140.3 s on PR 2's and 142.0 s and 140.1 s on b337183's; then, `main`'s and PR 3's in turn, 133.7 s, 140.2 s, 133.7 s and 140.9 s: 5.1% more than `main`'s (P10).
 
 ### 6.2 Negative cases
 
-Each change below makes the tests named fail, and nothing else. A script, not committed, applied each to a clean worktree of 8c02110, whose tree is PR 3's, ran `tools/ci/run_tests.sh`, read GUT's summary, and wrote the file back as it was; N19, which changes the sheet, ran `import.sh` before the suite and after the restore. They ran two at a time, each lane in a worktree of its own (docs/agents/planning.md §4): GUT took 141.1–176.7 s. After each lane `git status --porcelain` printed nothing. Each PR's head runs its cases again (§4.1 step 4; E14).
+Each change below makes the tests named fail, and nothing else. A script, not committed, applied each to a clean worktree of 8c02110, whose tree is PR 3's, ran `tools/ci/run_tests.sh`, read GUT's summary, and wrote the file back as it was; N19, which changes the sheet, ran `import.sh` before the suite and after the restore. They ran two at a time, each lane in a worktree of its own (docs/agents/planning.md §4): GUT took 141.1–176.7 s. After each lane `git status --porcelain` printed nothing. Each PR ran its own cases again with the test scripts that each names, then on its head those and the cases of the PRs below it with the whole suite, and each failed the tests below and nothing else (§4.1 step 4; E14): 18 on PR 1's head, d2e440e; 34 on PR 2's, 081f59d; and 48 on PR 3's, 9d2384c, N19 alone, where GUT took 141.3 s, and the others in two lanes, where it took 142.4–173.1 s. Again each lane left `git status --porcelain` empty.
 
 **Short names.** `test_headlights.gd`: *on* `test_on_from_dusk_until_sunrise`, *switch* `test_they_turn_on_and_off_in_the_switch_time`, *hold* `test_into_a_zones_morning_they_stay_as_they_were_until_its_light_has_come`, *off* `test_off_without_a_clock_or_a_car_and_once_the_run_is_over`, *share* `test_the_road_in_the_cone_shows_a_share_of_its_day_light`, *cone* `test_the_cone_lights_the_road_ahead_of_the_car` and *material* `test_the_material_shows_the_cone_as_lit_works_it_out`. *night*: `test_day_cycle.gd`'s `test_the_night_is_from_dusk_until_sunrise`. `test_daylight_run.gd`: *lights* `test_the_headlights_light_the_road_from_dusk_until_the_run_ends`, *windmills* `test_the_windmills_rest_by_the_zones_clock` and *view* `test_the_light_changes_nothing_but_the_view`. `test_prop_scatter.gd`: *rest* `test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day`, *pier* `test_the_props_that_the_pier_takes_away_stop_animating`, *frames* `test_each_prop_shows_the_frame_of_its_clock_though_updates_look_only_at_frames_that_start`, *guard* `test_an_update_sets_no_frame_before_the_next_starts` and *contract* `test_props_that_break_the_contract_are_errors_and_do_not_show`. `test_prop_art.gd`: *sways* `test_the_meadows_grass_sways`, *crop* `test_each_frame_is_cropped_to_its_props_pixels_apart_from_the_others` and *sums* `test_each_area_has_six_to_ten_props_some_animated`. *grass layout*: `test_prop_layout.gd`'s `test_the_meadows_grass_takes_only_ground_that_showed_nothing`. *glow*: `test_world_renderer.gd`'s `test_the_lamps_glow_over_the_veil_at_night`.
 
@@ -465,31 +487,46 @@ Each change below makes the tests named fail, and nothing else. A script, not co
 | N1 | On once the run is over: `update()` without `not sim.is_over()` | *lights*, *off*, *switch* |
 | N2 | On and off at once, `level = 1.0 if on else 0.0` | *switch* |
 | N3 | The gain without what the veil takes, `p_level * given` | *hold*, *share* |
-| N4 | The gain whole while they switch, `given * (1.0 - kept) / kept` | *lights*, *share*, *switch* |
+| N4 | The gain whole while they switch, `given * (1.0 - kept) / kept` | *lights*, *off*, *share*, *switch* |
 | N5 | The cone as if World were at the canvas's origin, `Transform2D.IDENTITY` for `to_canvas.affine_inverse()` | *cone* |
 | N6 | The cone along the car's side, `aside` for `ahead` in `along` | *cone* |
 | N7 | `world_renderer.gd`: the road without the headlights' material | *lights* |
 | N8 | `world_renderer.gd`: `Ground` given it too, which its band sprites don't inherit, so no pixel changes: *lights* finds it on a node other than the road | *lights* |
-| N9 | `day_cycle.gd`: `night_at()` without `fposmod()`, so that every hour past 24 or below 0 is night | *night* |
+| N9 | `day_cycle.gd`: `night_at()` without `fmod()`, so that every hour past 24 is night | *night* |
 | N10 | `day_cycle.gd`: the night from `SUN_SET_HOUR`, not `DUSK_HOUR` | *hold*, *night*, *on* |
-| N20 | Off as soon as the clock leaves the night: no `or catching_up` | *hold* |
+| N20 | Off as soon as the clock leaves the night: no `or catching_up` | *hold*, *off* |
 | N21 | `catching_up` without `level > 0.0`, so that a zone entered before dusk turns them on while its light comes | *hold* |
+| N29 | The gain whole as soon as they start to switch, `gain(light, 1.0 if level > 0.0 else 0.0)` | *switch* |
+| N30 | A crash during a zone's morning hold leaves them on: `(night_at and not is_over) or catching_up` | *off* |
+| N31 | `headlights.gdshader`: the `gain` uniform renamed `beam_gain`, so the material's `gain` reaches no uniform | *material* |
+| N32 | `_show()` never gives the material a zero gain, so the road stays lit once they're off | *lights*, *off*, *switch* |
+| N33 | `day_cycle.gd`: §5.1's `night_at()`, which compares a sum with the hour, and that sum may round | *night* |
+| N34 | `day_cycle.gd`: c95543f's `night_at()`, which adds a day to a negative remainder, and that may round | *night* |
+
+PR 1's review checks made N4 and N20 fail *off* too, and N9 changes the `night_at()` that PR 1 built (§4.2). N29–N34 are the review's, and each passes the tests from before its fix (§4.6).
 
 **PR 2's** (§4.3). `world/prop_scatter.gd` unless named:
 
 | N# | Change | Fails |
 |---|---|---|
 | N11 | The rest clock never slows, `_rest_clock += delta` | *rest*, *windmills*; on PR 3 *guard* too |
-| N12 | They stop and start at once, `_rest_rate = rate` | *rest* |
+| N12 | They stop and start at once, `_rest_rate = rate` | *rest*; on PR 3 *guard* too |
 | N13 | A run that starts at night starts them turning: the first rate 1 | *rest*, *windmills* |
 | N14 | `world_renderer.gd`: `update()` without the zone's clock | *windmills* |
 | N15 | `prop_def.gd`: `validate()` without its rule that only a prop that animates may rest | *contract* |
 | N16 | `windmill.tres` without `rests_at_night` | *windmills* |
 | N23 | No prop rests, `if false:` for `if placement.def.rests_at_night:` | *rest*, *windmills*; on PR 3 *guard* too |
-| N24 | `update()` leaves the resting props as they are, `for shown: Shown in []:` | *rest*, *windmills* |
+| N24 | `update()` leaves the resting props as they are, `for shown: Shown in []:` | *pier*, *rest*, *windmills*; on PR 3 *guard* too |
 | N25 | The pier's props stay in the row's `resting` list | *pier*: they still change frames |
 | N26 | The pier's props stay in the row's `animated` list | *pier*, as N25 |
 | N27 | `test_prop_scatter.gd`: *pier*'s copy of the City given its props with `assign()`, as at e12562a, which changes the cached City's array too (B15) | *pier*, *glow* |
+| N35 | They start again at once at the sunrise, though they slow at dusk: `maxf(rate, move_toward(…))` | *rest*; on PR 3 *guard* too |
+| N36 | The pier clears the `resting` list of each row it takes from, rather than erase its own props | *pier* |
+| N37 | The pier clears the `animated` list of each row it takes from | *pier* |
+| N38 | They start again in 2.1 s, 30% faster than they slow | *rest*; on PR 3 *guard* too |
+| N39 | They slow and start again in 2.7 s, 10% too fast | *rest*; on PR 3 *guard* too |
+
+PR 2's review made *pier* need the sails that the pier leaves in its rows to go on turning, so N24 fails it too. N35–N39 are the review's: N35–N37 pass 954e670's tests, and N38 and N39 b48090a's (§4.6). On PR 3 seven fail *guard* too: N11, N23 and N24 turn the sails at rest, or never, and N12, N35, N38 and N39 start them again in less than the 3 s with which *guard*'s check of the dawn works out their frames.
 
 **PR 3's** (§4.4):
 
@@ -499,11 +536,22 @@ Each change below makes the tests named fail, and nothing else. A script, not co
 | N18 | `grass.tres` without `frames = 4` and `fps = 3.0` | *crop*, *sways* |
 | N19 | `assets/meadows/props.png`: the grass's fourth frame a copy of its third | *sways* |
 | N22 | `prop_scatter.gd`: a prop's next frame a whole frame after `update()` looks at it, `clock + 1.0 / fps - NEXT_FRAME_EARLY` | *frames*, *guard*, *rest* |
-| N28 | `prop_scatter.gd`: `update()` sets every animated prop's frame each frame, without its two `next_frame_at` guards (:131, :134). Each alone fails it too: without the first, by `_clock`, 1,141 frames set before their next started; without the second, by the rest clock, 35,640 mismatches over 60 steps | *guard* |
+| N28 | `prop_scatter.gd`: `update()` sets every animated prop's frame each frame, without its two guards (:134, :137): 1,139 of the grass's frames set before their next started at 0.001 s and 1,141 at 0.401 s, 592 of the sails' at each, 41,880 over 60 updates at rest, 60 just before a frame, and the sail's in the morning | *guard* |
+| N28a | `prop_scatter.gd`: without the first guard alone, the animated props': the grass's frames, as in N28 | *guard* |
+| N28b | `prop_scatter.gd`: without the second guard alone, the resting props': the sails' frames, as in N28 | *guard* |
+| N40 | `prop_scatter.gd`: `update()` looks at the props at rest though their clock stands, without `rest_moved`, as at 9b19e02: 60 updates at rest, just before a frame, set it | *guard* |
+| N41 | `prop_scatter.gd`: `update()` looks at every prop at rest while their clock moves, `if rest_moved:`: 592 of the sails' frames set before their next started, at each short step by day, and the sail's in the morning | *guard* |
+| N42 | `prop_scatter.gd`: `update()` compares a prop at rest's next frame with the scatter's clock, `_clock >= shown.next_frame_at`: in the morning the sail's frame is set before its next | *guard* |
+| N43 | `prop_scatter.gd`: `_set_frame()` notes no next frame for a prop already in its frame: 282 of the grass's frames and 172 of the sails' set before their next started at 0.001 s, 175 and 255 at 0.401 s | *guard* |
+| N44 | `prop_scatter.gd`: `rest_moved` with `is_equal_approx()`, so the rest clock stands while it moves by less than a hundred-thousandth of itself: the sail's next frame, once the clock moves on | *guard* |
+| N45 | `prop_scatter.gd`: `_show_row()` shows a prop that rests in the frame of the scatter's clock: their clock's frames at rest, and turning again at dawn | *guard* |
+| N46 | `prop_scatter.gd`: `_show_row()` shows a prop that rests with no frame set: their clock's frames at rest, and 172 of the sails' frames set at 0.001 s | *guard*, *rest* |
+
+N40–N46 are the internal review's. Each of N40–N45 passes the tests from before its fix: N40 9b19e02's, N41 3aaf5d6's, N42 d8f9e43's, N43 and N44 31f9b52's, and N45 debb87a's (§4.6). N46 goes with N45, and debb87a's tests catch it already.
 
 ### 6.3 Editor warnings
 
-The five checks report no GDScript warnings, and shadowing shows only in the editor (`AGENTS.md` §2). As docs/agents/checks.md §1 says, a temporary `override.cfg` raised the 37 warnings at level 1 to 2, errors, and `check_scripts.sh` loaded every script. On 8e82633 it found that *pier* read `scatter` before giving it a value (`UNASSIGNED_VARIABLE`, `test_prop_scatter.gd`:810): b337183 gives it one (§4.6), and without it 8c02110 has the warning again, at :868. On `main`, PR 1's and PR 2's trees, b337183 and 8c02110 it found only `main`'s: 4 `INTEGER_DIVISION`, in `world/greybox_atlas.gd`, `ui/main.gd`, `test_greybox_atlas.gd` and `test_iso.gd`, and 1 `UNUSED_VARIABLE`, in `test_road_generator_occupancy.gd`. As Godot reports only a script's first error, it ran again without `integer_division`, and found only the `UNUSED_VARIABLE`. The file was deleted after, and `git status --porcelain` printed nothing.
+The five checks report no GDScript warnings, and shadowing shows only in the editor (`AGENTS.md` §2). As docs/agents/checks.md §1 says, a temporary `override.cfg` raised the 37 warnings at level 1 to 2, errors, and `check_scripts.sh` loaded every script. On 8e82633 it found that *pier* read `scatter` before giving it a value (`UNASSIGNED_VARIABLE`, `test_prop_scatter.gd`:810): b337183 gives it one (§4.6), and without it 8c02110 has the warning again, at :868. On `main`, PR 1's and PR 2's trees, b337183, 8c02110 and each PR's head it found only `main`'s: 4 `INTEGER_DIVISION`, in `world/greybox_atlas.gd`, `ui/main.gd`, `test_greybox_atlas.gd` and `test_iso.gd`, and 1 `UNUSED_VARIABLE`, in `test_road_generator_occupancy.gd`. As Godot reports only a script's first error, it ran again without `integer_division`, and found only the `UNUSED_VARIABLE`. The file was deleted after, and `git status --porcelain` printed nothing.
 
 ### 6.4 Verified only in CI or on devices
 
@@ -522,7 +570,9 @@ The five checks report no GDScript warnings, and shadowing shows only in the edi
   - **PR 2.** The same Rural run: the windmills stand still from the start, as a run that starts at night starts them still (Q8); they start turning at about 40 s, over 3 s, and slow to a stop over 3 s from about 102.5 s.
   - **PR 3.** The Meadows, `--seed=1 --area=meadows`, with `--hour=12` and `--hour=22`: the grass sways, and nothing flickers; and the frames a second against `main`'s build, as P9 read them.
 
-  A PR's build stays current while `git diff --name-only <built> HEAD -- . ':!tests' ':!addons/gut' ':!*.md'` prints nothing, so a fix to tests or words needs no new one: 8e82633's build, of run 44772810741, is current for PR 3's tree.
+  A PR's build stays current while `git diff --name-only <built> HEAD -- . ':!tests' ':!addons/gut' ':!*.md'` prints nothing, so a fix to tests or words needs no new one: 8e82633's build, of run 44772810741, was current for PR 3's tree, and run 44840960185's, of 9d2384c, is for PR 3's last head.
+
+  **Results**, by browser, in each PR's comment: PR 1's on run 44820735387's build of d2e440e, [#119's](https://github.com/pompomon/roadgame/pull/119#issuecomment-7051909165); PR 2's on run 44829534995's of 081f59d, [#120's](https://github.com/pompomon/roadgame/pull/120#issuecomment-7053497165); PR 3's on run 44840960185's of 9d2384c, [#121's](https://github.com/pompomon/roadgame/pull/121#issuecomment-7055067236). Each passed, in Chrome and Firefox. In the Meadows, Chrome on software GL drew 32.3 and 24.1 frames a second at 12:00 and 22:00 on PR 3's build, against `main`'s 33.6 and 23.2, and on P9's seed 32.9 and 23.2, against 34.1 and 24.3: 3.4 to 4.2 times what P9 read, on both builds, so only frames a second read in one session compare. Firefox drew 58.8 to 59.0 in every run.
 - **The Fold4** (E11, E12), by the owner, on the cover screen and the inner one, and through a fold. PR 3's debug APK has all three, so one check does for all: `rm -rf /tmp/roadgame-apk && gh run download <run id> -R pompomon/roadgame -n "android-Android APK" -D /tmp/roadgame-apk`, then `adb install -r /tmp/roadgame-apk/roadgame-debug.apk`. The APK takes no arguments: in a debug build, the title's Start button chooses the area (docs/ZONE_SELECT.md; IP :178). Until the save says it's done, Play starts a run with the tutorial (docs/TUTORIAL.md §5.6): if the banner reads "Tutorial", finish it, 12 correct turns in a row. Each zone's clock starts at 07:00 as the car enters it, so its night comes 57.5 s later and lasts until 115 s. Each route on both screens:
   1. **Rural.** Start in Rural: by day the windmills turn. At 57.5 s the cone fades on and lights the road ahead through the turns, and not the props or the ground; the windmills slow to a stop over 3 s. Fold or unfold the phone: the cone stays with the car. At 115 s, 06:00, the cone fades off and the windmills start again.
   2. **Pause and leave.** At night, with the cone on and the windmills still, pause and resume, then leave the app and come back: the cone and the sails are as they were.
@@ -532,7 +582,7 @@ The five checks report no GDScript warnings, and shadowing shows only in the edi
 
   These routes reach the tunnel only at dusk, and the bridge, about 130 s into Rural, by day. See them at night in PR 3's Web build, served as above, in the Fold4's Chrome after `adb reverse tcp:8000 tcp:8000` (docs/agents/checks.md:67): `&arg=--seed=12345&arg=--hour=11` for the tunnel, at about 22:36, and `&arg=--area=rural&arg=--hour=22` for the bridge, just after 00:00. A browser's frame rate isn't the APK's, so it is a hint.
 
-  **An APK that prints its frame rate** (IP :203). An agent builds it from PR 3's head, on a branch that never gets a PR: in a worktree of `hl/3-grass`, add `settings/stdout/print_fps=true` under `[debug]` in `project.godot`, commit it on a new branch `hl/fps`, push, and run `gh workflow run ci.yml -R pompomon/roadgame --ref hl/fps -f upload-builds=true`. PR 3 links the run, whose APK logs `Project FPS: <n> (<ms> mspf)` once a second, after its first few (Godot 4.7.2 `main/main.cpp`:5121–5129), under logcat's `godot` tag.
+  **An APK that prints its frame rate** (IP :203). An agent builds it from PR 3's head, on a branch that never gets a PR: in a worktree of `hl/3-grass`, add `settings/stdout/print_fps=true` under `[debug]` in `project.godot`, commit it on a new branch `hl/fps`, push, and run `gh workflow run ci.yml -R pompomon/roadgame --ref hl/fps -f upload-builds=true`. PR 3 links the run, [44840997131](https://github.com/pompomon/roadgame/actions/runs/44840997131) of 0dbee93, whose APK logs `Project FPS: <n> (<ms> mspf)` once a second, after its first few (Godot 4.7.2 `main/main.cpp`:5121–5129), under logcat's `godot` tag.
 
 ### 6.5 Measurements
 

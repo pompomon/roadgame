@@ -326,6 +326,33 @@ func test_a_row_spreads_across_the_view_from_each_path_tile_below_it() -> void:
 	assert_gt(wider, 0, "rows that a long straight spreads wider")
 
 
+func test_the_meadows_grass_takes_only_ground_that_showed_nothing() -> void:
+	# The grass is the Meadows' last prop (HEADLIGHTS_PLAN.md §5.6), so it takes the share of the
+	# hashes past the others': each other prop stands where it stood without the grass, in the same
+	# phase, and the grass only where nothing stood.
+	var props := (load("res://areas/meadows.tres") as AreaDef).props
+	assert_eq(props[-1].id, &"grass", "the last prop")
+	var others: Array[PropDef] = props.slice(0, -1)
+	var with_grass := _road(Fixtures.schedule(), 5, props)
+	var without := _road(Fixtures.schedule(), 5, others)
+	var moved: Array[int] = []
+	var grass := 0
+	for k: int in ROWS:
+		var kept: Array[Array] = []
+		for placement: PropLayout.Placement in with_grass.rows[k]:
+			if placement.def.id == &"grass":
+				grass += 1
+			else:
+				kept.append([placement.def.id, placement.foot, placement.phase])
+		var before: Array[Array] = []
+		for placement: PropLayout.Placement in without.rows[k]:
+			before.append([placement.def.id, placement.foot, placement.phase])
+		if kept != before:
+			moved.append(k)
+	assert_eq(moved, [] as Array[int], "rows whose other props moved")
+	assert_gt(grass, ROWS * 10, "the grass shows")
+
+
 func test_the_city_shows_many_buildings_and_none_stand_in_each_other() -> void:
 	# A building's box is 40 px wide and a ground cell 32 px, so two buildings on cells side by side,
 	# or corner to corner, stand in each other (docs/VISUALS.md A3). On lots of 2 × 2 cells they
