@@ -522,7 +522,7 @@ static func _parse_area(p_args: PackedStringArray) -> StringName:
 ## end sooner than `schedule`'s, not later: past its finish, a home stretch would get junctions,
 ## with no pool to play a disaster from (docs/ENDGAME.md W17). They count along the whole road, so a
 ## run that starts in a later area, as --area or the title's Start chooses, drives fewer of them
-## (`_run_schedule()`); and after the tutorial the finish comes later: not before its road's last
+## (`_run_schedule()`); and after the tutorial the finish can come later: not before its road's last
 ## group of junctions is over, and as many turns later as an area comes late (docs/TUTORIAL.md §5.5,
 ## Q15).
 static func _parse_finish(p_args: PackedStringArray, schedule: AreaSchedule) -> int:
