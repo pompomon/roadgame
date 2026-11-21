@@ -72,7 +72,7 @@ for (const bname of cfg.browsers) {
           const st = stats(frames);
           // The gate's state (autoload/pf_probe.gd): it paces only the engine's chain, so the page's own frames
           // above run at the screen's rate, and the game's rate is the PERF lines' fps.
-          const gate = await page.evaluate(() => { const g = window.__pfGate; return g ? { cap: g.cap, skipped: g.skipped,
+          const gate = await page.evaluate(() => { const g = window.__pfGate; return g ? { cap: g.cap, n: g.n, skipped: g.skipped,
             refresh: +(g.refresh ?? 0).toFixed(3), steps: g.steps?.length, runner: !!g.runner } : null; });
           const gl = await page.evaluate(() => { try { const c = document.createElement('canvas'); const g = c.getContext('webgl2'); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); } catch (e) { return 'n/a ' + e; } });
           const perfLines = logs.slice(logFrom).filter((l) => l.includes('PERF '));
