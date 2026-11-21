@@ -191,21 +191,32 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   row('240 Hz, work 20 ms to 5 s, then 9 ms: 7-20 s', { hz: 240, secs: 20, work: (r, c) => (c < 5000 ? 20 : 9) }, 7, 20);
   for (const hz of [115, 170, 230]) row(`${hz} Hz, jitter 0.3 ms`, { hz, secs: 20, work: light, jitter: 0.3 }, 5, 20);
   console.log(JSON.stringify(rows, null, 0).replace(/\},\{/g, '},\n{'));
-  // PERF_PLAN.md §5.4's criteria for gate B (P17). At each rate of its table, exact or with 0.3 ms of jitter, and in
-  // the second review's rows, B draws the screen's rate over n = max(1, floor(1.05 * hz / 60)) within 1 fps, with at
-  // most 0.1 frames a second off the cadence; with whole-ms timestamps, at most 0.5. Over each window of 5 s or more,
-  // it shows as many of the game's steps a second as no gate does, or one a frame if it draws fewer, less 0.5 at most.
+  // PERF_PLAN.md §5.4's criteria, for gate B, or the gate that the first argument names: limiter, A or B0 for the
+  // plan's negative cases N13, N16 and N21. At each rate of its table, exact or with 0.3 ms of jitter, and in the
+  // second review's rows, the gate draws the screen's rate over n = max(1, floor(1.05 * hz / 60)) within 1 fps, with
+  // at most 0.1 frames a second off the cadence; with whole-ms timestamps, at most 0.5. Over each window of 5 s or
+  // more, it shows as many of the game's steps a second as no gate does, or one a frame if it draws fewer, less 0.5
+  // at most. After a switch of rate, it draws 57 fps or more in the first half second, and the new rate from then to
+  // 2 s; 60 again after the page is hidden; the page's own chain at the screen's rate; and nothing after a cancel.
+  const g = process.argv[2] ?? 'B';
   const paced = rows.filter((r) => /^(light [\d.]+ Hz(, jitter 0\.3 ms|, whole ms, jitter 0\.5 ms)?|(240|360) Hz, work .*|(115|170|230) Hz, jitter 0\.3 ms)$/.test(r.name));
+  const target = (hz) => hz / Math.max(1, Math.floor((1.05 * hz) / 60));
   const bad = [];
   for (const r of paced) {
-    const hz = parseFloat(/([\d.]+) Hz/.exec(r.name)[1]);
-    const fps = hz / Math.max(1, Math.floor((1.05 * hz) / 60));
-    if (Math.abs(r.B - fps) > 1 || r.B_off > (r.name.includes('whole ms') ? 0.5 : 0.1)) bad.push(`${r.name}: ${r.B} fps against ${fps}, ${r.B_off} frames a second off the cadence`);
+    const fps = target(parseFloat(/([\d.]+) Hz/.exec(r.name)[1]));
+    if (Math.abs(r[g] - fps) > 1 || r[g + '_off'] > (r.name.includes('whole ms') ? 0.5 : 0.1)) bad.push(`${r.name}: ${r[g]} fps against ${fps}, ${r[g + '_off']} frames a second off the cadence`);
   }
   for (const r of rows) {
-    const steps = Math.min(r.none_shown, r.B);
-    if (r.secs >= 5 && r.B_shown < steps - 0.5) bad.push(`${r.name}: shows ${r.B_shown} steps a second against ${steps}`);
+    const steps = Math.min(r.none_shown, r[g]);
+    if (r.secs >= 5 && r[g + '_shown'] < steps - 0.5) bad.push(`${r.name}: shows ${r[g + '_shown']} steps a second against ${steps}`);
+    const sw = / to (\d+) Hz at 10 s: (10-10\.5|10\.5-12) s$/.exec(r.name);
+    if (sw && sw[2] === '10-10.5' && r[g] < 57) bad.push(`${r.name}: ${r[g]} fps, under 57`);
+    if (sw && sw[2] === '10.5-12' && Math.abs(r[g] - target(+sw[1])) > 1) bad.push(`${r.name}: ${r[g]} fps against ${target(+sw[1])}`);
+    if (r.name.startsWith('120 Hz, hidden') && Math.abs(r[g] - 60) > 1) bad.push(`${r.name}: ${r[g]} fps against 60`);
+    if (r[g + '_page'] !== undefined && r[g + '_page'] < 119) bad.push(`${r.name}: the page's chain at ${r[g + '_page']} fps`);
+    if (r[g + '_after_cancel'] > 0) bad.push(`${r.name}: ${r[g + '_after_cancel']} frames after the cancel`);
   }
-  for (const b of bad) console.error(`gate B: ${b}`);
+  for (const b of bad) console.error(`gate ${g}: ${b}`);
+  console.error(`gate ${g}: ${bad.length} checks failed`);
   process.exitCode = paced.length === 28 && bad.length === 0 ? 0 : 1;
 }
