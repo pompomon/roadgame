@@ -133,8 +133,9 @@ func test_each_new_zone_starts_its_clock_again() -> void:
 
 
 func test_each_zone_runs_its_clock_at_its_own_pace() -> void:
-	# Every zone's day lasts 120 s for now, so the car enters one of 60 s here. From 17:00, 600
-	# frames are 10 s of it: four hours, into the night, where 120 s would give two (N39).
+	# The City's day lasts 120 s, and the car enters a zone whose day lasts 60 s, whatever Rural's
+	# own. From 17:00, 600 frames are 10 s of it: four hours, into the night, where 120 s would give
+	# two (N39).
 	var main := MainScene.open(self, ["--seed=1", "--autopilot", "--hour=17"])
 	var sim := MainScene.car(main).sim
 	var quick := sim.buffer.generator.find_area(&"rural").duplicate() as AreaDef

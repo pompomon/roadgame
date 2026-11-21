@@ -2,12 +2,15 @@ extends GutTest
 ## Nothing comes or goes in view (docs/M5.md L2, E6). While the autopilot drives, no road tile, set
 ## piece or row of props is added or freed where the camera shows it, nor where the camera heads,
 ## which is where it comes to rest when a disaster stops the car; and the props of each row in view
-## reach past both sides of it. The camera lags behind its target the same way on every screen, so
-## every reference screen (docs/M2.md §6.5) shows a part of the world that the tallest or the widest
-## of them shows, and the drives run on those two. Each drive takes one seed at the speeds it
-## reaches, and the worst case over seeds and speeds comes up to 16 px nearer, so each thing must
-## stay MARGIN away. But for a dead end freed with its junction: its worst case comes only where the
-## path ran the dead end's way, so test_camera_rig.gd checks it (docs/ROADGEN.md R6).
+## reach past both sides of it, also along the long straights of the Meadows and the Desert
+## (SPEEDUP_PLAN.md §4.3). The camera lags behind its target the same way on every screen, so every
+## reference screen (docs/M2.md §6.5) shows a part of the world that the tallest or the widest of
+## them shows, and the drives run on those two. Each drive takes one seed at the speeds it reaches,
+## and the worst case over seeds and speeds comes up to 16 px nearer, or 27 px farther across, as
+## the camera lags behind the car at GLOBAL_SPEED_CAP; so each thing must stay MARGIN away, and the
+## props must reach MARGIN past the view. But for a dead end freed with its junction: its worst
+## case comes only where the path ran the dead end's way, so test_camera_rig.gd checks it
+## (docs/ROADGEN.md R6).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 ## The reference screens' viewports, after the stretch (docs/M2.md §6.5).
@@ -26,17 +29,27 @@ const RUN_SEED := 3
 ## A screen row. With BUFFER_BEHIND 19, a dead end freed with its junction would come 13 px from
 ## the tallest view at worst (docs/M5.md L2, docs/ROADGEN.md R6).
 const MARGIN := Iso.TILE_H / 2.0
+## Frames that each drive along long straights takes, from the start of its area. Seed 3's first
+## view past PROP_SPREAD comes at frame 203 in the Meadows and 785 in the Desert.
+const STRAIGHTS_FRAMES := 1800
 
 var _generated: Array[RoadTile] = []
 var _freed: Array[RoadTile] = []
 ## The nearest that each kind of thing came to a view, in pixels, as it came or went.
 var _nearest: Dictionary[String, float] = {}
+## The farthest that a view went past the PROP_SPREAD tiles either side of a row in it, in pixels:
+## above 0 where only the row's span() reached across it.
+var _past_spread := -INF
+## The props that rows showed past the PROP_SPREAD tiles either side of their path tile.
+var _props_past_spread := 0
 
 
 func before_each() -> void:
 	EventBus.tiles_generated.connect(_on_tiles_generated)
 	EventBus.tiles_freed.connect(_on_tiles_freed)
 	_nearest.clear()
+	_past_spread = -INF
+	_props_past_spread = 0
 
 
 func after_each() -> void:
@@ -152,20 +165,37 @@ static func _follow(
 		known[key] = now[key]
 
 
-## Whether the rows whose ground shows in `view` get props across all of it: a row has props
-## PROP_SPREAD tiles either side of its anchor.
-static func _spread_gap(scatter: PropScatter, view: Rect2) -> String:
-	var reach := (Tuning.PROP_SPREAD + 0.5) * Iso.TILE_W
+## Whether the rows whose ground shows in `view` get props MARGIN past both sides of it: a row has
+## props on the tiles of its span, from `spans`.
+func _spread_gap(scatter: PropScatter, view: Rect2, spans: Dictionary[int, Vector2i]) -> String:
+	var base := (Tuning.PROP_SPREAD + 0.5) * Iso.TILE_W
 	for k: int in scatter.rows():
 		var top := Iso.tile_to_world(scatter.anchor(k))
 		if top.y > view.end.y or top.y + Iso.TILE_H < view.position.y:
 			continue
-		if top.x - reach > view.position.x or top.x + reach < view.end.x:
+		var past := maxf(top.x - base - view.position.x, view.end.x - (top.x + base))
+		_past_spread = maxf(_past_spread, past)
+		var left := top.x + (spans[k].x - 0.5) * Iso.TILE_W
+		var right := top.x + (spans[k].y + 0.5) * Iso.TILE_W
+		if left > view.position.x - MARGIN or right < view.end.x + MARGIN:
 			return (
-				"row %d's props reach %s to %s, not across %s"
-				% [k, top.x - reach, top.x + reach, view]
+				"row %d's props reach %s to %s, not %s px past %s" % [k, left, right, MARGIN, view]
 			)
 	return ""
+
+
+## Adds to `spans` the span() of each row of `scatter` that it lacks, as PropLayout placed the row:
+## the buffer frees the path tiles below a row while the row still shows. Counts the props that the
+## row shows past PROP_SPREAD, as PropScatter shows each of them.
+func _add_spans(scatter: PropScatter, buffer: RoadBuffer, spans: Dictionary[int, Vector2i]) -> void:
+	for k: int in scatter.rows():
+		if spans.has(k):
+			continue
+		var anchor := scatter.anchor(k)
+		spans[k] = PropLayout.span(anchor, buffer)
+		for sprite: Sprite2D in scatter.sprites(k):
+			var tile := Vector2i(Iso.world_to_tile(sprite.global_position).floor())
+			_props_past_spread += int(absi(tile.x - anchor.x) > Tuning.PROP_SPREAD)
 
 
 ## Drives `main` for `frames` frames, and fails at the first thing that comes or goes in view, or
@@ -178,8 +208,10 @@ func _drive(main: Node, frames: int) -> int:
 	var buffer := MainScene.car(main).sim.buffer
 	var rows: Dictionary[int, Array] = {}
 	var pieces: Dictionary[int, Array] = {}
+	var spans: Dictionary[int, Vector2i] = {}
 	_follow(rows, _shown_rows(scatter, rows), [], "")
 	_follow(pieces, _shown_pieces(set_pieces, pieces), [], "")
+	_add_spans(scatter, buffer, spans)
 	_generated.clear()
 	_freed.clear()
 	for frame: int in frames:
@@ -187,6 +219,7 @@ func _drive(main: Node, frames: int) -> int:
 		# The engine runs every node's _physics_process before any _process, which simulate()
 		# runs node by node: World's ran before the car moved.
 		scatter.update(0.0)
+		_add_spans(scatter, buffer, spans)
 		var changes := _road_changes()
 		_follow(rows, _shown_rows(scatter, rows), changes, "prop")
 		_follow(pieces, _shown_pieces(set_pieces, pieces), changes, "set piece")
@@ -206,7 +239,7 @@ func _drive(main: Node, frames: int) -> int:
 					)
 					return buffer.car_index()
 		for view: Rect2 in views:
-			var spread := _spread_gap(scatter, view)
+			var spread := _spread_gap(scatter, view, spans)
 			if spread != "":
 				fail_test("frame %d: %s" % [frame, spread])
 				return buffer.car_index()
@@ -250,7 +283,7 @@ func test_the_tallest_or_the_widest_view_holds_every_reference_view() -> void:
 		assert_true(held[0].encloses(view) or held[1].encloses(view), "%s: %s" % [size, view])
 
 
-## Into the rural area at turn 34: past the tunnel, whose roof rises above its last tile, and the
+## Into the rural area at turn 20: past the tunnel, whose roof rises above its last tile, and the
 ## cross junctions' dead ends of the city, which reach above the junction they are freed with.
 func test_nothing_comes_or_goes_in_the_tallest_view() -> void:
 	var index := _drive(_open(TALLEST), 4800)
@@ -264,3 +297,24 @@ func test_nothing_comes_or_goes_in_the_widest_view() -> void:
 	assert_true(_nearest.has("road tile freed"), "road tiles freed: %s" % _report(index))
 	assert_true(_nearest.has("prop hidden"), "rows of props hidden")
 	pass_test(_report(index))
+
+
+## Drives the tallest view along the long straights of `area`, where a decoy joins two straights
+## into one that runs farther across the screen than PROP_SPREAD reaches (SPEEDUP_PLAN.md §4.3).
+func _drive_straights(area: String) -> void:
+	var index := _drive(_open(TALLEST, area), STRAIGHTS_FRAMES)
+	var report := (
+		"%s; %.0f px past PROP_SPREAD, %d props past it"
+		% [_report(index), _past_spread, _props_past_spread]
+	)
+	assert_gt(_past_spread, 0.0, "a view past PROP_SPREAD: %s" % report)
+	assert_gt(_props_past_spread, 0, "props shown past PROP_SPREAD: %s" % report)
+	pass_test(report)
+
+
+func test_props_reach_across_the_tallest_view_in_the_meadows() -> void:
+	_drive_straights("meadows")
+
+
+func test_props_reach_across_the_tallest_view_in_the_desert() -> void:
+	_drive_straights("desert")

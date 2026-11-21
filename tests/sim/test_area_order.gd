@@ -1,13 +1,13 @@
 extends GutTest
-## The autopilot drives to turn 230 through the five areas in the schedule's order
+## The autopilot drives to turn 90 through the five areas in the schedule's order
 ## (IMPLEMENTATION_PLAN.md M4 tests): CarSim reports each new area once, as the car reaches it after
 ## its turn and its set piece.
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0
-const TURNS := 230
-## A run to turn 230 takes about 7 minutes of game time.
-const MAX_STEPS := 60 * 60 * 15
+const TURNS := 90
+## A run to turn 90 takes about 3.7 minutes of game time.
+const MAX_STEPS := 60 * 60 * 8
 
 
 func test_the_autopilot_meets_the_areas_and_set_pieces_in_order() -> void:
@@ -31,7 +31,7 @@ func test_the_autopilot_meets_the_areas_and_set_pieces_in_order() -> void:
 			break
 	assert_eq(sim.trigger.turn_index, TURNS)
 	assert_false(sim.is_over())
-	var expected: Array = [[34, &"rural"], [100, &"meadows"], [200, &"village"], [220, &"desert"]]
+	var expected: Array = [[20, &"rural"], [44, &"meadows"], [68, &"village"], [78, &"desert"]]
 	assert_eq(changes, expected)
 	assert_signal_emit_count(sim, "area_changed", expected.size())
 	for k: int in expected.size():

@@ -38,3 +38,4 @@ offroad_damage_per_sec = 25.0
 disasters = Array[PackedScene]([ExtResource("2_ufo"), ExtResource("3_scarecrow"), ExtResource("4_headless_horseman")])
 music = ExtResource("audio_music")
 ambient_loop = ExtResource("audio_ambient")
+day_seconds = 60.0

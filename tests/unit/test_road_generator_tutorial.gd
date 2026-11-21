@@ -6,7 +6,7 @@ extends GutTest
 ## holds a group's first junction while the car can loop back to it (§5.2). After end_tutorial(),
 ## the group's last junctions close their loops, and the road goes on as the seed's road does from
 ## its first junction, with the schedule counted from the turn base; an entry due on the tutorial's
-## road comes after it (§5.5).
+## road comes after it, and the later entries and the finish as many turns later (§5.5, Q15).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const SEEDS := 100
@@ -74,6 +74,32 @@ func test_an_entry_due_on_the_tutorials_road_comes_after_its_last_group() -> voi
 		tile = gen.next_tile()
 	assert_eq(tile.type, RoadTile.Type.SET_PIECE, "the entry came")
 	assert_eq(gen.turn_count, 13, "with the City's first turn, turn 12, after the group of 8 to 11")
+
+
+## The entries after one that came late, and the finish, come as many turns after it as the
+## schedule has them after its turn: each area after it keeps its turns, and the finish comes as
+## many turns late as the entry did (docs/TUTORIAL.md Q15).
+func test_an_entry_that_comes_late_moves_the_later_ones_and_the_finish_on() -> void:
+	var schedule := Fixtures.set_piece_schedule(2, &"tunnel", 3)
+	var last := AreaScheduleEntry.new()
+	last.turn = 6
+	last.area = schedule.entries[0].area
+	schedule.entries.append(last)
+	schedule.finish = &"pier"
+	schedule.finish_turn = 9
+	var gen := RoadGenerator.new(1, schedule, true)
+	Fixtures.path_until_turn(gen, 10)
+	gen.end_tutorial(5)
+	var entered: Array = []
+	var area := gen.current_area
+	while not gen.finished() and gen.turn_count < 40:
+		gen.next_tile()
+		if gen.current_area != area:
+			area = gen.current_area
+			entered.append([area.id, gen.turn_count])
+	assert_eq(entered, [[&"after", 13], [&"before", 17]], "4 turns apart, as at turns 2 and 6")
+	assert_true(gen.finished(), "the road ends")
+	assert_eq(gen.turn_count, 20, "the finish 7 turns after the late entry, as 9 is after 2")
 
 
 ## `tile` from `origin`: its cells, indices and turn relative to origin's.

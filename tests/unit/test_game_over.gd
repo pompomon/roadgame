@@ -199,8 +199,8 @@ func test_the_next_goal_follows_the_players_progress() -> void:
 	var turns := schedule.finish_turn
 	var data := SaveData.new()
 	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [0, turns], "a new save")
-	data.record_run({"turn_index": 212, "distance": 900.0})
-	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [212, turns])
+	data.record_run({"turn_index": 72, "distance": 300.0})
+	assert_eq(GameOver.next_goal(data, schedule), GameOver.GOAL_SEA % [72, turns])
 	var home_first := SaveData.new()
 	home_first.record_arrival(GameOver.HOME, {"seconds": 400.0, "clean": true})
 	assert_eq(

@@ -276,7 +276,7 @@ func _fade() -> void:
 			continue
 		var actor_y := (child as Node2D).position.y
 		var near := SeeThrough.rows(actor)
-		# A row reaches PROP_SPREAD tiles either side of the road, and most of its props are
+		# A row reaches PROP_SPREAD tiles or more either side of the road, and most of its props are
 		# PROP_FADE_PX or more across from the actor, where they show whole.
 		var left := actor.position.x - Tuning.PROP_FADE_PX
 		var right := actor.end.x + Tuning.PROP_FADE_PX

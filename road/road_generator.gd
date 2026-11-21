@@ -19,7 +19,8 @@ extends RefCounted
 ## and one that goes the wrong way round a loop comes back where it went in. A loop turns no sooner
 ## after a junction or a corner than the path does, and touches no other road but at its ends. The
 ## tutorial's straights come from their own stream, so the road after it is the seed's road.
-## end_tutorial() ends it after the group it is in.
+## end_tutorial() ends it after the group it is in. An area due on the tutorial's road comes at the
+## City's first junction past it, and the areas after it and the finish as many turns later.
 ##
 ## A schedule with a finish ends the road (docs/ENDGAME.md §5.1): the straight after its last turn
 ## leads to the finish's FINISH_TILES set-piece tiles, and then to BEYOND tiles that go on forever,
@@ -71,7 +72,8 @@ var _rng_road := RandomNumberGenerator.new()
 var _rng_tutorial := RandomNumberGenerator.new()
 ## Set by end_tutorial(): the tutorial ends with its group of four junctions.
 var _ending := false
-## The turns before the City's first turn after the tutorial: the schedule counts from there.
+## The turns before the City's first turn after the tutorial: the schedule counts from there. An
+## entry due on the tutorial's road comes late, and moves it on by as many turns (_due_entry()).
 var _turn_base := 0
 ## The cell and path index of the tutorial's last junction, whose loop the next one finishes.
 var _loop_start := Vector2i.ZERO
@@ -231,9 +233,9 @@ func _junction() -> RoadTile:
 	return junction
 
 
-## Whether the road's turns are all behind, past the tutorial, and the car has entered every area:
-## the next straight leads to the finish. As with the schedule's entries, the turns count from the
-## City's first after the tutorial.
+## Whether the road's turns are all behind, past the tutorial, with no entry of the schedule left:
+## the finish comes once any set piece and straight still to come are laid. The turns count from
+## `_turn_base`: the City's first after the tutorial, moved on as many turns as an area came late.
 func _finish_due() -> bool:
 	if not _schedule.has_finish() or tutorial or _schedule_index < _schedule.entries.size():
 		return false
@@ -403,6 +405,10 @@ func _due_entry() -> AreaScheduleEntry:
 	# don't come here, so an entry may be due when they are over (docs/TUTORIAL.md §5.5).
 	if entry.turn > turn_count - _turn_base:
 		return null
+	# One that comes late moves the base on, and with it the later entries and the finish: the area
+	# before it has its turns and as many more, each later one keeps its own, and the road ends as
+	# many turns later (docs/TUTORIAL.md Q15).
+	_turn_base = turn_count - entry.turn
 	_schedule_index += 1
 	return entry
 
