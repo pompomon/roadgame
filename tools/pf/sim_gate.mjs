@@ -1,15 +1,19 @@
 // PF prototype: the Web's frame gate against a simulated browser (P17). Usage: node sim_gate.mjs
-// B is the probe's GATE_JS (autoload/pf_probe.gd), which PERF_PLAN.md §5.4 proposes; A is the first gate, at c5bfd9f;
-// limiter is Godot's own on the Web (max_fps; platform/web/web_main.cpp :80-103 in 4.7.2).
+// B is the probe's GATE_JS (autoload/pf_probe.gd), which PERF_PLAN.md §5.4 proposes; B0 is the same before the plan's
+// second review, at a08cbe9, read with git; A is the first gate, at c5bfd9f; limiter is Godot's own on the Web
+// (max_fps; platform/web/web_main.cpp :80-103 in 4.7.2).
 // The browser runs the callbacks pending at each vsync once the main thread is free, with the vsync's time, plus
 // jitter if asked; the game's callback keeps the main thread busy for its work, and asks for the next frame, as
 // Emscripten's runner does.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const probe = fs.readFileSync(path.join(here, '../../autoload/pf_probe.gd'), 'utf8');
-export const GATE_B = /const GATE_JS := """([\s\S]*?)"""/.exec(probe)[1];
+const gateOf = (gd) => /const GATE_JS := """([\s\S]*?)"""/.exec(gd)[1];
+export const GATE_B = gateOf(probe);
+export const GATE_B0 = gateOf(execFileSync('git', ['show', 'a08cbe9:autoload/pf_probe.gd'], { cwd: here, encoding: 'utf8' }));
 export const GATE_A = `
 (function (cap) {
 	if (window.__pfGate) { window.__pfGate.cap = cap; return; }
@@ -45,9 +49,9 @@ function rng(seed) {
   return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
 
-// sc: {hz: number | (t) => hz, secs, work: (r) => ms, jitter (ms), clamp (timestamps floored to whole ms, as
+// sc: {hz: number | (t) => hz, secs, work: (r, clock ms) => ms, jitter (ms), clamp (timestamps floored to whole ms, as
 //      Firefox's are), late (callbacks begin up to this many ms after their vsync, whose time they still get),
-//      gaps: [[from, to]], page (a second chain), cancelAt (s)}. gate: 'none', 'limiter', 'A', 'B' or
+//      gaps: [[from, to]], page (a second chain), cancelAt (s)}. gate: 'none', 'limiter', 'A', 'B', 'B0' or
 //      a gate's JS. Returns the game's run times, in ms: their rAF timestamps, and the clock as each began.
 export function simulate(sc, gate, cap = 60, seed = 1) {
   const r = rng(seed);
@@ -69,12 +73,12 @@ export function simulate(sc, gate, cap = 60, seed = 1) {
       if (busy - target > 1000) target = busy;
       target += Math.floor(1e6 / cap) / 1000;
     }
-    runs.push(t); clocks.push(busy); busy += sc.work(r); handle = win.requestAnimationFrame(runner);
+    runs.push(t); clocks.push(busy); busy += sc.work(r, busy); handle = win.requestAnimationFrame(runner);
   };
   const pageTick = (t) => { pageRuns.push(t); win.requestAnimationFrame(pageTick); };
   // The engine's first frame installs the gate, and its scheduler then asks for the next frame.
   const first = () => {
-    const code = gate === 'A' ? GATE_A : gate === 'B' ? GATE_B : gate;
+    const code = { A: GATE_A, B: GATE_B, B0: GATE_B0 }[gate] ?? gate;
     if (gate !== 'none' && gate !== 'limiter') new Function('window', 'performance', code.replace('%d', String(cap)))(win, { now: () => busy });
     handle = win.requestAnimationFrame(runner);
   };
@@ -94,7 +98,7 @@ export function simulate(sc, gate, cap = 60, seed = 1) {
     pending.clear();
     for (const [, cb] of due) { busy += 0.02; cb(t); }
   }
-  return { runs, pageRuns, clocks };
+  return { runs, pageRuns, clocks, gate: win.__pfGate };
 }
 
 export function rate(runs, from, to) {
@@ -129,7 +133,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const rows = [];
   const row = (name, sc, from, to, extra = {}) => {
     const out = { name };
-    for (const gate of ['none', 'limiter', 'A', 'B']) {
+    for (const gate of ['none', 'limiter', 'A', 'B0', 'B']) {
       const { runs, pageRuns, clocks } = simulate(sc, gate);
       out[gate] = +rate(runs, from, to).toFixed(1);
       out[gate + '_off'] = +offCadence(runs, from, to).toFixed(1);
@@ -137,7 +141,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (sc.page) out[gate + '_page'] = +rate(pageRuns, from, to).toFixed(1);
       if (sc.cancelAt !== undefined) out[gate + '_after_cancel'] = runs.filter((t) => t > sc.cancelAt * 1000 + 50).length;
     }
-    rows.push({ ...out, ...extra });
+    rows.push({ ...out, secs: to - from, ...extra });
   };
   for (const hz of [60, 75, 90, 120, 144, 165, 240]) {
     row(`light ${hz} Hz`, { hz, secs: 20, work: light }, 5, 20);
@@ -179,14 +183,29 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   row('120 Hz, hidden 10-15 s: 15-15.5 s', { hz: 120, secs: 20, work: light, gaps: [[10, 15]] }, 15, 15.5);
   row('120 Hz, a page chain beside the game', { hz: 120, secs: 20, work: light, page: true }, 5, 20);
   row('120 Hz, the game cancels at 10 s', { hz: 120, secs: 20, work: light, cancelAt: 10 }, 5, 10);
+  // The second review (PERF_PLAN.md §4.4): frames that each take 2 or more refreshes from the start, or after a slow
+  // phase, which B0 took for the screen's; and rates near a boundary of n, where B0's n flipped with the jitter.
+  row('240 Hz, work 9 ms', { hz: 240, secs: 20, work: () => 9 }, 5, 20);
+  row('240 Hz, work 9 ms, sd 0.3', { hz: 240, secs: 20, work: normal(9, 0.3) }, 5, 20);
+  row('360 Hz, work 7 ms', { hz: 360, secs: 20, work: () => 7 }, 5, 20);
+  row('240 Hz, work 20 ms to 5 s, then 9 ms: 7-20 s', { hz: 240, secs: 20, work: (r, c) => (c < 5000 ? 20 : 9) }, 7, 20);
+  for (const hz of [115, 170, 230]) row(`${hz} Hz, jitter 0.3 ms`, { hz, secs: 20, work: light, jitter: 0.3 }, 5, 20);
   console.log(JSON.stringify(rows, null, 0).replace(/\},\{/g, '},\n{'));
-  // PERF_PLAN.md §5.4's table: at each rate, exact or with 0.3 ms of jitter, gate B draws the screen's rate over
-  // n = max(1, floor(1.05 * hz / 60)) within 1 fps, with at most 0.1 frames a second off the cadence (P17).
-  const table = rows.filter((r) => /^light [\d.]+ Hz(, jitter 0\.3 ms)?$/.test(r.name));
-  const bad = table.filter((r) => {
-    const hz = parseFloat(r.name.slice('light '.length));
-    return Math.abs(r.B - hz / Math.max(1, Math.floor((1.05 * hz) / 60))) > 1 || r.B_off > 0.1;
-  });
-  for (const r of bad) console.error(`gate B: ${r.name}: ${r.B} fps, ${r.B_off} frames a second off the cadence`);
-  process.exitCode = table.length === 14 && bad.length === 0 ? 0 : 1;
+  // PERF_PLAN.md §5.4's criteria for gate B (P17). At each rate of its table, exact or with 0.3 ms of jitter, and in
+  // the second review's rows, B draws the screen's rate over n = max(1, floor(1.05 * hz / 60)) within 1 fps, with at
+  // most 0.1 frames a second off the cadence; with whole-ms timestamps, at most 0.5. Over each window of 5 s or more,
+  // it shows as many of the game's steps a second as no gate does, or one a frame if it draws fewer, less 0.5 at most.
+  const paced = rows.filter((r) => /^(light [\d.]+ Hz(, jitter 0\.3 ms|, whole ms, jitter 0\.5 ms)?|(240|360) Hz, work .*|(115|170|230) Hz, jitter 0\.3 ms)$/.test(r.name));
+  const bad = [];
+  for (const r of paced) {
+    const hz = parseFloat(/([\d.]+) Hz/.exec(r.name)[1]);
+    const fps = hz / Math.max(1, Math.floor((1.05 * hz) / 60));
+    if (Math.abs(r.B - fps) > 1 || r.B_off > (r.name.includes('whole ms') ? 0.5 : 0.1)) bad.push(`${r.name}: ${r.B} fps against ${fps}, ${r.B_off} frames a second off the cadence`);
+  }
+  for (const r of rows) {
+    const steps = Math.min(r.none_shown, r.B);
+    if (r.secs >= 5 && r.B_shown < steps - 0.5) bad.push(`${r.name}: shows ${r.B_shown} steps a second against ${steps}`);
+  }
+  for (const b of bad) console.error(`gate B: ${b}`);
+  process.exitCode = paced.length === 28 && bad.length === 0 ? 0 : 1;
 }

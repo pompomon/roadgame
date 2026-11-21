@@ -6,28 +6,53 @@ extends Node
 
 const REPORT_USEC := 1000000
 ## --pf-gate=<cap>: the engine's frames run once n refreshes less half of one have passed, where
-## n = max(1, floor(1.05 * refresh rate / cap)), so that the rate stays at or above cap / 1.05. The
-## refresh is the median of the last 30 steps between distinct timestamps that are under 1.5 times
-## their 10th percentile, which frames that miss refreshes can't lengthen, nor jitter shorten. A
-## frame that comes late isn't followed early: the game moves in 60 Hz steps, so an early frame
-## would show no more of them. Only the engine's chain is gated: the first callback asked for once
-## the gate is in, as Godot runs every _ready() before emscripten_set_main_loop() asks for its first
-## frame (web_main.cpp :165-178). Its handles follow each wait, for cancelAnimationFrame. A cap of
-## 0 installs nothing.
+## n = max(1, floor(1.05 * refresh rate / cap)), so that the rate stays at or above cap / 1.05. A
+## rough refresh is the median of the last 30 steps between distinct timestamps that are under 1.5
+## times their 10th percentile, which frames that miss refreshes can't lengthen, nor jitter
+## shorten; or the median of the last 8 steps that follow a skipped callback, if it is under 2/3 of
+## that: those are one refresh each, so frames that each take 2 or more refreshes can't hide a
+## faster screen. The gate skips the first callbacks until it has those 8. The refresh is then the
+## span of the steps since the last of over 100 ms, over the whole number of refreshes, within a
+## quarter of the rough one, whose period best lines up their timestamps: rounding each step alone
+## miscounts those that jitter takes past half a refresh. n is set once there are 30 steps, and then
+## moves only when a margin 2% smaller, or 2% larger, gives another, so that a rate near a boundary
+## of n can't make it flip. A frame that comes late isn't followed early: the game moves in 60 Hz
+## steps, so an early frame would show no more of them. Only the engine's chain is gated: the first
+## callback asked for once the gate is in, as Godot runs every _ready() before
+## emscripten_set_main_loop() asks for its first frame (web_main.cpp :165-178). Its handles follow
+## each wait, for cancelAnimationFrame. A cap of 0 installs nothing.
 const GATE_JS := """
 (function (cap) {
 	if (window.__pfGate) { window.__pfGate.cap = cap; return; }
 	if (!(cap > 0)) return;
-	const g = { cap: cap, runner: null, last: -1, prev: -1, steps: [], refresh: 0, skipped: 0,
-		native: new Map(), next: -1 };
+	const g = { cap: cap, runner: null, last: -1, prev: -1, steps: [], idle: [], idled: false,
+		refresh: 0, n: 0, skipped: 0, native: new Map(), next: -1 };
 	window.__pfGate = g;
 	const raf = window.requestAnimationFrame.bind(window);
 	const caf = window.cancelAnimationFrame.bind(window);
-	const refresh = function (a) {
-		const s = a.slice().sort(function (x, y) { return x - y; });
+	const sorted = function (a) { return a.slice().sort(function (x, y) { return x - y; }); };
+	const refresh = function () {
+		const s = sorted(g.steps);
 		const short = s.filter(function (d) { return d < 1.5 * s[Math.floor(s.length / 10)]; });
-		return short[short.length >> 1];
+		let r = short[short.length >> 1];
+		if (g.idle.length === 8 && sorted(g.idle)[4] < r / 1.5) r = sorted(g.idle)[4];
+		let from = 0, span = 0, best = r, most = -1;
+		g.steps.forEach(function (d, i) { if (d > 100) from = i + 1; });
+		if (g.steps.length - from < 8) return r;
+		for (let i = from; i < g.steps.length; i++) span += g.steps[i];
+		for (let k = Math.ceil(span / r / 1.25); k <= Math.floor(span / r / 0.75); k++) {
+			const w = 2 * Math.PI * k / span;
+			let c = 1, sn = 0, t = 0;
+			for (let i = from; i < g.steps.length; i++) {
+				t += g.steps[i];
+				c += Math.cos(w * t);
+				sn += Math.sin(w * t);
+			}
+			if (c * c + sn * sn > most) { most = c * c + sn * sn; best = span / k; }
+		}
+		return best;
 	};
+	const fit = function (m) { return Math.max(1, Math.floor(m * 1000 / g.refresh / g.cap)); };
 	window.requestAnimationFrame = function (cb) {
 		if (g.runner === null) g.runner = cb;
 		if (cb !== g.runner) return raf(cb);
@@ -37,13 +62,20 @@ const GATE_JS := """
 				if (g.prev >= 0 && t - g.prev >= 2) {
 					g.steps.push(t - g.prev);
 					if (g.steps.length > 30) g.steps.shift();
-					g.refresh = refresh(g.steps);
+					if (g.idled) g.idle.push(t - g.prev);
+					if (g.idle.length > 8) g.idle.shift();
+					g.refresh = refresh();
 				}
 				g.prev = t;
 			}
-			const n = g.cap > 0 && g.steps.length >= 8
-				? Math.max(1, Math.floor(1.05 * 1000 / g.refresh / g.cap)) : 1;
-			if (n > 1 && g.last >= 0 && t - g.last < (n - 0.5) * g.refresh) {
+			let skip = g.idle.length < 8 && g.skipped < 16;
+			if (!skip && g.cap > 0 && g.steps.length >= 30) {
+				if (g.n === 0) g.n = fit(1.05);
+				g.n = Math.min(Math.max(g.n, fit(1.05 / 1.02)), fit(1.05 * 1.02));
+				skip = g.n > 1 && g.last >= 0 && t - g.last < (g.n - 0.5) * g.refresh;
+			}
+			g.idled = skip;
+			if (skip) {
 				g.skipped++;
 				g.native.set(handle, raf(step));
 				return;
