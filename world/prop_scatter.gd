@@ -30,11 +30,13 @@ class Shown:
 	var frame: Rect2
 
 
-## The props of a row, those of them that animate, and those that are see-through.
+## The props of a row; those of them that animate, by the scatter's clock or, those that rest at
+## night, by the rest clock; and those that are see-through.
 class Row:
 	extends RefCounted
 	var shown: Array[Shown] = []
 	var animated: Array[Shown] = []
+	var resting: Array[Shown] = []
 	var fading: Array[Shown] = []
 
 
@@ -58,6 +60,10 @@ var _next_row := 0
 var _lowest_row := 0
 ## Seconds of animation since bind().
 var _clock := 0.0
+## Seconds of animation since bind() of the props that rest at night (HEADLIGHTS_PLAN.md §5.5),
+## which run at _rest_rate: from 1 by day to 0 at night. -1 until the first update() after bind().
+var _rest_clock := 0.0
+var _rest_rate := -1.0
 ## The layer whose own children, the car and the legends' sprites, see-through props fade for.
 var _layer: Node2D
 ## The see-through props that show less than whole, and how much of themselves they show.
@@ -92,6 +98,8 @@ func bind(buffer: RoadBuffer) -> void:
 	_lowest_row = -Tuning.BUFFER_BEHIND if buffer.first_index() == 0 else buffer.first_index()
 	_next_row = _lowest_row
 	_clock = 0.0
+	_rest_clock = 0.0
+	_rest_rate = -1.0
 	buffer.tiles_generated.connect(_on_tiles_generated)
 	buffer.tiles_freed.connect(_on_tiles_freed)
 	_find_pier()
@@ -99,15 +107,24 @@ func bind(buffer: RoadBuffer) -> void:
 
 
 ## Shows the rows the car has come near, animates the props, and fades the see-through ones. Call
-## it every frame.
-func update(delta: float) -> void:
+## it every frame. The props that rest at night slow to a stop in PROP_REST_SECONDS as `cycle`'s
+## night falls, and start again as it ends (HEADLIGHTS_PLAN.md §5.5); without a clock they never
+## rest. A run that starts at night starts with them at rest.
+func update(delta: float, cycle: DayCycle = null) -> void:
 	if _buffer == null:
 		return
 	_show_rows()
 	_clock += delta
+	var rate := 0.0 if cycle != null and DayCycle.night_at(cycle.hour()) else 1.0
+	if _rest_rate < 0.0:
+		_rest_rate = rate
+	_rest_rate = move_toward(_rest_rate, rate, delta / Tuning.PROP_REST_SECONDS)
+	_rest_clock += delta * _rest_rate
 	for row: Row in _rows.values():
 		for shown: Shown in row.animated:
-			_set_frame(shown)
+			_set_frame(shown, _clock)
+		for shown: Shown in row.resting:
+			_set_frame(shown, _rest_clock)
 	_fade()
 
 
@@ -181,9 +198,12 @@ func _show_row(k: int) -> void:
 		row.shown.append(shown)
 		if lamps != null:
 			shown.lit = lamps.add(placement.def, shown.sprite)
-		if placement.def.frames > 1:
+		if placement.def.rests_at_night:
+			row.resting.append(shown)
+			_set_frame(shown, _rest_clock)
+		elif placement.def.frames > 1:
 			row.animated.append(shown)
-			_set_frame(shown)
+			_set_frame(shown, _clock)
 		if placement.def.see_through:
 			shown.frame = Rect2(
 				placement.foot - Vector2(placement.def.foot), Vector2(placement.def.region.size)
@@ -225,6 +245,7 @@ func _find_pier() -> void:
 				_release(shown)
 				row.shown.erase(shown)
 				row.animated.erase(shown)
+				row.resting.erase(shown)
 				row.fading.erase(shown)
 
 
@@ -293,8 +314,9 @@ static func _show_alpha(shown: Shown, alpha: float) -> void:
 		shown.lit.sprite.modulate.a = alpha
 
 
-func _set_frame(shown: Shown) -> void:
-	var cycle := _clock * shown.def.fps / shown.def.frames + shown.phase
+## Shows prop `shown` in its frame at `clock` seconds of its clock.
+func _set_frame(shown: Shown, clock: float) -> void:
+	var cycle := clock * shown.def.fps / shown.def.frames + shown.phase
 	var frame := int((cycle - floorf(cycle)) * shown.def.frames) % shown.def.frames
 	if shown.sprite.frame != frame:
 		if shown.lit != null:
