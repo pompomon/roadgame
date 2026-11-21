@@ -20,6 +20,7 @@ SaveService="*res://autoload/save_service.gd"
 [debug]
 
 gdscript/warnings/untyped_declaration=2
+settings/stdout/print_fps=true
 
 [display]
 
