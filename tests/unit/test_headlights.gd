@@ -1,5 +1,5 @@
 extends GutTest
-## Headlights (HEADLIGHTS_PLAN.md §5.1–§5.3): from dusk until the sun rises, while the car drives,
+## Headlights (docs/HEADLIGHTS.md §5.1–§5.3): from dusk until the sun rises, while the car drives,
 ## they light the road in a cone ahead of it, giving back a share of the light that the veil takes
 ## away. By day, without a clock or a car, and once the run is over, they are off; by night into a
 ## zone's morning, they stay on until its light has come.

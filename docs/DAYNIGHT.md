@@ -39,7 +39,7 @@ The owner answered Q4, Q5 and Q14; the rest are defaults.
 - **Q2.** A zone's reset: at the rate, 2.33 s from night; a new run cuts.
 - **Q3.** Per zone: `day_seconds` only, 120 s. Since SP, 60 s in Rural, the Meadows and the Desert (`SPEEDUP_PLAN.md` Q5).
 - **Q4.** Shadows that turn with the sun and the moon: yes (PR 4).
-- **Q5.** Lamps and windows that glow at night: yes (PR 5); no headlights.
+- **Q5.** Lamps and windows that glow at night: yes (PR 5); no headlights. Now the car's headlights light only the road from dusk until sunrise (docs/HEADLIGHTS.md B1–B4).
 - **Q6.** After the run: the light stays.
 - **Q7.** Legends' veils at night: the darker per channel.
 - **Q8.** A HUD clock: none.

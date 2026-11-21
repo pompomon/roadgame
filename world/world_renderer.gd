@@ -62,7 +62,7 @@ var _open_run: Array[RoadTile] = []
 var _set_pieces_by_end: Dictionary[int, SetPiece] = {}
 ## The props beside the road (docs/M5.md §5.6), on the Props layer. build() makes it.
 var _scatter: PropScatter
-## The car's headlights (HEADLIGHTS_PLAN.md §5.1), whose material is the road's.
+## The car's headlights (docs/HEADLIGHTS.md §5.1), whose material is the road's.
 var _headlights := Headlights.new()
 
 @onready var _ground: Node2D = %Ground
@@ -143,7 +143,7 @@ func _process(delta: float) -> void:
 	_headlights.update(cycle, sim, get_global_transform(), delta)
 
 
-## The car's headlights (HEADLIGHTS_PLAN.md §5.1).
+## The car's headlights (docs/HEADLIGHTS.md §5.1).
 func headlights() -> Headlights:
 	return _headlights
 

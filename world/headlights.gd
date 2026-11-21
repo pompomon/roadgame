@@ -1,6 +1,6 @@
 class_name Headlights
 extends RefCounted
-## The car's headlights (HEADLIGHTS_PLAN.md §5.1–§5.3). From dusk until the sun rises
+## The car's headlights (docs/HEADLIGHTS.md §5.1–§5.3). From dusk until the sun rises
 ## (DayCycle.night_at()), while the car drives, they light the road in a cone ahead of it, and
 ## nothing else: their material, the road's (headlights.gdshader), draws the road in the cone
 ## brighter, under all that is drawn on the road, so that the night's veil leaves it lighter. They

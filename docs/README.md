@@ -1,6 +1,6 @@
 # Docs
 
-Summaries of the finished plans. Each keeps its plan's section numbers and every ID that code, tests or docs cite, such as `docs/M2.md H16`. Its header names the commit that has the full plan, for `git show <sha>:<NAME>_PLAN.md`. The plans also cite commits on their prototype branches, such as `m3/prototype`. To keep those commits, the branches are now tags, such as `archive/m3/prototype`; only `tut/prototype` and `hb/prototype` are still branches. [`IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md) (IP) has the milestones and M7, Ship, which is next; [`plan.md`](../plan.md) has the game's design.
+Summaries of the finished plans. Each keeps its plan's section numbers and every ID that code, tests or docs cite, such as `docs/M2.md H16`. Its header names the commit that has the full plan, for `git show <sha>:<NAME>_PLAN.md`. The plans also cite commits on their prototype branches, such as `m3/prototype`. Keep those commits as tags, such as `archive/m3/prototype`, before deleting the branches; each summary's owner actions say how. [`IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md) (IP) has the milestones and M7, Ship, which is next; [`plan.md`](../plan.md) has the game's design.
 
 | Summary | What it built | PRs |
 |---|---|---|
@@ -18,6 +18,7 @@ Summaries of the finished plans. Each keeps its plan's section numbers and every
 | [VISUALS.md](VISUALS.md) | VIS: the car's wheels turn as it drives, and buildings line the City's streets, fading over the car | #85, #93, #94 |
 | [POOLS.md](POOLS.md) | PL: three legends in each area's pool, one picked for each run as the car reaches the area, those seen half as likely | #80–#83, #86–#91, #96, #98 |
 | [ENDGAME.md](ENDGAME.md) | EG: the road ends at a pier after 280 turns, and an arrival unlocks a legend; the Book of Legends, the Road Home, Departures, Keep Driving, the route strip, pit stops, postcards and the Vanishing Hitchhiker | #84, #101–#113 |
+| [HEADLIGHTS.md](HEADLIGHTS.md) | HL: road-only headlights from dusk until sunrise, resting windmills, and swaying grass in the Meadows | #117, #119–#121 |
 
 ## For agents
 

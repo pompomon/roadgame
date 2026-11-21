@@ -155,7 +155,7 @@ func test_snap_shows_the_light_of_the_hour_at_once() -> void:
 
 
 func test_the_night_is_from_dusk_until_sunrise() -> void:
-	# The headlights' and the windmills' night (HEADLIGHTS_PLAN.md §5.1): from the dusk key, whose
+	# The headlights' and the windmills' night (docs/HEADLIGHTS.md §5.1): from the dusk key, whose
 	# light is the dusk's, to the sunrise, round midnight, as hours past 24 or below 0 are. Exactly:
 	# one ulp before sunrise is night, while 10^18 + 256 h, 08:00, is day, though 18.5 h less rounds,
 	# and so is 2^-50 h before -5.5 h, the dusk a day earlier, though 24 h more rounds to dusk.
