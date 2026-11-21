@@ -244,7 +244,7 @@ func test_the_tutorial_shows_its_streak_and_goal_until_it_is_done() -> void:
 ## docs/ENDGAME.md §5.14, E12: on a road with a finish, a strip up the HUD's right edge, 6 pixels
 ## wide and 40% of its height, with a tick at each area's first turn, the Coast's at the finish; the
 ## car, which climbs a few pixels a turn on each reference screen, evenly, and never more than half
-## its mark's height (SPEEDUP_PLAN.md §5.4); and the best run, the road's farthest turn as the run
+## its mark's height (docs/SPEEDUP.md §5.4); and the best run, the road's farthest turn as the run
 ## starts. A run from a later area starts at its area's tick, and in the tutorial the car waits at
 ## the foot.
 func test_the_route_strip_marks_each_area_the_car_and_the_best() -> void:

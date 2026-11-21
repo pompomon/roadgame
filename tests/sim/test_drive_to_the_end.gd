@@ -3,7 +3,7 @@ extends GutTest
 ## ending at the pier past the Coast after 100 turns, and the Road Home, mirrored, ending at home
 ## after 100 turns, with no disaster, crash or damage: on SEEDS seeds each, in at most MOST_SECONDS
 ## of game time, and on the slowest seed known for it, in at most SLOWEST_SECONDS
-## (SPEEDUP_PLAN.md E1). Each zone of NIGHT_AREAS that the car leaves lasted into its night (E3).
+## (docs/SPEEDUP.md E1). Each zone of NIGHT_AREAS that the car leaves lasted into its night (E3).
 ## Prints the game time of each drive (P1).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
@@ -13,13 +13,13 @@ const SEEDS := 10
 ## The seed whose drive took longest, of the 5,000 of each road that P1 drove.
 const SLOWEST_TO_THE_PIER := 4993
 const SLOWEST_HOME := 352
-## The longest a drive to the end may take: 5 minutes (SPEEDUP_PLAN.md E1).
+## The longest a drive to the end may take: 5 minutes (docs/SPEEDUP.md E1).
 const MOST_SECONDS := 300.0
 ## The longest the drive of a road's slowest seed may take. Five minutes is a target, not a cap on
-## every seed (SPEEDUP_PLAN.md Q15): pier seed 4993 took 306.4 s, the only one of P1's 10,000 runs
+## every seed (docs/SPEEDUP.md Q15): pier seed 4993 took 306.4 s, the only one of P1's 10,000 runs
 ## to take longer.
 const SLOWEST_SECONDS := 310.0
-## The areas whose zones show their night (docs/DAYNIGHT.md §5.8, SPEEDUP_PLAN.md E3).
+## The areas whose zones show their night (docs/DAYNIGHT.md §5.8, docs/SPEEDUP.md E3).
 const NIGHT_AREAS: Array[StringName] = [&"rural", &"meadows", &"desert"]
 ## Twice MOST_SECONDS.
 const MAX_STEPS := 60 * 60 * 10

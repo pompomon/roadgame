@@ -3,7 +3,7 @@ extends GutTest
 ## piece or row of props is added or freed where the camera shows it, nor where the camera heads,
 ## which is where it comes to rest when a disaster stops the car; and the props of each row in view
 ## reach past both sides of it, also along the long straights of the Meadows and the Desert
-## (SPEEDUP_PLAN.md §4.3). The camera lags behind its target the same way on every screen, so every
+## (docs/SPEEDUP.md §4.3). The camera lags behind its target the same way on every screen, so every
 ## reference screen (docs/M2.md §6.5) shows a part of the world that the tallest or the widest of
 ## them shows, and the drives run on those two. Each drive takes one seed at the speeds it reaches,
 ## and the worst case over seeds and speeds comes up to 16 px nearer, or 27 px farther across, as
@@ -300,7 +300,7 @@ func test_nothing_comes_or_goes_in_the_widest_view() -> void:
 
 
 ## Drives the tallest view along the long straights of `area`, where a decoy joins two straights
-## into one that runs farther across the screen than PROP_SPREAD reaches (SPEEDUP_PLAN.md §4.3).
+## into one that runs farther across the screen than PROP_SPREAD reaches (docs/SPEEDUP.md §4.3).
 func _drive_straights(area: String) -> void:
 	var index := _drive(_open(TALLEST, area), STRAIGHTS_FRAMES)
 	var report := (

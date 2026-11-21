@@ -50,7 +50,7 @@ const PROP_SPREAD := 9
 ## The car is on one of those path tiles while the row may show ahead of it, and the tallest view
 ## reaches about 300 px across from the car: half its 360 px, LOOKAHEAD_PX's 43 across, and the
 ## camera's lag at GLOBAL_SPEED_CAP, 75. 3 tiles and a half reach 448 px. A long straight runs
-## farther than PROP_SPREAD across the screen (SPEEDUP_PLAN.md §4.3).
+## farther than PROP_SPREAD across the screen (docs/SPEEDUP.md §4.3).
 const PROP_VIEW_SPREAD := 3
 const PROP_MAX_SIZE := Vector2i(64, 72)
 const PROP_BELOW := 8
