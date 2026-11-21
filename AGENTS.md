@@ -15,7 +15,7 @@ How to work on Road Roguelike, for coding agents (the Copilot cloud agent, Copil
 | `IMPLEMENTATION_PLAN.md` (IP) | Milestones M0–M7 (§3, §4), decisions D1–D12 (§1.2), conventions (§1.3), determinism (§5.3), CI (§7), definition of done (§9) |
 | `plan.md` | The game design |
 
-IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings F# (M0), G# (M1), H# (M2), J# (M3), K# (M4), L# (M5), S# (M6), R# (ROADGEN), Z# (ZONE_SELECT), T# (TUTORIAL), C# (DAYNIGHT), A# (VISUALS), V# (POOLS), W# (ENDGAME) and U# (SPEEDUP). Cite them with their file, such as `docs/M2.md H16`; "M2 H16" is short for that.
+IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings F# (M0), G# (M1), H# (M2), J# (M3), K# (M4), L# (M5), S# (M6), R# (ROADGEN), Z# (ZONE_SELECT), T# (TUTORIAL), C# (DAYNIGHT), A# (VISUALS), V# (POOLS), W# (ENDGAME), B# (HEADLIGHTS) and U# (SPEEDUP). Cite them with their file, such as `docs/M2.md H16`; "M2 H16" is short for that.
 
 **State.** M0–M6 are merged, and so are nine plans of their own: the road generator, the zone select, the tutorial, the day and the night, the visuals, the legends' pools, the road's end with the Book of Legends, the headlights, resting windmills and meadow grass, and the road to the sea in five minutes (#1–#76, #80–#91, #93, #94, #96–#98, #101–#113 and #116–#121). M7 is next: Ship, with orientation and foldables, haptics, the Web's audio, the signed release and device QA. IP §4 M7 gathers the notes for it.
 
@@ -50,7 +50,7 @@ Reviewers check these too.
   - The Web export has no system font fallback. UI text may use only glyphs of the game's font, Pixel Operator 8 (`ui/theme.tres:3`): no arrows such as ↑. `test_smoke.gd` checks the main scene's text (docs/M6.md §5.8).
   - In Godot 4.7.2, each redraw of a `Polygon2D` after its first raises WebGL errors on the Web (godotengine/godot#124726, fixed in 4.8). Tint through `self_modulate`, not `color` (docs/M2.md §5.7).
   - Losing focus reaches the game only as the canvas's blur. The Web never sends `NOTIFICATION_APPLICATION_FOCUS_OUT` (docs/M2.md H4).
-- **Light.** Draw the world as by day: `Daylight` darkens it by the zone's hour. The one exception is the car's headlights, whose material brightens the road in their cone while they are on, before the veil darkens it (HEADLIGHTS_PLAN.md §5.2). The light is visual only, so no gameplay or audio code reads `DayCycle`.
+- **Light.** Draw the world as by day: `Daylight` darkens it by the zone's hour. The one exception is the car's headlights, whose material brightens the road in their cone while they are on, before the veil darkens it (docs/HEADLIGHTS.md §5.2). The light is visual only, so no gameplay or audio code reads `DayCycle`.
 - **Files.** Commit the `.uid` file that Godot makes for each new script. After the checks, `git status --porcelain` must print nothing. A file that the editor saves by itself, such as the bus layout, is committed just as the editor writes it, uid included: change the buses in the editor's Audio panel (docs/M5.md L28).
 - **`addons/gut/`** is GUT 9.7.1 as released. Don't patch it: upgrade by copying a newer release, and report bugs to bitwes/Gut.
 - **Versions.** Godot 4.7.2 is pinned in the workflows and in `project.godot`, and `check_versions.sh` checks that they agree (`ci` instructions).

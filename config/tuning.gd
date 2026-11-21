@@ -59,7 +59,7 @@ const PROP_BELOW := 8
 ## PROP_FADE_PX screen pixels, or as the car comes that far in front of it.
 const PROP_SEE_THROUGH := 0.2
 const PROP_FADE_PX := 48.0
-## The props that rest at night, such as the windmill (HEADLIGHTS_PLAN.md §5.5), slow to a stop
+## The props that rest at night, such as the windmill (docs/HEADLIGHTS.md §5.5), slow to a stop
 ## in PROP_REST_SECONDS as the night falls, and come back up to speed as long once it ends.
 const PROP_REST_SECONDS := 3.0
 ## The props' lights (docs/DAYNIGHT.md §5.12): at night they glow LAMP_COLOR over the veil, which
@@ -69,7 +69,7 @@ const PROP_REST_SECONDS := 3.0
 const LAMP_COLOR := Color(1.0, 0.8, 0.45)
 const LAMP_ALPHA := 0.55
 const LAMP_POOL_SHARE := 0.4
-## The car's headlights (HEADLIGHTS_PLAN.md §5.1–§5.3). From DUSK_HOUR, the light's dusk key, until
+## The car's headlights (docs/HEADLIGHTS.md §5.1–§5.3). From DUSK_HOUR, the light's dusk key, until
 ## the sun rises, while the car drives, they light the road in a cone from the car's lamps,
 ## HEADLIGHT_FRONT tiles before its centre: HEADLIGHT_HALF_WIDTH tiles either side of its axis
 ## there, and HEADLIGHT_SPREAD tiles wider each tile on, out to HEADLIGHT_REACH tiles. The cone

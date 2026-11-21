@@ -4,7 +4,7 @@ extends GutTest
 ## than the rate; the clock runs only with the run; --hour= sets the hour that zones start at; a
 ## disaster plays in the light that the run ended in; the night's veil darkens the world but not
 ## the glows or the UI; and the light changes nothing but the view. The lamps, the headlights and
-## the windmills follow the zone's clock (docs/DAYNIGHT.md §5.12, HEADLIGHTS_PLAN.md §5.3, §5.5).
+## the windmills follow the zone's clock (docs/DAYNIGHT.md §5.12, docs/HEADLIGHTS.md §5.3, §5.5).
 
 const MainScene := preload("res://tests/helpers/main_scene.gd")
 const Disasters := preload("res://tests/helpers/disaster_fixtures.gd")
@@ -412,7 +412,7 @@ func test_the_lamps_light_by_the_zones_clock() -> void:
 
 
 func test_the_headlights_light_the_road_from_dusk_until_the_run_ends() -> void:
-	# World lights the road ahead of the car by the zone's clock (HEADLIGHTS_PLAN.md §5.3): at night
+	# World lights the road ahead of the car by the zone's clock (docs/HEADLIGHTS.md §5.3): at night
 	# the road's material gives back a share of the light in the cone ahead of the car's lamps, by
 	# day it draws the road as before, and once the run is over the lamps go out.
 	var main := MainScene.open(self, ["--seed=1", "--hour=22"])
@@ -481,7 +481,7 @@ func _sail_turns(main: Node, frames: int) -> int:
 
 func test_the_windmills_rest_by_the_zones_clock() -> void:
 	# World rests the windmills' sails by the clock that Daylight keeps for the zone
-	# (HEADLIGHTS_PLAN.md §5.5): in a run that starts in the Rural at night they stand still, and by
+	# (docs/HEADLIGHTS.md §5.5): in a run that starts in the Rural at night they stand still, and by
 	# day they turn again.
 	var main := MainScene.open(self, ["--seed=1", "--area=rural", "--hour=22"])
 	simulate(main, 2, MainScene.DELTA)

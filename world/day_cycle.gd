@@ -86,7 +86,7 @@ func target() -> Color:
 	return light_at(hour())
 
 
-## Whether `p_hour` is in the night (HEADLIGHTS_PLAN.md §5.1): from dusk, the light's DUSK_HOUR key,
+## Whether `p_hour` is in the night (docs/HEADLIGHTS.md §5.1): from dusk, the light's DUSK_HOUR key,
 ## until the sun rises, round midnight. The car's headlights shine then, and the windmills rest.
 ## fmod() leaves the hour's remainder exact. One below 0 is compared with the hours a day earlier,
 ## since adding a day to it may round.

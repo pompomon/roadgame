@@ -47,7 +47,7 @@ enum Shadow { UPRIGHT, WALL, NONE }
 ## centre of a box's footprint, or where a wall's base line crosses the foot's column.
 @export var shadow_rise := 0
 ## Whether its animation slows to a stop at night and starts again by day, as a windmill's sails
-## do, which the miller stops for the night (HEADLIGHTS_PLAN.md §5.5). Only a prop that animates
+## do, which the miller stops for the night (docs/HEADLIGHTS.md §5.5). Only a prop that animates
 ## may rest.
 @export var rests_at_night := false
 
