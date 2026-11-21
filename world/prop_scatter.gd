@@ -64,7 +64,7 @@ var _next_row := 0
 var _lowest_row := 0
 ## Seconds of animation since bind().
 var _clock := 0.0
-## Seconds of animation since bind() of the props that rest at night (HEADLIGHTS_PLAN.md §5.5),
+## Seconds of animation since bind() of the props that rest at night (docs/HEADLIGHTS.md §5.5),
 ## which run at _rest_rate: from 1 by day to 0 at night. -1 until the first update() after bind().
 var _rest_clock := 0.0
 var _rest_rate := -1.0
@@ -112,7 +112,7 @@ func bind(buffer: RoadBuffer) -> void:
 
 ## Shows the rows the car has come near, animates the props, and fades the see-through ones. Call
 ## it every frame. The props that rest at night slow to a stop in PROP_REST_SECONDS as `cycle`'s
-## night falls, and start again as it ends (HEADLIGHTS_PLAN.md §5.5); without a clock they never
+## night falls, and start again as it ends (docs/HEADLIGHTS.md §5.5); without a clock they never
 ## rest. A run that starts at night starts with them at rest.
 func update(delta: float, cycle: DayCycle = null) -> void:
 	if _buffer == null:
@@ -126,7 +126,7 @@ func update(delta: float, cycle: DayCycle = null) -> void:
 	var rest_was := _rest_clock
 	_rest_clock += delta * _rest_rate
 	# Only the props whose next frame has come: the Meadows' grass animates hundreds
-	# (HEADLIGHTS_PLAN.md B12). None that rest while their clock stands: it may stand within
+	# (docs/HEADLIGHTS.md B12). None that rest while their clock stands: it may stand within
 	# NEXT_FRAME_EARLY of a prop's next frame, which would then come on every update all night.
 	var rest_moved := _rest_clock != rest_was
 	for row: Row in _rows.values():

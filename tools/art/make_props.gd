@@ -119,7 +119,7 @@ const STREETS := {&"building": 0.6}
 ## The props that may rise over the road behind them, and fade where they would hide the car
 ## (§5.9): boxes, whose bases lie in their lots.
 const SEE_THROUGH: Array[StringName] = [&"building"]
-## The props whose animation rests at night (HEADLIGHTS_PLAN.md §5.5): the windmill, whose miller
+## The props whose animation rests at night (docs/HEADLIGHTS.md §5.5): the windmill, whose miller
 ## stops its sails for the night.
 const RESTS: Array[StringName] = [&"windmill"]
 

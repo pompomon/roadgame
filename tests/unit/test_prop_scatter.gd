@@ -238,7 +238,7 @@ func test_animated_props_step_through_their_frames_at_their_fps() -> void:
 
 func test_each_prop_shows_the_frame_of_its_clock_though_updates_look_only_at_frames_that_start(
 ) -> void:
-	# update() looks at a prop's frame again only once its next frame starts (HEADLIGHTS_PLAN.md
+	# update() looks at a prop's frame again only once its next frame starts (docs/HEADLIGHTS.md
 	# B12). Each prop must still show the frame of its clock's time, frame by frame at odd times
 	# and fps, as a scatter shows them that is bound again and updated once to the same time:
 	# bind() shows each prop at time 0, and an update by more than a frame of the slowest then looks
@@ -280,7 +280,7 @@ func test_each_prop_shows_the_frame_of_its_clock_though_updates_look_only_at_fra
 
 
 func test_an_update_sets_no_frame_before_the_next_starts() -> void:
-	# update() looks at a prop again only once its next frame starts (HEADLIGHTS_PLAN.md B12). So
+	# update() looks at a prop again only once its next frame starts (docs/HEADLIGHTS.md B12). So
 	# a frame set by hand stays until then: through a short step, on each prop whose next frame it
 	# doesn't reach, and all night, on the props at rest, even where their clock stops just before
 	# a frame. Once a frame's time has passed, each prop shows its clock's frame again.
@@ -394,7 +394,7 @@ static func _frames_at(
 
 
 func test_props_that_rest_at_night_slow_to_a_stop_and_start_again_by_day() -> void:
-	# A windmill's sails (HEADLIGHTS_PLAN.md §5.5): as the night falls they slow evenly to a stop
+	# A windmill's sails (docs/HEADLIGHTS.md §5.5): as the night falls they slow evenly to a stop
 	# over PROP_REST_SECONDS, never skipping a frame, and as it ends they start again as gently.
 	# The other props that animate go on. A run that starts at night starts with them at rest,
 	# and without a clock they never rest. Sails of 30 frames at 30 a second show how far they
@@ -610,7 +610,7 @@ func test_props_that_break_the_contract_are_errors_and_do_not_show() -> void:
 	var fitting := _prop(&"fitting", 1, 0.0, 0.1)
 	fitting.see_through = true
 	fitting.shadow_rise = 4
-	# A prop that rests at night, with no frames to rest from (HEADLIGHTS_PLAN.md §5.5).
+	# A prop that rests at night, with no frames to rest from (docs/HEADLIGHTS.md §5.5).
 	var resting := _prop(&"resting", 1, 0.0, 0.1)
 	resting.rests_at_night = true
 	var props: Array[PropDef] = [
@@ -931,7 +931,7 @@ func test_the_props_that_the_pier_takes_away_stop_animating() -> void:
 	var scatter: PropScatter = null
 	# The game's areas are cached, and a resource's shallow copy shares its arrays: the City's copy
 	# gets an array of its own, so that the scripts after this one see the City's props
-	# (HEADLIGHTS_PLAN.md B15).
+	# (docs/HEADLIGHTS.md B15).
 	var city := Fixtures.schedule().entries[0].area
 	var city_props := city.props.duplicate()
 	for road: Array in [[11, 8], [12, 5]]:

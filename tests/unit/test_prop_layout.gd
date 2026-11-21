@@ -282,7 +282,7 @@ func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
 
 
 func test_the_meadows_grass_takes_only_ground_that_showed_nothing() -> void:
-	# The grass is the Meadows' last prop (HEADLIGHTS_PLAN.md §5.6), so it takes the share of the
+	# The grass is the Meadows' last prop (docs/HEADLIGHTS.md §5.6), so it takes the share of the
 	# hashes past the others': each other prop stands where it stood without the grass, in the same
 	# phase, and the grass only where nothing stood.
 	var props := (load("res://areas/meadows.tres") as AreaDef).props

@@ -1,4 +1,4 @@
-// The car's headlights (HEADLIGHTS_PLAN.md §5.2): the road's own material, so that they light the
+// The car's headlights (docs/HEADLIGHTS.md §5.2): the road's own material, so that they light the
 // road and nothing else. In their cone each pixel of road is drawn brighter, by `gain` where the
 // cone is brightest, and the night's veil darkens it less than the rest: all that is drawn on the
 // road, after it, hides the light under it. By day `gain` is 0, and the road is drawn as before.

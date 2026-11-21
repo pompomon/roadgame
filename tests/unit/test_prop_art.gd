@@ -60,7 +60,7 @@ func test_each_frame_is_cropped_to_its_props_pixels_apart_from_the_others() -> v
 
 
 func test_the_meadows_grass_sways() -> void:
-	# The Meadows' grass (HEADLIGHTS_PLAN.md §5.6) sways: each frame shows other pixels than the one
+	# The Meadows' grass (docs/HEADLIGHTS.md §5.6) sways: each frame shows other pixels than the one
 	# before it, so the blades never stand still for a frame. Art.pixels() leaves out the colours
 	# that the import gives the clear pixels beside the frames' (fix_alpha_border), which differ
 	# where nothing shows.
