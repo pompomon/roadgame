@@ -16,6 +16,7 @@ EventBus="*res://autoload/event_bus.gd"
 AudioDirector="*res://autoload/audio_director.gd"
 GameState="*res://autoload/game_state.gd"
 SaveService="*res://autoload/save_service.gd"
+PfProbeNode="*res://autoload/pf_probe.gd"
 
 [debug]
 

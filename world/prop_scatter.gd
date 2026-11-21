@@ -38,6 +38,8 @@ class Shown:
 ## night, by the rest clock; and those that are see-through.
 class Row:
 	extends RefCounted
+	## PF prototype: the cell that its props spread either side of, from anchor().
+	var anchor := Vector2i()
 	var shown: Array[Shown] = []
 	var animated: Array[Shown] = []
 	var resting: Array[Shown] = []
@@ -62,6 +64,8 @@ var _rows: Dictionary[int, Row] = {}
 ## The next row to get its props, and the lowest row that may still have them.
 var _next_row := 0
 var _lowest_row := 0
+## PF prototype: the rows below this one wait to be hidden, PfProbe.hide_budget a frame.
+var _hide_below := 0
 ## Seconds of animation since bind().
 var _clock := 0.0
 ## Seconds of animation since bind() of the props that rest at night (docs/HEADLIGHTS.md §5.5),
@@ -101,6 +105,7 @@ func bind(buffer: RoadBuffer) -> void:
 	_first_area = buffer.generator.first_area().id
 	_lowest_row = -Tuning.BUFFER_BEHIND if buffer.first_index() == 0 else buffer.first_index()
 	_next_row = _lowest_row
+	_hide_below = _lowest_row
 	_clock = 0.0
 	_rest_clock = 0.0
 	_rest_rate = -1.0
@@ -117,6 +122,8 @@ func bind(buffer: RoadBuffer) -> void:
 func update(delta: float, cycle: DayCycle = null) -> void:
 	if _buffer == null:
 		return
+	if PfProbe.hide_budget > 0:
+		_hide_rows()
 	_show_rows()
 	_clock += delta
 	var rate := 0.0 if cycle != null and DayCycle.night_at(cycle.hour()) else 1.0
@@ -129,6 +136,7 @@ func update(delta: float, cycle: DayCycle = null) -> void:
 	# (docs/HEADLIGHTS.md B12). None that rest while their clock stands: it may stand within
 	# NEXT_FRAME_EARLY of a prop's next frame, which would then come on every update all night.
 	var rest_moved := _rest_clock != rest_was
+	var ta := Time.get_ticks_usec()
 	for row: Row in _rows.values():
 		for shown: Shown in row.animated:
 			if _clock >= shown.next_frame_at:
@@ -136,7 +144,10 @@ func update(delta: float, cycle: DayCycle = null) -> void:
 		for shown: Shown in row.resting:
 			if rest_moved and _rest_clock >= shown.next_frame_at:
 				_set_frame(shown, _rest_clock)
+	var tf := Time.get_ticks_usec()
 	_fade()
+	PfProbe.add(&"animate", tf - ta)
+	PfProbe.add(&"fade", Time.get_ticks_usec() - tf)
 
 
 ## The path tile indices of the rows that have their props, lowest first.
@@ -162,9 +173,21 @@ func _on_tiles_generated(_tiles: Array[RoadTile]) -> void:
 
 
 func _on_tiles_freed(_tiles: Array[RoadTile]) -> void:
-	while _lowest_row < _buffer.first_index():
+	_hide_below = maxi(_hide_below, _buffer.first_index())
+	if PfProbe.hide_budget == 0:
+		_hide_rows()
+
+
+## Takes their props from the rows below the buffer's first path tile: PF prototype, at most
+## PfProbe.hide_budget rows a frame, if it is set.
+func _hide_rows() -> void:
+	var hidden := 0
+	while _lowest_row < _hide_below:
+		if PfProbe.hide_budget > 0 and hidden >= PfProbe.hide_budget:
+			return
 		_hide_row(_lowest_row)
 		_lowest_row += 1
+		hidden += 1
 
 
 ## Gives their props to the rows up to PROP_AHEAD path tiles past the car's whose road is made,
@@ -180,8 +203,11 @@ func _show_rows() -> void:
 
 
 ## The cell of row `k` that its props spread either side of: its path tile's, or below the start,
-## the cell of the row that is closest to below path tile 0's, on (0, 0).
+## the cell of the row that is closest to below path tile 0's, on (0, 0). PF prototype: a row that
+## shows keeps its own, as its path tile may be freed while the row waits to be hidden.
 func anchor(k: int) -> Vector2i:
+	if _rows.has(k):
+		return _rows[k].anchor
 	if k >= 0:
 		return _buffer.path_tile(k).cell
 	var below := -k
@@ -189,14 +215,26 @@ func anchor(k: int) -> Vector2i:
 
 
 func _show_row(k: int) -> void:
+	var t0 := Time.get_ticks_usec()
+	_show_row_timed(k)
+	var us := Time.get_ticks_usec() - t0
+	PfProbe.add(&"show_row", us)
+	if us > 3000:
+		var n := _rows[k].shown.size()
+		print("PFSPIKE show_row k=%d car=%d props=%d us=%d" % [k, _buffer.car_index(), n, us])
+
+
+func _show_row_timed(k: int) -> void:
 	var area := _first_area if k < 0 else _buffer.path_tile(k).area_id
 	var props: Array[PropDef] = []
 	if _props.has(area):
 		props = _props[area]
 	var row := Row.new()
-	for placement: PropLayout.Placement in PropLayout.row(
-		anchor(k), props, _buffer.generator.props_seed, _buffer
-	):
+	row.anchor = anchor(k)
+	var tl := Time.get_ticks_usec()
+	var placements := PropLayout.row(row.anchor, props, _buffer.generator.props_seed, _buffer)
+	PfProbe.add(&"layout", Time.get_ticks_usec() - tl)
+	for placement: PropLayout.Placement in placements:
 		if _at_sea(placement.foot):
 			continue
 		var shown := Shown.new()
@@ -208,7 +246,9 @@ func _show_row(k: int) -> void:
 			shown.cast = shadows.add(placement.def, placement.foot)
 		row.shown.append(shown)
 		if lamps != null:
+			var ta := Time.get_ticks_usec()
 			shown.lit = lamps.add(placement.def, shown.sprite)
+			PfProbe.add(&"lamps_add", Time.get_ticks_usec() - ta)
 		if placement.def.rests_at_night:
 			row.resting.append(shown)
 			_set_frame(shown, _rest_clock)
@@ -224,6 +264,16 @@ func _show_row(k: int) -> void:
 
 
 func _hide_row(k: int) -> void:
+	var t0 := Time.get_ticks_usec()
+	_hide_row_timed(k)
+	var us := Time.get_ticks_usec() - t0
+	PfProbe.add(&"hide_row", us)
+	if us > 3000:
+		var at := [k, _buffer.first_index(), _buffer.car_index(), us]
+		print("PFSPIKE hide_row k=%d first=%d car=%d us=%d" % at)
+
+
+func _hide_row_timed(k: int) -> void:
 	if _rows.has(k):
 		for shown: Shown in _rows[k].shown:
 			_release(shown)
@@ -322,7 +372,7 @@ static func actor_rect(node: Node) -> Rect2:
 static func _show_alpha(shown: Shown, alpha: float) -> void:
 	shown.sprite.modulate.a = alpha
 	if shown.lit != null:
-		shown.lit.sprite.modulate.a = alpha
+		Lamps.fade(shown.lit, alpha)
 
 
 ## Shows prop `shown` in its frame at `clock` seconds of its clock, and notes when its next starts.
@@ -335,7 +385,7 @@ func _set_frame(shown: Shown, clock: float) -> void:
 	shown.next_frame_at = clock + (floorf(at) + 1.0 - at) / shown.def.fps - NEXT_FRAME_EARLY
 	if shown.sprite.frame != frame:
 		if shown.lit != null:
-			shown.lit.sprite.frame = frame
+			Lamps.show_frame(shown.lit, frame)
 		shown.sprite.frame = frame
 		if shown.cast != null:
 			shown.cast.sprite.frame = frame

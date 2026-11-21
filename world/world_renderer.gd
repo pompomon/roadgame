@@ -135,12 +135,19 @@ func set_car(value: Node2D) -> void:
 
 func _process(delta: float) -> void:
 	var controller := car as CarController
+	var t0 := Time.get_ticks_usec()
 	_shadows.refresh(cycle, controller)
+	var t1 := Time.get_ticks_usec()
 	if _scatter != null:
 		_scatter.update(delta, cycle)
+	var t2 := Time.get_ticks_usec()
 	_lamps.refresh(cycle)
 	var sim := controller.sim if controller != null else null
 	_headlights.update(cycle, sim, get_global_transform(), delta)
+	var t3 := Time.get_ticks_usec()
+	PfProbe.add(&"wr_shadows", t1 - t0)
+	PfProbe.add(&"wr_scatter", t2 - t1)
+	PfProbe.add(&"wr_lamps_hl", t3 - t2)
 
 
 ## The car's headlights (docs/HEADLIGHTS.md §5.1).
