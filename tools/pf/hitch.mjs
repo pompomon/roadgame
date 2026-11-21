@@ -1,7 +1,7 @@
 // PF prototype: the frames around a run's first free, from the page's load (P13b).
 // Usage: node hitch.mjs '<json config>'
 // config: {browsers:["chrome","firefox"], builds:{name:baseUrl}, size:[w,h,dpr], area, hour, extras:{label:[args]},
-//          secs:12, seed:1, reps:2, out:"file.jsonl"}
+//          secs:12, window:[7,12], seed:1, reps:2, out:"file.jsonl"}
 // It records every requestAnimationFrame timestamp from the document's start, and the time of each PFSPIKE and
 // PERF line, and gives the interval that holds each hide_row line, against the run's other intervals.
 import fs from 'node:fs';
@@ -9,6 +9,7 @@ const { chromium, firefox } = await import(process.env.PLAYWRIGHT_MODULE ?? 'pla
 
 const cfg = JSON.parse(process.argv[2]);
 const secs = cfg.secs ?? 12, reps = cfg.reps ?? 2;
+const win = cfg.window ?? [7, 12];
 const out = cfg.out ?? '/tmp/perf-hitch.jsonl';
 
 const INIT = `
@@ -83,14 +84,16 @@ for (const bname of cfg.browsers) {
           perf_hide_worst: perfHide,
           perf_first_s: (() => { const l = lines.find(([, s]) => s.startsWith('PERF ')); return l ? +((l[0] - tStart) / 1000).toFixed(2) : null; })(),
           long: iv.filter(([, d]) => d > 1.5 * q(others, 0.5)).map(([s, d]) => [+(s - tStart).toFixed(0), +d.toFixed(1)]).slice(0, 40),
-          // E3's window, which holds the first free: the frames from 2 s to 12 s after the engine's first line.
+          // E3's window, which holds the first free, 7.8-8 s in, but not most of the first rows' making (Y8), which
+          // can make a frame of 34 ms up to 5.9 s in: by default the frames from 7 s to 12 s after the engine's first line.
+          window: win,
           ...(() => {
-            const w = iv.filter(([s, d]) => s - tStart >= 2000 && s + d - tStart <= 12000);
+            const w = iv.filter(([s, d]) => s - tStart >= win[0] * 1000 && s + d - tStart <= win[1] * 1000);
             return { win_max_ms: +Math.max(...w.map(([, d]) => d)).toFixed(1),
               win_over_25: w.filter(([, d]) => d > 25).map(([s, d]) => [+(s - tStart).toFixed(0), +d.toFixed(1)]) };
           })() };
         fs.appendFileSync(out, JSON.stringify(r) + '\n');
-        console.log(`${bname} ${build} ${label} rep ${rep}: first hide ${r.first_hide_s}s; hide frames ${JSON.stringify(r.hide_frames.map((m) => [m.at, m.ms, m.rows, m.hide_ms]))}; near max ${r.near_max_ms}; others ${JSON.stringify(r.others)}; PERF hide worst ${JSON.stringify(perfHide)}; first PERF ${r.perf_first_s}s; long ${JSON.stringify(r.long)}; 2-12 s: max ${r.win_max_ms}, over 25 ms ${JSON.stringify(r.win_over_25)}`);
+        console.log(`${bname} ${build} ${label} rep ${rep}: first hide ${r.first_hide_s}s; hide frames ${JSON.stringify(r.hide_frames.map((m) => [m.at, m.ms, m.rows, m.hide_ms]))}; near max ${r.near_max_ms}; others ${JSON.stringify(r.others)}; PERF hide worst ${JSON.stringify(perfHide)}; first PERF ${r.perf_first_s}s; long ${JSON.stringify(r.long)}; ${win[0]}-${win[1]} s: max ${r.win_max_ms}, over 25 ms ${JSON.stringify(r.win_over_25)}`);
       }
     }
   }
