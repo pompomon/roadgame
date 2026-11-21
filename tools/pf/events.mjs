@@ -5,15 +5,18 @@
 //          scenarios:[{name, args:[], from:"run_ended", secs:8, pre:4, before:"area coast", to:"game_over",
 //          expect:["disaster_started ufo"]}] or a file of them, such as "tools/pf/ends.json", reps:1,
 //          timeout:90, out:"file.jsonl"}
-// Each run loads a build with a scenario's args and a variant's, waits for the event `from`, a PFEVENT
-// line's text after "PFEVENT ", by its start, then `secs` more. It reports the page's frames over three
-// windows: from the event to `secs` after it ("main"), the `pre` seconds before it, and with `before`,
-// from that event's first line to `from`. Each window gives the rate, the median, P95, P99 and longest
-// frame, and the slowest of its whole seconds from its start; "main" also the probe's slowest PERF line.
-// With `to`, it waits for that event after `from`, and reports the frames between them ("end"), and the
-// slowest of the probe's PERF lines whose 1 s windows lie between them; `missing` lists the events of
-// `expect`, and `to`, that the run didn't print, such as another legend's: such a run doesn't count,
-// and the script exits 1 once all have run, as it does if a run timed out or a step didn't answer.
+// An event matches a PFEVENT line whose text after "PFEVENT " is the event, or starts with it and a space.
+// Each run loads a build with a scenario's args and a variant's, waits for the event `from`, then `secs`
+// more. It reports the page's frames over three windows: from the event to `secs` after it ("main"), the
+// `pre` seconds before it, and with `before`, from that event's first line to `from`. Each window gives
+// the rate, its frames over its whole time, so that a stall at an edge counts, the median, P95, P99 and
+// longest frame, and the slowest of its whole seconds; "main" also the probe's slowest PERF line.
+// With `to`, it waits up to 15 s more for that event after `from`, and reports the frames between them
+// ("end"), and the slowest of the probe's PERF lines whose 1 s windows lie wholly between them, those
+// after the first that closes after `from`. `missing` lists the events of `expect` that the run didn't
+// print, such as another legend's, and `to` if it didn't follow `from` in time: such a run doesn't
+// count, and the script exits 1 once all have run, as it does if a run timed out or a step didn't
+// answer. A browser that won't close stops it with 1, as it could slow the runs after it.
 // PLAYWRIGHT_MODULE: Playwright's index.mjs, if `playwright` isn't importable; CHROME: Chrome's path.
 import fs from 'node:fs';
 const { chromium, firefox } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
@@ -40,19 +43,20 @@ const INIT = `
 })();`;
 
 function stats(frames, a, b) {
-  const f = frames.filter((t) => t >= a && t <= b);
-  if (f.length < 2) return { fps: 0, n: 0 };
+  const f = frames.filter((t) => t > a && t <= b);
+  if (f.length < 2) return { fps: 0, n: f.length };
   const iv = [];
   for (let i = 1; i < f.length; i++) iv.push(f[i] - f[i - 1]);
   const s = [...iv].sort((x, y) => x - y);
   const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))];
   let slowest = Infinity, at = -1;
   for (let k = 0; a + (k + 1) * 1000 <= b; k++) {
-    const c = f.filter((t) => t >= a + k * 1000 && t < a + (k + 1) * 1000).length;
+    const c = f.filter((t) => t > a + k * 1000 && t <= a + (k + 1) * 1000).length;
     if (c < slowest) { slowest = c; at = k; }
   }
-  return { fps: +(iv.length / (f[f.length - 1] - f[0]) * 1000).toFixed(1), med_ms: +q(0.5).toFixed(1),
-    p95_ms: +q(0.95).toFixed(1), p99_ms: +q(0.99).toFixed(1), max_ms: +s[s.length - 1].toFixed(1), n: iv.length,
+  return { fps: +(f.length / (b - a) * 1000).toFixed(1), med_ms: +q(0.5).toFixed(1),
+    p95_ms: +q(0.95).toFixed(1), p99_ms: +q(0.99).toFixed(1),
+    max_ms: +Math.max(s[s.length - 1], f[0] - a, b - f[f.length - 1]).toFixed(1), n: f.length,
     secs: +((b - a) / 1000).toFixed(2), slowest_s: slowest === Infinity ? null : slowest, slowest_at: at };
 }
 
@@ -66,53 +70,73 @@ async function launch(name) {
 
 const variants = Object.entries(cfg.variants ?? { none: [] });
 // A step that doesn't answer, as a page that never runs, fails its run instead of the script.
-const within = (p, ms, what) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error(`${what}: no answer in ${ms / 1000} s`)), ms))]);
+function within(p, ms, what) {
+  let id;
+  const late = new Promise((_, no) => { id = setTimeout(() => no(new Error(`${what}: no answer in ${ms / 1000} s`)), ms); });
+  return Promise.race([p, late]).finally(() => clearTimeout(id));
+}
+async function closeOrStop(browser, bname) {
+  try {
+    await within(browser.close(), 30000, 'browser.close');
+  } catch (e) {
+    console.log(`${bname}: ${e.message}: stopped`);
+    process.exit(1);
+  }
+}
+const is = (s, e) => s === e || s.startsWith(e + ' ');
 
 async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, vargs, holder) {
   const tr = Date.now();
   const ctx = await within(browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr ?? 1 }), 30000, 'newContext');
   holder.ctx = ctx;
   const page = await within(ctx.newPage(), 30000, 'newPage');
-  await page.addInitScript(INIT);
+  await within(page.addInitScript(INIT), 30000, 'addInitScript');
   const logs = [];
   page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));
   page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
   const args = [...sc.args, ...vargs];
-  await page.goto(base + '?' + args.map((x) => 'arg=' + encodeURIComponent(x)).join('&'));
+  await within(page.goto(base + '?' + args.map((x) => 'arg=' + encodeURIComponent(x)).join('&')), 60000, 'goto');
   const secs = sc.secs ?? 8, pre = sc.pre ?? 4, from = sc.from ?? 'run_ended';
-  let timedOut = false;
+  let timedOut = false, late = false;
   try {
-    await page.waitForFunction((e) => window.__events.some(([, s]) => s.startsWith(e)), from, { polling: 250, timeout });
+    await page.waitForFunction((e) => window.__events.some(([, s]) => s === e || s.startsWith(e + ' ')), from, { polling: 250, timeout });
   } catch (e) { timedOut = true; }
   if (!timedOut) await page.waitForTimeout(secs * 1000 + 500);
   if (!timedOut && sc.to) {
     try {
-      await page.waitForFunction((e) => window.__events.some(([, s]) => s.startsWith(e)), sc.to, { polling: 250, timeout: 15000 });
-    } catch (e) { /* reported in `missing` */ }
+      await page.waitForFunction(([f, t]) => {
+        const m = (s, e) => s === e || s.startsWith(e + ' ');
+        const i = window.__events.findIndex(([, s]) => m(s, f));
+        return i >= 0 && window.__events.slice(i + 1).some(([, s]) => m(s, t));
+      }, [from, sc.to], { polling: 250, timeout: 15000 });
+    } catch (e) { late = true; }
   }
   const { frames, events, perf } = await within(page.evaluate(() => ({ frames: window.__frames, events: window.__events, perf: window.__perf })), 30000, 'evaluate');
   const t0 = frames[0] ?? 0;
-  const at = (e) => events.find(([, s]) => s.startsWith(e))?.[0];
-  const tf = at(from);
+  const idx = (e, i = 0) => events.findIndex(([, s], j) => j >= i && is(s, e));
+  const fi = idx(from), tf = events[fi]?.[0];
   const r = { browser: bname, rep, build, variant: vname, scenario: sc.name, size: `${w}x${h}@${dpr ?? 1}`, args, timedOut,
     events: events.map(([t, s]) => [+((t - t0) / 1000).toFixed(2), s]) };
-  if (tf !== undefined) {
+  let tt;
+  if (fi >= 0) {
     r.main = stats(frames, tf, tf + secs * 1000);
     r.pre = stats(frames, tf - pre * 1000, tf);
     const lines = perf.filter(([t]) => t > tf && t <= tf + secs * 1000);
     r.perf_min_fps = lines.length ? Math.min(...lines.map(([, f]) => f)) : null;
     r.perf_max_p95 = lines.length ? Math.max(...lines.map(([, , p]) => p)) : null;
-    const tb = sc.before ? at(sc.before) : undefined;
-    if (tb !== undefined) r.before = stats(frames, tb, tf);
-    const tt = sc.to ? events.find(([t, s]) => t >= tf && s.startsWith(sc.to))?.[0] : undefined;
-    if (tt !== undefined) {
+    const bi = sc.before ? idx(sc.before) : -1;
+    if (bi >= 0) r.before = stats(frames, events[bi][0], tf);
+    const ti = sc.to && !late ? idx(sc.to, fi + 1) : -1;
+    if (ti >= 0) {
+      tt = events[ti][0];
       r.end = stats(frames, tf, tt);
-      const el = perf.filter(([t]) => t >= tf + 1000 && t <= tt);
+      const first = perf.findIndex(([t]) => t > tf);
+      const el = first < 0 ? [] : perf.slice(first + 1).filter(([t]) => t <= tt);
       r.end_perf_min_fps = el.length ? Math.min(...el.map(([, f]) => f)) : null;
       r.end_perf_n = el.length;
     }
   }
-  r.missing = [...(sc.expect ?? []), ...(sc.to ? [sc.to] : [])].filter((e) => !events.some(([, s]) => s.startsWith(e)));
+  r.missing = [...(sc.expect ?? []).filter((e) => idx(e) < 0), ...(sc.to && !(r.end?.n >= 2) ? [sc.to] : [])];
   r.errs = logs.filter((l) => /^\[(error|pageerror)\]/.test(l) || /ERROR/.test(l)).slice(0, 5);
   r.warns = logs.filter((l) => /^\[warning\]/.test(l)).length;
   const m = r.main ?? {};
@@ -153,7 +177,7 @@ for (const bname of cfg.browsers) {
             }
             if (restart) {
               console.log(`${bname}: the browser starts again`);
-              await within(browser.close(), 30000, 'browser.close').catch(() => {});
+              await closeOrStop(browser, bname);
               browser = await launch(bname);
             }
           }
@@ -161,7 +185,7 @@ for (const bname of cfg.browsers) {
       }
     }
   }
-  await browser.close();
+  await closeOrStop(browser, bname);
 }
 if (failed) {
   console.log(`FAILED: ${failed} run(s) timed out, missed their events or had a step that didn't answer`);
