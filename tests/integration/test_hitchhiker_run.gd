@@ -92,11 +92,11 @@ func test_she_stands_before_the_junction_of_the_players_farthest_turn_on_the_roa
 
 
 func test_a_departure_that_starts_before_her_turn_has_her_too() -> void:
-	# The Village starts at the Road Home's turn 60, so her turn 62 is the departure's turn 2. The
-	# Meadows start at turn 80, past her.
+	# The Village starts at the Road Home's turn 22, so her turn 24 is the departure's turn 2. The
+	# Meadows start at turn 32, past her.
 	for area: String in ["village", "meadows"]:
 		SaveService.use_memory()
-		SaveService.data().record_run({"road": Hitchhiker.ROAD, "turn_index": 62})
+		SaveService.data().record_run({"road": Hitchhiker.ROAD, "turn_index": 24})
 		var main := MainScene.open(
 			self, ["--seed=1", "--home", "--collected=all", "--area=" + area]
 		)

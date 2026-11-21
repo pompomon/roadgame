@@ -1,10 +1,10 @@
 # Headlights, Resting Windmills and the Meadows' Grass
 
-Done, 2026-11-20 to 2026-11-21: plan PR #117, then #119, #120 and #121. HL added road-only headlights, resting windmills and swaying meadow grass. The owner approved Q1-Q12's defaults. Full plan and verification: `git show 312885f:HEADLIGHTS_PLAN.md`. Section 7 archives the prototype.
+Done, 2026-11-20 to 2026-11-21: plan #117, then #119, #120 and #121. The owner approved Q1-Q12's defaults. Full plan/verification: `git show 312885f:HEADLIGHTS_PLAN.md`. Prototype archive: section 7.
 
 ## 1. Goal and exit criteria
 
-Visual only: no gameplay/audio code reads `DayCycle`. Implementation and browsers passed. No Fold4 functional result was posted; IP retains those checks. Frame-rate measurement was waived (section 7).
+Visual only: no gameplay/audio reads `DayCycle`. Browsers passed; unrecorded Fold4 checks stay in IP, with FPS measurement waived (section 7).
 
 - **E1.** Night from 18:30 inclusive to 06:00 exclusive, wrapped exactly.
 - **E2.** Fade on/off in 0.5 s, morning hold, and off when the run ends or clock/car is missing.
@@ -158,11 +158,11 @@ Baseline: 4a50bb2; candidate: prototype, except P9. Godot 4.7.2 Compatibility, 3
 - **P1.** 600 frames each of Rural/City at 22:00: all changed pixels on road, none darker. Mask includes faded buildings.
 - **P2.** All 600 City/Rural day frames identical. Meadows without grass: 598 identical, two changed by 1 and 3 pixels from sheet width.
 - **P3.** Meadows day CPU/GPU average grew 0.7/0.6 ms, below candidate variation, 1.1/1.4 ms; night City/Rural within baseline variation.
-- **P4.** Update: 94.3 us baseline, 615.8 old grass loop, 184.2 optimized. Headless frame: 192-204 to 306-328 us. Animated props: 619-667, at most 972, versus 32.5-33.7, at most 50. About 900 more World nodes.
+- **P4.** Update: 94.3 us baseline, 615.8 old grass loop, 184.2 optimized (178-193). Headless frame: 192-204 to 306-328 us. Animated props: 619-667, at most 972, versus 32.5-33.7, at most 50. About 900 more World nodes.
 - **P5.** Optimizations changed none of 600 Meadows day or Rural dusk frames.
 - **P6.** Texel clipping and no-clipping bound: section 5.3.
 - **P7.** Without hold, cone red falls 0.768 to 0.545 in 0.5 s then brightens. Smoke seed leaves City at 58-59 s, after dusk.
-- **P8.** Prototype merge with SP's 98ffdd5 clean, checks passed; later states may differ.
+- **P8.** Prototype merge with SP 98ffdd5: clean, four files (`meadows.tres`, `tuning.gd`, `test_daylight_run.gd`, `test_prop_scatter.gd`), checks passed; later states may differ.
 - **P9.** Web grass-only, Meadows seed 1: #121 vs `main` 4ea42e5 after #120 (run 44829534995). Chrome day/night 32.3/24.1 vs 33.6/23.2 fps; Firefox 59.0/59.0 vs 58.8/59.0. No game errors. Chrome both 3.4-4.2 times earlier readings: compare one session.
 - **P10.** GUT alternating runs alone: 133.7/140.5 s, +5.1%, within approved 7%. CI varied 125.3-235.3 s; a single run cannot establish a regression.
 - **P11.** Tunnel night movie: faint warm floor wedge, dark rock, no error.

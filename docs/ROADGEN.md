@@ -87,7 +87,7 @@ At 6 tiles, an end is out of view on all 7 reference screens as the car enters t
 | Village | 2–5 | 0.35 | 0.2 | 0.15 | 0.3 |
 | Desert | 3–8 | 0.3 | 0.25 | 0.2 | 0.25 |
 
-The City, where a run learns the pattern, has none. The chances grow along the run, and each is one line in the area's `.tres`, 0 where it's missing.
+The City, where a run learns the pattern, has none. The chances grow along the run, and each is one line in the area's `.tres`, 0 where it's missing. Since SP, the straights are longer from the Meadows on: the Meadows' 6–12, the Village's 4–8 and the Desert's 6–12. The Desert's decoys fall to 0.15 and its side roads rise to 0.3, so that a Desert zone's junctions, and its time, vary less (`SPEEDUP_PLAN.md` Q3, Q14, U13).
 
 ### 5.6 Tests and fixtures
 

@@ -1,6 +1,6 @@
 # The End of the Road and the Book of Legends
 
-Done, 2026-11-15 to 2026-11-19: the plan PR #84, then thirteen stacked PRs, #101–#113. The plan called the work EG. After its 280th turn the road ends at a pier on the Coast. A run that drives the whole road there arrives, the game's first win, and unlocks a legend not yet collected; the first arrival opens the Road Home and Keep Driving. The collection became the Book of Legends, and a full Book brings the Vanishing Hitchhiker. The full plan, with its verification, negative cases and review history: `git show 1a067fc:ENDGAME_PLAN.md`; the tag `archive/eg/prototype` keeps the prototype's commits that it cites.
+Done, 2026-11-15 to 2026-11-19: the plan PR #84, then thirteen stacked PRs, #101–#113. The plan called the work EG. After its 280th turn the road ends at a pier on the Coast. Since SP, the road ends after its 100th turn, and the autopilot drives it in about four minutes (`SPEEDUP_PLAN.md` Q1). A run that drives the whole road there arrives, the game's first win, and unlocks a legend not yet collected; the first arrival opens the Road Home and Keep Driving. The collection became the Book of Legends, and a full Book brings the Vanishing Hitchhiker. The full plan, with its verification, negative cases and review history: `git show 1a067fc:ENDGAME_PLAN.md`; the tag `archive/eg/prototype` keeps the prototype's commits that it cites.
 
 ## 1. Goal and exit criteria
 
@@ -8,7 +8,7 @@ Nothing kept in the save makes a run easier or harder (`plan.md` §2.6), and the
 
 - **E1.** A schedule with a finish ends its road (§5.1).
 - **E5.** An arrival that counts unlocks a legend not collected (§5.5).
-- **E6.** A road without a finish is laid as before EG, so the golden digests pass unchanged. `endless()` is the road of Keep Driving and of the tests that drive past turn 280.
+- **E6.** A road without a finish is laid as before EG, so the golden digests pass unchanged. `endless()` is the road of Keep Driving and of the tests that drive past turn 280. Since SP, past turn 100, and SP's areas changed the digests (`SPEEDUP_PLAN.md` Q1, U7).
 - **E7.** The Coast, the pier and the arrival's scene (§5.8).
 - **E9.** The Road Home (§5.6, §5.12).
 - **E11.** Keep Driving (§5.13).
@@ -44,7 +44,7 @@ Nothing kept in the save makes a run easier or harder (`plan.md` §2.6), and the
 
 The owner chose a random legend not collected for the unlock, and the Road Home heading W, and approved the other defaults on 2026-11-17: "Defaults are approved" (#84).
 
-- **Q1.** The road ends after its 280th turn, at a pier. The Coast starts at that turn, a home stretch with no junction and no legend, so the Desert stays the climax.
+- **Q1.** The road ends after its 280th turn, at a pier. Since SP, after its 100th turn (`SPEEDUP_PLAN.md` Q1), or its 101st or 102nd on a first run whose Rural comes late (§5.1). The Coast starts at that turn, a home stretch with no junction and no legend, so the Desert stays the climax.
 - **Q2.** The unlock: any legend not collected, each as likely (§5.5).
 - **Q3.** An unlocked legend is collected (W14).
 - **Q4.** Only a run that drove the whole road records an arrival, unlocks a legend or sets an overall best (§5.4).
@@ -89,7 +89,7 @@ Agents landed the PRs in order with `tools/agent/land_pr.sh`, but PR 4, which th
 
 ### 5.1 The road's end
 
-`AreaSchedule`'s `finish` names the finish's set piece, and `finish_turn` counts the turns before it from the City's first turn after the tutorial. `ending_at()` ends a copy sooner, for tests and `--finish`; `endless()` drops the finish and a home stretch (W17); `starting_at()` brings the finish as many turns sooner. Once `RoadGenerator._finish_due()` holds, no junction follows: the straight leads to the finish's `FINISH_TILES`, 8, the first of which sets `finish_index`, then to `BEYOND` tiles. Neither draws a number, so up to its last junction the road is `endless()`'s (E6).
+`AreaSchedule`'s `finish` names the finish's set piece, and `finish_turn` counts the turns before it from the City's first turn after the tutorial. Since SP, an area that comes late, past the tutorial's road, moves that count on by as many turns (docs/TUTORIAL.md Q15). `ending_at()` ends a copy sooner, for tests and `--finish`; `endless()` drops the finish and a home stretch (W17); `starting_at()` brings the finish as many turns sooner. Once `RoadGenerator._finish_due()` holds, no junction follows: the straight leads to the finish's `FINISH_TILES`, 8, the first of which sets `finish_index`, then to `BEYOND` tiles. Neither draws a number, so up to its last junction the road is `endless()`'s (E6).
 
 ### 5.2 The arrival
 
@@ -109,7 +109,7 @@ Version 3 adds `arrivals` by the finish's id, each `{count, best_seconds, clean}
 
 ### 5.6 The Road Home
 
-`areas/schedule_home.tres` drives back: the Desert from turn 0, the Village from 60, the Meadows from 80, Rural from 180 and the City from 246, then `home` after 280. It is `mirrored`, starting W (W9), with no tutorial (W10), and `setpieces/home.gd` ends it at a fence and a house. Its arrivals count under `home`.
+`areas/schedule_home.tres` drives back: the Desert from turn 0, the Village from 60, the Meadows from 80, Rural from 180 and the City from 246, then `home` after 280. Since SP, the Village from 22, the Meadows from 32, Rural from 56 and the City from 80, and `home` after 100 (`SPEEDUP_PLAN.md` Q2). It is `mirrored`, starting W (W9), with no tutorial (W10), and `setpieces/home.gd` ends it at a fence and a house. Its arrivals count under `home`.
 
 ### 5.7 The debug flags
 
@@ -117,7 +117,7 @@ Version 3 adds `arrivals` by the finish's id, each `{count, best_seconds, clean}
 
 ### 5.8 The Coast, the pier and the arrival's scene
 
-The Coast starts at turn 280, with `finish = &"pier"`: one 20-tile straight, no junction or pool (Q1), and seven props. `setpieces/pier.gd` draws the sea (`Pier.at_sea()`, a half-plane) and the pier's planks (W18). The arrival's scene, in its 5.0 s: `DayCycle.hold(ARRIVAL_HOUR)` brings the sunset at 18.5, the light following at `LIGHT_MAX_RATE`, with no flash; `Pier.welcome()` stands the collected legends' stills over the sea past the pier, in the Book's grid, as the 448-px shore can't show whole in a 360-px view, a glow held by `LegendStill.strength()`, a small frame scaled up whole (`STILL_MIN_SIDE`); `CameraRig.arrive()` pans to them, and zooms out to 1 where their 338 px don't fit zoom 2's 320 (`arrival_zoom_for()`); and `arrival.wav` plays as the car stops.
+The Coast starts at turn 280, with `finish = &"pier"`: one 20-tile straight, no junction or pool (Q1), and seven props. Since SP, the Coast starts at turn 100 (`SPEEDUP_PLAN.md` Q1). `setpieces/pier.gd` draws the sea (`Pier.at_sea()`, a half-plane) and the pier's planks (W18). The arrival's scene, in its 5.0 s: `DayCycle.hold(ARRIVAL_HOUR)` brings the sunset at 18.5, the light following at `LIGHT_MAX_RATE`, with no flash; `Pier.welcome()` stands the collected legends' stills over the sea past the pier, in the Book's grid, as the 448-px shore can't show whole in a 360-px view, a glow held by `LegendStill.strength()`, a small frame scaled up whole (`STILL_MIN_SIDE`); `CameraRig.arrive()` pans to them, and zooms out to 1 where their 338 px don't fit zoom 2's 320 (`arrival_zoom_for()`); and `arrival.wav` plays as the car stops.
 
 ### 5.9 NEW LEGEND! and the next goal
 
@@ -153,13 +153,13 @@ Version 5 adds each atlas entry's `stamped`, for a crossing with no damage, whic
 
 ### 5.17 The Vanishing Hitchhiker
 
-With the pools all collected, until found, she stands across the Road Home, `HITCHHIKER_ASIDE`, by the last plain straight before the junction of its farthest turn, or the finish once home (`Hitchhiker.road_turn()`), so a departure past that turn misses her; with no such straight, it's an error and she stays hidden. Passing her in a run that goes on finds her: she fades in `HITCHHIKER_FADE_SECONDS`, `SaveService.record_found()` saves her, and NEW LEGEND! shows. In no pool, she is never unlocked or picked; the Book counts 16 once her row shows.
+With the pools all collected, until found, she stands across the Road Home, `HITCHHIKER_ASIDE`, by the last plain straight before the junction of its farthest turn, or the finish once home (`Hitchhiker.road_turn()`), so a departure past that turn misses her; with no such straight, it's an error and she stays hidden. Since SP, a save from before it can hold a farthest turn there past the finish, up to 280, and she then stands by the finish too (`SPEEDUP_PLAN.md` Q7). Passing her in a run that goes on finds her: she fades in `HITCHHIKER_FADE_SECONDS`, `SaveService.record_found()` saves her, and NEW LEGEND! shows. In no pool, she is never unlocked or picked; the Book counts 16 once her row shows.
 
 ## 6. Verification
 
 The five checks passed at each PR's head, locally and in CI; at PR 13, 221 scripts, 903 tests and 456,541 asserts, with `main`'s smoke line. Each negative case failed the tests that it names.
 
-- **P1.** The autopilot drove both roads to their ends, seeds 0–4: all 10 arrived with full health, at the pier after 9.6–9.9 minutes of game time, home after 9.7–10.2 (`test_drive_to_the_end.gd`).
+- **P1.** The autopilot drove both roads to their ends, seeds 0–4: all 10 arrived with full health, at the pier after 9.6–9.9 minutes of game time, home after 9.7–10.2 (`test_drive_to_the_end.gd`). Since SP, seeds 0–9: at the pier after 3.9–4.3 minutes, and home after 4.0–4.7 (`SPEEDUP_PLAN.md` E1).
 
 ## 7. Owner actions
 
@@ -167,7 +167,7 @@ None left but landing PR 14 and deleting `eg/14-docs`. At the owner's word, an a
 
 ## 8. Risks
 
-- **The end is far:** about 10 minutes (P1). A wrong turn meets a legend, and Departures, the strip and the pit stops help. The finish's turn is one number in `schedule.tres`.
+- **The end is far:** about 10 minutes (P1). Since SP, about four minutes, and at most five on all but one of the 10,000 runs measured, 5,000 seeds a road (`SPEEDUP_PLAN.md` E1, Q15). A wrong turn meets a legend, and Departures, the strip and the pit stops help. The finish's turn is one number in `schedule.tres`.
 - **An older build meets a newer save:** a build never writes a newer save, so an older APK over a newer one saves nothing. Check builds in order, or from a new save.
 - **A seed doesn't replay its unlock** on another collection: a report needs both (docs/POOLS.md §8).
 

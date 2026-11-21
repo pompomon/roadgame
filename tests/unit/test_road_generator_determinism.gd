@@ -1,12 +1,15 @@
 extends GutTest
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
+## Path tiles of the road without its end (Fixtures.endless()), whose Desert goes on with its
+## junctions and dead ends, to about turn 200: the game's road reaches the pier in about 900, and
+## past it has neither (SPEEDUP_PLAN.md §4.3).
 const TILES := 2000
 ## The game's road for seeds 0 to 19 up to turn 300, as MD5 digests: of its path tiles alone, and
 ## of its path tiles with their dead ends. A change that is meant to change the road updates them,
 ## and its commit says why (docs/ROADGEN.md §6.1).
-const PATH_DIGEST := "b596a88cc0b5a09fc5db329cf0af264d"
-const ROAD_DIGEST := "d6b8a6e863a39539fe21c0ee9f5c18d0"
+const PATH_DIGEST := "26bb5444423b2ecd363fa41878138257"
+const ROAD_DIGEST := "8a25266a9e6c179c218e5e1b0de21908"
 const DIGEST_SEEDS := 20
 const DIGEST_TURNS := 300
 
@@ -19,8 +22,8 @@ func _signatures(gen: RoadGenerator, count: int) -> Array:
 
 
 func test_same_seed_same_road() -> void:
-	var a := _signatures(RoadGenerator.new(12345, Fixtures.schedule()), TILES)
-	var b := _signatures(RoadGenerator.new(12345, Fixtures.schedule()), TILES)
+	var a := _signatures(RoadGenerator.new(12345, Fixtures.endless()), TILES)
+	var b := _signatures(RoadGenerator.new(12345, Fixtures.endless()), TILES)
 	assert_eq(a.size(), TILES)
 	assert_true(a == b, "2,000 tiles with their dead ends are identical")
 
@@ -35,8 +38,8 @@ func test_buffer_refills_and_frees_do_not_change_the_road() -> void:
 	# Freed dead ends release their cells. The road stays the same only because they are more than
 	# BUFFER_REFILL_AT + BUFFER_BEHIND path tiles behind the tiles being generated, and dead ends
 	# only collide within twice DEAD_END_MAX_TILES (RoadGenerator).
-	var expected := _signatures(RoadGenerator.new(7, Fixtures.schedule()), TILES)
-	var buffer := RoadBuffer.new(RoadGenerator.new(7, Fixtures.schedule()))
+	var expected := _signatures(RoadGenerator.new(7, Fixtures.endless()), TILES)
+	var buffer := RoadBuffer.new(RoadGenerator.new(7, Fixtures.endless()))
 	var got: Array = []
 	buffer.tiles_generated.connect(
 		func(tiles: Array[RoadTile]) -> void:

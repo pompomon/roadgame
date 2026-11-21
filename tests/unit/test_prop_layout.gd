@@ -281,6 +281,51 @@ func test_props_of_one_cell_stand_where_they_stood_before_lots() -> void:
 	assert_gt(shown, 1000, "enough props to tell")
 
 
+func test_a_row_spreads_across_the_view_from_each_path_tile_below_it() -> void:
+	# The car drives the PROP_AHEAD path tiles below a row while the row may show ahead, and a long
+	# straight runs them farther across the screen than PROP_SPREAD. So a row's span() reaches,
+	# in half tiles across, PROP_SPREAD and a half either side of its path tile and PROP_VIEW_SPREAD
+	# and a half either side of each of those, and a tile less wouldn't; and its props stand on the
+	# span's tiles that are neither road nor by a set piece (SPEEDUP_PLAN.md §4.3). A dot on every
+	# ground cell shows the tiles. The Desert's decoys join straights into long ones.
+	var props: Array[PropDef] = [_prop(&"dot", Vector2i(2, 2), Vector2i(1, 2), 1.0)]
+	var spread := Vector2i(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD)
+	var reach := 2 * Tuning.PROP_VIEW_SPREAD + 1
+	var wider := 0
+	for run_seed: int in [1, 2, 3]:
+		var road := _road(Fixtures.endless().starting_at(&"desert"), run_seed, props)
+		var below_start := PropLayout.span(Vector2i.ONE, road.buffer)
+		assert_eq(below_start, spread, "seed %d: below the start" % run_seed)
+		for k: int in road.rows:
+			var anchor := road.path[k].cell
+			var span := PropLayout.span(anchor, road.buffer)
+			var need := 2 * spread + Vector2i(-1, 1)
+			for below: int in range(maxi(k - Tuning.PROP_AHEAD, 0), k):
+				var cell := road.path[below].cell
+				var across := cell.x - cell.y - anchor.x + anchor.y
+				need = Vector2i(mini(need.x, across - reach), maxi(need.y, across + reach))
+			var what := "seed %d, row %d: span %s for %s" % [run_seed, k, span, need]
+			assert_true(2 * span.x - 1 <= need.x and 2 * span.y + 1 >= need.y, "reaches, " + what)
+			assert_true(2 * span.x + 1 > need.x and 2 * span.y - 1 < need.y, "no farther, " + what)
+			wider += int(span != spread)
+			var shown: Array[Vector2i] = []
+			for placement: PropLayout.Placement in road.rows[k]:
+				var tile := Vector2i(Iso.world_to_tile(placement.foot).floor())
+				if not shown.has(tile):
+					shown.append(tile)
+			shown.sort()
+			var ground: Array[Vector2i] = []
+			for j: int in range(span.x, span.y + 1):
+				var tile := anchor + Vector2i(j, -j)
+				if (
+					road.buffer.tile_at(tile) == null
+					and not PropLayout.near_set_piece(tile, road.buffer)
+				):
+					ground.append(tile)
+			assert_eq(shown, ground, "tiles with props, " + what)
+	assert_gt(wider, 0, "rows that a long straight spreads wider")
+
+
 func test_the_meadows_grass_takes_only_ground_that_showed_nothing() -> void:
 	# The grass is the Meadows' last prop (docs/HEADLIGHTS.md §5.6), so it takes the share of the
 	# hashes past the others': each other prop stands where it stood without the grass, in the same
@@ -406,7 +451,8 @@ func test_lots_by_a_street_take_its_street_density_and_the_others_its_density() 
 			var fronts: Dictionary[Vector2i, StringName] = {}
 			for placement: PropLayout.Placement in road.rows[k]:
 				fronts[_ground_cell(placement)] = placement.def.id
-			for j: int in range(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD + 1):
+			var span := PropLayout.span(road.path[k].cell, road.buffer)
+			for j: int in range(span.x, span.y + 1):
 				var tile: Vector2i = road.path[k].cell + Vector2i(j, -j)
 				if (
 					road.buffer.tile_at(tile) != null
