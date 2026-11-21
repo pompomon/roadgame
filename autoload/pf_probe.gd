@@ -5,36 +5,59 @@ extends Node
 ## lamps, veil, ground, road, skids, ui, setpieces, disasters), --pf-nosort turns off Props' y-sort.
 
 const REPORT_USEC := 1000000
-## --pf-gate=<cap>: each callback chain runs once n refreshes less half of one have passed, where
-## n = floor(1.02 * refresh rate / cap), at least 1, so that the rate stays at or above the cap
-## unless the refresh is measured more than 2% long, and the refresh is the shortest step between
-## the last 120 distinct timestamps of 4 ms or more. A WeakMap keys the chains by their callback,
-## so that a chain that ends is not kept.
+## --pf-gate=<cap>: the engine's frames run once n refreshes less half of one have passed, where
+## n = max(1, floor(1.05 * refresh rate / cap)), so that the rate stays at or above cap / 1.05. The
+## refresh is the median of the last 30 steps between distinct timestamps that are under 1.5 times
+## their 10th percentile, which frames that miss refreshes can't lengthen, nor jitter shorten. A
+## frame that comes late isn't followed early: the game moves in 60 Hz steps, so an early frame
+## would show no more of them. Only the engine's chain is gated: the first callback asked for once
+## the gate is in, as Godot runs every _ready() before emscripten_set_main_loop() asks for its first
+## frame (web_main.cpp :165-178). Its handles follow each wait, for cancelAnimationFrame. A cap of
+## 0 installs nothing.
 const GATE_JS := """
 (function (cap) {
 	if (window.__pfGate) { window.__pfGate.cap = cap; return; }
-	const g = { cap: cap, last: new WeakMap(), deltas: [], prev: -1, refresh: 0, skipped: 0 };
+	if (!(cap > 0)) return;
+	const g = { cap: cap, runner: null, last: -1, prev: -1, steps: [], refresh: 0, skipped: 0,
+		native: new Map(), next: -1 };
 	window.__pfGate = g;
 	const raf = window.requestAnimationFrame.bind(window);
+	const caf = window.cancelAnimationFrame.bind(window);
+	const refresh = function (a) {
+		const s = a.slice().sort(function (x, y) { return x - y; });
+		const short = s.filter(function (d) { return d < 1.5 * s[Math.floor(s.length / 10)]; });
+		return short[short.length >> 1];
+	};
 	window.requestAnimationFrame = function (cb) {
+		if (g.runner === null) g.runner = cb;
+		if (cb !== g.runner) return raf(cb);
+		const handle = g.next--;
 		const step = function (t) {
 			if (t > g.prev) {
-				if (g.prev >= 0 && t - g.prev >= 4) {
-					g.deltas.push(t - g.prev);
-					if (g.deltas.length > 120) g.deltas.shift();
-					g.refresh = Math.min.apply(null, g.deltas);
+				if (g.prev >= 0 && t - g.prev >= 2) {
+					g.steps.push(t - g.prev);
+					if (g.steps.length > 30) g.steps.shift();
+					g.refresh = refresh(g.steps);
 				}
 				g.prev = t;
 			}
-			const last = g.last.get(cb);
-			if (g.cap > 0 && g.refresh > 0 && g.deltas.length >= 8 && last !== undefined) {
-				const n = Math.max(1, Math.floor(1.02 * 1000 / g.refresh / g.cap));
-				if (t - last < (n - 0.5) * g.refresh) { g.skipped++; raf(step); return; }
+			const n = g.cap > 0 && g.steps.length >= 8
+				? Math.max(1, Math.floor(1.05 * 1000 / g.refresh / g.cap)) : 1;
+			if (n > 1 && g.last >= 0 && t - g.last < (n - 0.5) * g.refresh) {
+				g.skipped++;
+				g.native.set(handle, raf(step));
+				return;
 			}
-			g.last.set(cb, t);
+			g.native.delete(handle);
+			g.last = t;
 			cb(t);
 		};
-		return raf(step);
+		g.native.set(handle, raf(step));
+		return handle;
+	};
+	window.cancelAnimationFrame = function (id) {
+		if (g.native.has(id)) { caf(g.native.get(id)); g.native.delete(id); return; }
+		caf(id);
 	};
 })(%d);
 """
@@ -68,6 +91,9 @@ var _phys_start := 0
 var _pre_draw := 0
 var _report_start := 0
 var _frames := 0
+## Frames that show a 60 Hz step that the frame before didn't, since the last report.
+var _shown := 0
+var _last_physics := -1
 var _intervals: Array[int] = []
 var _proc_sum := 0
 var _phys_sum := 0
@@ -163,6 +189,10 @@ func _process(_delta: float) -> void:
 		_intervals.append(_frame_start - _last_frame_start)
 	_last_frame_start = _frame_start
 	_frames += 1
+	var physics := Engine.get_physics_frames()
+	if physics != _last_physics:
+		_shown += 1
+		_last_physics = physics
 
 
 func _physics_process(_delta: float) -> void:
@@ -360,6 +390,7 @@ func _report(now: int) -> void:
 	for interval: int in _intervals:
 		vsyncs[clampi(int(interval / 8333.3 - 0.5), 0, 3)] += 1
 	keys += " iv8=%d iv17=%d iv25=%d iv33=%d" % vsyncs
+	keys += " shown=%.1f" % (_shown * 1000000.0 / span)
 	print(
 		(
 			(
@@ -394,6 +425,7 @@ func _report(now: int) -> void:
 	)
 	_report_start = now
 	_frames = 0
+	_shown = 0
 	_intervals.clear()
 	_proc_sum = 0
 	_phys_sum = 0

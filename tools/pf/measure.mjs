@@ -70,6 +70,10 @@ for (const bname of cfg.browsers) {
           await page.waitForTimeout(secs * 1000);
           const frames = await page.evaluate(() => window.__perfStop());
           const st = stats(frames);
+          // The gate's state (autoload/pf_probe.gd): it paces only the engine's chain, so the page's own frames
+          // above run at the screen's rate, and the game's rate is the PERF lines' fps.
+          const gate = await page.evaluate(() => { const g = window.__pfGate; return g ? { cap: g.cap, skipped: g.skipped,
+            refresh: +(g.refresh ?? 0).toFixed(3), steps: g.steps?.length, runner: !!g.runner } : null; });
           const gl = await page.evaluate(() => { try { const c = document.createElement('canvas'); const g = c.getContext('webgl2'); const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); } catch (e) { return 'n/a ' + e; } });
           const perfLines = logs.slice(logFrom).filter((l) => l.includes('PERF '));
           const perf = {};
@@ -86,10 +90,10 @@ for (const bname of cfg.browsers) {
           // The browsers log WebGL's errors as warnings (docs/M2.md §5.7).
           const warns = logs.filter((l) => /^\[warning\]/.test(l));
           const dev = logs.find((l) => l.includes('OpenGL API')) ?? '';
-          const r = { uncap: !!cfg.uncap, browser: bname, rep, build, area: sc.area, hour: sc.hour, extra: sc.extra ?? [], size: `${w}x${h}@${dpr ?? 1}`, load_s: loadS, ...st, perf, perfLast, spikes: logs.map((l, i) => (i < logFrom ? 'pre ' : 'win ') + l).filter((l) => l.includes('PFSPIKE')).slice(0, 80), errs: errs.slice(0, 5), warns: warns.length, warn_samples: [...new Set(warns.map((l) => l.slice(0, 160)))].slice(0, 8), dev, gl };
+          const r = { uncap: !!cfg.uncap, browser: bname, rep, build, area: sc.area, hour: sc.hour, extra: sc.extra ?? [], size: `${w}x${h}@${dpr ?? 1}`, load_s: loadS, ...st, perf, perfLast, gate, spikes: logs.map((l, i) => (i < logFrom ? 'pre ' : 'win ') + l).filter((l) => l.includes('PFSPIKE')).slice(0, 80), errs: errs.slice(0, 5), warns: warns.length, warn_samples: [...new Set(warns.map((l) => l.slice(0, 160)))].slice(0, 8), dev, gl };
           results.push(r);
           fs.appendFileSync(out, JSON.stringify(r) + '\n');
-          console.log(`${bname} ${build} ${sc.area ?? '-'} h${sc.hour ?? '-'} ${(sc.extra ?? []).join(' ')} ${r.size}: ${st.fps} fps med ${st.med_ms} p95 ${st.p95_ms} p99 ${st.p99_ms} max ${st.max_ms} errs ${errs.length} warns ${warns.length}` + (perfLines.length ? `\n    ${perfLast}` : ''));
+          console.log(`${bname} ${build} ${sc.area ?? '-'} h${sc.hour ?? '-'} ${(sc.extra ?? []).join(' ')} ${r.size}: ${st.fps} fps med ${st.med_ms} p95 ${st.p95_ms} p99 ${st.p99_ms} max ${st.max_ms} errs ${errs.length} warns ${warns.length}` + (gate ? ` gate ${JSON.stringify(gate)}` : '') + (perfLines.length ? `\n    ${perfLast}` : ''));
           const tcl = Date.now(); await ctx.close(); console.log(`  run ${(Date.now()-tr)/1000}s, close ${(Date.now()-tcl)/1000}s, load ${loadS}s`);
         }
       }
