@@ -212,6 +212,10 @@ func _ready() -> void:
 	RenderingServer.frame_pre_draw.connect(_on_pre_draw)
 	RenderingServer.frame_post_draw.connect(_on_post_draw)
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	EventBus.area_changed.connect(_on_area_changed)
+	EventBus.run_ended.connect(_on_run_ended)
+	EventBus.disaster_started.connect(_on_disaster_started)
+	EventBus.disaster_appeared.connect(_on_disaster_appeared)
 	_report_start = Time.get_ticks_usec()
 
 
@@ -243,6 +247,23 @@ func _on_process_end() -> void:
 	for key: StringName in _frame_spent:
 		worst[key] = maxi(worst.get(key, 0), _frame_spent[key])
 	_frame_spent.clear()
+
+
+## PFEVENT lines mark the run's events, which tools/pf/events.mjs times on the page's clock.
+func _on_area_changed(area: AreaDef) -> void:
+	print("PFEVENT area %s" % area.id)
+
+
+func _on_run_ended(cause: StringName, _stats: Dictionary) -> void:
+	print("PFEVENT run_ended %s" % cause)
+
+
+func _on_disaster_started(id: StringName, _area: AreaDef) -> void:
+	print("PFEVENT disaster_started %s" % id)
+
+
+func _on_disaster_appeared(id: StringName, _area: AreaDef) -> void:
+	print("PFEVENT disaster_appeared %s" % id)
 
 
 func _on_pre_draw() -> void:
