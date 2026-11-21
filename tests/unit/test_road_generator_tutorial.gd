@@ -77,8 +77,8 @@ func test_an_entry_due_on_the_tutorials_road_comes_after_its_last_group() -> voi
 
 
 ## The entries after one that came late, and the finish, come as many turns after it as the
-## schedule has them after its turn: each area after it keeps its turns, and the road goes on past
-## the schedule's finish_turn turns from the base (docs/TUTORIAL.md Q15).
+## schedule has them after its turn: each area after it keeps its turns, and the finish comes as
+## many turns late as the entry did (docs/TUTORIAL.md Q15).
 func test_an_entry_that_comes_late_moves_the_later_ones_and_the_finish_on() -> void:
 	var schedule := Fixtures.set_piece_schedule(2, &"tunnel", 3)
 	var last := AreaScheduleEntry.new()
