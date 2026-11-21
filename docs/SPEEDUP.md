@@ -1,6 +1,6 @@
 # The Speedup: the Road to the Sea in Five Minutes
 
-Done, 2026-11-20 to 2026-11-21: the plan PR #116, then #118. The plan called the work SP. Both roads end after their 100th turn, not their 280th (E1), and the autopilot drives either in about four minutes: each area has fewer turns, the straights from the Meadows on are longer, the top speed grows faster, and Rural, the Meadows and the Desert turn a day in 60 s. The full plan, with its verification, negative cases and review history: `git show a82e764:SPEEDUP_PLAN.md`; the tag `archive/sp/prototype` keeps the prototype's commits that it cites.
+Done, 2026-11-20 to 2026-11-21: the plan PR #116, then #118. The plan called the work SP. Both roads end after their 100th turn, not their 280th (E1), and the autopilot drives either in about four minutes: each area has fewer turns, the straights from the Meadows on are longer, the top speed grows faster, and Rural, the Meadows and the Desert turn a day in 60 s. The full plan, with its verification, negative cases and review history: `git show 72fcd5f:SPEEDUP_PLAN.md`; the tag `archive/sp/prototype` keeps the prototype's commits that it cites.
 
 ## 1. Goal and exit criteria
 
@@ -127,7 +127,7 @@ The checks passed on PR 1, locally and in CI. P1–P10 ran as GUT scripts, headl
 - **P8.** `test_autopilot_300_turns.gd`'s drives, on `main` and 98ffdd5 (Q11).
 - **P9.** First runs: the autopilot through the tutorial, then to the pier, seeds 0–99 (Q10, §5.6).
 - **P10.** The first draft's P1, at 339b126, seeds 0–4999 a road (U13).
-- **P11.** #121's grass on PR 1's rows, docs/HEADLIGHTS.md P4 again: in the main scene from the Meadows, `PropScatter.update()` took 100.8 µs a frame on `main` (4ea42e5), 187.8 with the grass (312885f), 116.2 on PR 1 (52ee443) and 206.9 with the grass (94fb19a): 10% more than `main`'s, and 2.05 times 4ea42e5's, about twice, as docs/HEADLIGHTS.md E11 asks.
+- **P11.** #121's grass on PR 1's rows, docs/HEADLIGHTS.md P4 again: in the main scene from the Meadows, `PropScatter.update()` took 100.8 µs a frame on `main` (4ea42e5), 187.8 with the grass (312885f), 116.2 on PR 1 (52ee443) and 206.9 with the grass (94fb19a): 10% more than 312885f's, and 2.05 times 4ea42e5's, about twice, as docs/HEADLIGHTS.md E11 asks.
 
 E8: Movie Maker's frames of seed 1's road, on the prototype at 98ffdd5 and on PR 1 at 3b79952, show each area at its turn, the nights of Rural, the Meadows and the Desert, with the headlights at 3b79952, and the end screen at 255.25 s, "Time: 4:10". PR 1 changes nothing that only the Web or Android does, and no Fold4 run is recorded (Q13).
 
