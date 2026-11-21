@@ -3,7 +3,7 @@ extends GutTest
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 ## Path tiles of the road without its end (Fixtures.endless()), whose Desert goes on with its
 ## junctions and dead ends, to about turn 200: the game's road reaches the pier in about 900, and
-## past it has neither (SPEEDUP_PLAN.md §4.3).
+## past it has neither (docs/SPEEDUP.md §4.3).
 const TILES := 2000
 ## The game's road for seeds 0 to 19 up to turn 300, as MD5 digests: of its path tiles alone, and
 ## of its path tiles with their dead ends. A change that is meant to change the road updates them,

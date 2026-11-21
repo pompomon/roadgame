@@ -124,7 +124,7 @@ Fixed areas are keyed by **correct-turn count**. The areas between schedule entr
 | 78 | — | Desert | The last area with junctions, and the climax |
 | 100 | — | Coast | **The home stretch: one straight of 20 tiles, then the pier, where the road ends** (`docs/ENDGAME.md` §5.8) |
 
-- From the Meadows on, the road turns less and runs straighter: each area's straights are longer than Rural's, the Meadows' 6–12 tiles, the Village's 4–8 and the Desert's 6–12, and the autopilot drives the whole road in about four minutes, and within five on all but one of the 10,000 runs measured, 5,000 seeds a road (`SPEEDUP_PLAN.md` E1, Q3, Q15).
+- From the Meadows on, the road turns less and runs straighter: each area's straights are longer than Rural's, the Meadows' 6–12 tiles, the Village's 4–8 and the Desert's 6–12, and the autopilot drives the whole road in about four minutes, and within five on all but one of the 10,000 runs measured, 5,000 seeds a road (`docs/SPEEDUP.md` E1, Q3, Q15).
 - When `turnIndex` reaches a schedule entry, the next straight is replaced by the set piece (a fixed run of straight tiles with no junction), then the area switches. On a first run, if the tutorial's road holds the 20th turn, Rural comes at the City's first junction past it, a turn or two late, and the later areas and the pier as many turns later (`docs/TUTORIAL.md` Q15).
 - **Pit stops** repair the car (§2.4, `docs/ENDGAME.md` §5.15): the tunnel, the bridge, and **Last Gas**, a filling station beside the Desert's first straight. On the Road Home they are Last Gas by the Village's first straight, the bridge and the tunnel. An entry's `pit_stop` makes its way in one: its set piece, or with none, its area's first straight. A departure from an area leaves its way in out, and with it its pit stop.
 - The schedule's finish ends the road: after the Coast's straight come the pier's 8 tiles, and no junction follows (`docs/ENDGAME.md` §5.1). Without a finish, the generator stays in the last scheduled area for the rest of the run.
@@ -227,7 +227,7 @@ Shared assets:
 
 ### 5.5 Day and night
 Each zone has a clock of its own, and the picture follows its hour (`docs/DAYNIGHT.md`).
-- The clock starts at 07:00 as the car enters a zone, and turns a whole day and night in the area's `day_seconds`, 120 s by default, and 60 s in Rural, the Meadows and the Desert: dusk comes 10/24 of a day into a zone and the night 13/24, at 50 s and 65 s in a day of 120 s, and at 25 s and 32.5 s in one of 60 s (`SPEEDUP_PLAN.md` Q5).
+- The clock starts at 07:00 as the car enters a zone, and turns a whole day and night in the area's `day_seconds`, 120 s by default, and 60 s in Rural, the Meadows and the Desert: dusk comes 10/24 of a day into a zone and the night 13/24, at 50 s and 65 s in a day of 120 s, and at 25 s and 32.5 s in one of 60 s (`docs/SPEEDUP.md` Q5).
 - The light eases from key to key round the clock: the night's blue, dawn's pink, the day's white from 07:00 to 17:00, and dusk's orange. No channel changes by more than a quarter of white a second, so nothing flashes, and after a reset at night the morning comes back in under 2.5 s.
 - The art is drawn as by day. `Daylight`, a square over the view, multiplies the world by the light, as the legends' veils do. The legends' glows and the UI draw above it and stay as bright.
 - The clock stops when the run ends or pauses, so a legend plays in the light that the run ended in.

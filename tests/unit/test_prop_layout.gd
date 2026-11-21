@@ -286,7 +286,7 @@ func test_a_row_spreads_across_the_view_from_each_path_tile_below_it() -> void:
 	# straight runs them farther across the screen than PROP_SPREAD. So a row's span() reaches,
 	# in half tiles across, PROP_SPREAD and a half either side of its path tile and PROP_VIEW_SPREAD
 	# and a half either side of each of those, and a tile less wouldn't; and its props stand on the
-	# span's tiles that are neither road nor by a set piece (SPEEDUP_PLAN.md §4.3). A dot on every
+	# span's tiles that are neither road nor by a set piece (docs/SPEEDUP.md §4.3). A dot on every
 	# ground cell shows the tiles. The Desert's decoys join straights into long ones.
 	var props: Array[PropDef] = [_prop(&"dot", Vector2i(2, 2), Vector2i(1, 2), 1.0)]
 	var spread := Vector2i(-Tuning.PROP_SPREAD, Tuning.PROP_SPREAD)

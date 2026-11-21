@@ -28,7 +28,7 @@ rm -rf /tmp/movie && mkdir -p /tmp/movie/data && XDG_DATA_HOME=/tmp/movie/data x
 
 ## 3. Where to check what
 
-Check each thing where it's quickest to check faithfully. Leave the owner only what needs the Fold4, in one list in the PR body and the plan's §6.4. It doesn't hold the PR: the plan's last PR gathers the lists (planning.md §5). Mention @pompomon when the owner must act. Post results as a table in a PR comment, one row per check, that starts with `Re [<E#>](<link to the plan's section>)` (review.md §2 item 4).
+Check each thing where it's quickest to check faithfully. Leave the owner only what needs the Fold4, in one list in the PR body, for the plan's §6.4 when it is synced. It doesn't hold the PR: the plan's last PR gathers the lists (planning.md §5). Mention @pompomon when the owner must act. Post results as a table in a PR comment, one row per check, that starts with `Re [<E#>](<link to the plan's section>)` (review.md §2 item 4).
 
 | What | Where | Who |
 |---|---|---|

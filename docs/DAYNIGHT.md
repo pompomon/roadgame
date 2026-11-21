@@ -37,7 +37,7 @@ The owner answered Q4, Q5 and Q14; the rest are defaults.
 
 - **Q1.** Start hour: 07:00 (`Tuning.DAY_START_HOUR`).
 - **Q2.** A zone's reset: at the rate, 2.33 s from night; a new run cuts.
-- **Q3.** Per zone: `day_seconds` only, 120 s. Since SP, 60 s in Rural, the Meadows and the Desert (`SPEEDUP_PLAN.md` Q5).
+- **Q3.** Per zone: `day_seconds` only, 120 s. Since SP, 60 s in Rural, the Meadows and the Desert (`docs/SPEEDUP.md` Q5).
 - **Q4.** Shadows that turn with the sun and the moon: yes (PR 4).
 - **Q5.** Lamps and windows that glow at night: yes (PR 5); no headlights. Now the car's headlights light only the road from dusk until sunrise (docs/HEADLIGHTS.md B1–B4).
 - **Q6.** After the run: the light stays.
@@ -96,7 +96,7 @@ The smoke's luminance must differ by at least `SMOKE_CONTRAST`, 0.1, from what i
 
 ### 5.8 When the night shows
 
-Dusk starts 10/24 of a day into a zone and the night 13/24: at 120 s a day, 50 s and 65 s. The City and the Village are shorter, so a run's first night comes in Rural. Since SP, Rural, the Meadows and the Desert turn a day in 60 s, so that their zones reach their night, 32.5 s in: all of P1's 30,000 did, the shortest lasting 40.97 s (`SPEEDUP_PLAN.md` Q5, P3).
+Dusk starts 10/24 of a day into a zone and the night 13/24: at 120 s a day, 50 s and 65 s. The City and the Village are shorter, so a run's first night comes in Rural. Since SP, Rural, the Meadows and the Desert turn a day in 60 s, so that their zones reach their night, 32.5 s in: all of P1's 30,000 did, the shortest lasting 40.97 s (`docs/SPEEDUP.md` Q5, P3).
 
 ### 5.9 Any hour
 

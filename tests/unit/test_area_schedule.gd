@@ -56,7 +56,7 @@ func test_side_roads_and_decoys_skip_the_city_and_leave_a_quarter_of_t_junctions
 		)
 
 
-## SPEEDUP_PLAN.md E2: past the City and Rural the road turns less and runs straighter. From the
+## docs/SPEEDUP.md E2: past the City and Rural the road turns less and runs straighter. From the
 ## Meadows on, each area's shortest and longest straights are longer than Rural's, the home
 ## stretch's too.
 func test_from_the_meadows_on_the_straights_are_longer_than_rurals() -> void:
@@ -466,7 +466,7 @@ func test_the_road_home_is_valid_and_runs_the_other_way() -> void:
 	assert_eq(areas, forward)
 
 
-## docs/ENDGAME.md §5.8, E7: the game's road ends at the pier after its 100th turn (SPEEDUP_PLAN.md
+## docs/ENDGAME.md §5.8, E7: the game's road ends at the pier after its 100th turn (docs/SPEEDUP.md
 ## E1). The Coast starts at that turn, a home stretch: one straight, as long as the Inspector allows
 ## (AreaDef), and no set piece before it or junction in it, so no pool. The endless road leaves it
 ## out (W17).
