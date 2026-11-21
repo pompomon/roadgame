@@ -1,0 +1,19 @@
+[
+  {"name": "grim_reaper", "args": ["--play", "--seed=1", "--area=city", "--hour=7"], "to": "game_over", "expect": ["disaster_started grim_reaper"]},
+  {"name": "mothman", "args": ["--play", "--seed=2", "--area=city", "--hour=7"], "to": "game_over", "expect": ["disaster_started mothman"]},
+  {"name": "phantom_bus", "args": ["--play", "--seed=3", "--area=city", "--hour=7"], "to": "game_over", "expect": ["disaster_started phantom_bus"]},
+  {"name": "witch_hex", "args": ["--play", "--seed=1", "--area=village", "--hour=7"], "to": "game_over", "expect": ["disaster_started witch_hex"]},
+  {"name": "baba_yaga", "args": ["--play", "--seed=2", "--area=village", "--hour=7"], "to": "game_over", "expect": ["disaster_started baba_yaga"]},
+  {"name": "frau_holle", "args": ["--play", "--seed=5", "--area=village", "--hour=7"], "to": "game_over", "expect": ["disaster_started frau_holle"]},
+  {"name": "headless_horseman", "args": ["--play", "--seed=1", "--area=rural", "--hour=20"], "to": "game_over", "expect": ["disaster_started headless_horseman"]},
+  {"name": "scarecrow", "args": ["--play", "--seed=2", "--area=rural", "--hour=20"], "to": "game_over", "expect": ["disaster_started scarecrow"]},
+  {"name": "ufo", "args": ["--play", "--seed=11", "--area=rural", "--hour=20"], "to": "game_over", "expect": ["disaster_started ufo"]},
+  {"name": "fairy_ring", "args": ["--play", "--seed=1", "--area=meadows", "--hour=20"], "to": "game_over", "expect": ["disaster_started fairy_ring"]},
+  {"name": "will_o_wisp", "args": ["--play", "--seed=2", "--area=meadows", "--hour=20"], "to": "game_over", "expect": ["disaster_started will_o_wisp"]},
+  {"name": "kelpie", "args": ["--play", "--seed=3", "--area=meadows", "--hour=20"], "to": "game_over", "expect": ["disaster_started kelpie"]},
+  {"name": "chupacabra", "args": ["--play", "--seed=1", "--area=desert", "--hour=20"], "to": "game_over", "expect": ["disaster_started chupacabra"]},
+  {"name": "death_worm", "args": ["--play", "--seed=2", "--area=desert", "--hour=20"], "to": "game_over", "expect": ["disaster_started death_worm"]},
+  {"name": "marfa_lights", "args": ["--play", "--seed=8", "--area=desert", "--hour=20"], "to": "game_over", "expect": ["disaster_started marfa_lights"]},
+  {"name": "arrival", "args": ["--autopilot", "--seed=1", "--area=coast", "--collected=all"], "before": "area coast", "to": "game_over", "expect": ["run_ended arrival"]},
+  {"name": "arrival_n", "args": ["--autopilot", "--seed=1", "--area=coast", "--collected=all", "--hour=20"], "before": "area coast", "to": "game_over", "expect": ["run_ended arrival"]}
+]

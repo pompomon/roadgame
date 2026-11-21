@@ -126,6 +126,7 @@ var _frames := 0
 ## Frames that show a 60 Hz step that the frame before didn't, since the last report.
 var _shown := 0
 var _last_physics := -1
+var _game_over := false
 var _intervals: Array[int] = []
 var _proc_sum := 0
 var _phys_sum := 0
@@ -229,6 +230,11 @@ func _process(_delta: float) -> void:
 	if physics != _last_physics:
 		_shown += 1
 		_last_physics = physics
+	# No signal marks the game-over screen: GameState only changes its state.
+	var over := GameState.state == GameState.State.GAME_OVER
+	if over and not _game_over:
+		print("PFEVENT game_over")
+	_game_over = over
 
 
 func _physics_process(_delta: float) -> void:
