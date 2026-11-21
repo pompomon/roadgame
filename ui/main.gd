@@ -13,14 +13,12 @@ extends Node
 ## and in others the first or one that the player has discovered (docs/ENDGAME.md §5.11). --tutorial
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
-## that many turns, at most its own, with the areas before it, for tests and manual checks of the
-## end of the road (docs/ENDGAME.md §5.7), or later after the tutorial: not before its road's last
-## group of junctions is over, and as many turns later as an area comes late (docs/TUTORIAL.md §5.5,
-## Q15). --home drives the Road Home, and presets the title's Road choice, which offers it after the
-## first arrival at the sea, and Keep Driving's endless road too (§5.12, §5.13). --collected=<id>
-## marks each legend of that area's pool seen, in the save in use, and --collected=all every pool's,
-## for checks of the Book's seals and of a full Book (§5.7), which brings the Vanishing Hitchhiker
-## to the Road Home (§5.17).
+## that many of the whole road's turns, at most its own, or later after the tutorial, with the areas
+## before it, for tests and manual checks of its end (docs/ENDGAME.md §5.7). --home drives the Road
+## Home, and presets the title's Road choice, which offers it after the first arrival at the sea,
+## and Keep Driving's endless road too (§5.12, §5.13). --collected=<id> marks each legend of that
+## area's pool seen, in the save in use, and --collected=all every pool's, for checks of the Book's
+## seals and of a full Book (§5.7), which brings the Vanishing Hitchhiker to the Road Home (§5.17).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested
@@ -522,7 +520,11 @@ static func _parse_area(p_args: PackedStringArray) -> StringName:
 
 ## The turns of --finish=<turns> in `p_args`, after which the road ends; -1 without it. The road can
 ## end sooner than `schedule`'s, not later: past its finish, a home stretch would get junctions,
-## with no pool to play a disaster from (docs/ENDGAME.md W17).
+## with no pool to play a disaster from (docs/ENDGAME.md W17). They count along the whole road, so a
+## run that starts in a later area, as --area or the title's Start chooses, drives fewer of them
+## (`_run_schedule()`); and after the tutorial the finish comes later: not before its road's last
+## group of junctions is over, and as many turns later as an area comes late (docs/TUTORIAL.md §5.5,
+## Q15).
 static func _parse_finish(p_args: PackedStringArray, schedule: AreaSchedule) -> int:
 	for arg: String in p_args:
 		if arg.begins_with("--finish="):
