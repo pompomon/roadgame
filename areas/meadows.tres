@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://areas/props/meadows/flowers.tres" id="prop_flowers"]
 [ext_resource type="Resource" path="res://areas/props/meadows/rock.tres" id="prop_rock"]
 [ext_resource type="Resource" path="res://areas/props/meadows/pond.tres" id="prop_pond"]
+[ext_resource type="Resource" path="res://areas/props/meadows/grass.tres" id="prop_grass"]
 [ext_resource type="Script" path="res://areas/area_def.gd" id="1_rc7gr"]
 [ext_resource type="Texture2D" uid="uid://jblxwof624dg" path="res://assets/meadows/road.png" id="art_road"]
 [ext_resource type="Texture2D" uid="uid://ilv1nx2bnxoa" path="res://assets/meadows/ground.png" id="art_ground"]
@@ -21,7 +22,7 @@
 script = ExtResource("1_rc7gr")
 id = &"meadows"
 display_name = "Meadows"
-props = Array[ExtResource("props_script")]([ExtResource("prop_tree"), ExtResource("prop_pine"), ExtResource("prop_bush"), ExtResource("prop_flowers"), ExtResource("prop_rock"), ExtResource("prop_pond")])
+props = Array[ExtResource("props_script")]([ExtResource("prop_tree"), ExtResource("prop_pine"), ExtResource("prop_bush"), ExtResource("prop_flowers"), ExtResource("prop_rock"), ExtResource("prop_pond"), ExtResource("prop_grass")])
 id_color = Color(0.42, 0.68, 0.33, 1)
 road_sheet = ExtResource("art_road")
 ground = ExtResource("art_ground")
