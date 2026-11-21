@@ -82,9 +82,15 @@ for (const bname of cfg.browsers) {
           others: { med: +q(others, 0.5).toFixed(1), p95: +q(others, 0.95).toFixed(1), p99: +q(others, 0.99).toFixed(1), max: +others[others.length - 1].toFixed(1) },
           perf_hide_worst: perfHide,
           perf_first_s: (() => { const l = lines.find(([, s]) => s.startsWith('PERF ')); return l ? +((l[0] - tStart) / 1000).toFixed(2) : null; })(),
-          long: iv.filter(([, d]) => d > 1.5 * q(others, 0.5)).map(([s, d]) => [+(s - tStart).toFixed(0), +d.toFixed(1)]).slice(0, 40) };
+          long: iv.filter(([, d]) => d > 1.5 * q(others, 0.5)).map(([s, d]) => [+(s - tStart).toFixed(0), +d.toFixed(1)]).slice(0, 40),
+          // E3's window, which holds the first free: the frames from 2 s to 12 s after the engine's first line.
+          ...(() => {
+            const w = iv.filter(([s, d]) => s - tStart >= 2000 && s + d - tStart <= 12000);
+            return { win_max_ms: +Math.max(...w.map(([, d]) => d)).toFixed(1),
+              win_over_25: w.filter(([, d]) => d > 25).map(([s, d]) => [+(s - tStart).toFixed(0), +d.toFixed(1)]) };
+          })() };
         fs.appendFileSync(out, JSON.stringify(r) + '\n');
-        console.log(`${bname} ${build} ${label} rep ${rep}: first hide ${r.first_hide_s}s; hide frames ${JSON.stringify(r.hide_frames.map((m) => [m.at, m.ms, m.rows, m.hide_ms]))}; near max ${r.near_max_ms}; others ${JSON.stringify(r.others)}; PERF hide worst ${JSON.stringify(perfHide)}; first PERF ${r.perf_first_s}s; long ${JSON.stringify(r.long)}`);
+        console.log(`${bname} ${build} ${label} rep ${rep}: first hide ${r.first_hide_s}s; hide frames ${JSON.stringify(r.hide_frames.map((m) => [m.at, m.ms, m.rows, m.hide_ms]))}; near max ${r.near_max_ms}; others ${JSON.stringify(r.others)}; PERF hide worst ${JSON.stringify(perfHide)}; first PERF ${r.perf_first_s}s; long ${JSON.stringify(r.long)}; 2-12 s: max ${r.win_max_ms}, over 25 ms ${JSON.stringify(r.win_over_25)}`);
       }
     }
   }

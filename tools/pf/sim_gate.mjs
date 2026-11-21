@@ -192,14 +192,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const hz of [115, 170, 230]) row(`${hz} Hz, jitter 0.3 ms`, { hz, secs: 20, work: light, jitter: 0.3 }, 5, 20);
   console.log(JSON.stringify(rows, null, 0).replace(/\},\{/g, '},\n{'));
   // PERF_PLAN.md §5.4's criteria, for gate B, or the gate that the first argument names: limiter, A or B0 for the
-  // plan's negative cases N13, N16 and N21. At each rate of its table, exact or with 0.3 ms of jitter, and in the
-  // second review's rows, the gate draws the screen's rate over n = max(1, floor(1.05 * hz / 60)) within 1 fps, with
+  // plan's negative cases N13, N16 and N21. At each rate of its table, exact or with 0.3 ms of jitter, with callbacks
+  // up to 2 ms late, and in the second review's rows, the gate draws the screen's rate over n = max(1, floor(1.05 * hz / 60)) within 1 fps, with
   // at most 0.1 frames a second off the cadence; with whole-ms timestamps, at most 0.5. Over each window of 5 s or
   // more, it shows as many of the game's steps a second as no gate does, or one a frame if it draws fewer, less 0.5
   // at most. After a switch of rate, it draws 57 fps or more in the first half second, and the new rate from then to
   // 2 s; 60 again after the page is hidden; the page's own chain at the screen's rate; and nothing after a cancel.
   const g = process.argv[2] ?? 'B';
-  const paced = rows.filter((r) => /^(light [\d.]+ Hz(, jitter 0\.3 ms|, whole ms, jitter 0\.5 ms)?|(240|360) Hz, work .*|(115|170|230) Hz, jitter 0\.3 ms)$/.test(r.name));
+  const paced = rows.filter((r) => /^(light [\d.]+ Hz(, jitter 0\.3 ms|, whole ms, jitter 0\.5 ms)?|(240|360) Hz, work .*|(115|170|230) Hz, jitter 0\.3 ms|(119\.88|120) Hz, callbacks up to 2 ms late)$/.test(r.name));
   const target = (hz) => hz / Math.max(1, Math.floor((1.05 * hz) / 60));
   const bad = [];
   for (const r of paced) {
@@ -218,5 +218,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   for (const b of bad) console.error(`gate ${g}: ${b}`);
   console.error(`gate ${g}: ${bad.length} checks failed`);
-  process.exitCode = paced.length === 28 && bad.length === 0 ? 0 : 1;
+  process.exitCode = paced.length === 30 && bad.length === 0 ? 0 : 1;
 }
