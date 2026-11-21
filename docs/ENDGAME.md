@@ -89,7 +89,7 @@ Agents landed the PRs in order with `tools/agent/land_pr.sh`, but PR 4, which th
 
 ### 5.1 The road's end
 
-`AreaSchedule`'s `finish` names the finish's set piece, and `finish_turn` counts the turns before it from the City's first turn after the tutorial. `ending_at()` ends a copy sooner, for tests and `--finish`; `endless()` drops the finish and a home stretch (W17); `starting_at()` brings the finish as many turns sooner. Once `RoadGenerator._finish_due()` holds, no junction follows: the straight leads to the finish's `FINISH_TILES`, 8, the first of which sets `finish_index`, then to `BEYOND` tiles. Neither draws a number, so up to its last junction the road is `endless()`'s (E6).
+`AreaSchedule`'s `finish` names the finish's set piece, and `finish_turn` counts the turns before it from the City's first turn after the tutorial. Since SP, an area that comes late, past the tutorial's road, moves that count on by as many turns (docs/TUTORIAL.md Q15). `ending_at()` ends a copy sooner, for tests and `--finish`; `endless()` drops the finish and a home stretch (W17); `starting_at()` brings the finish as many turns sooner. Once `RoadGenerator._finish_due()` holds, no junction follows: the straight leads to the finish's `FINISH_TILES`, 8, the first of which sets `finish_index`, then to `BEYOND` tiles. Neither draws a number, so up to its last junction the road is `endless()`'s (E6).
 
 ### 5.2 The arrival
 
