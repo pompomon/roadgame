@@ -405,8 +405,9 @@ func _due_entry() -> AreaScheduleEntry:
 	# don't come here, so an entry may be due when they are over (docs/TUTORIAL.md §5.5).
 	if entry.turn > turn_count - _turn_base:
 		return null
-	# One that comes late moves the base on, and with it the later entries and the finish: each
-	# area keeps its turns, and the road ends as many turns later (docs/TUTORIAL.md Q15).
+	# One that comes late moves the base on, and with it the later entries and the finish: the area
+	# before it has its turns and as many more, each later one keeps its own, and the road ends as
+	# many turns later (docs/TUTORIAL.md Q15).
 	_turn_base = turn_count - entry.turn
 	_schedule_index += 1
 	return entry

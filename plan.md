@@ -388,7 +388,7 @@ All tests run headless (`godot --headless`) with GUT, so they work in CI and for
 - The correct path and dead ends never overlap (occupancy check).
 - Every junction has ≥ 1 wrong exit.
 - Lookahead stays within 37..55 tiles after any number of refills.
-- Area switches and set pieces happen at turns 20, 44, 68, 78 and 100, and the road ends at the pier after its 100th turn.
+- Area switches and set pieces happen at turns 20, 44, 68, 78 and 100, and the road ends at the pier after its 100th turn. On a first run, if the tutorial's road holds the 20th turn, Rural comes a turn or two late, and the later areas and the pier as many turns later (`docs/TUTORIAL.md` Q15).
 - Up to its last junction, the game's road is the endless road's, tile for tile, which goes on in the Desert (`docs/ENDGAME.md` E1, W6).
 
 **Simulation**

@@ -44,7 +44,7 @@ Nothing kept in the save makes a run easier or harder (`plan.md` §2.6), and the
 
 The owner chose a random legend not collected for the unlock, and the Road Home heading W, and approved the other defaults on 2026-11-17: "Defaults are approved" (#84).
 
-- **Q1.** The road ends after its 280th turn, at a pier. Since SP, after its 100th turn (`SPEEDUP_PLAN.md` Q1). The Coast starts at that turn, a home stretch with no junction and no legend, so the Desert stays the climax.
+- **Q1.** The road ends after its 280th turn, at a pier. Since SP, after its 100th turn (`SPEEDUP_PLAN.md` Q1), or its 101st or 102nd on a first run whose Rural comes late (§5.1). The Coast starts at that turn, a home stretch with no junction and no legend, so the Desert stays the climax.
 - **Q2.** The unlock: any legend not collected, each as likely (§5.5).
 - **Q3.** An unlocked legend is collected (W14).
 - **Q4.** Only a run that drove the whole road records an arrival, unlocks a legend or sets an overall best (§5.4).

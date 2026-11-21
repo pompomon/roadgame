@@ -14,7 +14,8 @@ extends Node
 ## starts every run that starts in the City with the tutorial, which otherwise only Play starts,
 ## until the player has finished it (docs/TUTORIAL.md §5.6). --finish=<turns> ends the road after
 ## that many turns, at most its own, with the areas before it, for tests and manual checks of the
-## end of the road (docs/ENDGAME.md §5.7). --home drives the Road Home, and presets the title's Road
+## end of the road (docs/ENDGAME.md §5.7), or a turn or two later if an area comes late after the
+## tutorial (docs/TUTORIAL.md Q15). --home drives the Road Home, and presets the title's Road
 ## choice, which offers it after the first arrival at the sea, and Keep Driving's endless road too
 ## (§5.12, §5.13). --collected=<id> marks each legend of that area's pool seen, in the save in use,
 ## and --collected=all every pool's, for checks of the Book's seals and of a full Book (§5.7), which
