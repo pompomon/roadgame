@@ -4,7 +4,7 @@
 // config: {browsers:["firefox"], builds:{name:baseUrl}, sizes:[[w,h,dpr]], variants:{name:[args]},
 //          scenarios:[{name, args:[], from:"run_ended", secs:8, pre:4, before:"area coast", to:"game_over",
 //          expect:["disaster_started ufo"]}] or a file of them, such as "tools/pf/ends.json", reps:1,
-//          timeout:90, out:"file.jsonl"}
+//          timeout:90, retries:1, out:"file.jsonl"}
 // An event matches a PFEVENT line whose text after "PFEVENT " is the event, or starts with it and a space.
 // Each run loads a build with a scenario's args and a variant's, waits for the event `from`, then `secs`
 // more. It reports the page's frames over three windows: from the event to `secs` after it ("main"), the
@@ -16,13 +16,16 @@
 // after the first that closes after `from`. `missing` lists the events of `expect` that the run didn't
 // print, such as another legend's, and `to` if it didn't follow `from` in time: such a run doesn't
 // count, and the script exits 1 once all have run, as it does if a run timed out or a step didn't
-// answer. A browser that won't close stops it with 1, as it could slow the runs after it.
+// answer. A step that doesn't answer, as when Firefox stops answering, starts the browser again and
+// runs the run again, up to `retries` times; each attempt is written, the failed ones with `error`.
+// A browser that won't close is killed, and one that won't die stops the script with 1, as it could
+// slow the runs after it.
 // PLAYWRIGHT_MODULE: Playwright's index.mjs, if `playwright` isn't importable; CHROME: Chrome's path.
 import fs from 'node:fs';
 const { chromium, firefox } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
 
 const cfg = JSON.parse(process.argv[2]);
-const reps = cfg.reps ?? 1, timeout = (cfg.timeout ?? 90) * 1000;
+const reps = cfg.reps ?? 1, timeout = (cfg.timeout ?? 90) * 1000, retries = cfg.retries ?? 1;
 const out = cfg.out ?? '/tmp/perf-events.jsonl';
 const scenarios = typeof cfg.scenarios === 'string' ? JSON.parse(fs.readFileSync(cfg.scenarios, 'utf8')) : cfg.scenarios;
 let failed = 0;
@@ -60,12 +63,19 @@ function stats(frames, a, b) {
     secs: +((b - a) / 1000).toFixed(2), slowest_s: slowest === Infinity ? null : slowest, slowest_at: at };
 }
 
+// A server, so that a browser that won't close can be killed: a launched browser has no handle on its process.
 async function launch(name) {
-  if (name === 'chrome') {
-    return chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', headless: false,
-      args: ['--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] });
+  const type = name === 'chrome' ? chromium : firefox;
+  const server = await type.launchServer(name === 'chrome'
+    ? { executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', headless: false,
+      args: ['--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] }
+    : { headless: false, firefoxUserPrefs: { 'media.autoplay.default': 0, ...(cfg.firefoxPrefs ?? {}) } });
+  try {
+    return { server, browser: await within(type.connect(server.wsEndpoint()), 30000, 'connect') };
+  } catch (e) {
+    await closeOrKill({ server }, name);
+    throw e;
   }
-  return firefox.launch({ headless: false, firefoxUserPrefs: { 'media.autoplay.default': 0, ...(cfg.firefoxPrefs ?? {}) } });
 }
 
 const variants = Object.entries(cfg.variants ?? { none: [] });
@@ -75,12 +85,17 @@ function within(p, ms, what) {
   const late = new Promise((_, no) => { id = setTimeout(() => no(new Error(`${what}: no answer in ${ms / 1000} s`)), ms); });
   return Promise.race([p, late]).finally(() => clearTimeout(id));
 }
-async function closeOrStop(browser, bname) {
+async function closeOrKill(b, bname) {
   try {
-    await within(browser.close(), 30000, 'browser.close');
+    await within(b.server.close(), 30000, 'browser.close');
   } catch (e) {
-    console.log(`${bname}: ${e.message}: stopped`);
-    process.exit(1);
+    console.log(`${bname}: ${e.message}: killed`);
+    try {
+      await within(b.server.kill(), 30000, 'browser.kill');
+    } catch (e2) {
+      console.log(`${bname}: ${e2.message}: stopped`);
+      process.exit(1);
+    }
   }
 }
 const is = (s, e) => s === e || s.startsWith(e + ' ');
@@ -149,43 +164,49 @@ async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, var
 }
 
 for (const bname of cfg.browsers) {
-  let browser = await launch(bname);
+  let b = await launch(bname);
   for (let rep = 0; rep < reps; rep++) {
     for (const sc of scenarios) {
       for (const size of cfg.sizes) {
         for (const [build, base] of Object.entries(cfg.builds)) {
           for (const [vname, vargs] of variants) {
-            const holder = {};
-            let r;
-            try {
-              r = await run(browser, bname, rep, sc, size, build, base, vname, vargs, holder);
-            } catch (e) {
-              r = { browser: bname, rep, build, variant: vname, scenario: sc.name, size: `${size[0]}x${size[1]}@${size[2] ?? 1}`, error: String(e), missing: [] };
-              r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ERROR ${e.message}`;
-            }
-            if (r.error || r.timedOut || r.missing.length) failed++;
-            const { log, ...rec } = r;
-            fs.appendFileSync(out, JSON.stringify(rec) + '\n');
-            console.log(log);
-            // A run whose step didn't answer, or whose page won't close, may have left the browser stuck.
-            let restart = !!r.error;
-            try {
-              if (holder.ctx) await within(holder.ctx.close(), 30000, 'close');
-            } catch (e) {
-              console.log(`${bname}: ${e.message}`);
-              restart = true;
-            }
-            if (restart) {
-              console.log(`${bname}: the browser starts again`);
-              await closeOrStop(browser, bname);
-              browser = await launch(bname);
+            for (let attempt = 0; ; attempt++) {
+              const holder = {};
+              let r;
+              try {
+                r = await run(b.browser, bname, rep, sc, size, build, base, vname, vargs, holder);
+              } catch (e) {
+                r = { browser: bname, rep, build, variant: vname, scenario: sc.name, size: `${size[0]}x${size[1]}@${size[2] ?? 1}`, error: String(e), missing: [] };
+                r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ERROR ${e.message}`;
+              }
+              r.attempt = attempt;
+              const again = !!r.error && attempt < retries;
+              if (!again && (r.error || r.timedOut || r.missing.length)) failed++;
+              const { log, ...rec } = r;
+              fs.appendFileSync(out, JSON.stringify(rec) + '\n');
+              console.log(log);
+              // A run whose step didn't answer, or whose page won't close, may have left the browser stuck.
+              let restart = !!r.error;
+              try {
+                if (holder.ctx) await within(holder.ctx.close(), 30000, 'close');
+              } catch (e) {
+                console.log(`${bname}: ${e.message}`);
+                restart = true;
+              }
+              if (restart) {
+                console.log(`${bname}: the browser starts again`);
+                await closeOrKill(b, bname);
+                b = await launch(bname);
+              }
+              if (!again) break;
+              console.log(`${bname}: the run runs again`);
             }
           }
         }
       }
     }
   }
-  await closeOrStop(browser, bname);
+  await closeOrKill(b, bname);
 }
 if (failed) {
   console.log(`FAILED: ${failed} run(s) timed out, missed their events or had a step that didn't answer`);
