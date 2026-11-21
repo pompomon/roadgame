@@ -234,7 +234,7 @@ func _junction() -> RoadTile:
 
 
 ## Whether the road's turns are all behind, past the tutorial, with no entry of the schedule left:
-## the next straight, after any set piece still to come, leads to the finish. The turns count from
+## the finish comes once any set piece and straight still to come are laid. The turns count from
 ## `_turn_base`: the City's first after the tutorial, moved on as many turns as an area came late.
 func _finish_due() -> bool:
 	if not _schedule.has_finish() or tutorial or _schedule_index < _schedule.entries.size():
