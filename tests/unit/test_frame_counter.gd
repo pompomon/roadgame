@@ -4,6 +4,7 @@ const COUNTER_SCENE := preload("res://ui/frame_counter.tscn")
 const HUD_SCENE := preload("res://ui/hud.tscn")
 const SETTINGS_SCENE := preload("res://ui/settings_screen.tscn")
 const CITY := preload("res://areas/city.tres")
+const MainScene := preload("res://tests/helpers/main_scene.gd")
 
 
 class RecordingCounter:
@@ -40,20 +41,48 @@ func _counter(forced := false) -> RecordingCounter:
 func test_the_setting_shows_it_and_hiding_starts_a_fresh_window() -> void:
 	var counter := _counter()
 	assert_false(counter.visible)
-	assert_false(counter.is_processing())
 	SaveService.set_setting("fps", true)
 	assert_true(counter.visible)
-	assert_true(counter.is_processing())
 	counter.set_process(false)
+	counter._sample_frame(2000000)
+	assert_ne((counter.get_node("%Label") as Label).text, "0.0 FPS\nP95 0 MS")
 	counter._sample_frame(500000)
 	SaveService.set_setting("fps", false)
 	assert_false(counter.visible)
-	assert_false(counter.is_processing())
 	SaveService.set_setting("fps", true)
 	counter.set_process(false)
 	counter._sample_frame(500000)
 	assert_eq((counter.get_node("%Label") as Label).text, "0.0 FPS\nP95 0 MS")
 	assert_eq(counter.lines, [] as Array[String])
+
+
+func test_main_forces_the_counter_on_with_the_switch_and_the_setting_off() -> void:
+	var main := MainScene.open(self, ["--seed=1", "--fps"], false)
+	var counter: FrameCounter = main.get_node("%FrameCounter")
+	assert_false(SaveService.setting("fps"))
+	assert_true(counter.visible)
+	assert_true(counter.is_processing())
+	SaveService.set_setting("fps", true)
+	SaveService.set_setting("fps", false)
+	assert_true(counter.visible)
+	assert_true(counter.is_processing(), "the switch forces processing too")
+
+
+func test_main_without_the_switch_keeps_a_hidden_counter_idle() -> void:
+	for extra: String in ["", "--fpscap=0"]:
+		var args: Array[String] = ["--seed=1"]
+		if not extra.is_empty():
+			args.append(extra)
+		var main := MainScene.open(self, args, false)
+		var counter: FrameCounter = main.get_node("%FrameCounter")
+		assert_false(counter.visible)
+		assert_false(counter.is_processing(), "idle on ready")
+		SaveService.set_setting("fps", true)
+		assert_true(counter.visible)
+		assert_true(counter.is_processing())
+		SaveService.set_setting("fps", false)
+		assert_false(counter.visible)
+		assert_false(counter.is_processing(), "idle after hiding")
 
 
 func test_the_switch_forces_it_on_and_reports_the_actual_window() -> void:
@@ -71,6 +100,15 @@ func test_the_switch_forces_it_on_and_reports_the_actual_window() -> void:
 			"PERF fps=49.9 n=50 us=1000200 med=20.0 p95=21 max=20.0 early=0 draws="
 		)
 	)
+
+
+func test_the_counter_includes_zero_length_intervals_in_its_frame_count() -> void:
+	var counter := _counter(true)
+	counter._sample_frame(0)
+	for index: int in 50:
+		counter._sample_frame(20000)
+	assert_eq(counter.lines.size(), 1)
+	assert_true(counter.lines[0].begins_with("PERF fps=51.0 n=51 us=1000000 "))
 
 
 func test_only_the_switch_prints_events_with_the_frames_drawn() -> void:

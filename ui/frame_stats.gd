@@ -12,8 +12,9 @@ var _complete := false
 
 ## Closes a window once its intervals cover FPS_WINDOW_SECONDS. The next interval starts anew.
 func add(interval_usec: int) -> bool:
-	if interval_usec <= 0:
-		push_error("FrameStats: a frame interval must be positive")
+	# A coarse clock may repeat a start; count its zero interval (test_frame_stats.gd).
+	if interval_usec < 0:
+		push_error("FrameStats: a frame interval cannot be negative")
 		return false
 	if _complete:
 		_intervals.clear()

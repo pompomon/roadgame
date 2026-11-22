@@ -37,8 +37,19 @@ func test_early_frames_use_a_strict_boundary_and_the_median_can_be_between_frame
 func test_an_invalid_interval_reports_the_error_and_keeps_the_window() -> void:
 	var stats := FrameStats.new()
 	stats.add(20000)
-	assert_false(stats.add(0))
 	assert_false(stats.add(-1))
+	assert_false(stats.add(-2))
 	assert_push_error_count(2)
 	assert_eq(stats.count(), 1)
 	assert_eq(stats.usec(), 20000)
+
+
+func test_equal_frame_starts_are_counted_with_their_zero_interval() -> void:
+	var stats := FrameStats.new()
+	stats.add(0)
+	for index: int in 50:
+		stats.add(20000)
+	assert_eq(stats.count(), 51)
+	assert_eq(stats.usec(), 1000000)
+	assert_eq(stats.fps(), 51.0)
+	assert_eq(stats.early(), 1)
