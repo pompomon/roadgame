@@ -3,7 +3,7 @@
 // Usage: node events.mjs '<json config>'
 // config: {browsers:["firefox"], builds:{name:baseUrl}, sizes:[[w,h,dpr]], variants:{name:[args]},
 //          scenarios:[{name, args:[], from:"run_ended", secs:8, pre:4, before:"area coast", to:"game_over",
-//          expect:["disaster_started ufo"]}] or a file of them, such as "tools/pf/ends.json", reps:1,
+//          within:15, expect:["disaster_started ufo"]}] or a file of them, such as "tools/pf/ends.json", reps:1,
 //          timeout:90, retries:1, out:"file.jsonl"}
 // An event matches a PFEVENT line whose text after "PFEVENT " is the event, or starts with it and a space.
 // Each run loads a build with a scenario's args and a variant's, waits for the event `from`, then `secs`
@@ -11,13 +11,16 @@
 // `pre` seconds before it, and with `before`, from that event's first line to `from`. Each window gives
 // the rate, its frames over its whole time, so that a stall at an edge counts, the median, P95, P99 and
 // longest frame, and the slowest of its whole seconds; "main" also the probe's slowest PERF line.
-// With `to`, it waits up to 15 s more for that event after `from`, and reports the frames between them
+// With `to`, it waits for that event after `from`, and reports the frames between them
 // ("end"), and the slowest of the probe's PERF lines whose 1 s windows lie wholly between them, those
 // after the first that closes after `from`. `missing` lists the events of `expect` that the run didn't
-// print, such as another legend's, and `to` if it didn't follow `from` in time: such a run doesn't
-// count, and the script exits 1 once all have run, as it does if a run timed out or a step didn't
-// answer. A step that doesn't answer, as when Firefox stops answering, starts the browser again and
-// runs the run again, up to `retries` times; each attempt is written, the failed ones with `error`.
+// print, such as another legend's, and `to` if it didn't follow `from` within `within` seconds by their
+// lines' times: such a run doesn't count, and the script exits 1 once all have run, as it does if a run
+// timed out, logged an error or had a step that didn't answer. A step that doesn't answer, as when
+// Firefox stops answering, starts the browser again and runs the run again, up to `retries` times; each
+// attempt is written, the failed ones with `error`. Each wait has a deadline of its own, as Playwright's
+// doesn't fire once the page stops answering while it polls; and a run whose wait timed out has failed,
+// even if a later step doesn't answer, so it doesn't run again.
 // A browser that won't close is killed, and one that won't die stops the script with 1, as it could
 // slow the runs after it.
 // PLAYWRIGHT_MODULE: Playwright's index.mjs, if `playwright` isn't importable; CHROME: Chrome's path.
@@ -111,22 +114,37 @@ async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, var
   page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
   const args = [...sc.args, ...vargs];
   await within(page.goto(base + '?' + args.map((x) => 'arg=' + encodeURIComponent(x)).join('&')), 60000, 'goto');
-  const secs = sc.secs ?? 8, pre = sc.pre ?? 4, from = sc.from ?? 'run_ended';
+  const secs = sc.secs ?? 8, pre = sc.pre ?? 4, from = sc.from ?? 'run_ended', toMs = (sc.within ?? 15) * 1000;
   let timedOut = false, late = false;
+  // A TimeoutError is the page's answer; the deadline's error, a step that didn't answer.
+  const wait = (p, ms) => within(p, ms + 15000, 'waitForFunction');
   try {
-    await page.waitForFunction((e) => window.__events.some(([, s]) => s === e || s.startsWith(e + ' ')), from, { polling: 250, timeout });
-  } catch (e) { timedOut = true; }
+    await wait(page.waitForFunction((e) => window.__events.some(([, s]) => s === e || s.startsWith(e + ' ')), from, { polling: 250, timeout }), timeout);
+  } catch (e) {
+    if (e.name !== 'TimeoutError') throw e;
+    timedOut = true;
+  }
   if (!timedOut) await page.waitForTimeout(secs * 1000 + 500);
   if (!timedOut && sc.to) {
     try {
-      await page.waitForFunction(([f, t]) => {
+      await wait(page.waitForFunction(([f, t]) => {
         const m = (s, e) => s === e || s.startsWith(e + ' ');
         const i = window.__events.findIndex(([, s]) => m(s, f));
         return i >= 0 && window.__events.slice(i + 1).some(([, s]) => m(s, t));
-      }, [from, sc.to], { polling: 250, timeout: 15000 });
-    } catch (e) { late = true; }
+      }, [from, sc.to], { polling: 250, timeout: toMs }), toMs);
+    } catch (e) {
+      if (e.name !== 'TimeoutError') throw e;
+      late = true;
+    }
   }
-  const { frames, events, perf } = await within(page.evaluate(() => ({ frames: window.__frames, events: window.__events, perf: window.__perf })), 30000, 'evaluate');
+  let snap;
+  try {
+    snap = await within(page.evaluate(() => ({ frames: window.__frames, events: window.__events, perf: window.__perf })), 30000, 'evaluate');
+  } catch (e) {
+    e.failed = timedOut || late;
+    throw e;
+  }
+  const { frames, events, perf } = snap;
   const t0 = frames[0] ?? 0;
   const idx = (e, i = 0) => events.findIndex(([, s], j) => j >= i && is(s, e));
   const fi = idx(from), tf = events[fi]?.[0];
@@ -149,16 +167,17 @@ async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, var
       const el = first < 0 ? [] : perf.slice(first + 1).filter(([t]) => t <= tt);
       r.end_perf_min_fps = el.length ? Math.min(...el.map(([, f]) => f)) : null;
       r.end_perf_n = el.length;
+      if (tt - tf > toMs) r.late = true;
     }
   }
-  r.missing = [...(sc.expect ?? []).filter((e) => idx(e) < 0), ...(sc.to && !(r.end?.n >= 2) ? [sc.to] : [])];
+  r.missing = [...(sc.expect ?? []).filter((e) => idx(e) < 0), ...(sc.to && (!(r.end?.n >= 2) || r.late) ? [sc.to] : [])];
   r.errs = logs.filter((l) => /^\[(error|pageerror)\]/.test(l) || /ERROR/.test(l)).slice(0, 5);
   r.warns = logs.filter((l) => /^\[warning\]/.test(l)).length;
   const m = r.main ?? {};
   r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ${timedOut ? 'TIMED OUT ' : ''}main ${m.fps} fps p95 ${m.p95_ms} max ${m.max_ms} slowest ${m.slowest_s}@${m.slowest_at}s perf_min ${r.perf_min_fps}`
     + (r.pre ? ` | pre ${r.pre.fps}` : '') + (r.before ? ` | before ${r.before.fps} (${r.before.secs}s)` : '')
     + (r.end ? ` | end ${r.end.fps} fps (${r.end.secs}s) slowest ${r.end.slowest_s} perf_min ${r.end_perf_min_fps}/${r.end_perf_n}` : '')
-    + (r.missing.length ? ` | MISSING ${r.missing.join(', ')}` : '')
+    + (r.missing.length ? ` | MISSING ${r.missing.join(', ')}` : '') + (r.late ? ' (LATE)' : '')
     + ` | ${r.events.map(([t, s]) => `${t}:${s}`).join(' ')} | errs ${r.errs.length} warns ${r.warns} | ${(Date.now() - tr) / 1000}s`;
   return r;
 }
@@ -176,12 +195,12 @@ for (const bname of cfg.browsers) {
               try {
                 r = await run(b.browser, bname, rep, sc, size, build, base, vname, vargs, holder);
               } catch (e) {
-                r = { browser: bname, rep, build, variant: vname, scenario: sc.name, size: `${size[0]}x${size[1]}@${size[2] ?? 1}`, error: String(e), missing: [] };
+                r = { browser: bname, rep, build, variant: vname, scenario: sc.name, size: `${size[0]}x${size[1]}@${size[2] ?? 1}`, error: String(e), failed: !!e.failed, missing: [] };
                 r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ERROR ${e.message}`;
               }
               r.attempt = attempt;
-              const again = !!r.error && attempt < retries;
-              if (!again && (r.error || r.timedOut || r.missing.length)) failed++;
+              const again = !!r.error && !r.failed && attempt < retries;
+              if (!again && (r.error || r.timedOut || r.missing.length || r.errs?.length)) failed++;
               const { log, ...rec } = r;
               fs.appendFileSync(out, JSON.stringify(rec) + '\n');
               console.log(log);
@@ -209,6 +228,6 @@ for (const bname of cfg.browsers) {
   await closeOrKill(b, bname);
 }
 if (failed) {
-  console.log(`FAILED: ${failed} run(s) timed out, missed their events or had a step that didn't answer`);
+  console.log(`FAILED: ${failed} run(s) timed out, missed their events, logged an error or had a step that didn't answer`);
   process.exitCode = 1;
 }
