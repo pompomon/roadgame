@@ -411,7 +411,7 @@ func test_the_lamps_glow_over_the_veil_at_night() -> void:
 	await wait_process_frames(1)
 	var glows := 0
 	for lit: Lamps.Lit in lamps.shown():
-		glows += lit.sprite.get_child_count()
+		glows += lit.glow_items.size()
 	assert_gt(glows, 20, "the City's lamps and lit windows")
 	assert_false(lamps.visible, "no clock")
 	var cycle := DayCycle.new()

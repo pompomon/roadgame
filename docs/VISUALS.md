@@ -18,9 +18,9 @@ Nothing else changes, nor what a seed plays. The exit criteria, E1–E13: the wh
 - **A5.** Densities were per cell. **Δ docs/M5.md §5.6:** per lot of the prop's size, adding up to 1 at most for each size apart (§5.4).
 - **A6.** Lots must move nothing else. A lot of one cell has its cell's own hash, in `main`'s loop (P2, §5.4).
 - **A7.** The City's props took GUT from 91 s to 118 s. The pool's sprites are internal children, which `simulate()` skips (docs/DAYNIGHT.md C20): 86 s (§5.5).
-- **A8.** On an internal child `get_index()` is an error that returns −1, and `get_children()` and `get_child_count()` leave it out. `Lamps` and the tests pass `true` (§5.5).
+- **A8.** On an internal child `get_index()` is an error that returns −1, and `get_children()` and `get_child_count()` leave it out. `Lamps` reads the props with `get_index(true)` and orders its canvas items by keys (§5.5; PERF_PLAN.md §5.2).
 - **A9.** Whether the car drew over a prop on its y depended on when the prop was made. With `INTERNAL_MODE_FRONT` it always does (§5.5).
-- **A10.** `Lamps`' insert of each silhouette costs more with more props. Left as it is (§9).
+- **A10.** `Lamps`' insert of each silhouette cost more with more props. PF replaced node moves with draw-index keys (PERF_PLAN.md Y9, §5.2).
 - **A11.** A row of the City shows in 1.45 ms, against 0.90 (P17). Left as it is (§5.6).
 - **A12.** The City's street props are 35–42% fewer, and move, as buildings take their cells and their shares of each hash (P16). Kept (Q4).
 - **A13.** Four phases alias: a true wheel turns 5.8 times a tile, which reads as backwards. Once a tile, and a phase a drawn frame at most (§5.1).
@@ -94,7 +94,7 @@ A prop takes a lot of `PropDef.lot` × `lot` ground cells, 1 by default, aligned
 
 ### 5.5 Internal props
 
-`PropScatter`'s pool holds its sprites as internal children of `Props`, `PropPool.new(layer, Node.INTERNAL_MODE_FRONT)`, as `Shadows` and `Lamps` hold theirs, so `simulate()` skips them (A7), and 1,200 frames of the City in Movie Maker stay the same bytes. `Lamps` orders its silhouettes by `get_index(true)` (A8), and `_fade()` takes `get_children()`: the layer's own children, the actors, and no prop. Godot's y-sort draws a tie in the order of the children, internal ones included, so every prop draws before the car, its double and a legend's parts (A9).
+`PropScatter`'s pool holds its sprites as internal children of `Props`, `PropPool.new(layer, Node.INTERNAL_MODE_FRONT)`, as `Shadows` holds its own, so `simulate()` skips them (A7), and 1,200 frames of the City in Movie Maker stay the same bytes. `Lamps` reads the props' `get_index(true)` (A8) and orders its RenderingServer items by keys (PERF_PLAN.md §5.2). `_fade()` takes `get_children()`: the layer's own children, the actors, and no prop. Godot's y-sort draws a tie in the order of the children, internal ones included, so every prop draws before the car, its double and a legend's parts (A9).
 
 ### 5.6 The cost
 
@@ -122,7 +122,7 @@ A lot by a street shows its prop at `PropDef.street_density`, the others at `den
 **The fade (A17).** As the tunnel does (docs/M4.md K5), a see-through prop shows `PROP_SEE_THROUGH`, 0.2, of itself where it would hide the car's body or a legend's sprite on `Props`. `SeeThrough.opacity()` adds the gaps across and down between their rects, and how far the actor sorts in front of the prop's foot (A9); over `PROP_FADE_PX`, 48 px, `smoothstep()` brings it back, so nothing pops.
 - **The actors (A18).** `_fade()` takes the layer's own children (§5.5). `actor_rect()` gives the car's `body_rect()` or a sprite's rect, through its transform, and nothing for what doesn't show: not `visible`, alpha 0, or a scale under `HIDDEN_SCALE`, 1e-4, as Node2D keeps a zero scale at `CMP_EPSILON`.
 - **Which props.** `Row.fading` keeps a row's see-through props and frames, and `SeeThrough.rows()` names the rows in reach. A prop takes the least opacity that its actors ask.
-- **Its lights (A19).** `_show_alpha()` sets the prop's alpha and its silhouette's, the glows' parent. Only `modulate` changes, so nothing is redrawn on the Web (docs/M2.md §5.7).
+- **Its lights (A19).** `_show_alpha()` sets the prop's alpha and, through `Lamps.fade()`, its silhouette item's `modulate`, which its child glows inherit (PERF_PLAN.md §5.2). Nothing is redrawn by the fade (docs/M2.md §5.7).
 - **Visual only.** Nothing else reads the fade, and no RNG is drawn.
 
 ## 6. Verification
@@ -149,4 +149,4 @@ The five checks passed on each PR; at PR 2, 162 scripts, 602 tests and 429,384 a
 - **More buildings** (Q3), and lots of a whole tile, which `PropDef.lot` allows: a park or a square.
 - **Steering** (Q1): a frame for each heading, angle and phase.
 - **More phases** (A13): smoother, but below 60 fps a drawn frame holds the wheels to a phase more often; about 3.4 KB a row.
-- **If the Fold4 drops frames** (§5.6): a lower street density, within Q2's 0.35 to 0.6; a row's props shown over frames (A11); one glow a building, about 80 in view at night, not 640 (A21); a faster `Lamps` insert (A10).
+- **If the Fold4 drops frames** (§5.6): a lower street density, within Q2's 0.35 to 0.6; a row's props shown over frames (A11); one glow a building, about 80 in view at night, not 640 (A21). PF made the `Lamps` insert cheaper (A10).

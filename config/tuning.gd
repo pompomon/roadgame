@@ -76,6 +76,9 @@ const PROP_REST_SECONDS := 3.0
 const LAMP_COLOR := Color(1.0, 0.8, 0.45)
 const LAMP_ALPHA := 0.55
 const LAMP_POOL_SHARE := 0.4
+## The glow cull's viewport-pixel margin for transform snapping at fractional zooms
+## (PERF_PLAN.md §5.2, N19).
+const LAMP_CULL_MARGIN_PX := 2.0
 ## The car's headlights (docs/HEADLIGHTS.md §5.1–§5.3). From DUSK_HOUR, the light's dusk key, until
 ## the sun rises, while the car drives, they light the road in a cone from the car's lamps,
 ## HEADLIGHT_FRONT tiles before its centre: HEADLIGHT_HALF_WIDTH tiles either side of its axis
