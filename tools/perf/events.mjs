@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { gameRate, parsePerf } from './measure.mjs';
+import { close, isError, launch, within } from './browser.mjs';
 
 export function perfWindow(perf, a, b) {
   return perf.filter((w) => w.at - w.us / 1000 >= a && w.at <= b);
@@ -33,15 +34,6 @@ const INIT = `
 })();`;
 
 const matches = (s, event) => s === event || s.startsWith(event + ' ');
-const isErr = (line) => /^\[(error|pageerror)\]/.test(line) || /ERROR/.test(line);
-
-function within(promise, ms, what) {
-  let timer;
-  const deadline = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${what}: no answer in ${ms / 1000} s`)), ms);
-  });
-  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
-}
 
 function pageStats(frames, a, b) {
   const f = frames.filter((t) => t > a && t <= b);
@@ -54,7 +46,6 @@ function pageStats(frames, a, b) {
 }
 
 export async function main(cfg) {
-  const { chromium, firefox } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
   for (const name of cfg.browsers) {
     if (!['chrome', 'firefox'].includes(name)) throw new Error(`Unknown browser: ${name}`);
   }
@@ -62,31 +53,6 @@ export async function main(cfg) {
     ? JSON.parse(fs.readFileSync(cfg.scenarios, 'utf8')) : cfg.scenarios;
   const out = cfg.out ?? '/tmp/perf-events.jsonl';
   let failed = 0;
-
-  async function close(holder, name) {
-    try {
-      await within(holder.server.close(), 30000, 'browser.close');
-    } catch (error) {
-      console.error(`${name}: ${error.message}; killing this browser`);
-      await within(holder.server.kill(), 30000, 'browser.kill');
-    }
-  }
-
-  async function launch(name) {
-    const type = name === 'chrome' ? chromium : firefox;
-    const server = await type.launchServer(name === 'chrome'
-      ? { executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', headless: false,
-        args: ['--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader',
-          '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
-          '--disable-backgrounding-occluded-windows'] }
-      : { headless: false, firefoxUserPrefs: { 'media.autoplay.default': 0, ...(cfg.firefoxPrefs ?? {}) } });
-    try {
-      return { server, browser: await within(type.connect(server.wsEndpoint()), 30000, 'connect') };
-    } catch (error) {
-      await close({ server }, name);
-      throw error;
-    }
-  }
 
   async function run(holder, sc, size, base) {
     const [w, h, dpr = 1] = size;
@@ -112,7 +78,7 @@ export async function main(cfg) {
       holder.failed = error.name === 'TimeoutError';
       throw error;
     }
-    await page.waitForTimeout(secs * 1000 + 500);
+    await within(page.waitForTimeout(secs * 1000 + 500), secs * 1000 + 30500, 'recording');
     if (sc.to) {
       try {
         await within(page.waitForFunction(([from, to]) => {
@@ -164,13 +130,13 @@ export async function main(cfg) {
     }
     missing.push(...(sc.expect ?? []).filter((event) => index(event) < 0));
     r.missing = missing;
-    r.errs = holder.logs.filter(isErr);
+    r.errs = holder.logs.filter(isError);
     r.warns = holder.logs.filter((line) => /^\[warning\]/.test(line)).length;
     return r;
   }
 
   for (const bname of cfg.browsers) {
-    let holder = await launch(bname);
+    let holder = await launch(bname, cfg);
     try {
       for (let rep = 0; rep < (cfg.reps ?? 1); rep++) {
         for (const sc of scenarios) {
@@ -181,7 +147,7 @@ export async function main(cfg) {
                 try {
                   r = await run(holder, sc, size, base);
                 } catch (error) {
-                  const errs = (holder.logs ?? []).filter(isErr);
+                  const errs = (holder.logs ?? []).filter(isError);
                   r = { error: String(error), failed: !!holder.failed || errs.length > 0, errs, missing: [] };
                 }
                 const again = !!r.error && !r.failed && attempt < (cfg.retries ?? 1);
@@ -199,7 +165,7 @@ export async function main(cfg) {
                 }
                 if (restart) {
                   await close(holder, bname);
-                  holder = await launch(bname);
+                  holder = await launch(bname, cfg);
                 }
                 if (!again) break;
                 console.error(`${bname}: retrying the unresponsive run`);
