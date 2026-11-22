@@ -5,6 +5,7 @@
 //          scenarios:[{name, args:[], from:"run_ended", secs:8, pre:4, before:"area coast", to:"game_over",
 //          within:15, expect:["disaster_started ufo"]}] or a file of them, such as "tools/pf/ends.json", reps:1,
 //          timeout:90, retries:1, out:"file.jsonl"}
+// A browser is "firefox" or "chrome"; another name stops the script with 2.
 // An event matches a PFEVENT line whose text after "PFEVENT " is the event, or starts with it and a space.
 // Each run loads a build with a scenario's args and a variant's, waits for the event `from`, then `secs`
 // more. It reports the page's frames over three windows: from the event to `secs` after it ("main"), the
@@ -19,8 +20,8 @@
 // timed out, logged an error or had a step that didn't answer. A step that doesn't answer, as when
 // Firefox stops answering, starts the browser again and runs the run again, up to `retries` times; each
 // attempt is written, the failed ones with `error`. Each wait has a deadline of its own, as Playwright's
-// doesn't fire once the page stops answering while it polls; and a run whose wait timed out has failed,
-// even if a later step doesn't answer, so it doesn't run again.
+// doesn't fire once the page stops answering while it polls; and a run whose wait timed out, or that
+// logged an error, has failed even if a later step doesn't answer, so it doesn't run again.
 // A browser that won't close is killed, and one that won't die stops the script with 1, as it could
 // slow the runs after it.
 // PLAYWRIGHT_MODULE: Playwright's index.mjs, if `playwright` isn't importable; CHROME: Chrome's path.
@@ -32,6 +33,13 @@ const reps = cfg.reps ?? 1, timeout = (cfg.timeout ?? 90) * 1000, retries = cfg.
 const out = cfg.out ?? '/tmp/perf-events.jsonl';
 const scenarios = typeof cfg.scenarios === 'string' ? JSON.parse(fs.readFileSync(cfg.scenarios, 'utf8')) : cfg.scenarios;
 let failed = 0;
+for (const n of cfg.browsers) {
+  if (n !== 'firefox' && n !== 'chrome') {
+    console.log(`unknown browser ${n}: firefox or chrome`);
+    process.exit(2);
+  }
+}
+const isErr = (l) => /^\[(error|pageerror)\]/.test(l) || /ERROR/.test(l);
 
 // The page's frames, and the times of the probe's lines on the same clock.
 const INIT = `
@@ -110,6 +118,7 @@ async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, var
   const page = await within(ctx.newPage(), 30000, 'newPage');
   await within(page.addInitScript(INIT), 30000, 'addInitScript');
   const logs = [];
+  holder.logs = logs;
   page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));
   page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
   const args = [...sc.args, ...vargs];
@@ -171,7 +180,7 @@ async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, var
     }
   }
   r.missing = [...(sc.expect ?? []).filter((e) => idx(e) < 0), ...(sc.to && (!(r.end?.n >= 2) || r.late) ? [sc.to] : [])];
-  r.errs = logs.filter((l) => /^\[(error|pageerror)\]/.test(l) || /ERROR/.test(l)).slice(0, 5);
+  r.errs = logs.filter(isErr).slice(0, 5);
   r.warns = logs.filter((l) => /^\[warning\]/.test(l)).length;
   const m = r.main ?? {};
   r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ${timedOut ? 'TIMED OUT ' : ''}main ${m.fps} fps p95 ${m.p95_ms} max ${m.max_ms} slowest ${m.slowest_s}@${m.slowest_at}s perf_min ${r.perf_min_fps}`
@@ -195,8 +204,9 @@ for (const bname of cfg.browsers) {
               try {
                 r = await run(b.browser, bname, rep, sc, size, build, base, vname, vargs, holder);
               } catch (e) {
-                r = { browser: bname, rep, build, variant: vname, scenario: sc.name, size: `${size[0]}x${size[1]}@${size[2] ?? 1}`, error: String(e), failed: !!e.failed, missing: [] };
-                r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ERROR ${e.message}`;
+                const errs = (holder.logs ?? []).filter(isErr).slice(0, 5);
+                r = { browser: bname, rep, build, variant: vname, scenario: sc.name, size: `${size[0]}x${size[1]}@${size[2] ?? 1}`, error: String(e), failed: !!e.failed || errs.length > 0, errs, missing: [] };
+                r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ERROR ${e.message}` + (errs.length ? ` | errs ${errs.length}` : '');
               }
               r.attempt = attempt;
               const again = !!r.error && !r.failed && attempt < retries;
