@@ -52,7 +52,7 @@ function fakePage(evaluate) {
   };
 }
 
-test('measurement and hitch snapshots have deadlines when the page stops answering', async () => {
+test('measurement and hitch snapshots have deadlines when the page stops answering', { timeout: 1000 }, async () => {
   let calls = 0;
   const measured = fakePage(() => ++calls === 1 ? Promise.resolve() : new Promise(() => {}));
   await assert.rejects(captureMeasure(measured, 'http://example.invalid/', 0, 0, 5), /PERF snapshot: no answer/);
@@ -76,7 +76,7 @@ test('measurement and hitch captures reject WebGL warnings from the actual log p
   await assert.rejects(captureHitch(hitched, 'http://example.invalid/', 12, 5), /INVALID_ENUM/);
 });
 
-test('a stuck browser close is killed and kill failures are not hidden', async () => {
+test('a stuck browser close is killed and kill failures are not hidden', { timeout: 1000 }, async () => {
   let killed = 0;
   const holder = { server: { close: () => new Promise(() => {}),
     kill: async () => { killed++; } } };
