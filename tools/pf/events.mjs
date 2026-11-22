@@ -3,27 +3,31 @@
 // Usage: node events.mjs '<json config>'
 // config: {browsers:["firefox"], builds:{name:baseUrl}, sizes:[[w,h,dpr]], variants:{name:[args]},
 //          scenarios:[{name, args:[], from:"run_ended", secs:8, pre:4, before:"area coast", to:"game_over",
-//          within:15, expect:["disaster_started ufo"]}] or a file of them, such as "tools/pf/ends.json", reps:1,
-//          timeout:90, retries:1, out:"file.jsonl"}
+//          within:15, timeout:420, expect:["disaster_started ufo"], windows:[{at:"area rural", pre:6, secs:2}]}]
+//          or a file of them, such as "tools/pf/ends.json", reps:1, timeout:90, retries:1, out:"file.jsonl"}
 // A browser is "firefox" or "chrome"; another name stops the script with 2.
 // An event matches a PFEVENT line whose text after "PFEVENT " is the event, or starts with it and a space.
 // Each run loads a build with a scenario's args and a variant's, waits for the event `from`, then `secs`
 // more. It reports the page's frames over three windows: from the event to `secs` after it ("main"), the
 // `pre` seconds before it, and with `before`, from that event's first line to `from`. Each window gives
 // the rate, its frames over its whole time, so that a stall at an edge counts, the median, P95, P99 and
-// longest frame, and the slowest of its whole seconds; "main" also the probe's slowest PERF line.
-// With `to`, it waits for that event after `from`, and reports the frames between them
-// ("end"), and the slowest of the probe's PERF lines whose 1 s windows lie wholly between them, those
-// after the first that closes after `from`. `missing` lists the events of `expect` that the run didn't
-// print, such as another legend's, and `to` if it didn't follow `from` within `within` seconds by their
-// lines' times: such a run doesn't count, and the script exits 1 once all have run, as it does if a run
-// timed out, logged an error or had a step that didn't answer. A step that doesn't answer, as when
-// Firefox stops answering, starts the browser again and runs the run again, up to `retries` times; each
-// attempt is written, the failed ones with `error`. Each wait has a deadline of its own, as Playwright's
-// doesn't fire once the page stops answering while it polls; and a run whose wait timed out, or that
-// logged an error, has failed even if a later step doesn't answer, so it doesn't run again.
-// A browser that won't close is killed, and one that won't die stops the script with 1, as it could
-// slow the runs after it.
+// longest frame, and the slowest of its whole seconds; "main" also the probe's slowest PERF line. With
+// `to`, it waits for that event after `from`, and reports the frames between them ("end"), and the
+// slowest of the probe's PERF lines whose 1 s windows lie wholly between them, those after the first that
+// closes after `from`. `missing` lists the events of `expect` that the run didn't print, such as another
+// legend's, the events of `windows` that it didn't print, and `to` if it didn't follow `from` within
+// `within` seconds by their lines' times: such a run doesn't count, and the script exits 1 once all have
+// run, as it does if a run timed out, logged an error or had a step that didn't answer. A step that
+// doesn't answer, as when Firefox stops answering, starts the browser again and runs the run again, up to
+// `retries` times; each attempt is written, the failed ones with `error`. The wait for `from` lasts up to
+// `timeout` seconds, or a scenario's own if longer, as for ends.json's whole runs, of about 270 s. Each
+// wait has a deadline of its own, as Playwright's doesn't fire once the page stops answering while it
+// polls; and a run whose wait timed out, or that logged an error, has failed even if a later step doesn't
+// answer, so it doesn't run again. A browser that won't close is killed, and one that won't die stops the
+// script with 1, as it could slow the runs after it.
+// `windows` reports, for each such event, the frames from `pre` seconds before its first line to `secs`
+// after, as the windows above, and the slowest of the PERF lines whose 1 s windows lie wholly within:
+// in ends.json's whole runs, the way from each area into the next, by the tunnel, the bridge or Last Gas.
 // PLAYWRIGHT_MODULE: Playwright's index.mjs, if `playwright` isn't importable; CHROME: Chrome's path.
 import fs from 'node:fs';
 const { chromium, firefox } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
@@ -124,11 +128,12 @@ async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, var
   const args = [...sc.args, ...vargs];
   await within(page.goto(base + '?' + args.map((x) => 'arg=' + encodeURIComponent(x)).join('&')), 60000, 'goto');
   const secs = sc.secs ?? 8, pre = sc.pre ?? 4, from = sc.from ?? 'run_ended', toMs = (sc.within ?? 15) * 1000;
+  const fromMs = Math.max(timeout, (sc.timeout ?? 0) * 1000);
   let timedOut = false, late = false;
   // A TimeoutError is the page's answer; the deadline's error, a step that didn't answer.
   const wait = (p, ms) => within(p, ms + 15000, 'waitForFunction');
   try {
-    await wait(page.waitForFunction((e) => window.__events.some(([, s]) => s === e || s.startsWith(e + ' ')), from, { polling: 250, timeout }), timeout);
+    await wait(page.waitForFunction((e) => window.__events.some(([, s]) => s === e || s.startsWith(e + ' ')), from, { polling: 250, timeout: fromMs }), fromMs);
   } catch (e) {
     if (e.name !== 'TimeoutError') throw e;
     timedOut = true;
@@ -179,13 +184,23 @@ async function run(browser, bname, rep, sc, [w, h, dpr], build, base, vname, var
       if (tt - tf > toMs) r.late = true;
     }
   }
-  r.missing = [...(sc.expect ?? []).filter((e) => idx(e) < 0), ...(sc.to && (!(r.end?.n >= 2) || r.late) ? [sc.to] : [])];
+  r.windows = (sc.windows ?? []).map((w) => {
+    const i = idx(w.at);
+    if (i < 0) return { at: w.at, absent: true };
+    const t = events[i][0], a = t - w.pre * 1000, b = t + w.secs * 1000;
+    const lines = perf.filter(([pt]) => pt - 1000 >= a && pt <= b);
+    return { at: w.at, t: +((t - t0) / 1000).toFixed(2), ...stats(frames, a, b),
+      perf_min_fps: lines.length ? Math.min(...lines.map(([, f]) => f)) : null,
+      perf_max_p95: lines.length ? Math.max(...lines.map(([, , q]) => q)) : null, perf_n: lines.length };
+  });
+  r.missing = [...(sc.expect ?? []).filter((e) => idx(e) < 0), ...(sc.windows ?? []).filter((w) => idx(w.at) < 0).map((w) => w.at), ...(sc.to && (!(r.end?.n >= 2) || r.late) ? [sc.to] : [])];
   r.errs = logs.filter(isErr).slice(0, 5);
   r.warns = logs.filter((l) => /^\[warning\]/.test(l)).length;
   const m = r.main ?? {};
   r.log = `${bname} ${build} ${vname} ${sc.name} ${r.size}: ${timedOut ? 'TIMED OUT ' : ''}main ${m.fps} fps p95 ${m.p95_ms} max ${m.max_ms} slowest ${m.slowest_s}@${m.slowest_at}s perf_min ${r.perf_min_fps}`
     + (r.pre ? ` | pre ${r.pre.fps}` : '') + (r.before ? ` | before ${r.before.fps} (${r.before.secs}s)` : '')
     + (r.end ? ` | end ${r.end.fps} fps (${r.end.secs}s) slowest ${r.end.slowest_s} perf_min ${r.end_perf_min_fps}/${r.end_perf_n}` : '')
+    + r.windows.filter((w) => !w.absent).map((w) => ` | ${w.at}: ${w.fps} fps p95 ${w.p95_ms} slowest ${w.slowest_s} perf_min ${w.perf_min_fps}/${w.perf_n}`).join('')
     + (r.missing.length ? ` | MISSING ${r.missing.join(', ')}` : '') + (r.late ? ' (LATE)' : '')
     + ` | ${r.events.map(([t, s]) => `${t}:${s}`).join(' ')} | errs ${r.errs.length} warns ${r.warns} | ${(Date.now() - tr) / 1000}s`;
   return r;
