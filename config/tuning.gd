@@ -1,6 +1,13 @@
 class_name Tuning
 ## Global tuning constants (IMPLEMENTATION_PLAN.md D11). Per-area values live in areas/*.tres.
 
+## The counter's raw-frame window and early-frame boundary (PERF_PLAN.md §5.1).
+const FPS_WINDOW_SECONDS := 1.0
+const FPS_EARLY_MS := 12.5
+## Readings round away from the 60 fps reference; a long stall must still fit the counter.
+const FPS_REFERENCE := 60.0
+const FPS_MAX_P95_MS := 999
+
 ## Half-width of the road capsules, in tiles (D4).
 const ROAD_HALF_WIDTH := 0.32
 ## Correct-path tiles kept generated ahead of the car's tile after start() and every refill.

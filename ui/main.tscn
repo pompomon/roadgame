@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://ui/game_over.tscn" id="7_game_over"]
 [ext_resource type="PackedScene" path="res://ui/title_screen.tscn" id="8_title"]
 [ext_resource type="Script" path="res://world/daylight.gd" id="9_daylight"]
+[ext_resource type="PackedScene" path="res://ui/frame_counter.tscn" id="10_counter"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -42,4 +43,7 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 
 [node name="Title" parent="UI" instance=ExtResource("8_title")]
+unique_name_in_owner = true
+
+[node name="FrameCounter" parent="." instance=ExtResource("10_counter")]
 unique_name_in_owner = true

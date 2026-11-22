@@ -42,6 +42,7 @@ func test_json_round_trip() -> void:
 	data.unlock_disaster(&"ufo")
 	data.set_setting("music", 0.3)
 	data.set_setting("orientation", "landscape")
+	data.set_setting("fps", true)
 	var again := SaveData.new()
 	assert_eq(again.load_json(data.to_json()), SaveData.Status.LOADED)
 	assert_eq(again.problems, PackedStringArray())
@@ -465,8 +466,20 @@ func test_set_setting_takes_only_what_the_setting_can_be() -> void:
 	assert_true(data.set_setting("sfx", 0))
 	assert_typeof(data.settings["sfx"], TYPE_FLOAT)
 	assert_true(data.set_setting("haptics", false))
+	assert_true(data.set_setting("fps", true))
 	var bad: Array[Array] = [["music", 2.0], ["music", "max"], ["orientation", "up"], ["zoom", 1.0]]
 	for setting: Array in bad:
 		assert_false(data.set_setting(setting[0], setting[1]), str(setting))
 	assert_push_error_count(bad.size())
 	assert_eq(data.settings["music"], SaveData.DEFAULT_SETTINGS["music"])
+
+
+func test_a_v5_save_without_fps_keeps_the_default_and_rejects_a_non_bool() -> void:
+	var data := SaveData.new()
+	assert_eq(data.load_json('{"version":5,"settings":{"music":0.5}}'), SaveData.Status.LOADED)
+	assert_false(data.settings["fps"])
+	assert_eq(data.settings["music"], 0.5)
+	assert_eq(data.problems, PackedStringArray())
+	assert_eq(data.load_json('{"version":5,"settings":{"fps":1}}'), SaveData.Status.LOADED)
+	assert_false(data.settings["fps"])
+	assert_eq(data.problems, PackedStringArray(["settings.fps"]))

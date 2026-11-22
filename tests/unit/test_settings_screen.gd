@@ -43,6 +43,7 @@ func test_it_shows_the_saved_settings_and_changes_nothing() -> void:
 	SaveService.set_setting("music", 0.25)
 	SaveService.set_setting("haptics", false)
 	SaveService.set_setting("orientation", "landscape")
+	SaveService.set_setting("fps", true)
 	var settings := _settings()
 	watch_signals(SaveService)
 	settings.open()
@@ -52,6 +53,7 @@ func test_it_shows_the_saved_settings_and_changes_nothing() -> void:
 	assert_eq(_slider(settings, "ambient").value, 0.8)
 	assert_false((settings.get_node("%Haptics") as CheckButton).button_pressed)
 	assert_eq((settings.get_node("%Orientation") as OptionButton).selected, 2)
+	assert_true((settings.get_node("%Fps") as CheckButton).button_pressed)
 	assert_true(_slider(settings, "music").has_focus())
 	assert_signal_not_emitted(SaveService, "settings_changed", "opening changes nothing")
 
@@ -64,11 +66,23 @@ func test_each_control_changes_its_setting() -> void:
 		assert_eq(SaveService.setting(key), 0.5, key)
 	(settings.get_node("%Haptics") as CheckButton).button_pressed = false
 	assert_eq(SaveService.setting("haptics"), false)
+	(settings.get_node("%Fps") as CheckButton).button_pressed = true
+	assert_eq(SaveService.setting("fps"), true)
 	var orientation: OptionButton = settings.get_node("%Orientation")
 	for index: int in [1, 2, 0]:
 		orientation.select(index)
 		orientation.item_selected.emit(index)
 		assert_eq(SaveService.setting("orientation"), SaveData.ORIENTATIONS[index])
+
+
+func test_show_fps_has_its_accessible_name_and_saves_both_states() -> void:
+	var settings := _settings()
+	settings.open()
+	var fps: CheckButton = settings.get_node("%Fps")
+	assert_eq(fps.accessibility_name, "Show FPS")
+	for on: bool in [true, false]:
+		fps.button_pressed = on
+		assert_eq(SaveService.setting("fps"), on)
 
 
 func test_closing_writes_the_changes_at_once() -> void:
