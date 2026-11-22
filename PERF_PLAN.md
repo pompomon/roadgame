@@ -246,7 +246,7 @@ Fixes from the prototype's build, the internal review (§4.4), the owner's answe
 
 ### 4.4 Internal review
 
-A model of another family reviewed this plan and the prototype fifteen times (`AGENTS.md` §5 step 1), from c5bfd9f to 29ea230. Of its 91 findings, 78 were valid and 13 valid in part; each was checked against the code or a new measurement.
+A model of another family reviewed this plan and the prototype fifteen times (`AGENTS.md` §5 step 1), from c5bfd9f to 29ea230. Of its 91 findings, 79 were valid and 12 valid in part; each was checked against the code or a new measurement.
 
 ---
 
