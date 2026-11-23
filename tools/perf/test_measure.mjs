@@ -52,6 +52,22 @@ function fakePage(evaluate) {
   };
 }
 
+test('hitch capture waits for a recorded closing frame after the wall clock passes the end',
+  { timeout: 1000 }, async () => {
+    const window = { __engineStart: 0, __frames: [11990] };
+    const performance = { now: () => 12200 };
+    const evaluate = (fn, arg) => new Function('window', 'performance', 'arg', `return (${fn})(arg);`)(
+      window, performance, arg,
+    );
+    const page = fakePage(async (fn) => evaluate(fn));
+    page.waitForFunction = async (fn, arg) => {
+      if (!evaluate(fn, arg)) window.__frames.push(12200);
+      assert.ok(evaluate(fn, arg));
+    };
+    const data = await captureHitch(page, 'http://example.invalid/', 12, 5);
+    assert.deepEqual(frameIntervals(data.frames, data.start, 7, 12), [[11990, 210]]);
+  });
+
 test('measurement and hitch snapshots have deadlines when the page stops answering', { timeout: 1000 }, async () => {
   let calls = 0;
   const measured = fakePage(() => ++calls === 1 ? Promise.resolve() : new Promise(() => {}));

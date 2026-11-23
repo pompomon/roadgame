@@ -30,8 +30,10 @@ export async function capturePage(page, url, end, timeoutMs = 30000) {
   await within(page.goto(url), 60000, 'page.goto');
   await within(page.waitForFunction(() => window.__engineStart !== null, null, { timeout: 60000 }),
     75000, 'engine start');
-  await within(page.waitForFunction((end) => performance.now() >= window.__engineStart + end * 1000,
-    end + 0.1, { timeout: 60000 }), 75000, 'hitch window');
+  await within(page.waitForFunction((end) => {
+    const frames = window.__frames;
+    return frames.length > 0 && frames[frames.length - 1] > window.__engineStart + end * 1000;
+  }, end, { timeout: 60000 }), 75000, 'hitch closing frame');
   const data = await within(page.evaluate(() => ({
     frames: window.__frames, start: window.__engineStart,
   })), timeoutMs, 'hitch snapshot');
