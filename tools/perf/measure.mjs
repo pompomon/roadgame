@@ -40,13 +40,13 @@ const INIT = `
   window.__perfStop = () => { rec = false; return { frames, lines }; };
 })();`;
 
-function pageStats(frames) {
+export function pageStats(frames) {
   if (frames.length < 2) throw new Error('No page frames in the recording');
   const intervals = frames.slice(1).map((t, i) => t - frames[i]);
   intervals.sort((a, b) => a - b);
   const rank = (p) => intervals[Math.max(0, Math.ceil(p * intervals.length) - 1)];
   return { page_fps: intervals.length * 1000 / (frames.at(-1) - frames[0]),
-    med_ms: rank(0.5), p95_ms: rank(0.95), p99_ms: rank(0.99), max_ms: intervals.at(-1) };
+    page_med_ms: rank(0.5), page_p95_ms: rank(0.95), page_p99_ms: rank(0.99), page_max_ms: intervals.at(-1) };
 }
 
 export async function capturePage(page, url, warm = 6, secs = 15, timeoutMs = 30000) {
@@ -113,7 +113,8 @@ export async function main(cfg) {
                   dev: logs.find((l) => l.includes('OpenGL API')) ?? '' };
                 fs.appendFileSync(out, JSON.stringify(r) + '\n');
                 console.log(`${bname} ${build} ${sc.area} h${sc.hour} ${r.size}: ${r.fps.toFixed(3)} game fps; `
-                  + `${r.page_fps.toFixed(2)} page fps; p95 ${r.p95_ms.toFixed(2)} ms; errors ${errs.length}; warnings ${warns.length}`);
+                  + `page diagnostics: ${r.page_fps.toFixed(2)} fps, P95 ${r.page_p95_ms.toFixed(2)} ms; `
+                  + `errors ${errs.length}; warnings ${warns.length}`);
                 if (errs.length) throw new Error(`${build} logged errors: ${errs.join('\n')}`);
               } finally {
                 await within(ctx.close(), 30000, 'context.close');
