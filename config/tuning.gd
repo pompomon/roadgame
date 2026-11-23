@@ -7,6 +7,19 @@ const FPS_EARLY_MS := 12.5
 ## Readings round away from the 60 fps reference; a long stall must still fit the counter.
 const FPS_REFERENCE := 60.0
 const FPS_MAX_P95_MS := 999
+## Native and Web pacing (PERF_PLAN.md §5.4).
+const MAX_FPS := 60
+const GATE_STEPS := 30
+const GATE_CALIBRATION := 8
+const GATE_PERCENTILE := 0.1
+const GATE_GAP_MS := 100.0
+const GATE_RANGE := 0.25
+const GATE_MARGIN := 1.05
+const GATE_HYSTERESIS := 1.02
+const GATE_SHORT_RATIO := 1.5
+const GATE_SHORT_MS := 1.5
+## Freed prop rows retired per rendered update (PERF_PLAN.md §5.3).
+const HIDE_ROWS_PER_FRAME := 2
 
 ## Half-width of the road capsules, in tiles (D4).
 const ROAD_HALF_WIDTH := 0.32

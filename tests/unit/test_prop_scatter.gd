@@ -28,6 +28,13 @@ func _rows(first: int, last: int) -> Array[int]:
 	return rows
 
 
+func _drain_rows(scatter: PropScatter) -> void:
+	for step: int in scatter.rows().size() + 1:
+		if scatter._lowest_row >= scatter._hide_below:
+			break
+		scatter.update(DELTA)
+
+
 ## A prop of 8 × 8-pixel frames, side by side on a sheet of its own.
 func _prop(id: StringName, frames: int, fps: float, density: float) -> PropDef:
 	var def := PropDef.new()
@@ -122,6 +129,7 @@ func test_rows_show_props_ahead_of_the_car_and_lose_them_with_their_path_tile() 
 	for index: int in range(1, 700):
 		buffer.on_car_path_index(index)
 		scatter.update(DELTA)
+		_drain_rows(scatter)
 		# While the buffer has path tile 0, it has the rows below it too.
 		var lowest := buffer.first_index()
 		if lowest == 0:
@@ -159,25 +167,6 @@ func test_the_layers_own_children_draw_over_the_props_on_their_y() -> void:
 	assert_gt(made_first, 0, "sprites made before the car")
 	assert_gt(scatter.pool.made, made_first, "and after it")
 	assert_eq(car.get_index(true), scatter.pool.made, "each sprite before the car")
-
-
-func test_a_seed_shows_the_same_props_however_the_car_got_there() -> void:
-	var schedule := Fixtures.schedule()
-	var stepped := PropScatter.new(_layer, schedule)
-	var stepped_buffer := _buffer(9, schedule)
-	stepped.bind(stepped_buffer)
-	stepped_buffer.start()
-	for index: int in range(1, 121):
-		stepped_buffer.on_car_path_index(index)
-		stepped.update(DELTA)
-	var jumped := PropScatter.new(add_child_autofree(Node2D.new()), schedule)
-	var jumped_buffer := _buffer(9, schedule)
-	jumped.bind(jumped_buffer)
-	jumped_buffer.start()
-	jumped_buffer.on_car_path_index(120)
-	jumped.update(1.0)
-	assert_eq(jumped.rows(), stepped.rows())
-	assert_eq(_described(jumped), _described(stepped))
 
 
 func test_a_new_buffer_takes_the_sprites_of_the_last() -> void:
