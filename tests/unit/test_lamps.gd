@@ -90,16 +90,16 @@ func test_the_lamps_draw_as_one_group_that_adds_over_the_veil() -> void:
 	_lamps.refresh(_cycle(22.0))
 	assert_true(_lamps.visible, "at night")
 	assert_eq(_lamps.modulate, Color.WHITE, "lit by self_modulate alone")
-	var items: Array[CanvasItem] = [lit.sprite]
-	for glow: Sprite2D in lit.sprite.get_children():
-		items.append(glow)
+	var items := Lamps.parts(lit)
 	assert_eq(items.size(), 3)
-	for item: CanvasItem in items:
-		assert_null(item.material, "%s: the group's blend" % item)
-		assert_false(item.use_parent_material, "%s" % item)
-		assert_eq(item.z_index, 0, "%s: in the group" % item)
-		assert_true(item.z_as_relative, "%s" % item)
-		assert_eq(item.modulate, Color.WHITE, "%s" % item)
+	for part: Dictionary in items:
+		var item: RID = part["item"]
+		assert_true(item.is_valid())
+		assert_eq(part["modulate"], Color.WHITE)
+	assert_eq(items[0]["parent"], _lamps.get_canvas_item())
+	for part: Dictionary in items.slice(1):
+		assert_eq(part["parent"], lit.item)
+		assert_ne(part["item"], lit.item, "each glow is a child item")
 
 
 func test_each_light_and_pool_glows_where_its_prop_puts_it() -> void:
@@ -107,52 +107,64 @@ func test_each_light_and_pool_glows_where_its_prop_puts_it() -> void:
 	var prop := _prop(def, Vector2(100, 50))
 	var lit := _lamps.add(def, prop)
 	assert_same(lit.prop, prop)
-	assert_eq(lit.sprite.position, Vector2(100, 50), "on the prop's foot")
-	assert_eq(lit.sprite.texture, def.texture)
-	assert_eq(lit.sprite.region_rect, prop.region_rect)
-	assert_eq(lit.sprite.offset, prop.offset)
-	assert_eq(lit.sprite.self_modulate, Color.BLACK, "a silhouette, which hides what is behind it")
-	var glows := lit.sprite.get_children()
+	var silhouette := Lamps.parts(lit)[0]
+	var transform: Transform2D = silhouette["transform"]
+	assert_eq(transform.origin, Vector2(100, 50), "on the prop's foot")
+	assert_eq(silhouette["rect"], Rect2(-4, -8, 8, 8))
+	assert_eq(silhouette["region"], Rect2(0, Lamps.ATLAS_Y, 8, 8))
+	assert_eq(silhouette["color"], Color.BLACK, "a silhouette")
+	var glows := Lamps.parts(lit).slice(1)
 	assert_eq(glows.size(), 2)
 	if glows.size() == 2:
-		var light: Sprite2D = glows[0]
-		var pool: Sprite2D = glows[1]
-		assert_eq(light.position, Vector2(6, -35), "the light's centre, from the foot")
-		assert_eq(light.scale, Vector2(12, 10) / 64.0, "it fills its box")
-		assert_eq(light.self_modulate, Color.WHITE)
-		assert_eq(pool.position, Vector2(6, 0), "the pool's centre")
-		assert_eq(pool.scale, Vector2(1.0, 0.5))
-		assert_almost_eq(pool.self_modulate.a, Tuning.LAMP_POOL_SHARE, 1e-6, "a pool is fainter")
-		for glow: Sprite2D in [light, pool]:
-			assert_eq(glow.texture, Lamps.GLOW)
+		var light: Dictionary = glows[0]
+		var pool: Dictionary = glows[1]
+		var light_transform: Transform2D = light["transform"]
+		var pool_transform: Transform2D = pool["transform"]
+		assert_eq(light_transform.origin, Vector2(6, -35), "the light's centre, from the foot")
+		assert_eq(light_transform.get_scale(), Vector2(12, 10) / 64.0)
+		assert_eq(light["color"], Color.WHITE)
+		assert_eq(pool_transform.origin, Vector2(6, 0), "the pool's centre")
+		assert_eq(pool_transform.get_scale(), Vector2(1.0, 0.5))
+		var pool_color: Color = pool["color"]
+		assert_almost_eq(pool_color.a, Tuning.LAMP_POOL_SHARE, 1e-6, "a pool is fainter")
+		for index: int in glows.size():
+			assert_eq(glows[index]["draw_index"], index)
+			assert_eq(glows[index]["rect"], Rect2(-32, -32, 64, 64))
+			assert_eq(glows[index]["region"], Rect2(0, 0, 64, 64))
 	# A prop without lights hides the glows behind it. One that lies flat hides none, and has a
 	# silhouette only for its lights.
 	var dark := _def(&"dark", 4)
 	var turning := _prop(dark, Vector2(0, 40))
 	turning.frame = 2
 	var shade := _lamps.add(dark, turning)
-	assert_eq(shade.sprite.self_modulate, Color.BLACK)
-	assert_eq(shade.sprite.get_child_count(), 0)
-	assert_eq(shade.sprite.hframes, 4)
-	assert_eq(shade.sprite.frame, 2, "in the prop's frame")
+	assert_eq(Lamps.parts(shade).size(), 1)
+	assert_eq(Lamps.parts(shade)[0]["color"], Color.BLACK)
+	assert_eq(Lamps.parts(shade)[0]["region"], Rect2(16, Lamps.ATLAS_Y, 8, 8), "the prop's frame")
 	var flat := _def(&"flat")
 	flat.shadow = PropDef.Shadow.NONE
 	assert_null(_lamps.add(flat, _prop(flat, Vector2.ZERO)), "a flat prop without lights")
 	var lit_flat := _lamp()
 	lit_flat.shadow = PropDef.Shadow.NONE
 	var clear := _lamps.add(lit_flat, _prop(lit_flat, Vector2(0, 30)))
-	assert_eq(clear.sprite.self_modulate.a, 0.0, "a flat prop hides nothing")
-	assert_eq(clear.sprite.get_child_count(), 2, "but lights")
+	assert_eq(Lamps.parts(clear).size(), 2, "a flat prop has only its lights")
+	for part: Dictionary in Lamps.parts(clear):
+		assert_ne(part["item"], clear.item, "no silhouette command")
 	assert_eq(_lamps.shown().size(), 3)
 
 
-## The props whose silhouettes draw, in the order they draw: Lamps' children that show, in order.
-func _drawn(silhouettes: Dictionary[Sprite2D, Sprite2D]) -> Array[Sprite2D]:
+## The props whose silhouettes draw, by their items' draw-index keys.
+func _drawn(silhouettes: Dictionary[RID, Sprite2D]) -> Array[Sprite2D]:
 	var drawn: Array[Sprite2D] = []
-	for child: Sprite2D in _lamps.get_children(true):
-		if child.visible:
-			drawn.append(silhouettes[child])
+	var ordered := _lamps.shown()
+	ordered.sort_custom(_key_before)
+	for lit: Lamps.Lit in ordered:
+		assert_eq(lit.drawn.index, lit.key, "the root index issued as props come, go and return")
+		drawn.append(silhouettes[lit.item])
 	return drawn
+
+
+static func _key_before(a: Lamps.Lit, b: Lamps.Lit) -> bool:
+	return a.key < b.key
 
 
 ## The props of `shown` in the order Props draws them: by y, and if that is the same, in the order
@@ -192,11 +204,11 @@ func test_the_silhouettes_draw_in_the_order_props_draws_the_props() -> void:
 		var swapped := props[i]
 		props[i] = props[j]
 		props[j] = swapped
-	var silhouettes: Dictionary[Sprite2D, Sprite2D] = {}
+	var silhouettes: Dictionary[RID, Sprite2D] = {}
 	var lits: Array[Lamps.Lit] = []
 	for prop: Sprite2D in props:
 		var lit := _lamps.add(defs[0] if prop.texture == defs[0].texture else defs[1], prop)
-		silhouettes[lit.sprite] = prop
+		silhouettes[lit.item] = prop
 		lits.append(lit)
 	var shown: Array[Sprite2D] = props.duplicate()
 	assert_eq(_drawn(silhouettes), _y_sorted(shown), "as they came")
@@ -209,7 +221,7 @@ func test_the_silhouettes_draw_in_the_order_props_draws_the_props() -> void:
 		var prop := lits[i].prop
 		prop.position.y = 4 * rng.randi_range(0, 9)
 		var again := _lamps.add(defs[0] if prop.texture == defs[0].texture else defs[1], prop)
-		silhouettes[again.sprite] = prop
+		silhouettes[again.item] = prop
 		shown.append(prop)
 	assert_eq(_drawn(silhouettes), _y_sorted(shown), "as some came again")
 	var lamps: Array[Sprite2D] = []
@@ -224,19 +236,22 @@ func test_silhouettes_are_used_again_with_their_glows() -> void:
 	var dark := _def(&"dark")
 	_lamps.add(dark, _prop(dark, Vector2(0, 5)))
 	_lamps.remove(first)
+	assert_false(first.drawn.visible, "the item is hidden, not only removed from the list")
 	_lamps.remove(first)
 	_lamps.remove(null)
-	assert_false(first.sprite.visible, "hidden")
+	assert_false(_lamps.shown().has(first), "hidden")
 	assert_eq(_lamps.shown().size(), 1, "once")
 	var again := _lamps.add(def, _prop(def, Vector2(10, 10)))
-	assert_same(again.sprite, first.sprite, "the lamp's again")
-	assert_true(again.sprite.visible)
-	assert_eq(again.sprite.position, Vector2(10, 10))
-	assert_eq(again.sprite.get_child_count(), 2, "with its glows")
-	assert_eq(_lamps.get_child_count(true), 2)
-	assert_ne(_lamps.add(dark, _prop(dark, Vector2(0, 20))).sprite, first.sprite, "another prop's")
-	assert_eq(_lamps.get_child_count(true), 3)
-	assert_eq(_lamps.get_child_count(), 0, "its own parts, which simulate() walks past (C20)")
+	assert_eq(again.item, first.item, "the lamp's item again")
+	assert_ne(again, first, "a new handle, so an old remove cannot hide the new prop")
+	assert_true(_lamps.shown().has(again))
+	assert_true(again.drawn.visible, "the reused item is visible again")
+	assert_eq(again.position, Vector2(10, 10))
+	assert_eq(again.glow_items, first.glow_items, "with its glows")
+	assert_eq(_lamps._items.size(), 4, "no more items on reuse")
+	assert_ne(_lamps.add(dark, _prop(dark, Vector2(0, 20))).item, first.item, "another prop's")
+	assert_eq(_lamps._items.size(), 5)
+	assert_eq(_lamps.get_child_count(true), 0, "no per-prop nodes (PERF_PLAN.md Y3)")
 
 
 func test_out_by_day_and_without_a_clock_and_on_at_night() -> void:
@@ -266,7 +281,7 @@ func test_a_glow_never_adds_more_than_the_veil_takes_away() -> void:
 	for quarter: int in 96:
 		var cycle := _cycle(quarter / 4.0)
 		_lamps.refresh(cycle)
-		lit += 1 if _lamps.visible else 0
+		lit += 1 if _lamps.self_modulate.a > 0.0 else 0
 		for channel: int in 3:
 			if cycle.light[channel] + _added()[channel] > 1.0 + 1e-6:
 				over.append("%.2f h, channel %d" % [quarter / 4.0, channel])
@@ -321,3 +336,198 @@ func test_the_lamps_fade_on_once_a_day_and_out_once() -> void:
 	night.enter(120.0)
 	var back := "out as the clock goes back, on, out: turns, jumps"
 	assert_eq(_turns(night, ceili(120.0 / DELTA)), Vector2i(2, 0), back)
+
+
+func test_keys_never_repeat_when_neighbours_need_a_relabel() -> void:
+	var def := _def(&"dark")
+	var first := _lamps.add(def, _prop(def, Vector2(0, 0)))
+	var last := _lamps.add(def, _prop(def, Vector2(0, 2)))
+	first.key = 0
+	last.key = 1
+	Lamps._index_item(first.drawn, first.key)
+	Lamps._index_item(last.drawn, last.key)
+	_lamps.add(def, _prop(def, Vector2(0, 1)))
+	var previous := -Lamps.KEY_MOST - 1
+	var seen: Dictionary[int, bool] = {}
+	for lit: Lamps.Lit in _lamps.shown():
+		assert_gt(lit.key, previous)
+		assert_eq(Lamps.parts(lit)[0]["draw_index"], lit.key, "the key issued to the item")
+		assert_false(seen.has(lit.key))
+		assert_lte(absi(lit.key), Lamps.KEY_MOST)
+		seen[lit.key] = true
+		previous = lit.key
+
+
+func test_keys_relabel_before_they_leave_the_draw_index_range() -> void:
+	var def := _def(&"dark")
+	var first := _lamps.add(def, _prop(def, Vector2.ZERO))
+	first.key = -Lamps.KEY_MOST
+	Lamps._index_item(first.drawn, first.key)
+	_lamps.add(def, _prop(def, Vector2(0, -1)))
+	var shown := _lamps.shown()
+	assert_lt(shown[0].key, shown[1].key)
+	for lit: Lamps.Lit in shown:
+		assert_lte(absi(lit.key), Lamps.KEY_MOST)
+		assert_eq(Lamps.parts(lit)[0]["draw_index"], lit.key, "the relabel issued to the item")
+
+
+func test_a_frame_change_redraws_the_silhouette_region() -> void:
+	var def := _def(&"turning", 4)
+	var lit := _lamps.add(def, _prop(def, Vector2.ZERO))
+	var before: Rect2 = Lamps.parts(lit)[0]["region"]
+	Lamps.show_frame(lit, 2)
+	assert_eq(lit.frame, 2)
+	assert_ne(Lamps.parts(lit)[0]["region"], before)
+	assert_eq(Lamps.parts(lit)[0]["region"], Rect2(16, Lamps.ATLAS_Y, 8, 8))
+	assert_eq(_lamps._items.size(), 1, "the same item")
+
+
+func test_a_bad_frame_reports_the_error_and_keeps_what_was_drawn() -> void:
+	var def := _def(&"turning", 4)
+	var lit := _lamps.add(def, _prop(def, Vector2.ZERO))
+	var before := Lamps.parts(lit)
+	Lamps.show_frame(lit, -1)
+	Lamps.show_frame(lit, 4)
+	assert_push_error_count(2)
+	assert_eq(lit.frame, 0)
+	assert_eq(Lamps.parts(lit), before)
+
+
+func test_a_fade_modulates_the_parent_item_and_resets_on_reuse() -> void:
+	var def := _lamp()
+	var lit := _lamps.add(def, _prop(def, Vector2.ZERO))
+	Lamps.fade(lit, 0.3)
+	assert_almost_eq(lit.alpha, 0.3, 1e-6)
+	var modulate_color: Color = Lamps.parts(lit)[0]["modulate"]
+	assert_almost_eq(modulate_color.a, 0.3, 1e-6)
+	_lamps.remove(lit)
+	var again := _lamps.add(def, _prop(def, Vector2.ZERO))
+	assert_eq(again.alpha, 1.0)
+	_lamps.remove(lit)
+	assert_true(_lamps.shown().has(again), "a stale handle cannot remove a reused item")
+
+
+func test_one_combined_texture_preserves_and_shares_the_atlas_and_glow_pixels() -> void:
+	var def := _lamp()
+	var art := def.texture.get_image()
+	art.set_pixel(3, 4, Color.BLUE)
+	def.texture = ImageTexture.create_from_image(art)
+	var other := _def(&"other")
+	other.texture = def.texture
+	var first := _lamps.add(def, _prop(def, Vector2.ZERO))
+	var second := _lamps.add(other, _prop(other, Vector2(0, 10)))
+	assert_same(first.atlas, second.atlas, "one texture per original atlas")
+	var combined := first.atlas.get_image()
+	assert_eq(combined.get_pixel(3, Lamps.ATLAS_Y + 4), Color.BLUE)
+	var glow := Lamps.GLOW.get_image()
+	glow.convert(Image.FORMAT_RGBA8)
+	assert_eq(combined.get_pixel(32, 32), glow.get_pixel(32, 32))
+
+
+func _view_lamps(size := Vector2i(360, 640)) -> Lamps:
+	var view := SubViewport.new()
+	view.size = size
+	add_child_autofree(view)
+	var group := Lamps.new()
+	view.add_child(group)
+	return group
+
+
+func test_the_group_hides_without_a_glow_near_the_view() -> void:
+	var group := _view_lamps()
+	var dark := _def(&"dark")
+	group.add(dark, _prop(dark, Vector2.ZERO))
+	group.refresh(_cycle(22.0))
+	assert_false(group.visible, "only black silhouettes add no light")
+	var def := _lamp()
+	var lit := group.add(def, _prop(def, Vector2(2000, 2000)))
+	group.refresh(_cycle(22.0))
+	assert_false(group.visible, "the glow is far outside the view")
+	group.remove(lit)
+	group.add(def, _prop(def, Vector2(100, 50)))
+	group.refresh(_cycle(22.0))
+	assert_true(group.visible)
+
+
+func test_the_cull_follows_a_moved_camera() -> void:
+	var group := _view_lamps()
+	var def := _lamp()
+	group.add(def, _prop(def, Vector2(2000, 2000)))
+	var camera := Camera2D.new()
+	camera.position = Vector2(2000, 2000)
+	group.get_viewport().add_child(camera)
+	camera.force_update_scroll()
+	group.refresh(_cycle(22.0))
+	assert_true(group.visible, "in the moved camera's view")
+	camera.position = Vector2(5000, 5000)
+	camera.force_update_scroll()
+	group.refresh(_cycle(22.0))
+	assert_false(group.visible, "out of the camera's view")
+
+
+func test_a_glow_just_past_the_view_edge_keeps_the_group_visible() -> void:
+	var group := _view_lamps()
+	var def := _def(&"edge")
+	def.shadow = PropDef.Shadow.NONE
+	def.lights.append(Rect2(360.25, 50, 2, 2))
+	var lit := group.add(def, _prop(def, Vector2.ZERO))
+	group.refresh(_cycle(22.0))
+	assert_true(group.visible, "the snapped glow is just outside, within the margin")
+	group.remove(lit)
+	group.add(def, _prop(def, Vector2(4, 0)))
+	group.refresh(_cycle(22.0))
+	assert_false(group.visible, "past the margin")
+
+
+func test_the_cull_keeps_a_glow_visible_through_an_arrivals_fractional_zoom() -> void:
+	var group := _view_lamps(Vector2i(1137, 640))
+	var def := _lamp()
+	var centre := group.add(def, _prop(def, Vector2(2000, 2000)))
+	var camera := CameraRig.new()
+	camera.position = Vector2(2000, 2000)
+	group.get_viewport().add_child(camera)
+	camera.arrive(Rect2(-300, -200, 600, 400))
+	for step: int in 11:
+		camera._pan = step / 10.0
+		camera._update_zoom()
+		camera.force_update_scroll()
+		group.refresh(_cycle(22.0))
+		assert_true(group.visible, "arrival step %d, zoom %s" % [step, camera.zoom])
+		if step == 5:
+			assert_between(camera.zoom.x, 1.01, 1.99, "a fractional zoom")
+	group.remove(centre)
+	camera._pan = 0.5
+	camera._update_zoom()
+	camera.force_update_scroll()
+	var view := (
+		group.get_global_transform_with_canvas().affine_inverse() * group.get_viewport_rect()
+	)
+	var edge := _def(&"arrival_edge")
+	edge.shadow = PropDef.Shadow.NONE
+	edge.lights.append(Rect2(0, 0, 2, 2))
+	var near := group.add(edge, _prop(edge, Vector2(ceili(view.end.x), camera.position.y)))
+	var near_px := (near.glows.position.x - view.end.x) * camera.zoom.x
+	assert_between(near_px, 0.01, Tuning.LAMP_CULL_MARGIN_PX, "just outside in viewport pixels")
+	group.refresh(_cycle(22.0))
+	assert_true(group.visible, "the fractional-zoom margin keeps it")
+	group.remove(near)
+	var far_x := ceili(view.end.x + Tuning.LAMP_CULL_MARGIN_PX / camera.zoom.x)
+	var far := group.add(edge, _prop(edge, Vector2(far_x, camera.position.y)))
+	var gap := far.glows.position.x - view.end.x
+	assert_gt(gap * camera.zoom.x, Tuning.LAMP_CULL_MARGIN_PX, "past the viewport-pixel margin")
+	assert_lte(gap, Tuning.LAMP_CULL_MARGIN_PX, "but within a wrong group-unit margin")
+	group.refresh(_cycle(22.0))
+	assert_false(group.visible, "a group-unit margin would show it")
+
+
+func test_freeing_the_lamps_frees_their_items() -> void:
+	var group := Lamps.new()
+	add_child(group)
+	var def := _lamp()
+	group.add(def, _prop(def, Vector2.ZERO))
+	var items: Array[RID] = group._items.duplicate()
+	assert_eq(items.size(), 3)
+	group.free()
+	for item: RID in items:
+		RenderingServer.canvas_item_set_visible(item, true)
+	assert_engine_error_count(items.size())

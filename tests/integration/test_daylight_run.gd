@@ -346,7 +346,7 @@ func test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui() -> void:
 
 
 ## `node` and every canvas item under it, with the nodes' own parts: their internal children, as
-## the shadows' and the lamps' sprites are (C20).
+## the shadows' sprites are (C20); the lamps use RenderingServer items (PERF_PLAN.md §5.2).
 static func _items(node: Node) -> Array[CanvasItem]:
 	var found: Array[CanvasItem] = []
 	if node is CanvasItem:
@@ -400,7 +400,7 @@ func test_the_lamps_light_by_the_zones_clock() -> void:
 	var lamps: Lamps = world.get_node("%Lamps")
 	var glows := 0
 	for lit: Lamps.Lit in lamps.shown():
-		glows += lit.sprite.get_child_count()
+		glows += lit.glow_items.size()
 	assert_gt(glows, 20, "the City's lit windows and lamps")
 	assert_true(lamps.visible, "at night")
 	var strength := Lamps.strength(daylight.cycle.light)

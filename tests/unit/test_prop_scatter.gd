@@ -514,8 +514,10 @@ static func _distinct(values: Array[int]) -> int:
 static func _glowing(lamps: Lamps) -> PackedStringArray:
 	var glowing := PackedStringArray()
 	for lit: Lamps.Lit in lamps.shown():
-		for glow: Sprite2D in lit.sprite.get_children():
-			glowing.append(str(lit.sprite.position + glow.position))
+		for part: Dictionary in Lamps.parts(lit):
+			if part["item"] != lit.item:
+				var transform: Transform2D = part["transform"]
+				glowing.append(str(lit.position + transform.origin))
 	glowing.sort()
 	return glowing
 
@@ -524,7 +526,7 @@ static func _glowing(lamps: Lamps) -> PackedStringArray:
 static func _silhouettes(lamps: Lamps) -> PackedStringArray:
 	var silhouettes := PackedStringArray()
 	for lit: Lamps.Lit in lamps.shown():
-		silhouettes.append("%s %d" % [lit.sprite.position, lit.sprite.frame])
+		silhouettes.append("%s %d" % [lit.position, lit.frame])
 	silhouettes.sort()
 	return silhouettes
 
@@ -860,7 +862,7 @@ func test_see_through_props_fade_where_they_would_hide_the_car_or_a_legends_spri
 static func _unlike(lamps: Lamps) -> int:
 	var unlike := 0
 	for lit: Lamps.Lit in lamps.shown():
-		unlike += int(lit.sprite.modulate.a != lit.prop.modulate.a)
+		unlike += int(not is_equal_approx(lit.alpha, lit.prop.modulate.a))
 	return unlike
 
 

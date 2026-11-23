@@ -322,7 +322,7 @@ static func actor_rect(node: Node) -> Rect2:
 static func _show_alpha(shown: Shown, alpha: float) -> void:
 	shown.sprite.modulate.a = alpha
 	if shown.lit != null:
-		shown.lit.sprite.modulate.a = alpha
+		Lamps.fade(shown.lit, alpha)
 
 
 ## Shows prop `shown` in its frame at `clock` seconds of its clock, and notes when its next starts.
@@ -335,7 +335,7 @@ func _set_frame(shown: Shown, clock: float) -> void:
 	shown.next_frame_at = clock + (floorf(at) + 1.0 - at) / shown.def.fps - NEXT_FRAME_EARLY
 	if shown.sprite.frame != frame:
 		if shown.lit != null:
-			shown.lit.sprite.frame = frame
+			Lamps.show_frame(shown.lit, frame)
 		shown.sprite.frame = frame
 		if shown.cast != null:
 			shown.cast.sprite.frame = frame
