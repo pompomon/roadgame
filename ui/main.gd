@@ -97,6 +97,13 @@ func _ready() -> void:
 		SaveService.collect(collected)
 	_finish_turns = _parse_finish(args, _road)
 	_schedule = _run_schedule(_parse_area(args))
+	FramePacing.apply(
+		FramePacing.cap(
+			OS.has_feature("web"),
+			OS.has_feature("android"),
+			ViewSwitches.value("fpscap", args, query)
+		)
+	)
 	var start := Time.get_ticks_usec()
 	# Every area's, whichever a run starts in (docs/ZONE_SELECT.md Z2).
 	_world.build(_whole_schedule)

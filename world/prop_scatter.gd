@@ -3,8 +3,9 @@ extends RefCounted
 ## Scatters each area's props beside the road (plan.md §5.2, docs/M5.md §5.6) on World's Props
 ## layer, which y-sorts them with the car. Each screen row of the path gets its props from
 ## PropLayout once the car is PROP_AHEAD path tiles before the row's path tile, so a row at a time
-## as the car drives, and loses them when the buffer frees that tile. With BUFFER_BEHIND and
-## BUFFER_REFILL_AT, neither shows on the reference screens (docs/M5.md L2). The BUFFER_BEHIND rows
+## as the car drives, and retires them after the buffer frees that tile (PERF_PLAN.md §5.3).
+## With BUFFER_BEHIND and BUFFER_REFILL_AT, neither shows on the reference screens (docs/M5.md L2).
+## The BUFFER_BEHIND rows
 ## below the first path tile get the props of its area at the start, and lose them with it.
 ## WorldRenderer makes it, binds it with itself and updates it every frame. A see-through prop, such
 ## as the City's building, fades where it would hide the car or a legend's sprite on the layer
@@ -38,6 +39,7 @@ class Shown:
 ## night, by the rest clock; and those that are see-through.
 class Row:
 	extends RefCounted
+	var anchor: Vector2i
 	var shown: Array[Shown] = []
 	var animated: Array[Shown] = []
 	var resting: Array[Shown] = []
@@ -62,6 +64,7 @@ var _rows: Dictionary[int, Row] = {}
 ## The next row to get its props, and the lowest row that may still have them.
 var _next_row := 0
 var _lowest_row := 0
+var _hide_below := 0
 ## Seconds of animation since bind().
 var _clock := 0.0
 ## Seconds of animation since bind() of the props that rest at night (docs/HEADLIGHTS.md §5.5),
@@ -100,6 +103,7 @@ func bind(buffer: RoadBuffer) -> void:
 	_pier = null
 	_first_area = buffer.generator.first_area().id
 	_lowest_row = -Tuning.BUFFER_BEHIND if buffer.first_index() == 0 else buffer.first_index()
+	_hide_below = _lowest_row
 	_next_row = _lowest_row
 	_clock = 0.0
 	_rest_clock = 0.0
@@ -117,6 +121,7 @@ func bind(buffer: RoadBuffer) -> void:
 func update(delta: float, cycle: DayCycle = null) -> void:
 	if _buffer == null:
 		return
+	_hide_rows()
 	_show_rows()
 	_clock += delta
 	var rate := 0.0 if cycle != null and DayCycle.night_at(cycle.hour()) else 1.0
@@ -162,8 +167,15 @@ func _on_tiles_generated(_tiles: Array[RoadTile]) -> void:
 
 
 func _on_tiles_freed(_tiles: Array[RoadTile]) -> void:
-	while _lowest_row < _buffer.first_index():
-		_hide_row(_lowest_row)
+	_hide_below = maxi(_hide_below, _buffer.first_index())
+
+
+func _hide_rows() -> void:
+	var left := Tuning.HIDE_ROWS_PER_FRAME
+	while _lowest_row < _hide_below and left > 0:
+		if _rows.has(_lowest_row):
+			_hide_row(_lowest_row)
+			left -= 1
 		_lowest_row += 1
 
 
@@ -173,7 +185,7 @@ func _show_rows() -> void:
 	var last := mini(
 		_buffer.car_index() + Tuning.PROP_AHEAD, _buffer.last_index() - PropLayout.rows_needed()
 	)
-	_next_row = maxi(_next_row, _lowest_row)
+	_next_row = maxi(_next_row, _hide_below)
 	while _next_row <= last:
 		_show_row(_next_row)
 		_next_row += 1
@@ -182,6 +194,8 @@ func _show_rows() -> void:
 ## The cell of row `k` that its props spread either side of: its path tile's, or below the start,
 ## the cell of the row that is closest to below path tile 0's, on (0, 0).
 func anchor(k: int) -> Vector2i:
+	if _rows.has(k):
+		return _rows[k].anchor
 	if k >= 0:
 		return _buffer.path_tile(k).cell
 	var below := -k
@@ -194,8 +208,9 @@ func _show_row(k: int) -> void:
 	if _props.has(area):
 		props = _props[area]
 	var row := Row.new()
+	row.anchor = anchor(k)
 	for placement: PropLayout.Placement in PropLayout.row(
-		anchor(k), props, _buffer.generator.props_seed, _buffer
+		row.anchor, props, _buffer.generator.props_seed, _buffer
 	):
 		if _at_sea(placement.foot):
 			continue
