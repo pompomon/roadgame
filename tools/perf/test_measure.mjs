@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { capturePage as captureMeasure, gameRate } from './measure.mjs';
-import { eventRate, perfWindow } from './events.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { capturePage as captureMeasure, gameRate, pageStats as measurePageStats } from './measure.mjs';
+import { eventRate, perfWindow, pageStats as eventPageStats } from './events.mjs';
 import { capturePage as captureHitch, frameIntervals } from './hitch.mjs';
 import { close, isError, within } from './browser.mjs';
 
@@ -23,6 +28,31 @@ test('a way in excludes a long PERF window that started before its boundary', ()
 test('end rates count engine frames between ordered events', () => {
   assert.equal(eventRate({ at: 1000, frames: 20 }, { at: 2100, frames: 75 }).fps, 50);
   assert.throws(() => eventRate({ at: 2100, frames: 75 }, { at: 1000, frames: 20 }), /forward/);
+});
+
+test('page diagnostics remain distinct from engine rates in both paths and the table output', () => {
+  const frames = Array.from({ length: 101 }, (_, i) => i * 10);
+  const measured = { ...measurePageStats(frames), ...gameRate(['PERF fps=50 n=50 us=1000000']) };
+  const ended = { ...eventPageStats(frames, 0, 1000),
+    ...eventRate({ at: 0, frames: 0 }, { at: 1000, frames: 50 }) };
+  for (const record of [measured, ended]) {
+    assert.equal(record.fps, 50);
+    assert.equal(record.page_fps, 100);
+    assert.equal(record.page_p95_ms, 10);
+    for (const name of ['med_ms', 'p95_ms', 'p99_ms', 'max_ms']) assert.equal(record[name], undefined);
+  }
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-page-diagnostics-'));
+  const file = path.join(directory, 'record.jsonl');
+  try {
+    fs.writeFileSync(file, JSON.stringify({ ...measured, browser: 'firefox', build: 'sample',
+      area: 'city', hour: 7, size: '360x640@1', early_per_s: 0, perf: { draws: 1 }, errs: [], warns: 0 }) + '\n');
+    const output = execFileSync('python3', [fileURLToPath(new URL('./tab.py', import.meta.url)), file], { encoding: 'utf8' });
+    assert.match(output, /game 50\.000000 fps/);
+    assert.match(output, /page diagnostics: 100\.00 fps, P95 10\.00 ms/);
+  } finally {
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    fs.rmdirSync(directory);
+  }
 });
 
 test('hitches that cross either window boundary retain their entire frame interval', () => {
