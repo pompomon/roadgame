@@ -35,14 +35,14 @@ const INIT = `
 
 const matches = (s, event) => s === event || s.startsWith(event + ' ');
 
-function pageStats(frames, a, b) {
+export function pageStats(frames, a, b) {
   const f = frames.filter((t) => t > a && t <= b);
   if (f.length < 2) return { page_fps: 0, page_n: f.length };
   const intervals = f.slice(1).map((t, i) => t - f[i]).sort((x, y) => x - y);
   const q = (p) => intervals[Math.max(0, Math.ceil(p * intervals.length) - 1)];
   return { page_fps: f.length * 1000 / (b - a), page_n: f.length,
-    med_ms: q(0.5), p95_ms: q(0.95),
-    max_ms: Math.max(intervals.at(-1), f[0] - a, b - f.at(-1)) };
+    page_med_ms: q(0.5), page_p95_ms: q(0.95),
+    page_max_ms: Math.max(intervals.at(-1), f[0] - a, b - f.at(-1)) };
 }
 
 export async function main(cfg) {
