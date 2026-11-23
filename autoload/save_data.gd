@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS := {
 	"ambient": 0.8,
 	"haptics": true,
 	"orientation": "sensor",
+	"fps": false,
 }
 ## The settings that are volumes, from 0 to 1.
 const VOLUMES: Array[String] = ["music", "sfx", "ambient"]

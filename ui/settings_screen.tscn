@@ -96,6 +96,16 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="FpsLabel" type="Label" parent="Margin/Box/List"]
+layout_mode = 2
+text = "Show FPS"
+
+[node name="Fps" type="CheckButton" parent="Margin/Box/List"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+accessibility_name = "Show FPS"
+
 [node name="Back" type="Button" parent="Margin/Box"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 48)
