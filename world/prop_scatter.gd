@@ -3,7 +3,7 @@ extends RefCounted
 ## Scatters each area's props beside the road (plan.md §5.2, docs/M5.md §5.6) on World's Props
 ## layer, which y-sorts them with the car. Each screen row of the path gets its props from
 ## PropLayout once the car is PROP_AHEAD path tiles before the row's path tile, so a row at a time
-## as the car drives, and retires them after the buffer frees that tile (PERF_PLAN.md §5.3).
+## as the car drives, and retires them after the buffer frees that tile (docs/PERF.md §5.3).
 ## With BUFFER_BEHIND and BUFFER_REFILL_AT, neither shows on the reference screens (docs/M5.md L2).
 ## The BUFFER_BEHIND rows
 ## below the first path tile get the props of its area at the start, and lose them with it.

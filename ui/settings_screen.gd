@@ -2,7 +2,7 @@ class_name SettingsScreen
 extends MenuScreen
 ## The settings (plan.md §2.6, IMPLEMENTATION_PLAN.md M5.5): the volumes of the music, the sound
 ## effects and the ambient sound, vibration, the screen's orientation and Show FPS
-## (PERF_PLAN.md §5.1). Each change goes to
+## (docs/PERF.md §5.1). Each change goes to
 ## SaveService at once, which writes it SETTINGS_SAVE_DELAY after the last change, or when the
 ## screen closes. AudioDirector applies the volumes as they change (M5.3); vibration and the
 ## orientation take effect in M7 (M7.1, M7.2). Like the HUD, its text uses only characters in

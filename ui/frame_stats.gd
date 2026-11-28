@@ -1,6 +1,6 @@
 class_name FrameStats
 extends RefCounted
-## Raw frame intervals, not Godot's smoothed delta (PERF_PLAN.md §5.1).
+## Raw frame intervals, not Godot's smoothed delta (docs/PERF.md §5.1).
 
 const USEC_PER_SECOND := 1000000
 

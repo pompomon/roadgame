@@ -19,7 +19,7 @@ extends Node
 ## and Keep Driving's endless road too (§5.12, §5.13). --collected=<id> marks each legend of that
 ## area's pool seen, in the save in use, and --collected=all every pool's, for checks of the Book's
 ## seals and of a full Book (§5.7), which brings the Vanishing Hitchhiker to the Road Home (§5.17).
-## --fps, or ?fps on the Web, shows the frame counter and logs its readings (PERF_PLAN.md §5.1).
+## --fps, or ?fps on the Web, shows the frame counter and logs its readings (docs/PERF.md §5.1).
 
 ## Android's back button on the title screen. _ready() connects it to quitting the game.
 signal quit_requested

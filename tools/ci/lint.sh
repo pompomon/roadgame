@@ -80,7 +80,7 @@ if [ "${#gameplay_dirs[@]}" -gt 0 ]; then
 fi
 
 if command -v shellcheck > /dev/null 2>&1; then
-  shellcheck -x tools/ci/*.sh tools/agent/*.sh
+  shellcheck -x tools/ci/*.sh tools/agent/*.sh tools/perf/*.sh
 else
   echo "warning: shellcheck not found; shell scripts not checked" >&2
 fi

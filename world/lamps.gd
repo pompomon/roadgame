@@ -16,7 +16,7 @@ extends CanvasGroup
 ##
 ## PropScatter adds and removes the props with their sprites, and shows their frames. WorldRenderer
 ## refreshes them every frame. RenderingServer items share one texture per atlas, and the group
-## hides while no glow is near the view (PERF_PLAN.md §5.2). Rects may be redrawn on the Web; only
+## hides while no glow is near the view (docs/PERF.md §5.2). Rects may be redrawn on the Web; only
 ## polygons must not be (docs/M2.md §5.7). A see-through prop's silhouette fades with it
 ## (docs/VISUALS.md §5.9), so that it hides as little of the glows behind it as the prop does of
 ## what is behind it, and its own glows dim with it.
@@ -154,7 +154,7 @@ func shown() -> Array[Lit]:
 	return _order.duplicate()
 
 
-## The rect commands and transforms the items draw (PERF_PLAN.md §5.2).
+## The rect commands and transforms the items draw (docs/PERF.md §5.2).
 static func parts(lit: Lit) -> Array[Dictionary]:
 	var found: Array[Dictionary] = []
 	if lit.def.shadow != PropDef.Shadow.NONE:

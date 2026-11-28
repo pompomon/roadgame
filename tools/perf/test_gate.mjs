@@ -1,4 +1,4 @@
-// Run the shipping gate against a seeded browser/60 Hz physics simulation (PERF_PLAN.md §5.4).
+// Run the shipping gate against a seeded browser/60 Hz physics simulation (docs/PERF.md §5.4).
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';

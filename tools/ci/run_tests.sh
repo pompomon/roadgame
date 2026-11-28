@@ -36,5 +36,9 @@ total=$(sed -n 's/.*<testsuites[^>]* tests="\([0-9][0-9]*\)".*/\1/p' "$junit" | 
 [ "${total:-0}" -gt 0 ] || { echo "::error::GUT ran 0 tests"; exit 1; }
 fail_on "ObjectDB instances? (was|were) leaked|resources? still in use at exit" "$log" \
   "Objects leaked at exit: a cycle of RefCounted references, or a node that is never freed"
+# The RenderingServer only warns of its items left at exit: '1 RID of type "CanvasItem" was
+# leaked.', or '2 RIDs ... were leaked.' (docs/PERF.md N8).
+fail_on '[0-9]+ RIDs? of type "[^"]+" (was|were) leaked' "$log" \
+  "RenderingServer items leaked at exit: free each RID that the code creates (docs/PERF.md N8)"
 check_scratch_save "The tests" "$log"
 echo "GUT: $total tests passed"

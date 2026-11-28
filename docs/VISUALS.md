@@ -6,7 +6,7 @@ Done, 2026-11-14 to 2026-11-16: the plan PR #85, then two stacked PRs, #93 (PR 1
 
 Nothing else changes, nor what a seed plays. The exit criteria, E1–E13: the wheels roll forward with the car (E1–E3); lots, the City's buildings along its streets, none in another, and the other areas' props as before (E4–E7, E12); the fade (E13); the docs and the checks (E10, E11). All are met but E9 on the Fold4, with E8's frame rate (§7).
 
-- **E8.** The cost, on the desktop: a frame of the City at most 1.7 ms more CPU than `main`'s by day and 5.3 ms at night (P15), a row 1.8 ms (P17), the fade 46 µs (P14). The Fold4's frame rate is read, not a blocker.
+- **E8.** The cost, on the desktop: a frame of the City at most 1.7 ms more CPU than `main`'s by day and 5.3 ms at night (P15), a row 1.8 ms (P17), the fade 46 µs (P14). The Fold4's frame rate is read, against `docs/PERF.md` E1 since PF.
 - **E9.** By hand, in the City by day and at night, on the Web in Chrome and Firefox (P18) and on both of the Fold4's screens: the wheels turn forward at every speed and stop with the car; no building stands in another or on the road; one over the car fades, and comes back as the car leaves it; nothing flickers; no error.
 
 ## 2. Findings
@@ -18,9 +18,9 @@ Nothing else changes, nor what a seed plays. The exit criteria, E1–E13: the wh
 - **A5.** Densities were per cell. **Δ docs/M5.md §5.6:** per lot of the prop's size, adding up to 1 at most for each size apart (§5.4).
 - **A6.** Lots must move nothing else. A lot of one cell has its cell's own hash, in `main`'s loop (P2, §5.4).
 - **A7.** The City's props took GUT from 91 s to 118 s. The pool's sprites are internal children, which `simulate()` skips (docs/DAYNIGHT.md C20): 86 s (§5.5).
-- **A8.** On an internal child `get_index()` is an error that returns −1, and `get_children()` and `get_child_count()` leave it out. `Lamps` reads the props with `get_index(true)` and orders its canvas items by keys (§5.5; PERF_PLAN.md §5.2).
+- **A8.** On an internal child `get_index()` is an error that returns −1, and `get_children()` and `get_child_count()` leave it out. `Lamps` reads the props with `get_index(true)` and orders its canvas items by keys (§5.5; docs/PERF.md §5.2).
 - **A9.** Whether the car drew over a prop on its y depended on when the prop was made. With `INTERNAL_MODE_FRONT` it always does (§5.5).
-- **A10.** `Lamps`' insert of each silhouette cost more with more props. PF replaced node moves with draw-index keys (PERF_PLAN.md Y9, §5.2).
+- **A10.** `Lamps`' insert of each silhouette cost more with more props. PF replaced node moves with draw-index keys (docs/PERF.md Y9, §5.2).
 - **A11.** A row of the City shows in 1.45 ms, against 0.90 (P17). Left as it is (§5.6).
 - **A12.** The City's street props are 35–42% fewer, and move, as buildings take their cells and their shares of each hash (P16). Kept (Q4).
 - **A13.** Four phases alias: a true wheel turns 5.8 times a tile, which reads as backwards. Once a tile, and a phase a drawn frame at most (§5.1).
@@ -94,7 +94,7 @@ A prop takes a lot of `PropDef.lot` × `lot` ground cells, 1 by default, aligned
 
 ### 5.5 Internal props
 
-`PropScatter`'s pool holds its sprites as internal children of `Props`, `PropPool.new(layer, Node.INTERNAL_MODE_FRONT)`, as `Shadows` holds its own, so `simulate()` skips them (A7), and 1,200 frames of the City in Movie Maker stay the same bytes. `Lamps` reads the props' `get_index(true)` (A8) and orders its RenderingServer items by keys (PERF_PLAN.md §5.2). `_fade()` takes `get_children()`: the layer's own children, the actors, and no prop. Godot's y-sort draws a tie in the order of the children, internal ones included, so every prop draws before the car, its double and a legend's parts (A9).
+`PropScatter`'s pool holds its sprites as internal children of `Props`, `PropPool.new(layer, Node.INTERNAL_MODE_FRONT)`, as `Shadows` holds its own, so `simulate()` skips them (A7), and 1,200 frames of the City in Movie Maker stay the same bytes. `Lamps` reads the props' `get_index(true)` (A8) and orders its RenderingServer items by keys (docs/PERF.md §5.2). `_fade()` takes `get_children()`: the layer's own children, the actors, and no prop. Godot's y-sort draws a tie in the order of the children, internal ones included, so every prop draws before the car, its double and a legend's parts (A9).
 
 ### 5.6 The cost
 
@@ -122,7 +122,7 @@ A lot by a street shows its prop at `PropDef.street_density`, the others at `den
 **The fade (A17).** As the tunnel does (docs/M4.md K5), a see-through prop shows `PROP_SEE_THROUGH`, 0.2, of itself where it would hide the car's body or a legend's sprite on `Props`. `SeeThrough.opacity()` adds the gaps across and down between their rects, and how far the actor sorts in front of the prop's foot (A9); over `PROP_FADE_PX`, 48 px, `smoothstep()` brings it back, so nothing pops.
 - **The actors (A18).** `_fade()` takes the layer's own children (§5.5). `actor_rect()` gives the car's `body_rect()` or a sprite's rect, through its transform, and nothing for what doesn't show: not `visible`, alpha 0, or a scale under `HIDDEN_SCALE`, 1e-4, as Node2D keeps a zero scale at `CMP_EPSILON`.
 - **Which props.** `Row.fading` keeps a row's see-through props and frames, and `SeeThrough.rows()` names the rows in reach. A prop takes the least opacity that its actors ask.
-- **Its lights (A19).** `_show_alpha()` sets the prop's alpha and, through `Lamps.fade()`, its silhouette item's `modulate`, which its child glows inherit (PERF_PLAN.md §5.2). Nothing is redrawn by the fade (docs/M2.md §5.7).
+- **Its lights (A19).** `_show_alpha()` sets the prop's alpha and, through `Lamps.fade()`, its silhouette item's `modulate`, which its child glows inherit (docs/PERF.md §5.2). Nothing is redrawn by the fade (docs/M2.md §5.7).
 - **Visual only.** Nothing else reads the fade, and no RNG is drawn.
 
 ## 6. Verification

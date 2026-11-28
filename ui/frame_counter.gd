@@ -1,6 +1,6 @@
 class_name FrameCounter
 extends CanvasLayer
-## An opt-in counter of the game's frames, including while paused (PERF_PLAN.md §5.1).
+## An opt-in counter of the game's frames, including while paused (docs/PERF.md §5.1).
 ## Only --fps or ?fps adds the PERF and EVENT lines used by tools/perf/.
 
 var _stats := FrameStats.new()

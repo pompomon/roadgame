@@ -1,5 +1,5 @@
 extends GutTest
-## Deferred row retirement (PERF_PLAN.md §5.3).
+## Deferred row retirement (docs/PERF.md §5.3).
 
 const Fixtures := preload("res://tests/helpers/road_fixtures.gd")
 const DELTA := 1.0 / 60.0

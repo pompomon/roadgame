@@ -196,7 +196,7 @@ Each disaster is a self-contained scene (animation, GPU particles, shaders, soun
 - **Portrait is the default**: base resolution 360×640. Landscape: 640×360.
 - Orientation follows the device sensor and is handled at runtime.
 - **Foldables:** the reference Galaxy Z Fold4 has a tall, narrow cover screen (904×2316, about 23:9) and an almost square inner screen (2176×1812). Folding or unfolding during a run must re-layout the screen without restarting or resetting the run (handled with the same `size_changed` path). Godot's `expand` aspect setting fills the extra width or height with more of the world.
-- Godot stretch settings: mode `canvas_items`, aspect `expand`, integer scaling, nearest-neighbour filtering.
+- Godot stretch settings: mode `viewport`, aspect `expand`, integer scaling, nearest-neighbour filtering. The game draws at its own resolution, which the screen scales up (docs/PERF.md §5.5).
 - The camera zooms for each orientation to keep about 5 road tiles visible along the direction of travel. It looks ahead so the car sits in the lower third of the screen in portrait.
 - HUD anchors and touch zones re-layout on `size_changed`.
 
@@ -370,7 +370,7 @@ The file has a version number so it can be migrated when the format changes. Ver
 | Android | Godot Android export template, sensor orientation (portrait default), resizable activity for fold and unfold, haptics on damage and disaster. Reference device: **Samsung Galaxy Z Fold4** (modern Android phones in general) |
 | Web | **Single-threaded** export (no special cross-origin headers needed), audio starts after the first user input |
 
-**Performance:** not a blocker for the MVP. The informal target is a smooth 60 fps on the Galaxy Z Fold4. Profiling and optimisation happen after the MVP.
+**Performance:** each scene that a run reaches runs at 50 fps or more, with a P95 frame time of at most 25 ms, and a run's ends and the way into the City home at 40, in Chrome on both of the Galaxy Z Fold4's screens and in a desktop browser with a GPU (docs/PERF.md E1). The Web build and the APK aim at 60 fps (E6), and Settings → Show FPS shows the frame rate on any build.
 
 **Monetisation:** none. No ads, in-app purchases or store-driven features are planned.
 
