@@ -125,6 +125,10 @@ func _ready() -> void:
 	_title.road = _road
 	_title.start_area = _schedule.areas()[0]
 	_title.play_requested.connect(_play)
+	var root := get_tree().root
+	root.content_scale_mode = StretchSwitch.mode(
+		ViewSwitches.value("stretch", args, query), root.content_scale_mode
+	)
 	quit_requested.connect(get_tree().quit)
 	if _autopilot or args.has("--play"):
 		_start_run(_parse_seed(args))

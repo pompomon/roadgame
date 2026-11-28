@@ -1,6 +1,6 @@
 # Performance: 40–50 fps in the Browser — Detailed Plan
 
-Status: proposed. Written in autopilot mode, so each question of §3 holds its default; merging this plan's PR approves it with them · 2026-11-21 · Scope: the frame rate and frame pacing of the Web build and the APK, on the reference phone and on desktops, with a counter to read them. No change to gameplay, and none to the look but how a screen at a scale of 2 or more draws moving sprites (E4, E5)
+Status: approved in #124, with [the owner's approval of Q1–Q12's defaults](https://github.com/pompomon/roadgame/pull/124#issuecomment-7085918553). PRs 1–3 (#126–#128) are merged; PR 4 (#129) is implemented and owner-held, with shipping verification in §6.6 and the owner-only checks still required. PR 5 starts from `main` only after PR 4 merges. Written 2026-11-21; implementation sync 2026-11-23 · Scope: the frame rate and frame pacing of the Web build and the APK, on the reference phone and on desktops, with a counter to read them. No change to gameplay, and none to the look but how a screen at a scale of 2 or more draws moving sprites (E4, E5)
 
 The owner asked: "Explore the codebase and create a detailed implementation plan for performance optimisation - make sure the game is able to run on 40-50 fps in browser. Also in the summary provide a reference expectations of the phone fps for Fold4 for me to compare. Ask clarifying questions if needed". The clarifying questions are §3's Q1–Q12, each with a default, which this plan follows, and an alternative. §5.7 gives the Fold4's expected frame rates to compare with, and how to read them.
 
@@ -46,7 +46,7 @@ Goal: the game runs smoothly in a browser, and can show that it does. In every r
 |---|---|---|
 | E1 | Real devices (Y1, Y2; Q1). In Chrome on the Fold4, on both screens, and in a desktop browser with a GPU, its page 1280×720 at a pixel ratio of 1 (Y10), the counter (PR 1) shows at least 50 fps and a P95 of at most 25 ms in each of 10 readings in a row, one a second, in each real scene. On PR 4's CI build, served from the owner's computer before it lands, §7's URL starts each by the autopilot at its hour, and the readings start 6 s later. Against `main`'s, read by play on Pages after PR 1 lands: the City and the Village from 6 s into their zone, and Rural, the Meadows and the Desert within their night, 32.5 to 53.75 s into the zone (docs/SPEEDUP.md §5.3; §5.7). The ends, on PR 4's build: a legend in the City by day and one in Rural at night, and the arrivals from the Desert at night and home, show at least 40 fps (Q12) in each reading after the first that shows once the run has ended, until the game-over screen; and in whole runs out and home, at least 50 fps and a P95 of at most 25 ms in each reading of the approach but its first, from the Coast's banner until the run ends, and in each way in, the 6 `PERF` lines in the console before its `EVENT area` line and the 2 after (§5.1), but into the City home 40 fps and any P95 (Y11); one with no such reading is read again | The owner, §7's template; §6.4 |
 | E2 | The software proxy (Y1, Y2; Q1). In this VM's Firefox and Chrome (SwiftShader), at 360×640 and 60 Hz, at pixel ratios of 1 and 2, each PR's build runs against PR 1's, `main` with the counter, in the same session, in the five real scenes and the City at night. E2's floors, on PR 4's head: in Firefox, at both ratios, each real scene, the arrival's approach and each way in run at 50 fps or more, and the City at night, also on the way in home (Y11), and each end at 40 or more; in Chrome, at a pixel ratio of 2, each scene runs faster than on PR 1's build. E2's comparison, on each of PRs 2–4: no scene runs more than 1 fps slower than on PR 1's build, in the same browser at the same ratio. A run's rate is the game's frames over their time in the counter's `PERF` windows within its record, 15 s from 6 s after its start (`tools/perf/measure.mjs`), and a case's the mean of two runs; where that fails a check, each build runs the case twice more in the session, and the four runs' mean decides. The ends and ways in, which count only for Firefox's floors, are `tools/perf/ends.json`'s 18 cases: the 15 legends, each after a wrong or missed turn at its area's first junction, in its real scene's light, and the arrival with every legend, in whole runs out and home and at night from the Desert; there, a run's rate is the game's frames from `run_ended` to the game-over screen, and its approach's from the Coast's `area` line to `run_ended`, by their `EVENT` lines' counts, over the time between them, and a way in's, by the `PERF` windows wholly in the 8 s from 6 s before each `area` line of a whole run but its first (`events.mjs`), and a case's as above, each way in apart. E2 and E6 check rates and means unrounded. In P10, P20 and P21, the prototype with every lever met these floors, and in P10 the comparison against itself without them, but by the page's frames with Godot's limiter, one or two runs a case | §6.5 |
-| E3 | Hitches (Y4; Q7). The scatter hides at most `HIDE_ROWS_PER_FRAME`, 2, of the rows that frees release a frame, each within §5.3's bound, where frees overlap too; `bind()` hides the last run's at once. In the proxy's Firefox at 360×640, the City by day, no frame from 7 s to 12 s after the engine's first line, which holds the run's first free, takes over 25 ms, in each of 2 runs, while on PR 2's head, in the same session, one does in each (P13b) | `test_prop_scatter.gd` (PR 3); `tools/perf/hitch.mjs`, §6.5 |
+| E3 | Hitches (Y4; Q7). The scatter hides at most `HIDE_ROWS_PER_FRAME`, 2, of the rows that frees release a frame, each within §5.3's bound, where frees overlap too; `bind()` hides the last run's at once. In the proxy's Firefox at 360×640, the City by day, no frame from 7 s to 12 s after the engine's first line, which holds the run's first free, takes over 25 ms, in each of 2 runs, while on PR 2's head, in the same session, one does in each (P13b) | `test_prop_retirement.gd` (PR 3); `tools/perf/hitch.mjs`, §6.5, §6.6 |
 | E4 | No pixel changes at a scale of 1 (Q6). With the counter hidden, PRs 1, 2 and 3 change no pixel of 720 frames of a desktop run at 360×640, in the City at night and the Meadows by day and at night; nor PR 2 in a 1280×720 window's view, 1137×640 at zoom 2 (Y10), recorded at that size (PR 1's `movie.sh`), by day and at night, and in an arrival at night there, `--finish=<turns>` with `--hour=20`, whose zoom eases from 2 to 1 as the lamps fade (§5.2); and PR 4 none at 360×640, where both stretches render the same | Movie Maker and `tools/perf/diff_frames.py`, §6.5 |
 | E5 | The look at a scale of 2 or 3 (Q2). With the `viewport` stretch, the art keeps its pixels and the text its glyphs; moving sprites step by the game's pixel, ½ an art pixel at zoom 2 and 1 at zoom 1, not by the screen's (§5.5). The owner compares both stretches on both of the Fold4's screens with `?stretch=` | The owner, §7; screenshots at a pixel ratio of 2, §6.4 |
 | E6 | Pacing (Y5; Q3). The Web build and the APK aim at `MAX_FPS`, 60. The APK caps with `Engine.max_fps`. The Web runs the engine's frames at most once every n refreshes, n as §5.4 sets it, once it has read the screen's refresh. Headless runs, GUT, `smoke.sh` and Movie Maker don't cap. In the proxy's Firefox at 120 Hz, by the counter's `PERF` lines, each the mean of 2 runs, the City by day and the Meadows at night run at 60 ± 1 fps, with at most 2 frames a second `early`, a refresh after the last; the City at night, which can't hold 60, at most 1 fps under its uncapped rate; and at 60 Hz the City by day changes by at most 1 fps in either browser (P18). `--fpscap=` and `?fpscap=` change the cap, and 0 lifts it. On the Fold4, the APK reads 60 ± 1 fps with a P95 of 20 ms or less in 10 readings in play on each screen, each with the refresh that Developer options → Show refresh rate shows; readings at 60 Hz leave §8's 120 Hz risk untested, as it doesn't arise there | `test_frame_pacing.gd` and `tools/perf/test_gate.mjs` (PR 3); §6.5; the owner on the Fold4 |
@@ -157,7 +157,7 @@ Title `ui: a frame counter in Settings, with --fps and ?fps (PF PR 1)`. Branch `
 | Tools | `tools/perf/`, new: `measure.mjs`, `hitch.mjs`, `events.mjs`, `ends.json`, `tab.py`, `diff_frames.py` and `movie.sh`, from the prototype's `tools/pf/` (§6.5). `measure.mjs` records the state of PR 3's gate, `window.__framePacing`, where there is one, and takes a run's rate from the `PERF` lines after its record's first, whose window opened before it, until its end, as their `n` over their `us`, which `tab.py` shows (E2); `movie.sh` sets the size with a temporary `override.cfg`, as `--resolution` records the view's middle 360×640 (main.cpp :4840–4855), and checks the frames' size (E4); `hitch.mjs` times E3's window by the page's clock at the engine's first line, and fails a run without frames in it; `events.mjs` times E2's ends and ways in, `ends.json`'s cases, each with its own deadline, and counts their frames by the `EVENT` lines and the `PERF` windows, each the `us` before its line, and fails a run with an error line, without its case's legend, arrival, approach or `area` lines in order, or each way in wholly in its record, with a `PERF` window, or without `game_over` within 15 s of `run_ended`; a page that stops answering as it waits runs the run again, unless the run has failed |
 | Tests | `test_frame_stats.gd`, `test_view_switches.gd` and `test_frame_counter.gd`, new; `test_settings_screen.gd` and `test_save_data.gd`; `tools/perf/test_measure.mjs`, new, run with `node` (§5.6) |
 
-Expect, against `main` at e73f96d (§6.1): 6 more scripts loaded, 229, of which 3 are test scripts, 107; about 19 more tests; GUT within `main`'s time, and `main`'s `autopilot:` line, as the counter is off. Negative cases N1–N4, N17, N20 and N23–N26.
+Built: 229 scripts loaded, 107 test scripts, 945 tests and 524,568 asserts, 21 tests more than the baseline. The same `autopilot:` line, as the counter is off. All 24 controls passed, including N1–N4, N17, N20 and N24–N26; N23's three live event cases passed separately (§6.6).
 
 **Acceptance:** E8, and the counter for E1.
 
@@ -172,7 +172,7 @@ Title `world: draw the lamps as RenderingServer items, hidden while no glow is i
 | Tests | `test_lamps.gd`, and the 4 tests of `test_prop_scatter.gd`, `test_world_renderer.gd` and `test_daylight_run.gd` that read the lamps' nodes (P5; §5.6) |
 | Docs | docs/VISUALS.md and docs/M2.md, which describe the lamps' sprites (§5.8) |
 
-Expect: the same scripts; 9 tests in 4 scripts changed, as the suite with `rs,cull` failed them (P5), and about 9 more; the same `autopilot:` line; and the City at night's draw calls, against the prototype's 45 (P4). Negative cases N5–N8, N18 and N19.
+Built: the same 229 scripts and 107 test scripts, 956 tests and 524,777 asserts. The tests that read nodes now read issued item commands; 11 tests more than PR 1. The same `autopilot:` line. All 15 controls passed, including N5–N8, N18 and N19 (§6.6).
 
 **Acceptance:** E2's comparison, E4.
 
@@ -184,10 +184,10 @@ Title `world: hide two rows a frame, and cap the frame rate at 60 (PF PR 3)`. Br
 |---|---|
 | World | `world/prop_scatter.gd`: a freed row waits in `_hide_below` until it can go, and `update()` hides at most `HIDE_ROWS_PER_FRAME` a frame; `bind()` hides the old run's rows at once; each row keeps its anchor as it shows (§5.3) |
 | Pacing | `ui/frame_pacing.gd`, new: `FramePacing`, whose pure `cap()` gives 60 on the Web and Android, 0 elsewhere or what `fpscap` says, and whose `apply()` sets `Engine.max_fps`, or on the Web installs the gate of §5.4, `GATE_JS` with the values below written in (E6). `ui/main.gd`: applies it |
-| Values | `config/tuning.gd`: `HIDE_ROWS_PER_FRAME` 2 and `MAX_FPS` 60, and the gate's `GATE_MARGIN` 1.05, `GATE_STEPS` 30, `GATE_PERCENTILE` 0.1, `GATE_CALIBRATION` 8, `GATE_GAP_MS` 100, `GATE_RANGE` 0.25 and `GATE_HYSTERESIS` 1.02, each with its finding (§5.4) |
-| Tests | `test_prop_scatter.gd`; `test_frame_pacing.gd`, new; and `tools/perf/test_gate.mjs`, new, from the prototype's `sim_gate.mjs`, run with `node`: by hand with §6.1's checks, until PR 5 adds it to CI (§5.4, §5.6, §5.8) |
+| Values | `config/tuning.gd`: `HIDE_ROWS_PER_FRAME` 2 and `MAX_FPS` 60, and the gate's `GATE_MARGIN` 1.05, `GATE_STEPS` 30, `GATE_PERCENTILE` 0.1, `GATE_CALIBRATION` 8, `GATE_GAP_MS` 100, `GATE_RANGE` 0.25, `GATE_HYSTERESIS` 1.02, `GATE_SHORT_RATIO` 1.5 and `GATE_SHORT_MS` 1.5, each with its finding (§5.4) |
+| Tests | `test_prop_scatter.gd`; `test_prop_retirement.gd` and `test_frame_pacing.gd`, new; and `tools/perf/test_gate.mjs`, new, from the prototype's `sim_gate.mjs`, run with `node`: by hand with §6.1's checks, until PR 5 adds it to CI (§5.4, §5.6, §5.8) |
 
-Expect: 2 more scripts loaded, 231, of which 1 is a test script, 108; about 11 more tests; the same `autopilot:` line, as the scatter's pixels don't change (P14). Negative cases N9–N13, N16, N21, N22, N27 and N28.
+Built: 232 scripts loaded, 109 test scripts, 966 tests and 525,117 asserts, 10 tests more than PR 2. The retirement and dependent seed-equivalence tests use a new script because the original scatter test was at its 1,000-line lint limit. The same `autopilot:` line, as the scatter's pixels don't change. All 14 controls passed, including N9–N13, N16, N21, N22, N27 and N28 (§6.6).
 
 **Acceptance:** E2's comparison, E3, E4, and E6 on the Web.
 
@@ -201,7 +201,7 @@ Title `project: render at the game's own resolution and scale it up, the viewpor
 | UI | `ui/stretch_switch.gd`, new: `StretchSwitch`, whose pure `mode()` gives the mode that the switch `stretch` names, `canvas_items` or `viewport`, and the project's without it or with any other value. `ui/main.gd`: sets the root's mode from it at startup (Q2) |
 | Tests | `test_stretch_switch.gd`, new (§5.6) |
 
-Expect: 2 more scripts loaded, 233, of which 1 is a test script, 109; 3–4 more tests; the same `autopilot:` line. Negative case N14. Screenshots of both stretches at a pixel ratio of 2, and §6.4's input checks, on the PR; E1 and E5 on its CI build (§7).
+Built: 234 scripts loaded, 110 test scripts, 969 tests and 525,130 asserts, 3 tests more than PR 3. The same `autopilot:` line. N14 passed. Both stretches' four DPR2 screenshots are hosted on #129, and §6.4's DPR2/3 input checks passed; E1 and device E5 remain owner-only (§7).
 
 **Acceptance:** E1, E2, E4, E5, and E6 on the APK.
 
@@ -243,6 +243,11 @@ Fixes from the prototype's build, the internal review (§4.4), the owner's answe
 | 1 | The counter at the bottom left, as first planned, covered the HUD's `Info`, the version and the seed (§4.4). It sits at the bottom right, at the font's size, 8, as at the theme's 16 it would reach the `Back` buttons (§5.1) | `test_frame_counter.gd`: its rect against `Info`'s, `RouteStrip`'s and `Back`'s | N17, the bottom left; N20, the size 16 |
 | 4 | PR 4 first read the switch in `ViewSwitches` and tested it in `test_view_switches.gd`, PR 1's files, and so an add/add conflict once PR 1 squashes (§4.4); and its test read the helper, not the root. `StretchSwitch` and its test are PR 4's own, and the test reads `main.tscn`'s root | `test_stretch_switch.gd` | N14, `main.gd` without the switch |
 | 1 | `measure.mjs` recorded only error lines, while the browsers log WebGL's errors as warnings. It counts warnings too (P9) | §6.3 | None: a tool's report |
+| 1 | Shipping tests exercise the actual main's hidden and forced counter, signal wiring and a completed-window reset. Equal microsecond timestamps are valid zero intervals; negative intervals report an error | `test_frame_counter.gd`, `test_frame_stats.gd` | Runtime controls, included in PR 1's 24 |
+| 1 | Whole page intervals crossing either hitch-window edge are retained; capture waits for the recorded closing RAF timestamp, not the wall clock. Shared deadlines bound unanswered browser calls and teardown; WebGL error warnings are fatal | `tools/perf/test_measure.mjs`: the real capture paths, including the 11.99 s snapshot and 210 ms closing interval | Restoring each old predicate/deadline fails its regression |
+| 1 | Page intervals are diagnostics, not the engine's rate: all fields use `page_*`, and console/table label them. A regression preserves engine FPS 50 beside page FPS 100 | `tools/perf/test_measure.mjs`, executing `tab.py` too | Restoring either producer's old keys or dropping the table label |
+| 2 | Tests record issued visibility, draw index, silhouette colour and modulate, rather than reconstructing expected state. Reuse resets fade and visibility; the margin is measured in viewport pixels before inverse mapping | `test_lamps.gd` | Issued-command, reuse and fractional-zoom controls, included in PR 2's 15 |
+| 3 | Tests prove an actual 30 fps cadence at 60/120 Hz and running reinstalls 60→30 and 60→0, rather than only checking cap metadata | `tools/perf/test_gate.mjs` | A hard-coded 60 cap fails the cadence and reinstall cases |
 
 ### 4.4 Internal review
 
@@ -294,21 +299,22 @@ PR 3:
 - `update()`, each frame, first calls `_hide_rows()`, which hides rows from `_lowest_row` up to `_hide_below`, at most `Tuning.HIDE_ROWS_PER_FRAME`, 2, and then `_show_rows()` as now. The first free's 21 rows go in 11 frames, about 0.18 s. Rows go lowest first, so each freed row goes within ceil(w / 2) updates of its free, w being the rows then waiting up to and including it: a later free's row, as the car passes a tile, in the next frame, or behind the rows that still wait (`test_freed_rows_go_lowest_first_within_their_bound`; N22). The rows are 20 tiles behind the car, out of view, so no frame changes (P14).
 - `bind()`, as a run starts, hides the last run's rows at once, as now, and sets `_hide_below` to the new run's `_lowest_row`, so that rows −20 to −1 stay until the buffer frees tile 0 (§4.3; N10).
 - **`Row.anchor`.** Each row notes, as it shows, the cell that its props spread from, and `anchor(k)` gives it while the row shows, as a row that waits may have lost its path tile (§4.3; N11).
+- The budget counts actual row records, not missing index gaps. New rows clamp to the buffer's free boundary, not the lagging retirement cursor (`test_prop_retirement.gd`).
 
 ### 5.4 The cap (PR 3; Q3; Y5; E6)
 
 `FramePacing` (`ui/frame_pacing.gd`; Y5):
 
-- `static func cap(web: bool, android: bool, switch: String) -> int`: the switch `fpscap`'s value, if it is a whole number of 0 or more; otherwise `Tuning.MAX_FPS`, 60, on the Web and on Android, and 0, no cap, elsewhere: desktop builds, the editor, headless runs, GUT, `smoke.sh` and Movie Maker, which renders at its own fixed rate (N12).
-- `static func apply(cap: int) -> void`: on the Web, `Engine.max_fps = 0` and, for a cap over 0, the gate below; elsewhere `Engine.max_fps = cap`, whose limiter sleeps out the rest of each frame (os.cpp :708–741).
-- `static func gate_js(cap: int) -> String`: `GATE_JS` with the cap and `config/tuning.gd`'s `GATE_` values written in with `%`.
+- `static func cap(web: bool, android: bool, switch: String) -> int`: the switch `fpscap`'s value, if it is a whole number from 0 through the native setter's signed-32-bit maximum, 2,147,483,647. Empty selects `Tuning.MAX_FPS`, 60, on the Web and on Android, and 0, no cap, elsewhere: desktop builds, the editor, headless runs, GUT, `smoke.sh` and Movie Maker, which renders at its own fixed rate (N12). Invalid overrides report an error and keep that platform default.
+- `static func apply(limit: int) -> void`: on the Web, `Engine.max_fps = 0` and the gate below, including 0 to lift an installed gate; elsewhere `Engine.max_fps = limit`, whose limiter sleeps out the rest of each frame (os.cpp :708–741).
+- `static func gate_js(limit: int) -> String`: `GATE_JS` with the cap and `config/tuning.gd`'s `GATE_` values written in with `%`.
 - `main.gd`, before `_world.build()`, calls `FramePacing.apply(FramePacing.cap(OS.has_feature("web"), OS.has_feature("android"), ViewSwitches.value("fpscap", args, query)))`. With neither feature and no switch, a test's `main` sets 0, the default.
 
 **Why a gate on the Web.** Godot's Web build runs a frame in each `requestAnimationFrame` callback, and its limiter skips a callback while too little time has passed since the last frame, by `OS::get_ticks_usec()` read in the callback (web_main.cpp :80–103). Callbacks run a little early or late, so at 120 Hz some frames come 8.3 or 25 ms after the last instead of 16.7: 1.2–5.7 a second in Firefox in the City by day (P15). The gate decides by the callback's timestamp instead, the frame's own time, which steps by whole refreshes.
 
 **The gate,** which `apply()` runs once through `JavaScriptBridge.eval()`, wraps `window.requestAnimationFrame` and `cancelAnimationFrame`, which Emscripten's main loop calls (§8):
 
-- **It paces only the engine.** The first callback requested after the install is the runner, which the gate paces; any other goes straight to the browser. `main.gd`'s `_ready()`, which installs it, and `emscripten_set_main_loop`, which asks for the main loop's first frame, run in one call (web_main.cpp :165–175), so the runner is Emscripten's main loop while nothing between them asks for a frame (§8); the stock loader's progress frames (`index.js` :203, :670) come in callbacks of their own. Each request of the runner returns a handle of the gate's own, a negative number, which the wrapped `cancelAnimationFrame` maps to the browser's pending request, so a cancel after a skip still cancels. A second install only sets the cap, and a cap of 0 installs nothing. `window.__framePacing` holds the cap, the refresh, n and the frames skipped, which `measure.mjs` records (§6.5).
+- **It paces only the engine.** The first callback requested after the install is the runner, which the gate paces; any other goes straight to the browser. `main.gd`'s `_ready()`, which installs it, and `emscripten_set_main_loop`, which asks for the main loop's first frame, run in one call (web_main.cpp :165–175), so the runner is Emscripten's main loop while nothing between them asks for a frame (§8); the stock loader's progress frames (`index.js` :203, :670) come in callbacks of their own. Each request of the runner returns a handle of the gate's own, a negative number, which the wrapped `cancelAnimationFrame` maps to the browser's pending request, so a cancel after a skip still cancels. A second install retargets the running gate. Initial 0 installs nothing; reinstalling 0 lifts an existing cap. `window.__framePacing` holds the cap, the refresh, n and the frames skipped, which `measure.mjs` records (§6.5, §6.6).
 - **The refresh.** Each timestamp after the last distinct one adds its step, skipped frames' included, to the last `GATE_STEPS`, 30, however short (N27). A rough refresh is the upper median of the steps under max(1.5 × q, q + 1.5 ms), where q is their `GATE_PERCENTILE`, 0.1, quantile (N28). A step after a skipped callback is one refresh, as the game did no work in it: if the upper median of the last `GATE_CALIBRATION`, 8, is under ⅔ of the rough refresh, slow frames have hidden a faster screen, and it replaces it. Once 8 or more steps follow the last step over `GATE_GAP_MS`, 100, the refresh is fitted to their timestamps: of the whole numbers k of refreshes in their span that put span ÷ k within `GATE_RANGE`, 25%, of the rough refresh, the one whose lattice best lines up the timestamps, by the largest \|1 + Σ e^(2πi k t ÷ span)\|, gives span ÷ k. Rounding each step alone would miscount those that jitter takes past half a refresh, as with timestamps in whole milliseconds. A switch between 120 and 90 Hz takes effect within half a second (P17). While n is 1, the gate skips no callback, so frames slower than a refresh can hide a faster screen, and the game runs as uncapped: 80 fps after 60 → 240 Hz under 9 ms of work.
 - **The rule.** The gate first skips callbacks until it has 8 steps after a skip, or has skipped 16: about 8 refreshes, after a first frame that Godot runs outside the gate (web_main.cpp :178). At 30 steps it sets n = fit(`GATE_MARGIN`), where fit(m) = max(1, floor(m × 1000 ÷ refresh ÷ cap)) and `GATE_MARGIN` is 1.05; after that, n moves only as far as fit(1.05 ÷ `GATE_HYSTERESIS`) and fit(1.05 × `GATE_HYSTERESIS`) both say, with `GATE_HYSTERESIS` 1.02, so that a rate near a boundary doesn't flip it. A callback runs the game unless n > 1 and t − last < (n − ½) × refresh; then it asks for the next frame. So the game draws every n refreshes, at the screen's rate over a whole number: the fewest frames that keep 60 ÷ 1.05, 57 fps, or more as n is set, and 56 once it is (E6).
 
@@ -354,7 +360,7 @@ Names are proposals; each PR's count is in §4. Each negative case is in §6.2.
 | 1 | `tools/perf/test_measure.mjs`, new, run with `node` | `measure.mjs`'s and `events.mjs`'s exported rates, as they start browsers only when run: 50 frames in 1,000,200 µs, with `fps=49.9`, give 49.990002 fps, and with §5.1's line, Σn / Σus; a 1.01 s window ending 1.005 s into a way in is left out | N25 |
 | 2 | `test_lamps.gd` | Its 4 tests that read the silhouettes' and glows' nodes read `shown()` and `parts()`, and the veil's test reads the group's alpha (§5.2). New: each glow is a child item of its prop's, at its sprite's transform and index; the keys follow Props' order and never repeat, also after a relabel; a frame change redraws the silhouette; a fade sets the item's alpha; the group hides while no glow is within the margin of the view, with the camera moved, and shows for a glow just past the view's edge and through the arrival; an item is used again after `remove()`; and `test_freeing_the_lamps_frees_their_items` | N5–N8, N18, N19 |
 | 2 | `test_prop_scatter.gd` (2), `test_world_renderer.gd` (1), `test_daylight_run.gd` (1) | Read the items, not the nodes (P5) | — |
-| 3 | `test_prop_scatter.gd` | Its 2 tests of the rows that a free hides wait for the budget (P5). New: a free hides at most 2 rows a frame; freed rows go lowest first, each within §5.3's bound, also when a free comes while rows wait; rows below 0 stay while the buffer holds tile 0; a waiting row keeps its anchor, as `test_props_in_view.gd`'s 4 tests need (§4.3); `bind()` hides the last run's rows at once | N9–N11, N22 |
+| 3 | `test_prop_scatter.gd`, `test_prop_retirement.gd`, new | The scatter's 2 free tests wait for the budget. The new script checks §5.3's budget, overlap bound, startup boundary, cached anchors and bind reset, and owns the dependent jump/seed-equivalence test | N9–N11, N22 |
 | 3 | `test_frame_pacing.gd`, new | The Web and Android cap at 60; desktop and headless runs don't; `fpscap` sets the cap, 0 lifts it, and a value that isn't a whole number keeps the default; `apply()` sets `Engine.max_fps` off the Web, and the test restores it; `gate_js()` writes in the cap and the tuning's values | N12 |
 | 3 | `tools/perf/test_gate.mjs`, new, run with `node` | §5.4's rates, late callbacks, loads, switches, resume, chains, cancel and installs | N13, N16, N21, N27, N28 |
 | 4 | `test_stretch_switch.gd`, new | Each value's mode, and the project's for any other or none; `main.tscn`'s root in the switch's mode once it is ready, restored after | N14 |
@@ -476,7 +482,7 @@ Each case makes one change to its PR's code, runs the whole suite with `run_test
 - **Desktop runs.** E4's frames with Movie Maker, `tools/perf/movie.sh` and `diff_frames.py` (§6.5).
 - **The Fold4, by the owner** (§7): E1 on both screens, E5's look, and E6's pacing in the APK, with what Android alone does (`AGENTS.md` §5). They don't hold PRs 1–3: PR 4 gathers them, with a build, and mentions @pompomon (docs/agents/planning.md §5).
 
-### 6.5 Measurements
+### 6.5 Prototype measurements
 
 The browsers ran in this VM with `measure.mjs`, headed under Xvfb (checks.md §4), on release exports patched to take `?arg=`. Each run loads the build at a size and pixel ratio, starts a scene by the autopilot, with `?arg=--autopilot&arg=--seed=1&arg=--area=<area>&arg=--hour=<hour>` and the levers' switches, waits 6 s, then records 15 s, or 12 s for P1: the page's frame times, and the probe's `PERF` line, one a second. Records at 20:00 end within the night (E1). P1, P8 and P10 ran once a case, and P15 two to four times. The frame rates below are the page's frames over the 15 s, within 0.5 fps of the probe's count at 60 Hz; P15 and P18 count the probe's frames and their distance from the last, as a cap can leave the page's own chain at the screen's rate (§5.1).
 
@@ -539,12 +545,102 @@ With every lever, Firefox at a pixel ratio of 2 had a median frame of 17.1 ms in
 
 ---
 
+### 6.6 Shipping verification
+
+These are the implementation's results, not §6.5's prototype measurements. The release exports use the same Godot/browser versions as above, on two AMD EPYC 9V74 vCPUs, without a GPU, headed under Xvfb. Browser measurements run sequentially, without the owned GUT, mutation or movie jobs competing for CPU. Generated test HTML alone reads `?arg=`; product `fps`, `fpscap` and `stretch` queries work without that patch.
+
+The verified runtime trees are counter `a80ff29` (landed as `b5a3efa`), lamps `64226ae` (landed as `243b5ba`), pacing `8ace625` (landed as `39e9513`) and viewport `06a743c`. Reconciling the three squash merges upward changed no tree entry: pacing retains `c2c5dec`'s runtime, viewport `18e3d77`'s. This documentation-only synchronization changes none of those runtimes.
+
+**E2, regular scenes.** All 192 records are valid: six scenes, both browsers, DPR1/2, four builds and two runs each. All PRs 2–4 pass the comparison; the worst differences from PR 1 are −0.406109, −0.544592 and −0.394807 fps respectively, each in Chrome's Village day at DPR1. No case needs the specified extra two runs. Each cell below is PR 1 / PR 2 / PR 3 / PR 4; displayed to two decimals, checked unrounded by the summed engine `n/us` within each run and the arithmetic mean of its two runs.
+
+| Browser | Size/ratio | City day | Rural night | Meadows night | Desert night | Village day | City night |
+|---|---|---|---|---|---|---|---|
+| Firefox | 360×640/1 | 58.87 / 58.92 / 58.97 / 58.92 | 59.02 / 58.96 / 58.96 / 59.00 | 58.96 / 59.00 / 59.01 / 59.01 | 58.92 / 59.00 / 59.01 / 59.00 | 59.00 / 59.00 / 59.00 / 59.00 | 49.57 / 53.28 / 53.66 / 53.23 |
+| Firefox | 360×640/2 | 28.33 / 28.13 / 28.09 / 52.67 | 23.74 / 24.39 / 24.51 / 50.26 | 24.12 / 29.99 / 30.00 / 56.06 | 24.61 / 30.66 / 31.53 / 56.69 | 33.55 / 33.23 / 33.56 / 58.21 | 18.48 / 18.62 / 18.76 / 40.13 |
+| Chrome | 360×640/1 | 24.18 / 23.96 / 23.90 / 23.94 | 22.46 / 23.16 / 22.95 / 23.32 | 22.36 / 28.68 / 28.99 / 28.59 | 22.81 / 29.76 / 30.39 / 29.86 | 31.78 / 31.37 / 31.23 / 31.38 | 13.30 / 13.66 / 13.61 / 13.45 |
+| Chrome | 360×640/2 | 9.12 / 9.17 / 9.15 / 18.28 | 7.53 / 7.84 / 7.74 / 17.57 | 7.61 / 10.31 / 10.26 / 20.70 | 7.70 / 10.61 / 10.48 / 21.17 | 11.34 / 11.28 / 11.28 / 21.94 | 5.42 / 5.47 / 5.50 / 11.67 |
+
+PR 4's Firefox real-scene means are 58.917928–59.007624 fps at DPR1 and 50.259076–58.207425 at DPR2; City night 53.227553 and 40.130557. Thus the regular-scene floors pass, but Rural night and City night at DPR2 have only 0.259076/0.130557 fps of margin. Chrome at DPR2 is faster in every scene, 1.933839–2.747043 times PR 1.
+
+**E2, ends and ways in.** All 72 Firefox records are valid: all 18 shipping `ends.json` cases at DPR1/2, twice, including eight actual whole runs out/home. All 36 cases pass every applicable floor, without extra runs. End and approach rates use `EVENT` frame counts and elapsed times; ways in use the summed engine `n/us` of complete `PERF` windows, not page-RAF rates. Means are checked unrounded and displayed to two decimals. `arrival` is a whole run out, `arrival_n` starts in the Desert at night, and `home` is a whole run home.
+
+| End case | DPR1 FPS | DPR2 FPS |
+|---|---|---|
+| `arrival` | 58.88 | 58.65 |
+| `arrival_n` | 58.92 | 58.69 |
+| `baba_yaga` | 58.60 | 54.42 |
+| `chupacabra` | 58.76 | 56.03 |
+| `death_worm` | 58.52 | 57.39 |
+| `fairy_ring` | 58.68 | 55.44 |
+| `frau_holle` | 58.46 | 57.70 |
+| `grim_reaper` | 58.59 | 48.10 |
+| `headless_horseman` | 58.64 | 48.04 |
+| `home` | 58.82 | 53.68 |
+| `kelpie` | 58.57 | 55.88 |
+| `marfa_lights` | 58.59 | 55.24 |
+| `mothman` | 58.70 | 47.61 |
+| `phantom_bus` | 58.77 | 48.69 |
+| `scarecrow` | 58.09 | 48.18 |
+| `ufo` | 58.05 | 47.77 |
+| `will_o_wisp` | 58.76 | 52.87 |
+| `witch_hex` | 58.46 | 54.05 |
+
+| Window | DPR1 FPS | DPR2 FPS |
+|---|---|---|
+| `arrival`, approach | 59.01 | 53.01 |
+| `arrival`, area rural | 58.73 | 54.15 |
+| `arrival`, area meadows | 58.86 | 52.58 |
+| `arrival`, area village | 58.87 | 57.25 |
+| `arrival`, area desert | 58.92 | 57.61 |
+| `arrival`, area coast | 58.89 | 51.32 |
+| `arrival_n`, approach | 59.09 | 53.72 |
+| `home`, area village | 58.86 | 57.54 |
+| `home`, area meadows | 59.00 | 58.07 |
+| `home`, area rural | 58.87 | 56.32 |
+| `home`, area city | 57.90 | 44.98 |
+
+Ends range from 58.050614–58.917518 fps at DPR1 and 47.612010–58.694674 at DPR2, above 40. All the measured approaches and ways in meet 50, except home into the City, which meets its 40-fps floor. These are software-rendered shipping results; E1's GPU/device readings remain unverified.
+
+**Positive checks and controls.** Import, lint/format and smoke pass on all layers, with `autopilot: tile 177, turns 32, area rural`. Full suites report no unexpected error or leak. The earlier suites shared CPU with other validation jobs; PR 4's final rerun followed the browser measurements, without those jobs. These times are not performance comparisons.
+
+| Layer | Scripts loaded | Test scripts | Tests | Asserts | GUT time | Node tests | Verified negative controls |
+|---|---|---|---|---|---|---|---|
+| Baseline `e93f12b` | 223 | 104 | 924 | 524,374 | 146.044 s | — | — |
+| PR 1 | 229 | 107 | 945 | 524,568 | 391.709 s | 10 | 24 |
+| PR 2 | 229 | 107 | 956 | 524,777 | 330.956 s | 10 | 15 |
+| PR 3 | 232 | 109 | 966 | 525,117 | 324.000 s | 72 | 14 |
+| PR 4 | 234 | 110 | 969 | 525,130 | 152.023 s | 72 | 1, N14 |
+
+Each claimed control exits 1 with its named tests failing; the GDScript controls run the whole GUT suite. The tool controls run their actual capture/record paths. The 37-warning forced-reload probe, then again without integer division, finds only the baseline's four divisions and unused `junctions`.
+
+N23 is separate from PR 1's 24 controls: its three live-Web cases, a wrong seed, an end before the start and missing way-in events, are rejected by `events.mjs`; removing the event checks accepts all three. The valid grim-reaper end is accepted, with no engine error. The later page-diagnostic label fix does not change this event-check behavior.
+
+**E4.** Every compared frame is identical: PR 1, 2,160 portrait frames against the baseline; PRs 2 and 3, 4,320 each against PR 1, including the three wide/arrival comparisons; PR 4, 2,160 portrait frames against PR 1. Every recording has no error line.
+
+**Web input and E5 media.** Chrome and Firefox passed the actual Settings/FPS, Book tap/page/Back, drag beginning on a cell, keyboard focus/scrolling, tutorial, steering, Pause and resume checks at 370×657, DPR2 and DPR3, with black margins. Each paused canvas stayed byte-identical for one second. Fresh-page checks logged no application or WebGL error; Firefox reload teardown had reproduced the baseline's navigation error, so the repeat used separate pages. [The four hosted DPR2 screenshots](https://github.com/pompomon/roadgame/pull/129#issuecomment-7088832306), at 360×640 in Chrome with the counter hidden, show both stretches in City day and Meadows night. They are independent live frames, not matching world poses or rate measurements. The owner still checks motion on both Fold4 screens.
+
+**E3.** The final official two-run `hitch.mjs` comparison passes: PR 2's maxima are 34.30 and 34.32 ms, each at the first free; PR 3's 17.82 and 17.84 ms, with no interval over 25 ms in 7–12 s. The first pair had one isolated 33.56 ms interval at 10.700 s on PR 3, retained in the results, and one clean run. A diagnostic repeat using the same capture/interval functions had two clean runs, 17.76 and 17.72 ms, each paired with PR 2's first-free hitch. No source changed between these attempts. These are page-RAF intervals; they are not a claim that every raw engine interval stays under 25 ms.
+
+**E6.** Actual Firefox at `layout.frame_rate=120`, two runs per selector/scene: the installed shipping gate reports n=2 and a refresh of 8.316–8.359 ms. Initial cap 0 has no gate. Decisions use unrounded summed engine `n/us` rates; these means are displayed to four decimals.
+
+| Scene | Uncapped FPS | Capped FPS | Capped early/s | Result |
+|---|---|---|---|---|
+| City day | 82.4758 | 59.9027 | 1.6852 | 60 ± 1 and at most 2 early/s |
+| Meadows night | 95.6639 | 59.9425 | 0.0767 | The same |
+| City night | 53.2783 | 52.4205 | 0.0381 | 0.8578 fps slower, within 1 |
+
+At 60 Hz, two runs per selector in City day: Firefox uncapped/capped means 58.960464/58.960535 fps, Chrome 24.060628/23.872005; differences 0.000071 and 0.188623, both within 1. All 62 shipping-source gate simulations pass too. This does not establish the APK's pacing; the owner reads it on the Fold4.
+
+**CI and the owner gate.** All four required checks pass on the verified runtime heads: PR 1's `a80ff29`, CI test 4m26s (run 45089816885); PR 2's `64226ae`, 4m34s (45091446796); PR 3's `8ace625`, 3m47s (45101757741); PR 4's `06a743c`, 3m35s (45102725913). The final documentation head's CI and artifacts are recorded in PR 4's body and build handoff. E1's Fold4/GPU rates, E5's motion on both screens and the APK's E6 remain unverified; PR 4 keeps `needs-owner`. Only the owner lands it, after those readings; PR 5 then starts from `main`.
+
+---
+
 ## 7. Owner actions
 
 | When | Action | How |
 |---|---|---|
 | Now, if wanted | Read today's frame rate on the Fold4, to compare with §5.7 and later with PF | §5.7's "Today": https://pompomon.github.io/roadgame/ in Chrome, and DevTools' frame rendering stats over USB |
-| Now | Merge this plan's PR, which approves it with Q1–Q12's defaults; or answer a Q# in a PR comment, which the plan takes first | Squash it |
+| Done | The owner merged #124 and approved Q1–Q12's defaults | [Approval](https://github.com/pompomon/roadgame/pull/124#issuecomment-7085918553) |
 | Now, if wanted | Play the prototype | `gh workflow run ci.yml -R pompomon/roadgame --ref pf/prototype -f upload-builds=true`, then checks.md §4's download, patch and server, with `adb reverse tcp:8000 tcp:8000`, and `http://localhost:8000/?arg=--pf-overlay&arg=--pf-lamps=rs,cull&arg=--pf-hide-budget=2&arg=--pf-gate=60&arg=--pf-stretch=viewport`; without the `--pf-` switches but the overlay, it is `main` |
 | After PR 1, before PR 2 lands | E1's baseline, if wanted: `main` with the counter | On Pages, Settings → Show FPS or `?fps`, on both screens, in §5.7's scenes: the City from Play, and the others from the title's "Start in" button, which offers the areas found (docs/ZONE_SELECT.md Z4), at 32.5 s into the zone for its night. The template below, in a comment on PR 2, which a PR comment asks agents to hold until then |
 | Before landing PR 4 | E5 and E1, and E6 on the APK with checks.md :38's Android checks | `gh workflow run ci.yml -R pompomon/roadgame --ref pf/4-stretch -f upload-builds=true`. Within a day, as its artifacts are kept 1 day: its `web` build, patched and served as the prototype's, above, with `http://localhost:8000/?fps&stretch=viewport&arg=--autopilot&arg=--seed=1&arg=--area=<city, village, rural, meadows or desert>&arg=--hour=<7 by day, 20 at night>`, read from 6 s after the start (E1), then with `stretch=canvas_items`, on both screens and in a desktop browser with a GPU; for E1's ends, with these as its `arg=`s: `arg=--play&arg=--seed=1&arg=--area=city&arg=--hour=7`, a legend in the City by day, without steering, `arg=--play&arg=--seed=11&arg=--area=rural&arg=--hour=20`, one in Rural at night, and `arg=--autopilot&arg=--seed=1&arg=--collected=all&arg=--area=desert&arg=--hour=20`, the arrival, and without `--area` and `--hour`, a whole run, for its approach and ways in, and with `arg=--home` too, a whole run home; and its APK in play, with Settings → Show FPS and Developer options → Show refresh rate, for E6. Then land it, or comment |
@@ -570,7 +666,7 @@ Refresh: <Hz>, as Developer options → Show refresh rate shows it
 | Risk | Impact | Mitigation |
 |---|---|---|
 | The VM isn't a phone | The proxy's numbers, and §5.7's, are estimates; a GPU's costs differ from software's (Y1) | E1 on the Fold4 decides, with the counter; §5.7's red flags |
-| Thin margins in the proxy at a pixel ratio of 2 | With every lever, Rural at night ran at 51.25–52.8 fps and the City at night at 44.0, against E2's 50 and 40 (P10, P19), and sessions' means differed by up to 3.8 fps (P19), P8's runs of a scene by up to 1.7, P20's of an end by 6.6, so a change of a few fps could cross them | E2's further runs where a case's two fail; if PR 4's head still crosses a floor, its PR reports it, and the owner accepts it or a PR 6 takes Q1's alternative (§9) |
+| Thin margins in the proxy at a pixel ratio of 2 | The shipping margins are in §6.6. Prototype sessions' means differed by up to 3.8 fps (P19), P8's runs of a scene by up to 1.7, P20's of an end by 6.6, so a change of a few fps could cross them | E2's further runs where a case's two fail; if PR 4's head still crosses a floor, its PR reports it, and the owner accepts it or a PR 6 takes Q1's alternative (§9) |
 | The gate relies on Emscripten's main loop calling `window.requestAnimationFrame` each frame, and on nothing asking for a frame between the gate's install and the loop's first request | A later Godot that keeps its own reference would skip the gate: no cap on the Web, as today. Code that asked for a frame there would have its own chain paced, and not the game's | On each Godot upgrade, or a custom shell, P18's run at 120 Hz; `window.__framePacing` records n and the frames it skips |
 | `Engine.max_fps` paces Android unevenly at 120 Hz | Frames of 25 ms among the 16.7 ms ones, as on the Web (P15) | E6's reading on the APK; if its P95 is over 20 ms, `cap()` gives 0 on Android, one line, once the owner changes E6 |
 | The `viewport` stretch's look | What moves steps by the game's pixel: halves of an art pixel on the inner screen, whole ones on the cover (§5.5) | E5 on both screens, with `?stretch=`; the owner lands PR 4; reverting it is one line |
