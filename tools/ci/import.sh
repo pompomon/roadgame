@@ -4,5 +4,6 @@
 # shellcheck source=tools/ci/_common.sh
 source "$(dirname "$0")/_common.sh"
 
+fresh_gut_versions
 run_godot 900 "$REPORTS/import.log" --headless --path . --import
 fail_on "$ANY_ERROR_RE" "$REPORTS/import.log" "Errors during import"

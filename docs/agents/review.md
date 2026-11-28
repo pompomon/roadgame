@@ -78,8 +78,6 @@ In Copilot CLI and the cloud agent, run it with the bash tool and a long wait, s
 
 **Held runs.** Until the owner turned off the cloud agent's "Require approval for workflow runs" on 2026-11-16, GitHub held the CI run of each push from an agent's session: the run waited as `action_required`, and the commit had no CI checks, as #76's and #78's had none. If GitHub holds a run again, start it with `gh run rerun <run-id>`, from `gh run list -R pompomon/roadgame --branch <branch>`; it runs as its second attempt. If GitHub holds `main`'s run after an agent lands a PR, the next `land_pr.sh` says so and prints the command that starts it. A run started with `gh workflow run` passes too, but GitHub leaves it out of the commit's checks, so the PR stays blocked (docs/DAYNIGHT.md §4.5). GitHub's own pushes, such as a native stack's rebase, aren't held.
 
-When a check fails, read its log: `gh run view <run-id> --log-failed` (`gh pr checks <n>` gives the run's URL). Re-run the known flakes with `gh run rerun <run-id> --failed`:
-- GUT's daily update check gets a 403 from GitHub's API rate limit in an editor run, and the scripts reject its `ERROR: [GUT] Could not get version info`. Don't patch `addons/gut/`.
-- A download from GitHub times out.
+When a check fails, read its log: `gh run view <run-id> --log-failed` (`gh pr checks <n>` gives the run's URL). Re-run the known flake, a download from GitHub that times out, with `gh run rerun <run-id> --failed`. GUT's daily update check, which got a 403 from GitHub's API rate limit in editor runs (docs/M0.md Q1), no longer runs in them: `import.sh` and `export.sh` give it a fresh copy of its file first (`fresh_gut_versions` in `_common.sh`). So if its `ERROR: [GUT] Could not get version info` shows again, the helper missed: fix that rather than re-run. Don't patch `addons/gut/`.
 
 Anything else is a real failure. Reproduce it locally (AGENTS.md §3), fix it, and add a test.

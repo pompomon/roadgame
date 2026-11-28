@@ -8,13 +8,13 @@ Review IP's milestone against the code on `main`. Write down what is wrong, miss
 
 ## 2. Verify, don't just review
 
-Build every file the plan adds or changes on a branch `m<n>/prototype`, and run the five checks (AGENTS.md §3) on it locally: about 2 minutes, where a CI run started by hand takes 5–6. Start one only for a build that you will check (checks.md §4). Back each claim about Godot with a probe or a test. Where Godot's behaviour isn't documented, cite its source by file and line (docs/M2.md H16 cites `GDScriptLambdaSelfCallable`). To see or hear the game, run it on the desktop (checks.md §2). The prototype is only a reference: it never gets a PR.
+Build every file the plan adds or changes on a branch `m<n>/prototype`, and run the five checks (AGENTS.md §3) on it locally: about 2 minutes, where a CI run started by hand takes 5–6. Start one only for a build that you will check (checks.md §4). Back each claim about Godot with a probe or a test. Keep each measurement's record as `tools/perf/` writes it, under a build name that gives its commit, and quote each number from it with its browser, scene, size, runs and statistic (AGENTS.md §5): PF's internal reviews (#124) found 11 numbers given the wrong browser, run or statistic, and 12 claims beyond what was measured. Where Godot's behaviour isn't documented, cite its source by file and line (docs/M2.md H16 cites `GDScriptLambdaSelfCallable`). To see or hear the game, run it on the desktop (checks.md §2). The prototype is only a reference: it never gets a PR.
 
 ## 3. Write the plan
 
 Write `M<n>_PLAN.md` at the root, on branch `m<n>/plan`, in the shape of `git show 08f316f:M2_PLAN.md`. Keep it under about 95 KB, or Copilot won't review it (review.md §2).
 - A header with the status, date and scope; the tool versions it was verified with; the precedence (Δ); the reference code; the prerequisites; and the commit that its line numbers are at.
-- §1 the goal and exit criteria E#, each with how it is checked.
+- §1 the goal and exit criteria E#, each with how it is checked. List an E#'s cases from the code, not from memory: each area, set piece, pit stop and finish of `areas/schedule.tres` and `schedule_home.tres`, each cause that `GameState.end_run()` takes, each way into a run, each screen, and day and night. PF's internal reviews (#124) found 15 cases that its E#s left out, and 3 rounds of Copilot's review 3 more: the run's ends, the approach to the pier, and the tunnel, the bridge and Last Gas.
 - §2 the findings by severity: what's wrong, the evidence, the fix.
 - §3 decisions and open questions Q#, each with a default.
 - §4 the work breakdown: one PR per reviewable piece, with its files, steps and expected test counts; how the stack lands, and which PRs the owner lands beyond AGENTS.md §5 step 4's (§4.5); a table of review fixes, filled in later (§4.6). Put the changes to the owner's paths (AGENTS.md §5 step 4) in the last PR or in a `docs/` or `ci/` PR, so that agents can land the others.

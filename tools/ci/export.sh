@@ -17,6 +17,7 @@ slug=$(printf '%s' "$preset" | tr '[:upper:]' '[:lower:]' | tr -c '[:alnum:]' '-
 log="$REPORTS/export-$slug.log"
 mkdir -p "$(dirname "$out")"
 rm -f "$out"
+fresh_gut_versions
 run_godot 900 "$log" --headless --path . "--export-$mode" "$preset" "$out"
 fail_on "$ANY_ERROR_RE" "$log" "Errors during export of '$preset'"
 [ -s "$out" ] || { echo "::error::Export '$preset' produced no file at $out (see $log)"; exit 1; }

@@ -29,7 +29,7 @@ IDs: E# exit criteria, P# probes, Q# questions, N# negative cases, and findings 
 | stack PRs, land one, or update one after its base is merged | `docs/agents/stacks.md` |
 | set up the checks, run the game, build it, or check it in a browser | `docs/agents/checks.md` |
 | ask for a review, answer one, watch a PR, or fix CI | `docs/agents/review.md` |
-| change legends, light, screens, tests or CI | `.github/instructions/`: `legends`, `light`, `ui`, `tests` and `ci` |
+| change legends, light, screens, tests, CI or measurements | `.github/instructions/`: `legends`, `light`, `ui`, `tests`, `ci` and `perf` |
 
 ## 2. Rules for code
 

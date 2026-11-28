@@ -10,4 +10,4 @@ applyTo: ".github/**,tools/ci/**,tools/agent/**,project.godot,export_presets.cfg
 - **Actions storage.** No Actions caches, and artifacts are kept 1 day (docs/M0.md F34). `check_actions_storage.sh` enforces it.
 - **The tree.** The `test` job fails if the checks changed the tree (`git status --porcelain`): commit each file just as Godot writes it (docs/M5.md L28).
 - **Builds.** CI uploads them only from a run started by hand with `upload-builds` (docs/agents/checks.md §4). `deploy-web` runs only on `main`, and `release.yml` for `v*.*.*` tags or by hand.
-- **Flakes.** Re-run a failed job when GUT's daily update check hits GitHub's rate limit or a download times out (docs/agents/review.md §4). Never patch `addons/gut/`.
+- **Flakes.** Re-run a failed job only when a download times out (docs/agents/review.md §4). Each editor run calls `fresh_gut_versions` (`_common.sh`) first, as `import.sh` and `export.sh` do, so that GUT's update check can't fail it. Never patch `addons/gut/`.
