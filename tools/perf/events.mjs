@@ -1,4 +1,4 @@
-// Time ends by EVENT frame counts, and ways in by complete PERF windows (PERF_PLAN.md E2).
+// Time ends by EVENT frame counts, and ways in by complete PERF windows (docs/PERF.md E2).
 // node events.mjs '{"browsers":["firefox"],"builds":{"main":"http://localhost:8000/"},
 //   "sizes":[[360,640,2]],"scenarios":"tools/perf/ends.json","reps":2,"out":"ends.jsonl"}'
 // Scenarios: {name,args,from:"run_ended",to:"game_over",expect:[],before,timeout:90,

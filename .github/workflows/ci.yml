@@ -33,10 +33,16 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          package-manager-cache: false
       - run: pip install -r tools/ci/requirements.txt
       - run: tools/ci/lint.sh
       - name: Agent scripts against a fake gh (tools/agent/test/)
         run: python3 tools/agent/test/scenarios.py
+      - name: Measurement tools' tests (tools/perf/)
+        run: node --test tools/perf/test_*.mjs
       - name: actionlint
         run: |
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12

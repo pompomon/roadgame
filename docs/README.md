@@ -20,6 +20,7 @@ Summaries of the finished plans. Each keeps its plan's section numbers and every
 | [ENDGAME.md](ENDGAME.md) | EG: the road ends at a pier after 280 turns, 100 since SP, and an arrival unlocks a legend; the Book of Legends, the Road Home, Departures, Keep Driving, the route strip, pit stops, postcards and the Vanishing Hitchhiker | #84, #101–#113 |
 | [HEADLIGHTS.md](HEADLIGHTS.md) | HL: road-only headlights from dusk until sunrise, resting windmills, and swaying grass in the Meadows | #117, #119–#121 |
 | [SPEEDUP.md](SPEEDUP.md) | SP: both roads end after 100 turns, with longer straights from the Meadows on, a faster top speed and 60 s days in Rural, the Meadows and the Desert, so the autopilot reaches either end in about four minutes | #116, #118 |
+| [PERF.md](PERF.md) | PF: 40–50 fps in the browser, with Settings → Show FPS, the lamps batched and culled, at most two freed rows hidden a frame, 60 fps pacing on the Web and Android, and the `viewport` stretch | #124, #126–#129 |
 
 ## For agents
 

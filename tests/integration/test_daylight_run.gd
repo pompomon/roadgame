@@ -346,7 +346,7 @@ func test_the_veil_darkens_the_world_but_not_the_glows_or_the_ui() -> void:
 
 
 ## `node` and every canvas item under it, with the nodes' own parts: their internal children, as
-## the shadows' sprites are (C20); the lamps use RenderingServer items (PERF_PLAN.md §5.2).
+## the shadows' sprites are (C20); the lamps use RenderingServer items (docs/PERF.md §5.2).
 static func _items(node: Node) -> Array[CanvasItem]:
 	var found: Array[CanvasItem] = []
 	if node is CanvasItem:

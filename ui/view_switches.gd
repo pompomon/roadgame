@@ -1,6 +1,6 @@
 class_name ViewSwitches
 extends RefCounted
-## View-only arguments take precedence over the Web page's query (PERF_PLAN.md Q4, §5.1).
+## View-only arguments take precedence over the Web page's query (docs/PERF.md Q4, §5.1).
 
 
 static func has(name: String, args: PackedStringArray, query: String) -> bool:

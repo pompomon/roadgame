@@ -1,4 +1,4 @@
-// Compare Web exports in headed Chrome/Firefox under Xvfb (PERF_PLAN.md E2, §6.5).
+// Compare Web exports in headed Chrome/Firefox under Xvfb (docs/PERF.md E2, §6.5).
 // node measure.mjs '{"browsers":["firefox"],"builds":{"main":"http://localhost:8000/"},
 //   "sizes":[[360,640,2]],"scenarios":[{"area":"city","hour":7}],"reps":2,"out":"results.jsonl"}'
 // Exports must take ?arg=. PLAYWRIGHT_MODULE and CHROME override the local browser tooling.

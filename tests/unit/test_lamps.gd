@@ -251,7 +251,7 @@ func test_silhouettes_are_used_again_with_their_glows() -> void:
 	assert_eq(_lamps._items.size(), 4, "no more items on reuse")
 	assert_ne(_lamps.add(dark, _prop(dark, Vector2(0, 20))).item, first.item, "another prop's")
 	assert_eq(_lamps._items.size(), 5)
-	assert_eq(_lamps.get_child_count(true), 0, "no per-prop nodes (PERF_PLAN.md Y3)")
+	assert_eq(_lamps.get_child_count(true), 0, "no per-prop nodes (docs/PERF.md Y3)")
 
 
 func test_out_by_day_and_without_a_clock_and_on_at_night() -> void:

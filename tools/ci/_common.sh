@@ -57,18 +57,73 @@ fail_on() {
   return 1
 }
 
+# godot_user_dir: prints the project's user://, where Godot 4.7.2 keeps it (get_data_path() in
+# os_linuxbsd.cpp and os_macos.mm). On Linux, under XDG_DATA_HOME if that is an absolute path, or
+# else under HOME/.local/share, or without HOME under XDG_CONFIG_HOME if that is absolute, or else
+# under the working directory; on macOS, under HOME/Library/Application Support, or without HOME
+# under the working directory. An empty HOME counts as set, and String::path_join() then leaves
+# the path relative to the working directory.
+godot_user_dir() {
+  local data
+  if [ "$(uname -s)" = Darwin ]; then
+    if [ -n "${HOME+set}" ]; then
+      data="${HOME:+$HOME/}Library/Application Support"
+    else
+      data=.
+    fi
+    data="$data/Godot"
+  else
+    case "${XDG_DATA_HOME:-}" in
+      /*) data="$XDG_DATA_HOME" ;;
+      *)
+        if [ -n "${HOME+set}" ]; then
+          data="${HOME:+$HOME/}.local/share"
+        else
+          case "${XDG_CONFIG_HOME:-}" in
+            /*) data="$XDG_CONFIG_HOME" ;;
+            *) data=. ;;
+          esac
+        fi
+        ;;
+    esac
+    data="$data/godot"
+  fi
+  printf '%s\n' "$data/app_userdata/Road Roguelike"
+}
+
+# fresh_gut_versions: keeps GUT's editor plugin from checking for updates in the editor runs that
+# follow. A day after its last check, the plugin fetches GUT's versions.json from GitHub's API, and
+# a failure there, such as a 401 or a 403 for the rate limit, is an ERROR line that fail_on rejects
+# (addons/gut/gut_plugin.gd:82-84, update_detector.gd:195; docs/M0.md Q1). So this writes GUT's own
+# copy where the plugin keeps the fetched one (update_detector.gd:31), dated now. It replaces the
+# file whole, as an editor in another worktree shares this user:// and may be reading it.
+fresh_gut_versions() {
+  local dir now tmp
+  dir="$(godot_user_dir)/gut_temp_directory"
+  now=$(date +%s)
+  mkdir -p "$dir"
+  tmp=$(mktemp "$dir/versions.json.XXXXXX")
+  sed "1s/^{\$/{\"fetch_timestamp\": $now,/" addons/gut/versions.json > "$tmp"
+  if [ "$(head -n 1 "$tmp")" != "{\"fetch_timestamp\": $now," ]; then
+    rm -f "$tmp"
+    echo "::error::addons/gut/versions.json no longer starts with a lone {, so GUT would check for updates"
+    return 1
+  fi
+  mv -f "$tmp" "$dir/versions.json"
+}
+
 # scratch_save: gives the Godot runs that follow a scratch user:// whose save.json isn't JSON, which
-# reading it would rename to .bak (docs/M5.md L1). Godot keeps user:// under XDG_DATA_HOME on Linux,
-# and under HOME on macOS, which ignores XDG_DATA_HOME (Godot 4.7.2's os_macos.mm, get_data_path()).
+# reading it would rename to .bak (docs/M5.md L1).
 scratch_save() {
   SCRATCH_DIR=$(mktemp -d)
+  # Absolute, as Godot ignores a relative XDG_DATA_HOME, which would make SAVE_DIR the real user://.
+  case "$SCRATCH_DIR" in /*) ;; *) SCRATCH_DIR="$PWD/$SCRATCH_DIR" ;; esac
   if [ "$(uname -s)" = Darwin ]; then
     export HOME="$SCRATCH_DIR"
-    SAVE_DIR="$SCRATCH_DIR/Library/Application Support/Godot/app_userdata/Road Roguelike"
   else
     export XDG_DATA_HOME="$SCRATCH_DIR"
-    SAVE_DIR="$SCRATCH_DIR/godot/app_userdata/Road Roguelike"
   fi
+  SAVE_DIR=$(godot_user_dir)
   mkdir -p "$SAVE_DIR"
   echo "not a save" > "$SAVE_DIR/save.json"
 }

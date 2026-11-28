@@ -1,6 +1,6 @@
 class_name FramePacing
 extends RefCounted
-## The native limiter and Web refresh gate (PERF_PLAN.md §5.4).
+## The native limiter and Web refresh gate (docs/PERF.md §5.4).
 
 const ENGINE_LIMIT := 2147483647
 const GATE_JS := """
